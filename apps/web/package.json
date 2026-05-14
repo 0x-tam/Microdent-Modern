@@ -1,0 +1,26 @@
+{
+  "name": "@microdent/web",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "predev": "pnpm --filter @microdent/ui run build && pnpm --filter @microdent/app run build",
+    "dev": "vite",
+    "prebuild": "pnpm --filter @microdent/ui run build && pnpm --filter @microdent/app run build",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@microdent/app": "workspace:*",
+    "@microdent/ui": "workspace:*",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "@vitejs/plugin-react": "4.3.4",
+    "typescript": "5.7.2",
+    "vite": "5.4.21"
+  }
+}

@@ -27,6 +27,22 @@ The same script runs if you use `pnpm test` at the root. It builds `@microdent/c
 
 The **`@microdent/app`** package exports **`AppShell`** (top bar, sidebar, read-only banner, bridge placeholder). See [docs/phase-1a-app-shell.md](docs/phase-1a-app-shell.md) and [packages/app/README.md](packages/app/README.md). Host apps should import, in order: `@microdent/ui/tokens.css`, `@microdent/ui/components.css`, `@microdent/app/app-shell.css`.
 
+### Browser preview (`apps/web`)
+
+Run the shell in a local Vite dev server (loopback only, no bridge or patient data):
+
+```bash
+pnpm preview:web
+```
+
+Or: `pnpm --filter @microdent/web run dev`. Details: [docs/phase-1a-web-preview.md](docs/phase-1a-web-preview.md) and [apps/web/README.md](apps/web/README.md).
+
+Verify the production bundle:
+
+```bash
+pnpm build:web
+```
+
 To run only the bridge tests (after contracts are already built):
 
 ```bash
