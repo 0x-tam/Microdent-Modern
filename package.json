@@ -1,0 +1,15 @@
+{
+  "name": "microdent-modern",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "services/*"
+  ],
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "test": "npm run build --workspace=@microdent/contracts && npm run test --workspace=@microdent/bridge"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,3 +1,18 @@
-/*
-!.gitignore
-!/docs/
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+*.tsbuildinfo
+
+# Logs and local env
+*.log
+.env
+.env.*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+
+# Docs and project files are tracked; legacy DATA in repo (if present) stays as-is per repo history.
+# Add local secrets or large artifacts below as needed.
