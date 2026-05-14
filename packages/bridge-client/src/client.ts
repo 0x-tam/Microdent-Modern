@@ -34,13 +34,18 @@ function assertTableId(tableId: string): void {
   }
 }
 
+/** Browsers require `fetch` to be called with `this === window` (or `globalThis`); storing a bare reference causes "Illegal invocation". */
+function defaultBoundFetch(): typeof fetch {
+  return globalThis.fetch.bind(globalThis);
+}
+
 export class BridgeClient {
   private readonly baseUrl: string;
   private readonly fetchImpl: typeof fetch;
 
   constructor(options: BridgeClientOptions) {
     this.baseUrl = normalizeBaseUrl(options.baseUrl);
-    this.fetchImpl = options.fetch ?? globalThis.fetch;
+    this.fetchImpl = options.fetch ?? defaultBoundFetch();
   }
 
   async getHealth(): Promise<HealthResponse> {

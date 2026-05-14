@@ -8,7 +8,7 @@
   - `getMetaTables()` → `GET /v1/meta/tables`
   - `getTableSchema(tableId)` → `GET /v1/tables/:tableId/schema`
   - `getTableRows(tableId, { limit?, offset? })` → `GET /v1/tables/:tableId/rows` with query string when params are set
-- **`createBridgeClient({ baseUrl, fetch? })`**: factory; **`fetch`** is injectable for tests or non-default runtimes.
+- **`createBridgeClient({ baseUrl, fetch? })`**: factory; **`fetch`** is injectable for tests or non-default runtimes. When omitted, the client uses **`globalThis.fetch.bind(globalThis)`** so calls work in browsers (avoids **`Illegal invocation`** from an unbound **`window.fetch`** reference).
 - **`BridgeClientError`**: unified failure type with **`kind`**: `network` | `http` | `invalid_body` | `invalid_argument`, optional **`status`**, and **`apiCode` / `apiMessage`** when a non-2xx body matches **`ApiErrorBodySchema`**.
 
 ## What was intentionally not built
@@ -25,4 +25,4 @@
 
 ## Tests
 
-Vitest unit tests with a **mock `fetch`** (no real bridge process, no DBF reads). Run from repo root via **`pnpm test`** / **`npm test`** after **`@microdent/contracts`** build.
+Vitest unit tests with a **mock `fetch`** (no real bridge process, no DBF reads). Includes a regression test that **`globalThis.fetch`** must receive the correct **`this`** binding when no custom **`fetch`** is passed. Run from repo root via **`pnpm test`** / **`npm test`** after **`@microdent/contracts`** build.

@@ -140,4 +140,21 @@ describe("BridgeClient", () => {
     await client.getHealth();
     expect(fetch).toHaveBeenCalledWith(`${baseUrl}/health`, expect.anything());
   });
+
+  it("default fetch is bound to globalThis (avoids browser Illegal invocation)", async () => {
+    const original = globalThis.fetch;
+    const strictLikeBrowserFetch = function (this: unknown, _input: RequestInfo | URL, _init?: RequestInit): Promise<Response> {
+      if (this !== globalThis) {
+        throw new TypeError("Failed to execute 'fetch' on 'Window': Illegal invocation");
+      }
+      return Promise.resolve(jsonResponse({ ok: true, version: "0.0.1" }));
+    };
+    globalThis.fetch = strictLikeBrowserFetch as typeof fetch;
+    try {
+      const client = createBridgeClient({ baseUrl });
+      await expect(client.getHealth()).resolves.toEqual({ ok: true, version: "0.0.1" });
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
 });
