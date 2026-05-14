@@ -63,8 +63,8 @@ export function LegacyCatalogPanel({ bridgeBaseUrl, bridgePhase }: LegacyCatalog
         <CardHeader>
           <p className="ui-card__title app-card-title-lg">Legacy data catalog</p>
           <p className="app-legacy-catalog-panel__subtitle">
-            Read-only catalog from copied legacy <code className="app-legacy-catalog-panel__code">DATA</code> folder.
-            Shows whether known tables are present and header counts only — no patient rows or field values.
+            Developer / diagnostic — read-only catalog from copied legacy <code className="app-legacy-catalog-panel__code">DATA</code>{" "}
+            folder. Table inventory and header counts only — not a clinical view; no patient rows or field values.
           </p>
         </CardHeader>
         <CardBody>

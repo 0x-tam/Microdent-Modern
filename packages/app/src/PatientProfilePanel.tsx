@@ -140,7 +140,7 @@ export function PatientProfilePanel({
           <EmptyState
             className="ui-empty--start app-patient-profile__empty"
             title="No patient selected"
-            description="Use Find a patient in the top bar, pick a row when the clinic service is connected, and this area will open their read-only summary."
+            description="Search for a patient above to open their read-only profile."
           />
         ) : state.phase === "offline" ? (
           <EmptyState

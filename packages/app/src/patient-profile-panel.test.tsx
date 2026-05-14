@@ -71,6 +71,7 @@ describe("PatientProfilePanel", () => {
       );
     });
     expect(container.textContent).toMatch(/No patient selected/i);
+    expect(container.textContent).toMatch(/Search for a patient above to open their read-only profile/i);
   });
 
   it("does not call profile fetch when the bridge is offline", async () => {
@@ -199,5 +200,28 @@ describe("PatientProfilePanel", () => {
     });
     const t = container.textContent ?? "";
     expect(t).not.toMatch(/HOME_PHONE|STREET|EMAIL|QUICKNOTE|PAT_M_COMP|INSURANCE|raw json/i);
+    expect(t).not.toContain("PAT_NAME");
+    expect(t).not.toContain("TELEPHONE");
+    expect(t).not.toContain("COMMENT");
+    expect(t).not.toMatch(/\braw row\b/i);
+  });
+
+  it("does not surface blocked DBF field labels on the empty state", async () => {
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId={null}
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    const t = container.textContent ?? "";
+    expect(t).not.toContain("PAT_NAME");
+    expect(t).not.toContain("TELEPHONE");
+    expect(t).not.toContain("COMMENT");
+    expect(t).not.toMatch(/\braw row\b/i);
   });
 });

@@ -392,6 +392,13 @@
   flex-shrink: 0;
 }
 
+.app-shell__privacy-note {
+  margin: var(--ui-space-2) 0 var(--ui-space-3);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
 /* ----- Body ----- */
 .app-shell__body {
   display: flex;

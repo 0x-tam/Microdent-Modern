@@ -1,6 +1,26 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { AppShell } from "./AppShell.js";
+import { AppShell, resolveShellClinicLabel } from "./AppShell.js";
+
+describe("resolveShellClinicLabel", () => {
+  it("uses an explicit clinic label when provided", () => {
+    expect(resolveShellClinicLabel("offline", "Demo clinic")).toBe("Demo clinic");
+    expect(resolveShellClinicLabel("connected", "Demo clinic")).toBe("Demo clinic");
+  });
+
+  it("uses the connected copy when no clinic label and bridge is connected", () => {
+    expect(resolveShellClinicLabel("connected", undefined)).toBe("Connected to copied clinic data");
+  });
+
+  it("uses read-only preview when no clinic label and bridge is not connected", () => {
+    expect(resolveShellClinicLabel("offline", undefined)).toBe("Read-only preview");
+    expect(resolveShellClinicLabel("checking", undefined)).toBe("Read-only preview");
+  });
+
+  it("treats blank clinic label as unset", () => {
+    expect(resolveShellClinicLabel("connected", "  ")).toBe("Connected to copied clinic data");
+  });
+});
 
 describe("AppShell", () => {
   it("renders landmark structure: banner, navigation, main", () => {
@@ -44,5 +64,26 @@ describe("AppShell", () => {
     const html = renderToStaticMarkup(<AppShell />);
     expect(html).toContain('aria-current="true"');
     expect(html).toContain("Today");
+  });
+
+  it("shows dynamic read-only preview label when no clinic name is passed", () => {
+    const html = renderToStaticMarkup(<AppShell />);
+    expect(html).toContain("Read-only preview");
+    expect(html).not.toMatch(/sample data only/i);
+  });
+
+  it("does not surface forbidden sample or PHI field labels in static markup", () => {
+    const html = renderToStaticMarkup(<AppShell bridgeBaseUrl="http://127.0.0.1:17890" />);
+    expect(html).not.toMatch(/Sample patient/i);
+    expect(html).not.toMatch(/sample data only/i);
+    expect(html).not.toContain("PAT_NAME");
+    expect(html).not.toContain("TELEPHONE");
+    expect(html).not.toContain("COMMENT");
+    expect(html).not.toMatch(/\braw row\b/i);
+  });
+
+  it("shows the global privacy note under the read-only banner", () => {
+    const html = renderToStaticMarkup(<AppShell />);
+    expect(html).toContain("Names, notes, and phone numbers are hidden in this preview.");
   });
 });

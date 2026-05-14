@@ -127,7 +127,7 @@ export function FixtureConnectionPanel({ bridgeBaseUrl, bridgePhase, className }
                   </div>
                   {result.previewRows.length > 0 ? (
                     <div className="app-fixture-panel__preview">
-                      <p className="app-fixture-panel__preview-title">Sample cells (fake data)</p>
+                      <p className="app-fixture-panel__preview-title">Developer-only synthetic cell preview (not clinic data)</p>
                       <div className="app-fixture-panel__table-wrap">
                         <table className="app-fixture-panel__table">
                           <thead>

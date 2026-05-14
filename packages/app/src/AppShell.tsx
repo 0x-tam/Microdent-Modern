@@ -1,6 +1,6 @@
 import { createBridgeClient } from "@microdent/bridge-client";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Badge, Button, Card, CardBody, CardHeader, EmptyState, ReadOnlyBanner } from "@microdent/ui";
+import { Button, Card, CardBody, CardHeader, EmptyState, ReadOnlyBanner } from "@microdent/ui";
 import { probeBridgeHealth, describeBridgeHealthProbeError, type BridgeHealthPhase } from "./bridge-health.js";
 
 export type { BridgeHealthPhase } from "./bridge-health.js";
@@ -25,7 +25,10 @@ export const APP_NAV_MODULES = [
 export type AppNavModuleId = (typeof APP_NAV_MODULES)[number]["id"];
 
 export type AppShellProps = {
-  /** Shown in the top bar; use a clinic name in production. */
+  /**
+   * Shown in the top bar when set (e.g. a named clinic in tests).
+   * When omitted, the label follows bridge status: connected → copied-data line; otherwise read-only preview.
+   */
   clinicLabel?: string;
   /** Optional slot above the main landmark (e.g. future alerts). */
   topSlot?: ReactNode;
@@ -46,47 +49,70 @@ export type AppShellProps = {
   bridgeConnectionDiagnostics?: boolean;
 };
 
-const MODULE_PREVIEW: Record<
-  AppNavModuleId,
-  { summary: string; bullets: readonly string[] }
+const COMING_NEXT_COPY: Record<
+  Exclude<AppNavModuleId, "today" | "patients" | "schedule">,
+  { title: string; description: string }
 > = {
-  today: {
-    summary: "See who is on the schedule and what is next for your day.",
-    bullets: ["Open appointments from one place", "Jump to the patient or chart when you are ready"],
-  },
-  patients: {
-    summary: "Look up patients quickly and open their chart or next visit.",
-    bullets: ["Search by name or chart number", "See the details that help you pick the right person"],
-  },
-  schedule: {
-    summary: "Manage the day: who sits where, when, and with which provider.",
-    bullets: ["Week and day views tuned for the front desk", "Clear visit status at a glance"],
-  },
   "dental-chart": {
-    summary: "Review and record what you see in the mouth with a clear tooth chart.",
-    bullets: ["Chart by tooth and surface", "Keep clinical notes easy to find later"],
+    title: "Dental chart — coming next",
+    description:
+      "Dental chart view is coming next. No chart data is shown yet. This area will stay read-only in this phase.",
   },
   treatments: {
-    summary: "See planned care, phases, and estimates in one place.",
-    bullets: ["Share plans with patients in plain language", "Connect plans to visits and payments when enabled"],
+    title: "Treatments — coming next",
+    description: "Treatment history is coming next. No treatment data is shown yet.",
   },
   payments: {
-    summary: "Understand balances, insurance, and what the family owes.",
-    bullets: ["Ledger lines in date order", "Highlights when something needs a follow-up"],
+    title: "Payments — coming next",
+    description: "Payments and ledger view are coming next. No payment data is shown yet.",
   },
   reports: {
-    summary: "Run the lists and summaries your clinic relies on.",
-    bullets: ["Day sheets, aging, and activity by provider", "Filters that match how you already work"],
+    title: "Reports — coming later",
+    description: "Reports are coming later. No report data is shown yet.",
   },
   settings: {
-    summary: "Set up people, rooms, hours, and how Microdent fits your clinic.",
-    bullets: ["Users and roles", "Locations and schedule templates"],
+    title: "Settings",
+    description: "Settings are not editable in this read-only preview.",
   },
 };
+
+/** Exported for unit tests. */
+export function resolveShellClinicLabel(bridgePhase: BridgeHealthPhase, clinicLabel?: string): string {
+  const trimmed = clinicLabel?.trim();
+  if (trimmed) {
+    return trimmed;
+  }
+  return bridgePhase === "connected" ? "Connected to copied clinic data" : "Read-only preview";
+}
 
 function moduleLabel(id: AppNavModuleId): string {
   const m = APP_NAV_MODULES.find((x) => x.id === id);
   return m?.label ?? id;
+}
+
+function mainLedeText(active: AppNavModuleId): string {
+  switch (active) {
+    case "today":
+      return "Today’s dashboard is still being wired. Use Schedule for the live read-only appointment list.";
+    case "schedule":
+      return "Read-only view of appointments from your copied data. Names and notes stay off this screen.";
+    case "patients":
+      return "Read-only summary from your copied data. Search in the top bar, pick a patient, and only safe fields load here — no address, insurance, or clinical notes in this preview.";
+    case "dental-chart":
+      return "Dental charting is not available yet in this preview.";
+    case "treatments":
+      return "Treatment history is not available yet in this preview.";
+    case "payments":
+      return "Payments and ledger views are not available yet in this preview.";
+    case "reports":
+      return "Reports are not available yet in this preview.";
+    case "settings":
+      return "Settings are view-only in this preview; nothing here can be changed.";
+    default: {
+      const _x: never = active;
+      return _x;
+    }
+  }
 }
 
 function formatTodayLine(): string {
@@ -101,29 +127,21 @@ function formatTodayLine(): string {
   }
 }
 
-function ModuleHome({
+function ModuleComingNext({
   moduleId,
   onOpenModule,
   onBackToday,
 }: {
-  moduleId: AppNavModuleId;
+  moduleId: Exclude<AppNavModuleId, "today" | "patients" | "schedule">;
   onOpenModule: (id: AppNavModuleId) => void;
   onBackToday: () => void;
 }) {
-  const copy = MODULE_PREVIEW[moduleId];
+  const copy = COMING_NEXT_COPY[moduleId];
   return (
     <div className="app-module-home">
-      <div className="app-module-home__header">
-        <p className="app-module-home__summary">
-          <strong>{moduleLabel(moduleId)}</strong> — {copy.summary}
-        </p>
-      </div>
-
-      <ul className="app-module-home__bullets" aria-label={`What ${moduleLabel(moduleId)} will include`}>
-        {copy.bullets.map((b) => (
-          <li key={b}>{b}</li>
-        ))}
-      </ul>
+      <AppErrorBoundary>
+        <EmptyState className="ui-empty--start" title={copy.title} description={copy.description} />
+      </AppErrorBoundary>
 
       <div className="app-module-home__actions">
         <Button type="button" variant="secondary" className="ui-focusable" onClick={onBackToday}>
@@ -133,14 +151,6 @@ function ModuleHome({
           Open schedule
         </Button>
       </div>
-
-      <AppErrorBoundary>
-        <EmptyState
-          className="ui-empty--start"
-          title="Nothing to show yet"
-          description="When this area is turned on for your clinic, your team's work will show up here."
-        />
-      </AppErrorBoundary>
     </div>
   );
 }
@@ -164,61 +174,16 @@ function DashboardHome({
         <div className="app-dashboard__primary">
           <Card>
             <CardHeader>
-              <p className="ui-card__title app-card-title-lg">Today&apos;s appointments</p>
+              <p className="ui-card__title app-card-title-lg">Today&apos;s schedule</p>
             </CardHeader>
             <CardBody>
-              <ul className="app-appt-list" aria-label="Example appointments for layout only">
-                <li className="app-appt-list__row">
-                  <span className="app-appt-list__time">8:00</span>
-                  <div className="app-appt-list__main">
-                    <span className="app-appt-list__patient">Sample patient</span>
-                    <span className="app-appt-list__visit">Cleaning · Chair 1</span>
-                  </div>
-                  <Badge variant="success" semanticLabel="Visit status: confirmed (example)">
-                    Confirmed
-                  </Badge>
-                </li>
-                <li className="app-appt-list__row">
-                  <span className="app-appt-list__time">9:30</span>
-                  <div className="app-appt-list__main">
-                    <span className="app-appt-list__patient">Sample patient</span>
-                    <span className="app-appt-list__visit">Exam · Chair 2</span>
-                  </div>
-                  <Badge variant="info" semanticLabel="Visit status: scheduled (example)">
-                    Scheduled
-                  </Badge>
-                </li>
-                <li className="app-appt-list__row">
-                  <span className="app-appt-list__time">11:15</span>
-                  <div className="app-appt-list__main">
-                    <span className="app-appt-list__patient">Sample patient</span>
-                    <span className="app-appt-list__visit">New patient visit · Chair 1</span>
-                  </div>
-                  <Badge variant="info" semanticLabel="Visit status: scheduled (example)">
-                    Scheduled
-                  </Badge>
-                </li>
-                <li className="app-appt-list__row">
-                  <span className="app-appt-list__time">1:00 PM</span>
-                  <div className="app-appt-list__main">
-                    <span className="app-appt-list__patient">Sample patient</span>
-                    <span className="app-appt-list__visit">Filling · Chair 3</span>
-                  </div>
-                  <Badge variant="warning" semanticLabel="Reminder: verify benefits (example)">
-                    Check benefits
-                  </Badge>
-                </li>
-                <li className="app-appt-list__row">
-                  <span className="app-appt-list__time">2:45</span>
-                  <div className="app-appt-list__main">
-                    <span className="app-appt-list__patient">Sample patient</span>
-                    <span className="app-appt-list__visit">Child checkup · Chair 2</span>
-                  </div>
-                  <Badge variant="success" semanticLabel="Visit status: confirmed (example)">
-                    Confirmed
-                  </Badge>
-                </li>
-              </ul>
+              <AppErrorBoundary>
+                <EmptyState
+                  className="ui-empty--start"
+                  title="Schedule not on this page yet"
+                  description="Today's real schedule will load here once the dashboard is wired. Until then, open Schedule for read-only appointments (safe fields only)."
+                />
+              </AppErrorBoundary>
               <div className="app-appt-list__footer">
                 <Button type="button" variant="secondary" className="ui-focusable" onClick={() => onOpenModule("schedule")}>
                   Open schedule
@@ -228,22 +193,7 @@ function DashboardHome({
           </Card>
         </div>
 
-        <aside className="app-dashboard__aside" aria-label="Next visit and shortcuts">
-          <Card className="app-next-patient-card">
-            <CardHeader>
-              <p className="ui-card__title app-card-title-lg">Next appointment</p>
-            </CardHeader>
-            <CardBody>
-              <p className="app-next-patient__time">11:15</p>
-              <p className="app-next-patient__name">Sample patient</p>
-              <p className="app-next-patient__detail">New patient visit · Chair 1</p>
-              <Button type="button" variant="primary" className="ui-focusable app-next-patient__btn" onClick={() => onOpenModule("patients")}>
-                Open Patients
-              </Button>
-              <p className="app-next-patient__hint">Use Find a patient in the top bar when the clinic service is connected.</p>
-            </CardBody>
-          </Card>
-
+        <aside className="app-dashboard__aside" aria-label="Shortcuts and developer diagnostics">
           <Card>
             <CardHeader>
               <p className="ui-card__title app-card-title-lg">Quick actions</p>
@@ -254,8 +204,8 @@ function DashboardHome({
                   type="button"
                   variant="secondary"
                   className="ui-focusable app-quick-actions__btn"
-                  disabled
-                  title="Not available in this preview"
+                  onClick={() => onOpenModule("patients")}
+                  title="Opens the Patients area; search stays in the top bar"
                 >
                   Find patient
                 </Button>
@@ -280,23 +230,11 @@ function DashboardHome({
                   variant="secondary"
                   className="ui-focusable app-quick-actions__btn"
                   disabled
-                  title="Recording payments is read-only in this preview"
+                  title="Payments are not available in this read-only preview"
                 >
                   Record payment
                 </Button>
               </div>
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <p className="ui-card__title app-card-title-lg">Reminders</p>
-            </CardHeader>
-            <CardBody>
-              <ul className="app-reminder-list">
-                <li>Hygiene recall list for next week — review when Reports is on.</li>
-                <li>One benefit check pending for a visit this afternoon (example).</li>
-              </ul>
             </CardBody>
           </Card>
 
@@ -328,7 +266,7 @@ function formatDevCheckTime(ms: number): string {
  * and `@microdent/app/app-shell.css` before rendering.
  */
 export function AppShell({
-  clinicLabel = "Main clinic",
+  clinicLabel,
   topSlot,
   bridgeBaseUrl,
   bridgeHealthLogDiagnostics = false,
@@ -340,6 +278,8 @@ export function AppShell({
   const [lastHealthCheckAt, setLastHealthCheckAt] = useState<number | null>(null);
   const [lastHealthOfflineReason, setLastHealthOfflineReason] = useState<string | null>(null);
   const [previewOrigin, setPreviewOrigin] = useState<string>("—");
+
+  const resolvedClinicLabel = resolveShellClinicLabel(bridgePhase, clinicLabel);
 
   const mainHeadingId = "app-main-heading";
 
@@ -413,7 +353,7 @@ export function AppShell({
       <header className="app-topbar" role="banner">
         <div className="app-topbar__brand">
           <h1 className="app-brand">Microdent</h1>
-          <span className="app-topbar__clinic">{clinicLabel}</span>
+          <span className="app-topbar__clinic">{resolvedClinicLabel}</span>
         </div>
 
         <div className="app-topbar__search" role="search">
@@ -484,6 +424,9 @@ export function AppShell({
         <ReadOnlyBanner label="Read-only mode" className="ui-readonly-banner--compact">
           This preview cannot change clinic data.
         </ReadOnlyBanner>
+        <p className="app-shell__privacy-note" role="note">
+          Names, notes, and phone numbers are hidden in this preview.
+        </p>
       </div>
 
       {topSlot}
@@ -502,20 +445,7 @@ export function AppShell({
               <h2 className="app-main__heading" id={mainHeadingId}>
                 {moduleLabel(active)}
               </h2>
-              {active === "today" ? (
-                <p className="app-main__lede">Who is on the schedule, what is next, and where to go next.</p>
-              ) : active === "schedule" ? (
-                <p className="app-main__lede">
-                  Read-only view of appointments from your copied data. Names and notes stay off this screen.
-                </p>
-              ) : active === "patients" ? (
-                <p className="app-main__lede">
-                  Read-only summary from your copied data. Search in the top bar, pick a patient, and only safe fields load
-                  here — no address, insurance, or clinical notes in this preview.
-                </p>
-              ) : (
-                <p className="app-main__lede">Overview for {moduleLabel(active)}.</p>
-              )}
+              <p className="app-main__lede">{mainLedeText(active)}</p>
             </div>
 
             <div className="app-main__content">
@@ -537,7 +467,11 @@ export function AppShell({
                   onClearPatient={() => setSelectedPatientId(null)}
                 />
               ) : (
-                <ModuleHome moduleId={active} onOpenModule={setActive} onBackToday={() => setActive("today")} />
+                <ModuleComingNext
+                  moduleId={active as Exclude<AppNavModuleId, "today" | "patients" | "schedule">}
+                  onOpenModule={setActive}
+                  onBackToday={() => setActive("today")}
+                />
               )}
             </div>
           </div>

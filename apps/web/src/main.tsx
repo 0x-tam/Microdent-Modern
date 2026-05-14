@@ -15,7 +15,6 @@ const bridgeBaseUrl = import.meta.env.VITE_BRIDGE_BASE_URL?.trim() || "http://12
 createRoot(el).render(
   <StrictMode>
     <AppShell
-      clinicLabel="Local preview (sample data only)"
       bridgeBaseUrl={bridgeBaseUrl}
       bridgeHealthLogDiagnostics={import.meta.env.DEV}
       bridgeConnectionDiagnostics={import.meta.env.DEV}
