@@ -48,9 +48,9 @@ The **`@microdent/app`** package exports **`AppShell`** (top bar with optional *
    pnpm preview:web
    ```
 
-3. Open **http://127.0.0.1:5173**. Confirm the bridge with **http://127.0.0.1:17890/health** (JSON `ok`). The top bar should show **Connected** when health succeeds and the preview URL matches the bridge CORS allowlist (`127.0.0.1:5173` / `localhost:5173`).
+3. Open **http://127.0.0.1:5173** (or **http://127.0.0.1:4173** when using `pnpm --filter @microdent/web run preview` after a build). Confirm the bridge with **http://127.0.0.1:17890/health** (JSON `ok`). The top bar should show **Connected** when health succeeds and the page origin is one of the bridge CORS allowlist entries (**5173** and **4173** on `127.0.0.1` / `localhost`).
 
-**Troubleshooting:** If the UI is **Offline** but you expect the bridge up, open **`/health`** in the browser first. After changing **`apps/web/.env.local`**, restart **`pnpm preview:web`** so Vite picks up env changes.
+**Troubleshooting:** If the UI is **Offline** but **`/health`** works in another tab, compare the **preview URL and port** to the allowlist above (**dev** → 5173, **vite preview** → 4173). Restart **both** the bridge and **`pnpm preview:web`** (or `vite preview`) after changing env or CORS. After changing **`apps/web/.env.local`**, restart the preview so Vite reloads env vars.
 
 Or: `pnpm --filter @microdent/web run dev`. Details: [docs/phase-1a-web-preview.md](docs/phase-1a-web-preview.md) and [apps/web/README.md](apps/web/README.md).
 

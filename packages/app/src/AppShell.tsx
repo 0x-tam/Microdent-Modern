@@ -1,7 +1,7 @@
 import { createBridgeClient } from "@microdent/bridge-client";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Badge, Button, Card, CardBody, CardHeader, EmptyState, ReadOnlyBanner } from "@microdent/ui";
-import { probeBridgeHealth } from "./bridge-health.js";
+import { probeBridgeHealth, describeBridgeHealthProbeError } from "./bridge-health.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
 import { FixtureConnectionPanel } from "./FixtureConnectionPanel.js";
 
@@ -35,6 +35,11 @@ export type AppShellProps = {
    * Never surfaces PHI; keep off in production patient contexts.
    */
   bridgeHealthLogDiagnostics?: boolean;
+  /**
+   * When true, shows a small dev-only line under the bridge status (URL, last check time, safe offline reason).
+   * Do not enable in production patient contexts.
+   */
+  bridgeConnectionDiagnostics?: boolean;
 };
 
 const MODULE_PREVIEW: Record<
@@ -298,6 +303,14 @@ function DashboardHome({
   );
 }
 
+function formatDevCheckTime(ms: number): string {
+  try {
+    return new Intl.DateTimeFormat(undefined, { timeStyle: "medium" }).format(new Date(ms));
+  } catch {
+    return new Date(ms).toISOString();
+  }
+}
+
 /**
  * Application shell: top bar (optional bridge health via GET /health), read-only banner, sidebar (local state),
  * and a main canvas with an error boundary.
@@ -310,25 +323,34 @@ export function AppShell({
   topSlot,
   bridgeBaseUrl,
   bridgeHealthLogDiagnostics = false,
+  bridgeConnectionDiagnostics = false,
 }: AppShellProps) {
   const [active, setActive] = useState<AppNavModuleId>("today");
   const [bridgePhase, setBridgePhase] = useState<BridgeHealthPhase>(() => (bridgeBaseUrl?.trim() ? "checking" : "offline"));
+  const [lastHealthCheckAt, setLastHealthCheckAt] = useState<number | null>(null);
+  const [lastHealthOfflineReason, setLastHealthOfflineReason] = useState<string | null>(null);
 
   const mainHeadingId = "app-main-heading";
 
   const runBridgeHealthCheck = useCallback(async () => {
     if (!bridgeBaseUrl?.trim()) {
       setBridgePhase("offline");
+      setLastHealthCheckAt(null);
+      setLastHealthOfflineReason(null);
       return;
     }
     setBridgePhase("checking");
+    setLastHealthOfflineReason(null);
     const client = createBridgeClient({ baseUrl: bridgeBaseUrl.trim() });
     const probe = await probeBridgeHealth(client);
+    setLastHealthCheckAt(Date.now());
     if (probe.status === "connected") {
       setBridgePhase("connected");
+      setLastHealthOfflineReason(null);
       return;
     }
     setBridgePhase("offline");
+    setLastHealthOfflineReason(describeBridgeHealthProbeError(probe.error));
     if (bridgeHealthLogDiagnostics && probe.error !== undefined) {
       console.warn("[Microdent] Bridge health check did not succeed", probe.error);
     }
@@ -337,6 +359,8 @@ export function AppShell({
   useEffect(() => {
     if (!bridgeBaseUrl?.trim()) {
       setBridgePhase("offline");
+      setLastHealthCheckAt(null);
+      setLastHealthOfflineReason(null);
       return;
     }
     void runBridgeHealthCheck();
@@ -390,37 +414,51 @@ export function AppShell({
         </div>
 
         <div className="app-topbar__status-wrap">
-          <div
-            className={`app-topbar__status app-topbar__status--${bridgePhase}`}
-            role="status"
-            aria-live="polite"
-            aria-label={
-              bridgePhase === "connected"
-                ? "Clinic service: connected"
-                : bridgePhase === "checking"
-                  ? "Clinic service: checking"
-                  : "Clinic service: offline"
-            }
-          >
-            <span className="app-topbar__status-dot" aria-hidden />
-            <span className="app-topbar__status-label">
-              {bridgePhase === "connected"
-                ? "Connected"
-                : bridgePhase === "checking"
-                  ? "Checking…"
-                  : "Offline"}
-            </span>
-          </div>
-          {bridgeBaseUrl?.trim() ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="compact"
-              className="ui-focusable app-topbar__refresh"
-              onClick={() => void runBridgeHealthCheck()}
+          <div className="app-topbar__status-row">
+            <div
+              className={`app-topbar__status app-topbar__status--${bridgePhase}`}
+              role="status"
+              aria-live="polite"
+              aria-label={
+                bridgePhase === "connected"
+                  ? "Clinic service: connected"
+                  : bridgePhase === "checking"
+                    ? "Clinic service: checking"
+                    : "Clinic service: offline"
+              }
             >
-              Refresh
-            </Button>
+              <span className="app-topbar__status-dot" aria-hidden />
+              <span className="app-topbar__status-label">
+                {bridgePhase === "connected"
+                  ? "Connected"
+                  : bridgePhase === "checking"
+                    ? "Checking…"
+                    : "Offline"}
+              </span>
+            </div>
+            {bridgeBaseUrl?.trim() ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="compact"
+                className="ui-focusable app-topbar__refresh"
+                onClick={() => void runBridgeHealthCheck()}
+              >
+                Refresh
+              </Button>
+            ) : null}
+          </div>
+          {bridgeConnectionDiagnostics && bridgeBaseUrl?.trim() ? (
+            <div className="app-topbar__bridge-diag" role="note" aria-label="Development bridge connection details">
+              <div className="app-topbar__bridge-diag__line">Bridge URL: {bridgeBaseUrl.trim()}</div>
+              <div className="app-topbar__bridge-diag__line">
+                Last check:{" "}
+                {lastHealthCheckAt !== null ? formatDevCheckTime(lastHealthCheckAt) : "—"}
+              </div>
+              {bridgePhase === "offline" && lastHealthOfflineReason ? (
+                <div className="app-topbar__bridge-diag__line app-topbar__bridge-diag__reason">{lastHealthOfflineReason}</div>
+              ) : null}
+            </div>
           ) : null}
         </div>
       </header>

@@ -6,4 +6,4 @@ export {
   type AppShellProps,
   type BridgeHealthPhase,
 } from "./AppShell.js";
-export { probeBridgeHealth, type BridgeHealthProbe, type BridgeHealthStatus } from "./bridge-health.js";
+export { probeBridgeHealth, describeBridgeHealthProbeError, type BridgeHealthProbe, type BridgeHealthStatus } from "./bridge-health.js";

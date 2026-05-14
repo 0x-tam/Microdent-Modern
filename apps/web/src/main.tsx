@@ -18,6 +18,7 @@ createRoot(el).render(
       clinicLabel="Local preview (sample data only)"
       bridgeBaseUrl={bridgeBaseUrl}
       bridgeHealthLogDiagnostics={import.meta.env.DEV}
+      bridgeConnectionDiagnostics={import.meta.env.DEV}
     />
   </StrictMode>,
 );

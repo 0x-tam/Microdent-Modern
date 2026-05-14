@@ -46,8 +46,12 @@ Open **http://127.0.0.1:5173** in the browser.
 ### Troubleshooting
 
 - If the UI shows **Offline**, open **http://127.0.0.1:17890/health** in the browser. If that fails, start the bridge or fix `BRIDGE_HOST` / `BRIDGE_PORT`.
+- If **`/health`** works in the address bar but the preview still shows **Offline**, check **which URL you opened for the app**: Vite **dev** often uses port **5173**; **`vite preview`** after a build often uses **4173**. The bridge only allows those loopback origins for CORS. Use **http://127.0.0.1:5173** or **http://127.0.0.1:4173** (or the matching `localhost` URLs) so the browser sends an allowed `Origin` header.
 - After editing **`apps/web/.env.local`**, stop and run **`pnpm preview:web`** again so Vite reloads env vars.
 - If health works in the browser but the preview stays **Offline**, confirm **`VITE_BRIDGE_BASE_URL`** in `.env.local` matches the bridge (including **`127.0.0.1`** vs **`localhost`**) and restart the preview.
+- After changing **bridge CORS** or env files, restart **both** the bridge process and the web preview so each picks up changes.
+
+In **development** builds, a small line under the status shows the bridge URL, last check time, and a **safe** offline reason (no stack traces).
 
 ## Commands (reference)
 

@@ -46,26 +46,23 @@ describe("GET /health (unchanged)", () => {
   });
 });
 
+const ALLOWED_PREVIEW_ORIGINS = [
+  "http://127.0.0.1:5173",
+  "http://localhost:5173",
+  "http://127.0.0.1:4173",
+  "http://localhost:4173",
+] as const;
+
 describe("Local preview CORS", () => {
-  it("reflects Access-Control-Allow-Origin for http://127.0.0.1:5173 on GET /health", async () => {
+  it.each(ALLOWED_PREVIEW_ORIGINS)("reflects Access-Control-Allow-Origin for %s on GET /health", async (origin) => {
     await withServer(async (port) => {
       const res = await fetch(`http://127.0.0.1:${port}/health`, {
-        headers: { Origin: "http://127.0.0.1:5173" },
+        headers: { Origin: origin },
       });
       expect(res.status).toBe(200);
-      expect(res.headers.get("access-control-allow-origin")).toBe("http://127.0.0.1:5173");
+      expect(res.headers.get("access-control-allow-origin")).toBe(origin);
       expect(res.headers.get("access-control-allow-methods")).toContain("GET");
       expect(res.headers.get("access-control-allow-credentials")).toBeNull();
-    });
-  });
-
-  it("reflects Access-Control-Allow-Origin for http://localhost:5173", async () => {
-    await withServer(async (port) => {
-      const res = await fetch(`http://127.0.0.1:${port}/health`, {
-        headers: { Origin: "http://localhost:5173" },
-      });
-      expect(res.status).toBe(200);
-      expect(res.headers.get("access-control-allow-origin")).toBe("http://localhost:5173");
     });
   });
 
@@ -79,17 +76,17 @@ describe("Local preview CORS", () => {
     });
   });
 
-  it("OPTIONS preflight for allowed origin returns 204 with CORS headers", async () => {
+  it.each(ALLOWED_PREVIEW_ORIGINS)("OPTIONS preflight for %s returns 204 with CORS headers", async (origin) => {
     await withServer(async (port) => {
       const res = await fetch(`http://127.0.0.1:${port}/health`, {
         method: "OPTIONS",
         headers: {
-          Origin: "http://127.0.0.1:5173",
+          Origin: origin,
           "Access-Control-Request-Method": "GET",
         },
       });
       expect(res.status).toBe(204);
-      expect(res.headers.get("access-control-allow-origin")).toBe("http://127.0.0.1:5173");
+      expect(res.headers.get("access-control-allow-origin")).toBe(origin);
       expect(res.headers.get("access-control-allow-methods")).toMatch(/GET/);
     });
   });

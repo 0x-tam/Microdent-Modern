@@ -99,9 +99,33 @@
 
 .app-topbar__status-wrap {
   display: inline-flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-end;
   gap: var(--ui-space-1);
   flex-shrink: 0;
+  max-width: min(320px, 38vw);
+}
+
+.app-topbar__status-row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-1);
+}
+
+.app-topbar__bridge-diag {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--ui-text-muted);
+  text-align: right;
+  word-break: break-all;
+}
+
+.app-topbar__bridge-diag__line {
+  display: block;
+}
+
+.app-topbar__bridge-diag__reason {
+  color: var(--ui-text-secondary);
 }
 
 .app-topbar__status {
