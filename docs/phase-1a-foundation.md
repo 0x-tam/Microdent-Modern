@@ -18,4 +18,8 @@
 
 ## Next (Band A2)
 
-Per the master plan: **`DATA_ROOT` configuration**, path sandbox hardening, traversal rejection tests, and read-only file helpers—still without wiring full production tables until later bands.
+Implemented: see [phase-1a-safety-module.md](phase-1a-safety-module.md) (`DATA_ROOT`, path sandbox, read-only open helpers, tests).
+
+## After that (Band A3+)
+
+Per the master plan: table registry JSON with **one synthetic tiny `.dbf` fixture** and `GET /v1/tables/:tableId/rows` for that fixture only.

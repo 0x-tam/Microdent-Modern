@@ -48,3 +48,7 @@ pnpm --filter @microdent/bridge run dev
 ```
 
 Only **`GET /health`** is implemented in Phase 1A; there is no DBF or patient data access yet.
+
+## `DATA_ROOT` (Band A2)
+
+The bridge reads optional **`DATA_ROOT`** from the environment. If unset or blank, data access helpers treat the root as **not configured**. When set, it must be an **absolute** path; relative values cause **`loadBridgeConfig()`** to throw at startup. Path helpers live under `services/bridge/src/safety/`; see [docs/phase-1a-safety-module.md](docs/phase-1a-safety-module.md) for behavior, tests, and symlink caveats. No HTTP route exposes file contents yet.

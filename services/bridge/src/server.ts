@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { pathToFileURL } from "node:url";
-import { createBridgeApp, loadListenOptions } from "./app.js";
+import { loadBridgeConfig } from "./config.js";
+import { createBridgeApp } from "./app.js";
 
 function isMainModule(): boolean {
   const entry = process.argv[1];
@@ -9,7 +10,8 @@ function isMainModule(): boolean {
 }
 
 async function main(): Promise<void> {
-  const { host, port } = loadListenOptions();
+  const { listen } = loadBridgeConfig();
+  const { host, port } = listen;
   const app = createBridgeApp();
   const server = createServer(app);
   await new Promise<void>((resolve, reject) => {
