@@ -41,6 +41,9 @@ importers:
 
   packages/app:
     dependencies:
+      '@microdent/bridge-client':
+        specifier: workspace:*
+        version: link:../bridge-client
       '@microdent/ui':
         specifier: workspace:*
         version: link:../ui

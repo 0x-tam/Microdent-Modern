@@ -9,7 +9,19 @@ describe("AppShell", () => {
     expect(html).toContain('role="main"');
     expect(html).toContain("<nav");
     expect(html).toContain("Read-only");
-    expect(html).toContain("Clinic data off");
+    expect(html).toContain("Offline");
+  });
+
+  it("shows offline when bridge URL is not configured", () => {
+    const html = renderToStaticMarkup(<AppShell />);
+    expect(html).toContain("Offline");
+    expect(html).not.toContain("Refresh");
+  });
+
+  it("shows checking on first paint when bridge URL is configured", () => {
+    const html = renderToStaticMarkup(<AppShell bridgeBaseUrl="http://127.0.0.1:17890" />);
+    expect(html).toContain("Checking");
+    expect(html).toContain("Refresh");
   });
 
   it("exposes a labelled navigation list for modules", () => {

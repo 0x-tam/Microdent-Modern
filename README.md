@@ -21,15 +21,15 @@ From the repository root after `pnpm install` or `npm install`:
 npm test
 ```
 
-The same script runs if you use `pnpm test` at the root. It builds `@microdent/contracts`, runs bridge and bridge-client Vitest suites, then **builds and tests `@microdent/ui`**, then **builds and tests `@microdent/app`**.
+The same script runs if you use `pnpm test` at the root. It builds `@microdent/contracts`, runs bridge tests, **builds and tests `@microdent/bridge-client`**, then **builds and tests `@microdent/ui`**, then **builds and tests `@microdent/app`**.
 
 ## Application shell (Band A6)
 
-The **`@microdent/app`** package exports **`AppShell`** (top bar, sidebar, read-only banner, bridge placeholder). See [docs/phase-1a-app-shell.md](docs/phase-1a-app-shell.md) and [packages/app/README.md](packages/app/README.md). Host apps should import, in order: `@microdent/ui/tokens.css`, `@microdent/ui/components.css`, `@microdent/app/app-shell.css`.
+The **`@microdent/app`** package exports **`AppShell`** (top bar with optional **bridge health**, sidebar, read-only banner, **Today** home). See [docs/phase-1a-app-shell.md](docs/phase-1a-app-shell.md), [docs/phase-1a-bridge-health-ui.md](docs/phase-1a-bridge-health-ui.md), and [packages/app/README.md](packages/app/README.md). Host apps should import, in order: `@microdent/ui/tokens.css`, `@microdent/ui/components.css`, `@microdent/app/app-shell.css`.
 
 ### Browser preview (`apps/web`)
 
-Run the shell in a local Vite dev server (loopback only, no bridge or patient data):
+Run the shell in a local Vite dev server (loopback only; optional **`GET /health`** to the local bridge — no patient data):
 
 ```bash
 pnpm preview:web
@@ -86,7 +86,7 @@ Only the synthetic registry entry **`fixture_tiny`** is available. Details and p
 
 ## Typed bridge client (Band A4)
 
-The **`@microdent/bridge-client`** package wraps the HTTP API with Zod-validated responses. See [docs/phase-1a-bridge-client.md](docs/phase-1a-bridge-client.md).
+The **`@microdent/bridge-client`** package wraps the HTTP API with Zod-validated responses. See [docs/phase-1a-bridge-client.md](docs/phase-1a-bridge-client.md). The **`apps/web`** preview uses **`getHealth()`** only; see [docs/phase-1a-bridge-health-ui.md](docs/phase-1a-bridge-health-ui.md) to run the bridge and preview together.
 
 ## UI primitives (Band A5)
 

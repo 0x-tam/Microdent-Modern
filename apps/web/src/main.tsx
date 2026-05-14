@@ -10,8 +10,14 @@ if (!el) {
   throw new Error("Missing #root");
 }
 
+const bridgeBaseUrl = import.meta.env.VITE_BRIDGE_BASE_URL?.trim() || "http://127.0.0.1:17890";
+
 createRoot(el).render(
   <StrictMode>
-    <AppShell clinicLabel="Local preview (no data)" />
+    <AppShell
+      clinicLabel="Local preview (sample data only)"
+      bridgeBaseUrl={bridgeBaseUrl}
+      bridgeHealthLogDiagnostics={import.meta.env.DEV}
+    />
   </StrictMode>,
 );

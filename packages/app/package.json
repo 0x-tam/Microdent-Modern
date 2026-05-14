@@ -18,6 +18,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@microdent/bridge-client": "workspace:*",
     "@microdent/ui": "workspace:*"
   },
   "peerDependencies": {

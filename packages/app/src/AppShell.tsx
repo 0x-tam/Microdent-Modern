@@ -1,5 +1,7 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { createBridgeClient } from "@microdent/bridge-client";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Badge, Button, Card, CardBody, CardHeader, EmptyState, ReadOnlyBanner } from "@microdent/ui";
+import { probeBridgeHealth } from "./bridge-health.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
 
 export const APP_NAV_MODULES = [
@@ -15,11 +17,23 @@ export const APP_NAV_MODULES = [
 
 export type AppNavModuleId = (typeof APP_NAV_MODULES)[number]["id"];
 
+export type BridgeHealthPhase = "checking" | "connected" | "offline";
+
 export type AppShellProps = {
   /** Shown in the top bar; use a clinic name in production. */
   clinicLabel?: string;
   /** Optional slot above the main landmark (e.g. future alerts). */
   topSlot?: ReactNode;
+  /**
+   * When set, the shell calls GET /health on this bridge base URL (no trailing slash required).
+   * Omit in tests or static render to skip network and stay offline.
+   */
+  bridgeBaseUrl?: string;
+  /**
+   * When true, failed health checks log the underlying error to the console (dev only recommended).
+   * Never surfaces PHI; keep off in production patient contexts.
+   */
+  bridgeHealthLogDiagnostics?: boolean;
 };
 
 const MODULE_PREVIEW: Record<
@@ -274,16 +288,48 @@ function DashboardHome({ onOpenModule }: { onOpenModule: (id: AppNavModuleId) =>
 }
 
 /**
- * Static first-run shell: top bar, global read-only banner, sidebar navigation (local state),
+ * Application shell: top bar (optional bridge health via GET /health), read-only banner, sidebar (local state),
  * and a main canvas with an error boundary.
  *
  * **Styles:** the host app must import `@microdent/ui/tokens.css`, `@microdent/ui/components.css`,
  * and `@microdent/app/app-shell.css` before rendering.
  */
-export function AppShell({ clinicLabel = "Main clinic", topSlot }: AppShellProps) {
+export function AppShell({
+  clinicLabel = "Main clinic",
+  topSlot,
+  bridgeBaseUrl,
+  bridgeHealthLogDiagnostics = false,
+}: AppShellProps) {
   const [active, setActive] = useState<AppNavModuleId>("today");
+  const [bridgePhase, setBridgePhase] = useState<BridgeHealthPhase>(() => (bridgeBaseUrl?.trim() ? "checking" : "offline"));
 
   const mainHeadingId = "app-main-heading";
+
+  const runBridgeHealthCheck = useCallback(async () => {
+    if (!bridgeBaseUrl?.trim()) {
+      setBridgePhase("offline");
+      return;
+    }
+    setBridgePhase("checking");
+    const client = createBridgeClient({ baseUrl: bridgeBaseUrl.trim() });
+    const probe = await probeBridgeHealth(client);
+    if (probe.status === "connected") {
+      setBridgePhase("connected");
+      return;
+    }
+    setBridgePhase("offline");
+    if (bridgeHealthLogDiagnostics && probe.error !== undefined) {
+      console.warn("[Microdent] Bridge health check did not succeed", probe.error);
+    }
+  }, [bridgeBaseUrl, bridgeHealthLogDiagnostics]);
+
+  useEffect(() => {
+    if (!bridgeBaseUrl?.trim()) {
+      setBridgePhase("offline");
+      return;
+    }
+    void runBridgeHealthCheck();
+  }, [bridgeBaseUrl, runBridgeHealthCheck]);
 
   const sidebar = useMemo(
     () => (
@@ -332,9 +378,39 @@ export function AppShell({ clinicLabel = "Main clinic", topSlot }: AppShellProps
           </p>
         </div>
 
-        <div className="app-topbar__status" role="status" aria-live="polite" aria-label="Clinic data is not connected on this screen">
-          <span className="app-topbar__status-dot" aria-hidden />
-          <span className="app-topbar__status-label">Clinic data off</span>
+        <div className="app-topbar__status-wrap">
+          <div
+            className={`app-topbar__status app-topbar__status--${bridgePhase}`}
+            role="status"
+            aria-live="polite"
+            aria-label={
+              bridgePhase === "connected"
+                ? "Clinic service: connected"
+                : bridgePhase === "checking"
+                  ? "Clinic service: checking"
+                  : "Clinic service: offline"
+            }
+          >
+            <span className="app-topbar__status-dot" aria-hidden />
+            <span className="app-topbar__status-label">
+              {bridgePhase === "connected"
+                ? "Connected"
+                : bridgePhase === "checking"
+                  ? "Checking…"
+                  : "Offline"}
+            </span>
+          </div>
+          {bridgeBaseUrl?.trim() ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="compact"
+              className="ui-focusable app-topbar__refresh"
+              onClick={() => void runBridgeHealthCheck()}
+            >
+              Refresh
+            </Button>
+          ) : null}
         </div>
       </header>
 

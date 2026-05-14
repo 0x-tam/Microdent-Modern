@@ -8,11 +8,16 @@
   2. `@microdent/ui/components.css`
   3. `@microdent/app/app-shell.css`
 - **Vite** binds **`127.0.0.1`** for **`dev`** and **`preview`** (not `0.0.0.0`), consistent with local-only bridge guidance.
-- **`predev` / `prebuild`**: run **`@microdent/ui`** and **`@microdent/app`** builds so workspace `dist/` exports resolve.
+- **`predev` / `prebuild`**: run **`@microdent/contracts`**, **`@microdent/bridge-client`**, **`@microdent/ui`**, and **`@microdent/app`** builds so workspace `dist/` exports resolve.
+
+## Bridge health (GET /health only)
+
+- **`src/main.tsx`** passes **`bridgeBaseUrl`** (default **`http://127.0.0.1:17890`**, or **`import.meta.env.VITE_BRIDGE_BASE_URL`** when set) and **`bridgeHealthLogDiagnostics={import.meta.env.DEV}`** into **`AppShell`**.
+- See **[phase-1a-bridge-health-ui.md](phase-1a-bridge-health-ui.md)** for running **bridge** and **web** together and optional **`.env.local`**.
 
 ## What was intentionally not built
 
-- No **bridge-client**, TanStack Query, React Router, or real **DATA_ROOT** / DBF access.
+- No **`/v1/*`** table routes, TanStack Query, React Router, or real **DATA_ROOT** / DBF access from the preview.
 - No production hosting, CI, or cloud deploy wiring.
 
 ## Dependencies (why)

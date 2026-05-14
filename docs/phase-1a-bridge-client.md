@@ -2,7 +2,7 @@
 
 ## What was built
 
-- **`packages/bridge-client`**: small typed HTTP client for the local bridge, consuming **`@microdent/contracts`** Zod schemas for **response validation** on success paths.
+- **`packages/bridge-client`**: small typed HTTP client for the local bridge, consuming **`@microdent/contracts`** Zod schemas for **response validation** on success paths. **`tsc -p tsconfig.build.json`** emits **`.d.ts`** alongside **`dist/*.js`** for workspace consumers (e.g. **`@microdent/app`**).
 - **`BridgeClient`** methods:
   - `getHealth()` → `GET /health`
   - `getMetaTables()` → `GET /v1/meta/tables`

@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "predev": "pnpm --filter @microdent/ui run build && pnpm --filter @microdent/app run build",
+    "predev": "pnpm --filter @microdent/contracts run build && pnpm --filter @microdent/bridge-client run build && pnpm --filter @microdent/ui run build && pnpm --filter @microdent/app run build",
     "dev": "vite",
-    "prebuild": "pnpm --filter @microdent/ui run build && pnpm --filter @microdent/app run build",
+    "prebuild": "pnpm --filter @microdent/contracts run build && pnpm --filter @microdent/bridge-client run build && pnpm --filter @microdent/ui run build && pnpm --filter @microdent/app run build",
     "build": "vite build",
     "preview": "vite preview"
   },

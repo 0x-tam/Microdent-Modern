@@ -1,10 +1,14 @@
 # @microdent/web — Vite preview
 
-Minimal **loopback-only** dev server to preview **`AppShell`** from `@microdent/app`. No bridge, no patient data.
+Minimal **loopback-only** dev server to preview **`AppShell`** from `@microdent/app`. **Optional:** with the local **bridge** running on **`127.0.0.1:17890`**, the shell calls **`GET /health`** only — no patient data, no **`/v1/*`** routes.
 
-## First-time / after UI or app changes
+## First-time / after dependency changes
 
-`@microdent/app` consumes built `@microdent/ui` and its own `dist/`. **`predev`** / **`prebuild`** run UI + app builds automatically.
+**`predev`** / **`prebuild`** run **`@microdent/contracts`**, **`@microdent/bridge-client`**, **`@microdent/ui`**, and **`@microdent/app`** builds so workspace `dist/` exports resolve.
+
+## Bridge URL
+
+Default base URL is **`http://127.0.0.1:17890`**. Override with **`VITE_BRIDGE_BASE_URL`** in **`apps/web/.env.local`** (optional).
 
 ## Commands
 
