@@ -364,6 +364,24 @@
   line-height: 1.45;
 }
 
+/** Calmer strip for persistent read-only notice (app shell). */
+.ui-readonly-banner--compact {
+  padding: var(--ui-space-2) var(--ui-space-3);
+  padding-left: calc(var(--ui-space-3) - 2px);
+  border-left-width: 2px;
+  font-size: 13px;
+  line-height: 1.4;
+  box-shadow: none;
+  border-radius: var(--ui-radius-sm);
+}
+
+.ui-readonly-banner--compact .ui-readonly-banner__icon {
+  width: 22px;
+  height: 22px;
+  font-size: 11px;
+  margin-top: 0;
+}
+
 .ui-readonly-banner__icon {
   flex-shrink: 0;
   display: inline-flex;
