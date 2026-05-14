@@ -48,9 +48,9 @@ The **`@microdent/app`** package exports **`AppShell`** (top bar with optional *
    pnpm preview:web
    ```
 
-3. Open **http://127.0.0.1:5173** (or **http://127.0.0.1:4173** when using `pnpm --filter @microdent/web run preview` after a build). Confirm the bridge with **http://127.0.0.1:17890/health** (JSON `ok`). The top bar should show **Connected** when health succeeds and the page origin is one of the bridge CORS allowlist entries (**5173** and **4173** on `127.0.0.1` / `localhost`).
+3. Open **http://127.0.0.1:5173** (or **http://127.0.0.1:4173** when using `pnpm --filter @microdent/web run preview` after a build). Confirm the bridge with **http://127.0.0.1:17890/health** (JSON `ok`). The top bar should show **Connected** when health succeeds: the bridge allows browser **`Origin`** values that are **`http://`** on **`127.0.0.1`**, **`localhost`**, or **`::1`** with a port from **3000** through **5999** (typical Vite and other local dev servers).
 
-**Troubleshooting:** If the UI is **Offline** but **`/health`** works in another tab, compare the **preview URL and port** to the allowlist above (**dev** → 5173, **vite preview** → 4173). Restart **both** the bridge and **`pnpm preview:web`** (or `vite preview`) after changing env or CORS. After changing **`apps/web/.env.local`**, restart the preview so Vite reloads env vars.
+**Troubleshooting:** If **`/health`** works in the address bar but the UI stays **Offline**, open the dev diagnostics under the status (in **`import.meta.env.DEV`**) and compare **App origin** to that rule. Loopback **`http`** on ports **3000–5999** is allowed; LAN IPs and **`https`** preview origins are not. **Restart the bridge** after changing CORS logic, and restart the web preview after **`.env.local`** changes.
 
 Or: `pnpm --filter @microdent/web run dev`. Details: [docs/phase-1a-web-preview.md](docs/phase-1a-web-preview.md) and [apps/web/README.md](apps/web/README.md).
 

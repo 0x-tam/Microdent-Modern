@@ -3,10 +3,10 @@
 ## Behavior
 
 - **`apps/web`** passes **`bridgeBaseUrl`** into **`AppShell`** (default **`http://127.0.0.1:17890`**, overridable with **`VITE_BRIDGE_BASE_URL`**).
-- The **bridge** exposes **`GET /`** with a small JSON discovery payload (`service`, `health`) and sends **minimal CORS** for these loopback origins only (**GET** + **OPTIONS**, no credentials, no `*`): **`http://127.0.0.1:5173`**, **`http://localhost:5173`**, **`http://127.0.0.1:4173`**, **`http://localhost:4173`**, so Vite **dev** (5173) and **`vite preview`** (4173) can call **`GET /health`** from the browser.
+- The **bridge** exposes **`GET /`** with a small JSON discovery payload (`service`, `health`) and **minimal CORS** for **local preview only**: `http:` **only**, host **`127.0.0.1`**, **`localhost`**, or **`::1`**, port **3000–5999** inclusive (echoed `Origin`, never `*`). Methods **GET** + **OPTIONS**; allowed request headers **Accept**, **Content-Type**; **no** `Access-Control-Allow-Credentials`. In non-`production` Node env, **`GET /debug/cors`** returns a static summary of this policy (no secrets, paths, or env).
 - **`@microdent/bridge-client`**: **`getHealth()`** → **`GET /health`** for the top bar. The **Today** dashboard also includes a **synthetic fixture** dev card that calls **only** **`GET /v1/meta/tables`**, **`GET /v1/tables/fixture_tiny/schema`**, and **`GET /v1/tables/fixture_tiny/rows`** (see **`docs/phase-1a-fixture-ui.md`**). No other `/v1` routes and no real clinic DBF access from the UI.
 - **Status line:** **Checking…** → **Connected** or **Offline**. Copy stays clinic-neutral; production UI does not show raw errors.
-- **Diagnostics:** when **`bridgeHealthLogDiagnostics`** is true, **`apps/web`** sets it from **`import.meta.env.DEV`** so failures log to the **console** (still no PHI). When **`bridgeConnectionDiagnostics`** is true (also **DEV** in **`apps/web`**), a small line under the status shows bridge URL, last check time, and a **safe** offline summary (no stack traces).
+- **Diagnostics:** when **`bridgeHealthLogDiagnostics`** is true, **`apps/web`** sets it from **`import.meta.env.DEV`** so failures log to the **console** (still no PHI). When **`bridgeConnectionDiagnostics`** is true (also **DEV** in **`apps/web`**), a small block under the status shows **app origin** (`window.location.origin`), **bridge URL**, last check time, and a **safe** offline summary (no stack traces).
 - **Refresh:** ghost **Refresh** next to the status re-runs the health check.
 
 ## Run bridge + web (two terminals)
@@ -40,7 +40,8 @@ VITE_BRIDGE_BASE_URL=http://127.0.0.1:17890
 
 ## Tests
 
-- **`services/bridge/src/root-and-cors.test.ts`** — **`GET /`**, **`GET /health`**, and CORS allowlist (**127.0.0.1:5173**, **localhost:5173**, **127.0.0.1:4173**, **localhost:4173** vs unrelated **`Origin`**).
+- **`services/bridge/src/local-preview-cors.test.ts`** — unit tests for **`isAllowedLocalPreviewOrigin`** (loopback + port range).
+- **`services/bridge/src/root-and-cors.test.ts`** — **`GET /`**, **`GET /health`**, **`GET /debug/cors`**, CORS integration (allowed / blocked **`Origin`**, **OPTIONS**, no credentials header).
 - **`packages/app/src/fixture-connection-probe.test.ts`** — synthetic fixture probe (success + error mapping).
 - **`packages/app/src/bridge-health.test.ts`** — mock **`getHealth`** success/failure and **`describeBridgeHealthProbeError`** summaries.
 - **`packages/app/src/app-shell.test.tsx`** — with **`bridgeBaseUrl`**, first static paint shows **Checking** and **Refresh**; without it, **Offline** and no Refresh.

@@ -46,12 +46,12 @@ Open **http://127.0.0.1:5173** in the browser.
 ### Troubleshooting
 
 - If the UI shows **Offline**, open **http://127.0.0.1:17890/health** in the browser. If that fails, start the bridge or fix `BRIDGE_HOST` / `BRIDGE_PORT`.
-- If **`/health`** works in the address bar but the preview still shows **Offline**, check **which URL you opened for the app**: Vite **dev** often uses port **5173**; **`vite preview`** after a build often uses **4173**. The bridge only allows those loopback origins for CORS. Use **http://127.0.0.1:5173** or **http://127.0.0.1:4173** (or the matching `localhost` URLs) so the browser sends an allowed `Origin` header.
+- If **`/health`** works in the address bar but the preview still shows **Offline**, use the **dev diagnostics** under the status (dev build only): check **App origin** against the bridge rule — **`http://`**, host **`127.0.0.1`**, **`localhost`**, or **`::1`**, port **3000–5999**. Vite **dev** often uses **5173**; **`vite preview`** often uses **4173**; other ports in that range are allowed too. **`http://127.0.0.1:17890/debug/cors`** (non-production bridge only) summarizes the same policy.
 - After editing **`apps/web/.env.local`**, stop and run **`pnpm preview:web`** again so Vite reloads env vars.
 - If health works in the browser but the preview stays **Offline**, confirm **`VITE_BRIDGE_BASE_URL`** in `.env.local` matches the bridge (including **`127.0.0.1`** vs **`localhost`**) and restart the preview.
-- After changing **bridge CORS** or env files, restart **both** the bridge process and the web preview so each picks up changes.
+- **Restart the bridge** after CORS changes, and restart the web preview after env changes so each process reloads configuration.
 
-In **development** builds, a small line under the status shows the bridge URL, last check time, and a **safe** offline reason (no stack traces).
+In **development** builds, the diagnostics block shows **app origin**, **bridge URL**, last check time, and a **safe** offline reason (no stack traces).
 
 ## Commands (reference)
 

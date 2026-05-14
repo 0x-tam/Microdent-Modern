@@ -24,6 +24,10 @@ async function withServer<T>(run: (port: number) => Promise<T>): Promise<T> {
   }
 }
 
+function expectNoCredentials(res: Response): void {
+  expect(res.headers.get("access-control-allow-credentials")).toBeNull();
+}
+
 describe("GET /", () => {
   it("returns safe service JSON", async () => {
     await withServer(async (port) => {
@@ -46,15 +50,18 @@ describe("GET /health (unchanged)", () => {
   });
 });
 
-const ALLOWED_PREVIEW_ORIGINS = [
+const SAMPLE_ALLOWED_ORIGINS = [
   "http://127.0.0.1:5173",
   "http://localhost:5173",
   "http://127.0.0.1:4173",
   "http://localhost:4173",
+  "http://127.0.0.1:5174",
+  "http://localhost:5174",
+  "http://[::1]:5173",
 ] as const;
 
-describe("Local preview CORS", () => {
-  it.each(ALLOWED_PREVIEW_ORIGINS)("reflects Access-Control-Allow-Origin for %s on GET /health", async (origin) => {
+describe("Local preview CORS (loopback + port range)", () => {
+  it.each(SAMPLE_ALLOWED_ORIGINS)("reflects Access-Control-Allow-Origin for %s on GET /health", async (origin) => {
     await withServer(async (port) => {
       const res = await fetch(`http://127.0.0.1:${port}/health`, {
         headers: { Origin: origin },
@@ -62,21 +69,43 @@ describe("Local preview CORS", () => {
       expect(res.status).toBe(200);
       expect(res.headers.get("access-control-allow-origin")).toBe(origin);
       expect(res.headers.get("access-control-allow-methods")).toContain("GET");
-      expect(res.headers.get("access-control-allow-credentials")).toBeNull();
+      const allowHeaders = res.headers.get("access-control-allow-headers");
+      expect(allowHeaders?.toLowerCase()).toContain("accept");
+      expect(allowHeaders?.toLowerCase()).toContain("content-type");
+      expectNoCredentials(res);
     });
   });
 
-  it("does not set Access-Control-Allow-Origin for unrelated hosts", async () => {
+  it.each([
+    "https://evil.example",
+    "http://evil.example",
+    "http://192.168.1.5:5173",
+    "http://0.0.0.0:5173",
+    "http://127.0.0.1:6000",
+    "http://localhost:2999",
+  ])("does not set Access-Control-Allow-Origin for %s", async (origin) => {
     await withServer(async (port) => {
       const res = await fetch(`http://127.0.0.1:${port}/health`, {
-        headers: { Origin: "https://evil.example" },
+        headers: { Origin: origin },
       });
       expect(res.status).toBe(200);
       expect(res.headers.get("access-control-allow-origin")).toBeNull();
+      expectNoCredentials(res);
     });
   });
 
-  it.each(ALLOWED_PREVIEW_ORIGINS)("OPTIONS preflight for %s returns 204 with CORS headers", async (origin) => {
+  it("does not allow Origin string null", async () => {
+    await withServer(async (port) => {
+      const res = await fetch(`http://127.0.0.1:${port}/health`, {
+        headers: { Origin: "null" },
+      });
+      expect(res.status).toBe(200);
+      expect(res.headers.get("access-control-allow-origin")).toBeNull();
+      expectNoCredentials(res);
+    });
+  });
+
+  it.each(SAMPLE_ALLOWED_ORIGINS)("OPTIONS preflight for %s returns 204 with CORS headers", async (origin) => {
     await withServer(async (port) => {
       const res = await fetch(`http://127.0.0.1:${port}/health`, {
         method: "OPTIONS",
@@ -88,6 +117,10 @@ describe("Local preview CORS", () => {
       expect(res.status).toBe(204);
       expect(res.headers.get("access-control-allow-origin")).toBe(origin);
       expect(res.headers.get("access-control-allow-methods")).toMatch(/GET/);
+      const allowHeaders = res.headers.get("access-control-allow-headers");
+      expect(allowHeaders?.toLowerCase()).toContain("accept");
+      expect(allowHeaders?.toLowerCase()).toContain("content-type");
+      expectNoCredentials(res);
     });
   });
 
@@ -102,6 +135,41 @@ describe("Local preview CORS", () => {
       });
       expect(res.status).toBe(204);
       expect(res.headers.get("access-control-allow-origin")).toBeNull();
+      expectNoCredentials(res);
+    });
+  });
+});
+
+describe("GET /debug/cors (non-production only)", () => {
+  it("returns static CORS policy metadata without secrets", async () => {
+    if (process.env.NODE_ENV === "production") {
+      return;
+    }
+    await withServer(async (port) => {
+      const res = await fetch(`http://127.0.0.1:${port}/debug/cors`);
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as {
+        service: string;
+        cors: { allowedLoopbackHosts: string[]; allowedPortRange: { min: number; max: number } };
+      };
+      expect(json.service).toBe("Microdent bridge");
+      expect(json.cors.allowedLoopbackHosts).toEqual(["127.0.0.1", "localhost", "::1"]);
+      expect(json.cors.allowedPortRange).toEqual({ min: 3000, max: 5999 });
+    });
+  });
+
+  it("sends CORS headers for GET /debug/cors when Origin is an allowed preview URL", async () => {
+    if (process.env.NODE_ENV === "production") {
+      return;
+    }
+    await withServer(async (port) => {
+      const origin = "http://127.0.0.1:5173";
+      const res = await fetch(`http://127.0.0.1:${port}/debug/cors`, {
+        headers: { Origin: origin },
+      });
+      expect(res.status).toBe(200);
+      expect(res.headers.get("access-control-allow-origin")).toBe(origin);
+      expectNoCredentials(res);
     });
   });
 });

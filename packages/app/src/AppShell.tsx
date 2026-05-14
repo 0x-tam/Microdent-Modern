@@ -329,6 +329,7 @@ export function AppShell({
   const [bridgePhase, setBridgePhase] = useState<BridgeHealthPhase>(() => (bridgeBaseUrl?.trim() ? "checking" : "offline"));
   const [lastHealthCheckAt, setLastHealthCheckAt] = useState<number | null>(null);
   const [lastHealthOfflineReason, setLastHealthOfflineReason] = useState<string | null>(null);
+  const [previewOrigin, setPreviewOrigin] = useState<string>("—");
 
   const mainHeadingId = "app-main-heading";
 
@@ -365,6 +366,16 @@ export function AppShell({
     }
     void runBridgeHealthCheck();
   }, [bridgeBaseUrl, runBridgeHealthCheck]);
+
+  useEffect(() => {
+    if (!bridgeConnectionDiagnostics) {
+      return;
+    }
+    if (typeof window === "undefined") {
+      return;
+    }
+    setPreviewOrigin(window.location.origin);
+  }, [bridgeConnectionDiagnostics]);
 
   const sidebar = useMemo(
     () => (
@@ -450,6 +461,7 @@ export function AppShell({
           </div>
           {bridgeConnectionDiagnostics && bridgeBaseUrl?.trim() ? (
             <div className="app-topbar__bridge-diag" role="note" aria-label="Development bridge connection details">
+              <div className="app-topbar__bridge-diag__line">App origin: {previewOrigin}</div>
               <div className="app-topbar__bridge-diag__line">Bridge URL: {bridgeBaseUrl.trim()}</div>
               <div className="app-topbar__bridge-diag__line">
                 Last check:{" "}

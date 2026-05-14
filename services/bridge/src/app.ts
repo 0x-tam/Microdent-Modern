@@ -5,7 +5,12 @@ import { fileURLToPath } from "node:url";
 import { HealthResponseSchema } from "@microdent/contracts";
 import type { BridgeConfig } from "./config.js";
 import { loadBridgeConfig } from "./config.js";
-import { localPreviewCorsMiddleware } from "./local-preview-cors.js";
+import {
+  LOCAL_PREVIEW_ALLOWED_HOSTS,
+  LOCAL_PREVIEW_PORT_MAX,
+  LOCAL_PREVIEW_PORT_MIN,
+  localPreviewCorsMiddleware,
+} from "./local-preview-cors.js";
 import { createV1Router } from "./routes/v1.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -26,6 +31,7 @@ export type CreateBridgeAppOptions = {
 
 /**
  * Express app: `GET /` (service info), `GET /health`, read-only `GET /v1/*` table APIs (Band A3 fixture only).
+ * In non-`production` Node env, also `GET /debug/cors` (static CORS policy summary, no secrets).
  */
 export function createBridgeApp(version?: string, options?: CreateBridgeAppOptions): express.Express {
   const ver = version ?? readBridgeVersion();
@@ -33,6 +39,17 @@ export function createBridgeApp(version?: string, options?: CreateBridgeAppOptio
   const app = express();
   app.disable("x-powered-by");
   app.use(localPreviewCorsMiddleware);
+  if (process.env.NODE_ENV !== "production") {
+    app.get("/debug/cors", (_req, res) => {
+      res.json({
+        service: "Microdent bridge",
+        cors: {
+          allowedLoopbackHosts: [...LOCAL_PREVIEW_ALLOWED_HOSTS],
+          allowedPortRange: { min: LOCAL_PREVIEW_PORT_MIN, max: LOCAL_PREVIEW_PORT_MAX },
+        },
+      });
+    });
+  }
   app.get("/", (_req, res) => {
     res.json({ ok: true as const, service: "Microdent bridge", health: "/health" });
   });
