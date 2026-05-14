@@ -4,12 +4,16 @@ import {
   HealthResponseSchema,
   LegacyCatalogResponseSchema,
   PatientSearchResponseSchema,
+  ScheduleAppointmentsResponseSchema,
+  ScheduleRoomsResponseSchema,
   TableRowsResponseSchema,
   TablesListResponseSchema,
   TableSchemaResponseSchema,
   type HealthResponse,
   type LegacyCatalogResponse,
   type PatientSearchResponse,
+  type ScheduleAppointmentsResponse,
+  type ScheduleRoomsResponse,
   type TableRowsResponse,
   type TablesListResponse,
   type TableSchemaResponse,
@@ -77,6 +81,18 @@ export class BridgeClient {
     }
     const qs = new URLSearchParams({ q: trimmed });
     return this.requestJson(`/v1/patients/search?${qs.toString()}`, PatientSearchResponseSchema);
+  }
+
+  async getScheduleRooms(): Promise<ScheduleRoomsResponse> {
+    return this.requestJson("/v1/schedule/rooms", ScheduleRoomsResponseSchema);
+  }
+
+  async getScheduleAppointments(params: { from: string; to: string; room?: number }): Promise<ScheduleAppointmentsResponse> {
+    const q = new URLSearchParams({ from: params.from, to: params.to });
+    if (params.room !== undefined) {
+      q.set("room", String(params.room));
+    }
+    return this.requestJson(`/v1/schedule/appointments?${q.toString()}`, ScheduleAppointmentsResponseSchema);
   }
 
   async getTableSchema(tableId: string): Promise<TableSchemaResponse> {

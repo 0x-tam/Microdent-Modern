@@ -21,3 +21,17 @@ export {
   type PatientSearchResponse,
   type PatientSearchResultItem,
 } from "./patient-search.js";
+export {
+  ScheduleRoomActiveDaysSchema,
+  ScheduleRoomItemSchema,
+  ScheduleRoomsResponseSchema,
+  ScheduleAppointmentItemSchema,
+  ScheduleAppointmentsResponseSchema,
+  ScheduleAppointmentsQuerySchema,
+  type ScheduleRoomActiveDays,
+  type ScheduleRoomItem,
+  type ScheduleRoomsResponse,
+  type ScheduleAppointmentItem,
+  type ScheduleAppointmentsResponse,
+  type ScheduleAppointmentsQuery,
+} from "./schedule.js";

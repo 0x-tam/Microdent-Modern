@@ -5,6 +5,9 @@ import {
   LegacyCatalogResponseSchema,
   PatientSearchQueryParamsSchema,
   PatientSearchResponseSchema,
+  ScheduleAppointmentsQuerySchema,
+  ScheduleAppointmentsResponseSchema,
+  ScheduleRoomsResponseSchema,
   TableRowsResponseSchema,
   TablesListResponseSchema,
   TableSchemaResponseSchema,
@@ -15,6 +18,8 @@ import { openRegisteredDbf, parsePagination, readRegisteredTableRows } from "../
 import { resolveRegisteredDbfPath } from "../dbf/resolve-registered-dbf.js";
 import { findRegistryEntry, TABLE_ID_PATTERN, TABLE_REGISTRY } from "../dbf/table-registry.js";
 import { readLegacyCatalogRows } from "../dbf/read-legacy-catalog.js";
+import { readScheduleAppointments } from "../dbf/schedule-appointments.js";
+import { readScheduleRooms } from "../dbf/schedule-rooms.js";
 
 function sendError(res: Response, status: number, code: string, message: string): void {
   const body = { error: { code, message } };
@@ -109,6 +114,61 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
 
     const body = { results: outcome.results };
     PatientSearchResponseSchema.parse(body);
+    res.json(body);
+  });
+
+  router.get("/schedule/rooms", async (_req, res) => {
+    if (!requireConfiguredDataRoot(res, bridgeConfig)) return;
+    const dr = bridgeConfig.dataRoot;
+    const outcome = await readScheduleRooms(dr);
+    if (outcome.kind === "missing_sc_room") {
+      sendError(res, 404, "SC_ROOM_DBF_NOT_FOUND", "SC_ROOM.DBF not found under DATA_ROOT");
+      return;
+    }
+    if (outcome.kind === "read_error") {
+      sendError(res, 500, "SCHEDULE_ROOMS_ERROR", "failed to read room configuration");
+      return;
+    }
+    const body = { rooms: outcome.rooms };
+    ScheduleRoomsResponseSchema.parse(body);
+    res.json(body);
+  });
+
+  router.get("/schedule/appointments", async (req, res) => {
+    if (!requireConfiguredDataRoot(res, bridgeConfig)) return;
+    const dr = bridgeConfig.dataRoot;
+
+    const rawFrom = firstQueryString(req.query.from);
+    const rawTo = firstQueryString(req.query.to);
+    const rawRoom = firstQueryString(req.query.room);
+    if (rawFrom === undefined || rawFrom === "" || rawTo === undefined || rawTo === "") {
+      sendError(res, 400, "INVALID_SCHEDULE_QUERY", "from and to are required (YYYY-MM-DD)");
+      return;
+    }
+
+    const parsed = ScheduleAppointmentsQuerySchema.safeParse({
+      from: rawFrom,
+      to: rawTo,
+      room: rawRoom,
+    });
+    if (!parsed.success) {
+      sendError(res, 400, "INVALID_SCHEDULE_QUERY", "invalid dates, range, or room filter");
+      return;
+    }
+
+    const { from, to, room } = parsed.data;
+    const outcome = await readScheduleAppointments(dr, from, to, room);
+    if (outcome.kind === "missing_schedule") {
+      sendError(res, 404, "SCHEDULE_DBF_NOT_FOUND", "SCHEDULE.DBF not found under DATA_ROOT");
+      return;
+    }
+    if (outcome.kind === "read_error") {
+      sendError(res, 500, "SCHEDULE_APPOINTMENTS_ERROR", "failed to read appointments");
+      return;
+    }
+
+    const body = { appointments: outcome.appointments };
+    ScheduleAppointmentsResponseSchema.parse(body);
     res.json(body);
   });
 

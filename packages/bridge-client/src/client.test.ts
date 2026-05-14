@@ -81,6 +81,44 @@ describe("BridgeClient", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it("getScheduleRooms: success", async () => {
+    const body = {
+      rooms: [
+        {
+          room: 1,
+          displayName: "Example op",
+          activeDays: {
+            sunday: true,
+            monday: false,
+            tuesday: false,
+            wednesday: false,
+            thursday: false,
+            friday: false,
+            saturday: false,
+          },
+          doctorId: 9,
+        },
+      ],
+    };
+    const fetch = vi.fn().mockResolvedValue(jsonResponse(body));
+    const client = createBridgeClient({ baseUrl, fetch });
+    await expect(client.getScheduleRooms()).resolves.toEqual(body);
+    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/v1/schedule/rooms`, expect.anything());
+  });
+
+  it("getScheduleAppointments: encodes query params and optional room", async () => {
+    const body = { appointments: [] };
+    const fetch = vi.fn().mockResolvedValue(jsonResponse(body));
+    const client = createBridgeClient({ baseUrl, fetch });
+    await expect(
+      client.getScheduleAppointments({ from: "2026-05-01", to: "2026-05-02", room: 3 }),
+    ).resolves.toEqual(body);
+    expect(fetch).toHaveBeenCalledWith(
+      `${baseUrl}/v1/schedule/appointments?from=2026-05-01&to=2026-05-02&room=3`,
+      expect.anything(),
+    );
+  });
+
   it("getTableSchema: success", async () => {
     const body = {
       tableId: "fixture_tiny",
