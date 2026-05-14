@@ -17,15 +17,17 @@ dist/
 Thumbs.db
 
 # -----------------------------------------------------------------------------
-# Legacy Microdent / FoxPro — do NOT commit real DATA or binaries
+# Legacy Microdent / FoxPro — hygiene (PHI, supply chain, accidental commits)
 # -----------------------------------------------------------------------------
-# Real clinic DATA, legacy install trees, and FoxPro/VB runtime files must never
-# be committed to this repository. Use DATA_ROOT (or equivalent) pointing at a
-# path outside git for read-only local testing against a copied DATA folder.
+# Real clinic DATA, legacy application trees, and FoxPro/VB binaries must NEVER
+# be committed. They can contain PHI, are not reviewable source, and widen
+# supply-chain risk. Keep production or clinic copies outside this repo; for
+# local read-only bridge checks, use an absolute DATA_ROOT to a copied folder
+# on disk — never paste real DATA into the working tree for git to pick up.
 #
-# The only DBF that belongs in git is the synthetic bridge test fixture below.
+# Exception: the single synthetic DBF below is the only .dbf that belongs in git.
 
-# If legacy folders are ever linked or copied under the repo root, keep them out of git:
+# If legacy folders are symlinked or copied under the repo root, ignore them:
 /Microdent-Legacy/
 /Microdent-Legacy-Copy/
 /DATA/

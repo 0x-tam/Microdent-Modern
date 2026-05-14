@@ -2,7 +2,9 @@
 
 Modern read-only clinic stack (bridge + shared contracts + future desktop shell). Product direction and phases live in [docs/master-build-plan.md](docs/master-build-plan.md).
 
-**Data hygiene:** Real Microdent `DATA` folders, legacy install trees, and FoxPro binaries must **never** be committed. Keep production or copied clinic data **outside** this git tree; for local read-only testing, point the bridge at an absolute **`DATA_ROOT`** on disk (for example a read-only copy of legacy `DATA`). The repo only ships a tiny synthetic DBF for automated tests.
+**Warning:** Real Microdent `DATA` must stay **outside** git. Do not add production or clinic `DATA/` trees to this repository. For local read-only testing, use only an absolute **`DATA_ROOT`** pointing at a **copied** path on disk (never commit PHI or real patient tables).
+
+**Data hygiene:** Legacy install trees and FoxPro/VB binaries must **never** be committed. The repo only ships a tiny synthetic DBF for automated tests.
 
 ## Prerequisites
 
