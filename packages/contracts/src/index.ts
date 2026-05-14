@@ -13,3 +13,11 @@ export {
   type LegacyCatalogResponse,
   type LegacyCatalogTableItem,
 } from "./legacy-catalog.js";
+export {
+  PatientSearchQueryParamsSchema,
+  PatientSearchResponseSchema,
+  PatientSearchResultItemSchema,
+  type PatientSearchQueryParams,
+  type PatientSearchResponse,
+  type PatientSearchResultItem,
+} from "./patient-search.js";

@@ -3,11 +3,14 @@ import { Router, type Response } from "express";
 import {
   ApiErrorBodySchema,
   LegacyCatalogResponseSchema,
+  PatientSearchQueryParamsSchema,
+  PatientSearchResponseSchema,
   TableRowsResponseSchema,
   TablesListResponseSchema,
   TableSchemaResponseSchema,
 } from "@microdent/contracts";
 import type { BridgeConfig } from "../config.js";
+import { searchPatientsInDbf } from "../dbf/patient-search.js";
 import { openRegisteredDbf, parsePagination, readRegisteredTableRows } from "../dbf/read-table.js";
 import { resolveRegisteredDbfPath } from "../dbf/resolve-registered-dbf.js";
 import { findRegistryEntry, TABLE_ID_PATTERN, TABLE_REGISTRY } from "../dbf/table-registry.js";
@@ -28,6 +31,16 @@ function requireConfiguredDataRoot(
     return false;
   }
   return true;
+}
+
+function firstQueryString(value: unknown): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (Array.isArray(value)) {
+    const v0 = value[0];
+    if (v0 === undefined || v0 === null) return undefined;
+    return String(v0);
+  }
+  return String(value);
 }
 
 export function createV1Router(bridgeConfig: BridgeConfig): Router {
@@ -66,6 +79,37 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
     } catch {
       sendError(res, 500, "LEGACY_CATALOG_ERROR", "failed to build legacy catalog");
     }
+  });
+
+  router.get("/patients/search", async (req, res) => {
+    if (!requireConfiguredDataRoot(res, bridgeConfig)) return;
+    const dr = bridgeConfig.dataRoot;
+
+    const rawQ = firstQueryString(req.query.q);
+    if (rawQ === undefined || rawQ === "") {
+      sendError(res, 400, "INVALID_QUERY", "q is required");
+      return;
+    }
+
+    const parsedQ = PatientSearchQueryParamsSchema.safeParse({ q: rawQ });
+    if (!parsedQ.success) {
+      sendError(res, 400, "INVALID_QUERY", "q must be at least 2 characters");
+      return;
+    }
+
+    const outcome = await searchPatientsInDbf(dr, parsedQ.data.q);
+    if (outcome.kind === "missing_table") {
+      sendError(res, 404, "PATIENT_DBF_NOT_FOUND", "PATIENT.DBF not found under DATA_ROOT");
+      return;
+    }
+    if (outcome.kind === "read_error") {
+      sendError(res, 500, "PATIENT_SEARCH_ERROR", "patient search failed");
+      return;
+    }
+
+    const body = { results: outcome.results };
+    PatientSearchResponseSchema.parse(body);
+    res.json(body);
   });
 
   router.get("/tables/:tableId/schema", async (req, res) => {

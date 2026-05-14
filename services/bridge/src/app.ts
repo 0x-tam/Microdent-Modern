@@ -30,7 +30,7 @@ export type CreateBridgeAppOptions = {
 };
 
 /**
- * Express app: `GET /` (service info), `GET /health`, read-only `GET /v1/*` table APIs (Band A3 fixture only).
+ * Express app: `GET /` (service info), `GET /health`, read-only `GET /v1/*` (fixture table APIs, legacy catalog, patient search).
  * In non-`production` Node env, also `GET /debug/cors` (static CORS policy summary, no secrets).
  */
 export function createBridgeApp(version?: string, options?: CreateBridgeAppOptions): express.Express {

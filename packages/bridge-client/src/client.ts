@@ -3,11 +3,13 @@ import {
   ApiErrorBodySchema,
   HealthResponseSchema,
   LegacyCatalogResponseSchema,
+  PatientSearchResponseSchema,
   TableRowsResponseSchema,
   TablesListResponseSchema,
   TableSchemaResponseSchema,
   type HealthResponse,
   type LegacyCatalogResponse,
+  type PatientSearchResponse,
   type TableRowsResponse,
   type TablesListResponse,
   type TableSchemaResponse,
@@ -60,6 +62,21 @@ export class BridgeClient {
 
   async getLegacyCatalog(): Promise<LegacyCatalogResponse> {
     return this.requestJson("/v1/legacy/catalog", LegacyCatalogResponseSchema);
+  }
+
+  /**
+   * Read-only patient search against `PATIENT.DBF` under the bridge `DATA_ROOT`.
+   * `query` must be at least 2 non-space characters (validated client- and server-side).
+   */
+  async searchPatients(query: string): Promise<PatientSearchResponse> {
+    const trimmed = query.trim();
+    if (trimmed.length < 2) {
+      throw new BridgeClientError("Patient search query must be at least 2 characters", {
+        kind: "invalid_argument",
+      });
+    }
+    const qs = new URLSearchParams({ q: trimmed });
+    return this.requestJson(`/v1/patients/search?${qs.toString()}`, PatientSearchResponseSchema);
   }
 
   async getTableSchema(tableId: string): Promise<TableSchemaResponse> {

@@ -51,6 +51,36 @@ describe("BridgeClient", () => {
     expect(fetch).toHaveBeenCalledWith(`${baseUrl}/v1/legacy/catalog`, expect.anything());
   });
 
+  it("searchPatients: success and encodes query", async () => {
+    const body = {
+      results: [
+        {
+          patientId: "1",
+          chartNumber: "C-1",
+          displayName: "Example Patient",
+          phoneMask: "…1234",
+        },
+      ],
+    };
+    const fetch = vi.fn().mockResolvedValue(jsonResponse(body));
+    const client = createBridgeClient({ baseUrl, fetch });
+    await expect(client.searchPatients("  ex ")).resolves.toEqual(body);
+    expect(fetch).toHaveBeenCalledWith(
+      `${baseUrl}/v1/patients/search?q=${encodeURIComponent("ex")}`,
+      expect.anything(),
+    );
+  });
+
+  it("searchPatients: rejects short query before fetch", async () => {
+    const fetch = vi.fn();
+    const client = createBridgeClient({ baseUrl, fetch });
+    await expect(client.searchPatients(" a")).rejects.toMatchObject({
+      name: "BridgeClientError",
+      kind: "invalid_argument",
+    });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("getTableSchema: success", async () => {
     const body = {
       tableId: "fixture_tiny",
