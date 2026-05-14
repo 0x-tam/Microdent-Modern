@@ -25,7 +25,7 @@ The same script runs if you use `pnpm test` at the root. It builds `@microdent/c
 
 ## Application shell (Band A6)
 
-The **`@microdent/app`** package exports **`AppShell`** (top bar with optional **bridge health**, sidebar, read-only banner, **Today** home). See [docs/phase-1a-app-shell.md](docs/phase-1a-app-shell.md), [docs/phase-1a-bridge-health-ui.md](docs/phase-1a-bridge-health-ui.md), and [packages/app/README.md](packages/app/README.md). Host apps should import, in order: `@microdent/ui/tokens.css`, `@microdent/ui/components.css`, `@microdent/app/app-shell.css`.
+The **`@microdent/app`** package exports **`AppShell`** (top bar with optional **bridge health**, sidebar, read-only banner, **Today** home). See [docs/phase-1a-app-shell.md](docs/phase-1a-app-shell.md), [docs/phase-1a-responsive-layout.md](docs/phase-1a-responsive-layout.md), [docs/phase-1a-bridge-health-ui.md](docs/phase-1a-bridge-health-ui.md), and [packages/app/README.md](packages/app/README.md). Host apps should import, in order: `@microdent/ui/tokens.css`, `@microdent/ui/components.css`, `@microdent/app/app-shell.css`.
 
 ### Browser preview (`apps/web`)
 
