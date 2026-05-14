@@ -10,9 +10,9 @@ function isMainModule(): boolean {
 }
 
 async function main(): Promise<void> {
-  const { listen } = loadBridgeConfig();
-  const { host, port } = listen;
-  const app = createBridgeApp();
+  const bridgeConfig = loadBridgeConfig();
+  const { host, port } = bridgeConfig.listen;
+  const app = createBridgeApp(undefined, { bridgeConfig });
   const server = createServer(app);
   await new Promise<void>((resolve, reject) => {
     server.listen(port, host, () => resolve());

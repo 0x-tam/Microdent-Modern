@@ -23,6 +23,9 @@ importers:
       '@microdent/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      dbffile:
+        specifier: ^1.12.0
+        version: 1.12.0
       express:
         specifier: ^4.21.2
         version: 4.22.2
@@ -591,6 +594,9 @@ packages:
   cookie@0.7.2:
     resolution: {integrity: sha512-yki5XnKuf750l50uGTllt6kKILY4nQ1eNIQatoXEByZ5dWgnKqbnqmTrBE5B4N7lrMJKQ2ytWMiTO2o0v6Ew/w==}
     engines: {node: '>= 0.6'}
+
+  dbffile@1.12.0:
+    resolution: {integrity: sha512-repLNtp1jyODRyAbqSaCiComsLi9/2w+ljYC760TXf69ExFVoJzdDr5STBx21gunM59RipYK5zHeDIuGf1LA8w==}
 
   debug@2.6.9:
     resolution: {integrity: sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==}
@@ -1378,6 +1384,10 @@ snapshots:
   cookie-signature@1.0.7: {}
 
   cookie@0.7.2: {}
+
+  dbffile@1.12.0:
+    dependencies:
+      iconv-lite: 0.4.24
 
   debug@2.6.9:
     dependencies:

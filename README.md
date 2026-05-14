@@ -28,6 +28,7 @@ To run only the bridge tests (after contracts are already built):
 ```bash
 npm run test --workspace=@microdent/bridge
 ```
+
 ## Bridge (Phase 1A)
 
 Run a production-style server (build first):
@@ -47,8 +48,18 @@ pnpm --filter @microdent/contracts run build
 pnpm --filter @microdent/bridge run dev
 ```
 
-Only **`GET /health`** is implemented in Phase 1A; there is no DBF or patient data access yet.
+**`GET /health`** is always available. Read-only **`GET /v1/*`** DBF routes are available only when **`DATA_ROOT`** is configured (see Band A3 section below). There is no access to real patient data in the default repo layout.
 
 ## `DATA_ROOT` (Band A2)
 
-The bridge reads optional **`DATA_ROOT`** from the environment. If unset or blank, data access helpers treat the root as **not configured**. When set, it must be an **absolute** path; relative values cause **`loadBridgeConfig()`** to throw at startup. Path helpers live under `services/bridge/src/safety/`; see [docs/phase-1a-safety-module.md](docs/phase-1a-safety-module.md) for behavior, tests, and symlink caveats. No HTTP route exposes file contents yet.
+The bridge reads optional **`DATA_ROOT`** from the environment. If unset or blank, **`GET /v1/*`** table routes respond with **503** (`DATA_ROOT_NOT_CONFIGURED`). When set, it must be an **absolute** path; relative values cause **`loadBridgeConfig()`** to throw at startup. Path helpers live under `services/bridge/src/safety/`; see [docs/phase-1a-safety-module.md](docs/phase-1a-safety-module.md) for behavior, tests, and symlink caveats.
+
+## Read-only DBF fixture API (Band A3)
+
+With **`DATA_ROOT`** set to the absolute path of `services/bridge/fixtures/sandbox` (or any directory that contains the committed **`FAKE_TINY.dbf`**), the bridge exposes:
+
+- `GET /v1/meta/tables`
+- `GET /v1/tables/:tableId/schema`
+- `GET /v1/tables/:tableId/rows?limit=&offset=` (default limit 50, max 100)
+
+Only the synthetic registry entry **`fixture_tiny`** is available. Details and parser notes: [docs/phase-1a-dbf-fixture-read.md](docs/phase-1a-dbf-fixture-read.md).
