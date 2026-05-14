@@ -21,7 +21,7 @@ From the repository root after `pnpm install` or `npm install`:
 npm test
 ```
 
-The same script runs if you use `pnpm test` at the root. It builds `@microdent/contracts`, then runs `services/bridge` Vitest (including the `GET /health` integration test on a random port).
+The same script runs if you use `pnpm test` at the root. It builds `@microdent/contracts`, then runs `services/bridge` Vitest and **`packages/bridge-client`** Vitest (mocked `fetch`, no live bridge required for the client tests).
 
 To run only the bridge tests (after contracts are already built):
 
@@ -63,3 +63,7 @@ With **`DATA_ROOT`** set to the absolute path of `services/bridge/fixtures/sandb
 - `GET /v1/tables/:tableId/rows?limit=&offset=` (default limit 50, max 100)
 
 Only the synthetic registry entry **`fixture_tiny`** is available. Details and parser notes: [docs/phase-1a-dbf-fixture-read.md](docs/phase-1a-dbf-fixture-read.md).
+
+## Typed bridge client (Band A4)
+
+The **`@microdent/bridge-client`** package wraps the HTTP API with Zod-validated responses. See [docs/phase-1a-bridge-client.md](docs/phase-1a-bridge-client.md).
