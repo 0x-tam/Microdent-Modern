@@ -21,7 +21,11 @@ From the repository root after `pnpm install` or `npm install`:
 npm test
 ```
 
-The same script runs if you use `pnpm test` at the root. It builds `@microdent/contracts`, runs bridge and bridge-client Vitest suites, then **builds and tests `@microdent/ui`**.
+The same script runs if you use `pnpm test` at the root. It builds `@microdent/contracts`, runs bridge and bridge-client Vitest suites, then **builds and tests `@microdent/ui`**, then **builds and tests `@microdent/app`**.
+
+## Application shell (Band A6)
+
+The **`@microdent/app`** package exports **`AppShell`** (top bar, sidebar, read-only banner, bridge placeholder). See [docs/phase-1a-app-shell.md](docs/phase-1a-app-shell.md) and [packages/app/README.md](packages/app/README.md). Host apps should import, in order: `@microdent/ui/tokens.css`, `@microdent/ui/components.css`, `@microdent/app/app-shell.css`.
 
 To run only the bridge tests (after contracts are already built):
 

@@ -7,7 +7,7 @@
   ],
   "packageManager": "pnpm@9.15.0",
   "scripts": {
-    "test": "npm run build --workspace=@microdent/contracts && npm run test --workspace=@microdent/bridge && npm run test --workspace=@microdent/bridge-client && npm run build --workspace=@microdent/ui && npm run test --workspace=@microdent/ui"
+    "test": "npm run build --workspace=@microdent/contracts && npm run test --workspace=@microdent/bridge && npm run test --workspace=@microdent/bridge-client && npm run build --workspace=@microdent/ui && npm run test --workspace=@microdent/ui && npm run build --workspace=@microdent/app && npm run test --workspace=@microdent/app"
   },
   "engines": {
     "node": ">=18"
