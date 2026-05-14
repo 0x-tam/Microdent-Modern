@@ -588,6 +588,11 @@
   color: var(--ui-text-primary);
 }
 
+.app-appt-list__patient-chart {
+  font-weight: 500;
+  color: var(--ui-text-secondary);
+}
+
 .app-appt-list__visit {
   font-size: clamp(13px, 0.78rem + 0.2vw, 14px);
   color: var(--ui-text-secondary);
@@ -1062,6 +1067,16 @@
   color: var(--ui-text-secondary);
 }
 
+.app-schedule__appt-patient-primary {
+  font-weight: 600;
+  color: var(--ui-text-primary);
+}
+
+.app-schedule__appt-patient-chart {
+  font-weight: 500;
+  color: var(--ui-text-secondary);
+}
+
 .app-schedule__appt-badges {
   display: flex;
   flex-wrap: wrap;
@@ -1334,6 +1349,11 @@
   font-size: 16px;
   font-weight: 600;
   color: var(--ui-text-primary);
+}
+
+.app-next-patient__patid-chart {
+  font-weight: 500;
+  color: var(--ui-text-secondary);
 }
 
 .app-next-patient__patid--muted {

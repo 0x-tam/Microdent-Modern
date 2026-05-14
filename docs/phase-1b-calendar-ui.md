@@ -17,15 +17,16 @@
   - **Room** `<select>` when rooms are returned (optional **`room`** query).
   - **Refresh** bumps an internal counter to re-run both requests for the same range.
 - **Layout**: **Day list grouped by calendar date, then by room**, with appointments sorted by **`time`** then **`id`**. This stays readable without a heavy grid or extra libraries.
-- **Displayed fields** (from the appointment DTO only): **time**, **duration** (computed minutes from **`durationSlots`** × **`periodMinutes ?? 30`**), **room** (via section title from room list), **status** (friendly label for codes 0–5, else **“Status n”**), **doctor** when **`docId !== 0`**, **Patient ID** when **`patId !== "0"`**, **proc class**, **Missed** badge, **Note** badge when **`hasComment`** (no memo text).
-- **Privacy line** under the toolbar: *Read-only schedule. Notes and phone numbers are hidden in this preview.*
-- **Schedule** main lede updated to stress read-only, no names on this screen.
+- **Displayed fields** (from the appointment DTO only): **time**, **duration** (computed minutes from **`durationSlots`** × **`periodMinutes ?? 30`**), **room** (via section title from room list), **status** (friendly label for codes 0–5, else **“Status n”**), **doctor** when **`docId !== 0`**, **patient** primary line (**`patient.displayName`** when present, otherwise **`Patient ID {patId}`** for non-zero ids, **`Patient ID —`** when **`patId`** is zero), optional **`chartNumber`** as a muted secondary fragment on the same line when present, **proc class**, **Missed** badge, **Note** badge when **`hasComment`** (no memo text).
+- **Privacy line** under the toolbar: read-only schedule; names and charts come from a safe **`PATIENT.DBF`** summary; notes and phone numbers stay hidden.
+- **Schedule** main lede: stresses read-only; names use the safe summary while note text and phones stay off the UI.
 
 ## What was intentionally not built
 
 - No **create / edit / drag / delete** or any write APIs.
 - No **patient search** or **patient profile** from this panel.
 - No **`PAT_NAME`**, **`TELEPHONE`**, **`COMMENT`** body, **`CASENUM`**, or raw row JSON in the UI.
+- No full phone numbers, addresses, clinical narratives, payments, or treatments — only the safe **`patient`** subset returned by the bridge.
 - No **TanStack Query**, **React Router**, **date-picker libraries**, charts, or new icon packages.
 
 ## States
@@ -40,7 +41,8 @@ The UI never requests a range **wider than 14 days**; week mode uses **7** days.
 ## Tests (`packages/app/src/schedule-panel.test.tsx`)
 
 - **Offline**: no `fetch` calls; copy mentions clinic service.
-- **Success path**: synthetic rooms + appointments; shows time, patient id label, room label, status/note.
+- **Success path**: synthetic rooms + appointments with **`patient`** summaries; shows time, resolved display name + optional chart, room label, status/note.
+- **Fallback**: when **`patient`** is **`null`**, shows **`Patient ID {patId}`** for non-zero **`patId`**.
 - **Failed load**: appointments HTTP 500 shows the generic error line.
 - **Static guard**: full document text must not include the tokens **`PAT_NAME`**, **`TELEPHONE`**, or **`COMMENT`** as words (UI copy uses “Notes”, not memo field names).
 - **Room filter** change triggers an appointments URL with **`room=`**.

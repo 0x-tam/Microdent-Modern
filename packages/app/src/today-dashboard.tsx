@@ -43,6 +43,21 @@ function formatDuration(a: ScheduleAppointmentItem): string {
   return `${total} min`;
 }
 
+function dashboardPatientHeadline(appt: ScheduleAppointmentItem): string {
+  if (appt.patId === "0") {
+    return "No patient id";
+  }
+  return appt.patient?.displayName ?? `Patient ID ${appt.patId}`;
+}
+
+function dashboardPatientChart(appt: ScheduleAppointmentItem): string | null {
+  if (appt.patId === "0") {
+    return null;
+  }
+  const c = appt.patient?.chartNumber;
+  return c !== null && c !== undefined && c.length > 0 ? c : null;
+}
+
 function sortAppointments(a: ScheduleAppointmentItem, b: ScheduleAppointmentItem): number {
   const ta = a.time.trim();
   const tb = b.time.trim();
@@ -189,11 +204,18 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
           <li key={a.id} className="app-appt-list__row">
             <span className="app-appt-list__time">{a.time.trim()}</span>
             <div className="app-appt-list__main">
-              {a.patId !== "0" ? (
-                <span className="app-appt-list__patient">Patient ID {a.patId}</span>
-              ) : (
-                <span className="app-appt-list__patient app-appt-list__patient--muted">No patient id</span>
-              )}
+              <span
+                className={
+                  a.patId === "0"
+                    ? "app-appt-list__patient app-appt-list__patient--muted"
+                    : "app-appt-list__patient"
+                }
+              >
+                <span className="app-appt-list__patient-name">{dashboardPatientHeadline(a)}</span>
+                {a.patId !== "0" && dashboardPatientChart(a) !== null ? (
+                  <span className="app-appt-list__patient-chart"> · {dashboardPatientChart(a)}</span>
+                ) : null}
+              </span>
               <span className="app-appt-list__visit">{visitMetaLine(a)}</span>
               <div className="app-appt-list__extras">
                 {a.hasComment ? <span className="app-appt-list__pill">Note hidden</span> : null}
@@ -247,11 +269,18 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
     return (
       <>
         <p className="app-next-patient__time">{nextUpcoming.time.trim()}</p>
-        {nextUpcoming.patId !== "0" ? (
-          <p className="app-next-patient__patid">Patient ID {nextUpcoming.patId}</p>
-        ) : (
-          <p className="app-next-patient__patid app-next-patient__patid--muted">No patient id</p>
-        )}
+        <p
+          className={
+            nextUpcoming.patId === "0"
+              ? "app-next-patient__patid app-next-patient__patid--muted"
+              : "app-next-patient__patid"
+          }
+        >
+          <span className="app-next-patient__patid-name">{dashboardPatientHeadline(nextUpcoming)}</span>
+          {nextUpcoming.patId !== "0" && dashboardPatientChart(nextUpcoming) !== null ? (
+            <span className="app-next-patient__patid-chart"> · {dashboardPatientChart(nextUpcoming)}</span>
+          ) : null}
+        </p>
         <p className="app-next-patient__detail">
           {visitMetaLine(nextUpcoming)} · {statusLabel(nextUpcoming.status)}
         </p>
@@ -290,8 +319,8 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
             </CardHeader>
             <CardBody>
               <p className="app-dashboard-sched__privacy">
-                Read-only: names, phone numbers, and note text stay off this screen. Only time, duration, room, status,
-                provider id, patient id, and whether a note exists are shown.
+                Read-only: display names and chart numbers use a safe patient summary from PATIENT.DBF. Full phone numbers,
+                addresses, note text, and other clinical or payment fields stay off this screen.
               </p>
               {primaryBody}
               <div className="app-appt-list__footer">

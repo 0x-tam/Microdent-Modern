@@ -41,6 +41,11 @@ function sampleAppointments(from: string) {
         status: 2,
         docId: 3,
         patId: "9001",
+        patient: {
+          patientId: "9001",
+          displayName: "Synthetic Schedule Panel Patient",
+          chartNumber: "PNL-9K",
+        },
         procClass: 1,
         vacId: 0,
         recall: 0,
@@ -126,9 +131,72 @@ describe("SchedulePanel", () => {
     });
 
     expect(container.textContent).toContain("09:00");
-    expect(container.textContent).toContain("Patient ID 9001");
+    expect(container.textContent).toContain("Synthetic Schedule Panel Patient");
+    expect(container.textContent).toContain("PNL-9K");
+    expect(container.textContent).not.toContain("Patient ID 9001");
     expect(container.textContent).toContain("Synthetic bay A");
     expect(container.textContent).toMatch(/Confirmed|Note/i);
+  });
+
+  it("falls back to Patient ID when patient summary is null", async () => {
+    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
+      const u = String(input);
+      if (u.includes("/v1/schedule/rooms")) {
+        return Promise.resolve(jsonResponse(sampleRooms));
+      }
+      if (u.includes("/v1/schedule/appointments")) {
+        const m = u.match(/from=([^&]+)/);
+        const fromQ = m ? decodeURIComponent(m[1]) : "";
+        return Promise.resolve(
+          jsonResponse({
+            appointments: [
+              {
+                id: "601",
+                date: fromQ,
+                time: "10:30",
+                durationSlots: 1,
+                periodMinutes: 30,
+                room: 1,
+                status: 1,
+                docId: 0,
+                patId: "770077",
+                patient: null,
+                procClass: 0,
+                vacId: 0,
+                recall: 0,
+                unreason: 0,
+                missed: false,
+                hasComment: false,
+              },
+            ],
+          }),
+        );
+      }
+      return Promise.reject(new Error(`unexpected fetch ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <SchedulePanel
+          isActive
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain("Patient ID 770077");
   });
 
   it("does not render PAT_NAME, TELEPHONE, or COMMENT as visible labels or leaked tokens", async () => {
@@ -153,6 +221,7 @@ describe("SchedulePanel", () => {
                 status: 1,
                 docId: 0,
                 patId: "0",
+                patient: null,
                 procClass: 0,
                 vacId: 0,
                 recall: 0,

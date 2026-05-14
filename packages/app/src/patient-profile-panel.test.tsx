@@ -71,7 +71,7 @@ describe("PatientProfilePanel", () => {
       );
     });
     expect(container.textContent).toMatch(/No patient selected/i);
-    expect(container.textContent).toMatch(/Search for a patient above to open their read-only profile/i);
+    expect(container.textContent).toMatch(/Find a patient in the top bar/i);
   });
 
   it("does not call profile fetch when the bridge is offline", async () => {

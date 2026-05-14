@@ -138,8 +138,29 @@ describe("BridgeClient", () => {
     expect(fetch).toHaveBeenCalledWith(`${baseUrl}/v1/schedule/rooms`, expect.anything());
   });
 
-  it("getScheduleAppointments: encodes query params and optional room", async () => {
-    const body = { appointments: [] };
+  it("getScheduleAppointments: encodes query params, optional room, and validates patient summary shape", async () => {
+    const body = {
+      appointments: [
+        {
+          id: "1",
+          date: "2026-05-01",
+          time: "09:00",
+          durationSlots: 1,
+          periodMinutes: 30,
+          room: 1,
+          status: 1,
+          docId: 0,
+          patId: "42",
+          patient: { patientId: "42", displayName: "Bridge Synth", chartNumber: "BR-42" },
+          procClass: 0,
+          vacId: 0,
+          recall: 0,
+          unreason: 0,
+          missed: false,
+          hasComment: false,
+        },
+      ],
+    };
     const fetch = vi.fn().mockResolvedValue(jsonResponse(body));
     const client = createBridgeClient({ baseUrl, fetch });
     await expect(

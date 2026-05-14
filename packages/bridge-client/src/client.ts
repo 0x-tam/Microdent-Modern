@@ -113,7 +113,10 @@ export class BridgeClient {
     if (params.room !== undefined) {
       q.set("room", String(params.room));
     }
-    return this.requestJson(`/v1/schedule/appointments?${q.toString()}`, ScheduleAppointmentsResponseSchema);
+    return this.requestJson(
+      `/v1/schedule/appointments?${q.toString()}`,
+      ScheduleAppointmentsResponseSchema as ZodType<ScheduleAppointmentsResponse>,
+    );
   }
 
   async getTableSchema(tableId: string): Promise<TableSchemaResponse> {

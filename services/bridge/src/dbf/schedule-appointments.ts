@@ -80,6 +80,7 @@ function rowToAppointment(row: Record<string, unknown>): ScheduleAppointmentItem
     status: Math.trunc(num(row, "STATUS")),
     docId: Math.trunc(num(row, "DOC_ID")),
     patId: strId(row, "PAT_ID"),
+    patient: null,
     procClass: Math.trunc(num(row, "PROC_CLASS")),
     vacId: Math.trunc(num(row, "VAC_ID")),
     recall: Math.trunc(num(row, "RECALL")),

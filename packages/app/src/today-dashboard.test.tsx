@@ -28,6 +28,7 @@ function appt(over: Partial<Record<string, unknown>> = {}): Record<string, unkno
     unreason: 0,
     missed: false,
     hasComment: false,
+    patient: null,
     ...over,
   };
 }
@@ -77,8 +78,23 @@ describe("DashboardHome (Today schedule)", () => {
         return Promise.resolve(
           jsonResponse({
             appointments: [
-              appt({ id: "1", date: "2026-06-15", time: "08:00", patId: "501", docId: 3, hasComment: true, missed: true }),
-              appt({ id: "2", date: "2026-06-15", time: "14:00", patId: "502" }),
+              appt({
+                id: "1",
+                date: "2026-06-15",
+                time: "08:00",
+                patId: "501",
+                docId: 3,
+                hasComment: true,
+                missed: true,
+                patient: { patientId: "501", displayName: "Synthetic Dashboard One", chartNumber: "DASH-501" },
+              }),
+              appt({
+                id: "2",
+                date: "2026-06-15",
+                time: "14:00",
+                patId: "502",
+                patient: { patientId: "502", displayName: "Synthetic Dashboard Two", chartNumber: null },
+              }),
             ],
           }),
         );
@@ -105,16 +121,17 @@ describe("DashboardHome (Today schedule)", () => {
 
     expect(container.textContent).toContain("2 on the schedule today");
     expect(container.textContent).toContain("08:00");
-    expect(container.textContent).toContain("Patient ID 501");
+    expect(container.textContent).toContain("Synthetic Dashboard One");
+    expect(container.textContent).toContain("DASH-501");
     expect(container.textContent).toContain("Note hidden");
     expect(container.textContent).toContain("Missed");
     expect(container.textContent).toContain("14:00");
-    expect(container.textContent).toContain("Patient ID 502");
+    expect(container.textContent).toContain("Synthetic Dashboard Two");
     expect(container.textContent).not.toMatch(/\bPAT_NAME\b|\bTELEPHONE\b|\bCOMMENT\b/i);
     expect(container.textContent).not.toContain("555-");
     expect(container.textContent).toMatch(/Next appointment/i);
     expect(container.textContent).toContain("14:00");
-    expect(container.textContent).toContain("Patient ID 502");
+    expect(container.textContent).toContain("Synthetic Dashboard Two");
   });
 
   it("shows empty copy when there are no appointments today", async () => {
@@ -148,9 +165,15 @@ describe("DashboardHome (Today schedule)", () => {
       Promise.resolve(
         jsonResponse({
           appointments: [
-            appt({ id: "a", date: "2026-08-10", time: "09:00", patId: "1" }),
-            appt({ id: "b", date: "2026-08-10", time: "13:30", patId: "2" }),
-            appt({ id: "c", date: "2026-08-10", time: "15:00", patId: "3" }),
+            appt({ id: "a", date: "2026-08-10", time: "09:00", patId: "1", patient: null }),
+            appt({
+              id: "b",
+              date: "2026-08-10",
+              time: "13:30",
+              patId: "2",
+              patient: { patientId: "2", displayName: "Next Card Synth", chartNumber: "NC-2" },
+            }),
+            appt({ id: "c", date: "2026-08-10", time: "15:00", patId: "3", patient: null }),
           ],
         }),
       ),
@@ -174,7 +197,8 @@ describe("DashboardHome (Today schedule)", () => {
     expect(idx).toBeGreaterThan(-1);
     const slice = t.slice(idx, idx + 400);
     expect(slice).toContain("13:30");
-    expect(slice).toContain("Patient ID 2");
+    expect(slice).toContain("Next Card Synth");
+    expect(slice).toContain("NC-2");
     expect(slice).not.toContain("Patient ID 3");
   });
 

@@ -50,6 +50,44 @@ const scheduleFields = [
   { name: "MISSED", type: "L" as const, size: 1 },
 ];
 
+const patientScheduleFields = [
+  { name: "ID", type: "N" as const, size: 10, decimalPlaces: 0 },
+  { name: "CASENB", type: "C" as const, size: 15 },
+  { name: "NAME", type: "C" as const, size: 51 },
+  { name: "REV_NAME", type: "C" as const, size: 51 },
+  { name: "FIRST_NAME", type: "C" as const, size: 25 },
+  { name: "LAST_NAME", type: "C" as const, size: 25 },
+  { name: "HOME_PHONE", type: "C" as const, size: 19 },
+  { name: "MOBILE", type: "C" as const, size: 19 },
+];
+
+async function writePatientDbfForSchedule(dir: string): Promise<void> {
+  const patientPath = join(dir, "PATIENT.DBF");
+  const dbf = await DBFFile.create(patientPath, patientScheduleFields, {});
+  await dbf.appendRecords([
+    {
+      ID: 50001,
+      CASENB: "SCH-ALPHA",
+      NAME: "Synthetic Schedule Patient Alpha",
+      REV_NAME: "",
+      FIRST_NAME: "",
+      LAST_NAME: "",
+      HOME_PHONE: "(555) 200-3001",
+      MOBILE: "",
+    },
+    {
+      ID: 50002,
+      CASENB: "",
+      NAME: "",
+      REV_NAME: "",
+      FIRST_NAME: "Synthetic",
+      LAST_NAME: "Schedule Beta",
+      HOME_PHONE: "",
+      MOBILE: "",
+    },
+  ]);
+}
+
 const scRoomFields = [
   { name: "ROOM", type: "N" as const, size: 3, decimalPlaces: 0 },
   { name: "DAY1", type: "L" as const, size: 1 },
@@ -70,7 +108,7 @@ function dicFields(): { name: string; type: "C"; size: number }[] {
   return out;
 }
 
-async function writeScheduleFixtures(dir: string): Promise<void> {
+async function writeScheduleFixtures(dir: string, opts?: { withPatientDbf?: boolean }): Promise<void> {
   const dicPath = join(dir, "DICSCHED.DBF");
   const dicRow: Record<string, string> = {};
   for (let i = 1; i <= 25; i++) {
@@ -193,7 +231,29 @@ async function writeScheduleFixtures(dir: string): Promise<void> {
       UNREASON: 0,
       MISSED: false,
     },
+    {
+      ID: 1005,
+      DATE: d1,
+      TIME: "14:00",
+      DURATION: 1,
+      ROOM: 1,
+      COMMENT: "",
+      PAT_NAME: secretName,
+      TELEPHONE: secretPhone,
+      PERIOD: 30,
+      STATUS: 1,
+      DOC_ID: 0,
+      PAT_ID: 88888,
+      PROC_CLASS: 0,
+      VAC_ID: 0,
+      RECALL: 0,
+      UNREASON: 0,
+      MISSED: false,
+    },
   ]);
+  if (opts?.withPatientDbf !== false) {
+    await writePatientDbfForSchedule(dir);
+  }
 }
 
 describe("GET /v1/schedule/rooms", () => {
@@ -270,14 +330,85 @@ describe("GET /v1/schedule/appointments", () => {
         const parsed = ScheduleAppointmentsResponseSchema.safeParse(json);
         expect(parsed.success).toBe(true);
         if (!parsed.success) return;
-        expect(parsed.data.appointments).toHaveLength(3);
+        expect(parsed.data.appointments).toHaveLength(4);
         const a1 = parsed.data.appointments.find((a) => a.id === "1001");
         expect(a1?.hasComment).toBe(true);
         expect(a1?.patId).toBe("50001");
         expect(a1?.periodMinutes).toBe(30);
+        expect(a1?.patient?.displayName).toBe("Synthetic Schedule Patient Alpha");
+        expect(a1?.patient?.chartNumber).toBe("SCH-ALPHA");
+        expect(a1?.patient?.patientId).toBe("50001");
+        expect(a1?.patient && "phoneMask" in a1.patient).toBe(false);
+
         const a2 = parsed.data.appointments.find((a) => a.id === "1002");
         expect(a2?.periodMinutes).toBe(null);
         expect(a2?.missed).toBe(true);
+        expect(a2?.patient?.displayName).toBe("Synthetic Schedule Beta");
+        expect(a2?.patient?.chartNumber).toBe(null);
+
+        const a3 = parsed.data.appointments.find((a) => a.id === "1003");
+        expect(a3?.patId).toBe("0");
+        expect(a3?.patient).toBe(null);
+
+        const aOrphan = parsed.data.appointments.find((a) => a.id === "1005");
+        expect(aOrphan?.patId).toBe("88888");
+        expect(aOrphan?.patient).toBe(null);
+
+        const allowedTop = new Set([
+          "id",
+          "date",
+          "time",
+          "durationSlots",
+          "periodMinutes",
+          "room",
+          "status",
+          "docId",
+          "patId",
+          "patient",
+          "procClass",
+          "vacId",
+          "recall",
+          "unreason",
+          "missed",
+          "hasComment",
+        ]);
+        for (const a of parsed.data.appointments) {
+          for (const k of Object.keys(a)) {
+            expect(allowedTop.has(k)).toBe(true);
+          }
+          if (a.patient) {
+            expect(Object.keys(a.patient).sort()).toEqual(["chartNumber", "displayName", "patientId"]);
+          }
+        }
+        expect(text).not.toContain("phoneMask");
+        expect(text).not.toContain("200-3001");
+      });
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("returns patient null for all appointments when PATIENT.DBF is absent", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "bridge-schedule-appt-no-patient-"));
+    try {
+      await writeScheduleFixtures(tmp, { withPatientDbf: false });
+      const dataRoot = parseDataRootFromValue(tmp);
+      if (!dataRoot.configured) throw new Error("data root");
+      const app = createBridgeApp("v-test", {
+        bridgeConfig: { listen: { host: "127.0.0.1", port: 0 }, dataRoot },
+      });
+      await withServer(app, async (port) => {
+        const res = await fetch(
+          `http://127.0.0.1:${port}/v1/schedule/appointments?from=2026-05-20&to=2026-05-21`,
+        );
+        expect(res.status).toBe(200);
+        const json: unknown = await res.json();
+        const parsed = ScheduleAppointmentsResponseSchema.safeParse(json);
+        expect(parsed.success).toBe(true);
+        if (!parsed.success) return;
+        for (const a of parsed.data.appointments) {
+          expect(a.patient).toBe(null);
+        }
       });
     } finally {
       rmSync(tmp, { recursive: true, force: true });

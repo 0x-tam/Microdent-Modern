@@ -94,6 +94,21 @@ function formatDuration(a: ScheduleAppointmentItem): string {
   return `${total} min`;
 }
 
+function schedulePatientPrimary(appt: ScheduleAppointmentItem): string {
+  if (appt.patId === "0") {
+    return "Patient ID —";
+  }
+  return appt.patient?.displayName ?? `Patient ID ${appt.patId}`;
+}
+
+function schedulePatientChart(appt: ScheduleAppointmentItem): string | null {
+  if (appt.patId === "0") {
+    return null;
+  }
+  const c = appt.patient?.chartNumber;
+  return c !== null && c !== undefined && c.length > 0 ? c : null;
+}
+
 function formatRangeHeading(from: string, to: string, granularity: Granularity): string {
   try {
     if (from === to) {
@@ -393,7 +408,8 @@ export function SchedulePanel({
           {rangeHeading}
         </p>
         <p className="app-schedule__privacy">
-          Read-only schedule. Notes and phone numbers are hidden in this preview.
+          Read-only schedule. Names and chart numbers come from a safe PATIENT.DBF summary; notes and phone numbers stay
+          hidden in this preview.
         </p>
       </div>
 
@@ -433,14 +449,19 @@ export function SchedulePanel({
                     <section key={`${dateIso}-${roomNum}`} className="app-schedule__room-block">
                       <h3 className="app-schedule__room-heading">{roomLabel(rooms, roomNum)}</h3>
                       <ul className="app-schedule__appt-list" aria-label={`Appointments on ${dateIso} in room ${roomNum}`}>
-                        {list.map((appt) => (
+                        {list.map((appt) => {
+                          const chart = schedulePatientChart(appt);
+                          return (
                           <li key={appt.id} className="app-schedule__appt-row">
                             <div className="app-schedule__appt-time">{appt.time}</div>
                             <div className="app-schedule__appt-main">
                               <div className="app-schedule__appt-line1">
                                 <span className="app-schedule__appt-duration">{formatDuration(appt)}</span>
                                 <span className="app-schedule__appt-meta">
-                                  {appt.patId !== "0" ? `Patient ID ${appt.patId}` : "Patient ID —"}
+                                  <span className="app-schedule__appt-patient-primary">{schedulePatientPrimary(appt)}</span>
+                                  {chart !== null ? (
+                                    <span className="app-schedule__appt-patient-chart"> · {chart}</span>
+                                  ) : null}
                                   {appt.docId !== 0 ? ` · Doctor ${appt.docId}` : ""}
                                   {` · Proc ${appt.procClass}`}
                                 </span>
@@ -462,7 +483,8 @@ export function SchedulePanel({
                               </div>
                             </div>
                           </li>
-                        ))}
+                          );
+                        })}
                       </ul>
                     </section>
                   ))}

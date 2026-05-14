@@ -1,6 +1,6 @@
 # Phase 1b — Calendar / schedule (backend only)
 
-Read-only **`GET /v1/schedule/rooms`** and **`GET /v1/schedule/appointments`** read **`SC_ROOM.DBF`**, optional **`DICSCHED.DBF`**, and **`SCHEDULE.DBF`** under **`DATA_ROOT`**. This band is **API + contracts + bridge client + tests only** — no calendar UI.
+Read-only **`GET /v1/schedule/rooms`** and **`GET /v1/schedule/appointments`** read **`SC_ROOM.DBF`**, optional **`DICSCHED.DBF`**, **`SCHEDULE.DBF`**, and (for appointments only) **`PATIENT.DBF`** under **`DATA_ROOT`**. This band is **API + contracts + bridge client + tests only** — no calendar UI.
 
 ## Routes
 
@@ -19,12 +19,12 @@ Reads **`DICSCHED.DBF`** when present: **first non-deleted row only**, fields **
 - **404** with `SCHEDULE_DBF_NOT_FOUND` if **`SCHEDULE.DBF`** is absent.
 - **500** with `SCHEDULE_APPOINTMENTS_ERROR` on unexpected read failures.
 
-Scans **`SCHEDULE.DBF`** sequentially (skips soft-deleted rows), filters by **`DATE`** inclusive in `[from, to]` (UTC date-only comparison on decoded FoxPro `D` fields), optional numeric **`ROOM`** filter, and stops after **1000** matching appointments.
+Scans **`SCHEDULE.DBF`** sequentially (skips soft-deleted rows), filters by **`DATE`** inclusive in `[from, to]` (UTC date-only comparison on decoded FoxPro `D` fields), optional numeric **`ROOM`** filter, and stops after **1000** matching appointments. Then collects distinct non-zero **`PAT_ID`** values from those rows and performs **one** additional sequential scan of **`PATIENT.DBF`** (skips deleted rows), stopping early once every requested id has been resolved. Each appointment JSON includes a **`patient`** object or **`null`**; names are **never** taken from **`SCHEDULE.PAT_NAME`**.
 
 ## Contracts (`@microdent/contracts`)
 
 - **`ScheduleRoomsResponseSchema`** / **`ScheduleRoomItemSchema`** / **`ScheduleRoomActiveDaysSchema`**
-- **`ScheduleAppointmentsResponseSchema`** / **`ScheduleAppointmentItemSchema`**
+- **`ScheduleAppointmentsResponseSchema`** / **`ScheduleAppointmentItemSchema`** / **`ScheduleAppointmentPatientSummarySchema`**
 - **`ScheduleAppointmentsQuerySchema`** — validates **`from`**, **`to`**, optional **`room`**, and **14-day inclusive** span cap.
 
 ## Room response fields
@@ -48,7 +48,8 @@ Scans **`SCHEDULE.DBF`** sequentially (skips soft-deleted rows), filters by **`D
 | `room` | `ROOM` | Integer. |
 | `status` | `STATUS` | Opaque integer; replacement script documents 0–5 — legacy may differ. |
 | `docId` | `DOC_ID` | Integer. |
-| `patId` | `PAT_ID` | Stringified numeric key only — **no** name resolution. |
+| `patId` | `PAT_ID` | Stringified numeric key; unchanged from the schedule row. |
+| `patient` | `PATIENT.DBF` (by `ID` = `patId`) | **`null`** when `patId` is zero, when **`PATIENT.DBF`** is missing, or when no row matches. Otherwise **`{ patientId, displayName, chartNumber }`** only — same safe derivation as patient search (`NAME`, or `FIRST_NAME` + `LAST_NAME`, or `REV_NAME`, else `Patient {id}`), chart from **`CASENB`**. **No `phoneMask`** on schedule appointments. |
 | `procClass` | `PROC_CLASS` | Integer. |
 | `vacId` | `VAC_ID` | Integer. |
 | `recall` | `RECALL` | Integer. |
@@ -58,7 +59,9 @@ Scans **`SCHEDULE.DBF`** sequentially (skips soft-deleted rows), filters by **`D
 
 ## Intentionally blocked (never returned)
 
-- **`PAT_NAME`**, **`TELEPHONE`**, **`COMMENT`** body, **`CASENUM`**, raw DBF row maps, arbitrary **`DICSCHED`** strings outside **`ROOM1`–`ROOM25`** on the first row.
+- **`SCHEDULE.PAT_NAME`** is **not** read for the API (patient display names come only from **`PATIENT.DBF`** as above).
+- **`TELEPHONE`**, **`COMMENT`** body, **`CASENUM`**, raw DBF row maps, arbitrary **`DICSCHED`** strings outside **`ROOM1`–`ROOM25`** on the first row.
+- No masked phone field on schedule appointment items (unlike **`GET /v1/patients/search`** hits).
 
 Logs and error responses do **not** include appointment row payloads.
 
@@ -73,7 +76,7 @@ Logs and error responses do **not** include appointment row payloads.
 
 ## Automated tests
 
-Bridge **`schedule-routes.test.ts`** builds **synthetic** `SC_ROOM`, `DICSCHED`, and `SCHEDULE` DBFs in a temp directory (fake tokens only — no real PHI). Covers rooms success, appointments success + privacy strings absent in JSON, date validation, 14-day cap, 1000-row cap, missing files, missing `DATA_ROOT`, and room filter.
+Bridge **`schedule-routes.test.ts`** builds **synthetic** `SC_ROOM`, `DICSCHED`, `SCHEDULE`, and `PATIENT` DBFs in a temp directory (fake tokens only — no real PHI). Covers rooms success, appointments success + resolved **`patient`** summaries + privacy strings absent in JSON, missing **`PATIENT.DBF`** (all **`patient`:** **`null`**), date validation, 14-day cap, 1000-row cap, missing files, missing `DATA_ROOT`, and room filter.
 
 Bridge-client tests cover URL construction for appointments.
 

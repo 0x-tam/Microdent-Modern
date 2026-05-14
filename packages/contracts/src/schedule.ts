@@ -41,6 +41,53 @@ export const ScheduleRoomsResponseSchema = z.object({
 
 export type ScheduleRoomsResponse = z.infer<typeof ScheduleRoomsResponseSchema>;
 
+/**
+ * Safe patient summary attached to a schedule row — resolved from PATIENT.DBF only.
+ * No phone mask here; schedule responses never include masked phone hints.
+ */
+function wirePatientId(v: unknown): string {
+  if (typeof v === "number" && Number.isFinite(v)) return String(Math.trunc(v));
+  if (typeof v === "bigint") return String(v);
+  const s = v === null || v === undefined ? "" : String(v).trim();
+  return s.length > 0 ? s : "0";
+}
+
+function wireChartNumber(v: unknown): string | null {
+  if (v === null || v === undefined) return null;
+  if (typeof v === "number" && Number.isFinite(v)) {
+    const s = String(Math.trunc(v));
+    return s.length > 0 ? s : null;
+  }
+  const s = String(v).trim();
+  return s.length > 0 ? s : null;
+}
+
+function wireDisplayName(v: unknown): string {
+  const s = v === null || v === undefined ? "" : String(v).trim();
+  return s.length > 0 ? s : "Patient";
+}
+
+export const ScheduleAppointmentPatientSummarySchema = z.preprocess(
+  (raw) => {
+    if (raw === null || raw === undefined || typeof raw !== "object") {
+      return raw;
+    }
+    const o = raw as Record<string, unknown>;
+    return {
+      patientId: wirePatientId(o.patientId),
+      displayName: wireDisplayName(o.displayName),
+      chartNumber: wireChartNumber(o.chartNumber),
+    };
+  },
+  z.object({
+    patientId: z.string(),
+    displayName: z.string().min(1),
+    chartNumber: z.string().nullable(),
+  }),
+);
+
+export type ScheduleAppointmentPatientSummary = z.infer<typeof ScheduleAppointmentPatientSummarySchema>;
+
 /** One appointment — safe subset only; no PAT_NAME, TELEPHONE, COMMENT body, or raw row. */
 export const ScheduleAppointmentItemSchema = z.object({
   id: z.string(),
@@ -54,6 +101,11 @@ export const ScheduleAppointmentItemSchema = z.object({
   status: z.number().int(),
   docId: z.number().int(),
   patId: z.string(),
+  /**
+   * Resolved from PATIENT.DBF by patId when the file exists and a row matches.
+   * `null` when patId is zero, lookup misses, or PATIENT.DBF is absent — never from SCHEDULE.PAT_NAME.
+   */
+  patient: ScheduleAppointmentPatientSummarySchema.nullable(),
   procClass: z.number().int(),
   vacId: z.number().int(),
   recall: z.number().int(),

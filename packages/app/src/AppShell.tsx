@@ -325,7 +325,8 @@ export function AppShell({
                 <p className="app-main__lede">Who is on the schedule, what is next, and where to go next.</p>
               ) : active === "schedule" ? (
                 <p className="app-main__lede">
-                  Read-only view of appointments from your copied data. Names and notes stay off this screen.
+                  Read-only view from your copied data. Patient names use a safe PATIENT.DBF summary; note text and phones
+                  stay hidden.
                 </p>
               ) : active === "patients" ? (
                 <p className="app-main__lede">

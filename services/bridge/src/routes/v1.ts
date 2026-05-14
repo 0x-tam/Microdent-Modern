@@ -21,6 +21,7 @@ import { openRegisteredDbf, parsePagination, readRegisteredTableRows } from "../
 import { resolveRegisteredDbfPath } from "../dbf/resolve-registered-dbf.js";
 import { findRegistryEntry, TABLE_ID_PATTERN, TABLE_REGISTRY } from "../dbf/table-registry.js";
 import { readLegacyCatalogRows } from "../dbf/read-legacy-catalog.js";
+import { mergePatientSummariesIntoScheduleAppointments } from "../dbf/schedule-appointment-patients.js";
 import { readScheduleAppointments } from "../dbf/schedule-appointments.js";
 import { readScheduleRooms } from "../dbf/schedule-rooms.js";
 
@@ -199,7 +200,8 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
       return;
     }
 
-    const body = { appointments: outcome.appointments };
+    const appointments = await mergePatientSummariesIntoScheduleAppointments(dr, outcome.appointments);
+    const body = { appointments };
     ScheduleAppointmentsResponseSchema.parse(body);
     res.json(body);
   });
