@@ -81,6 +81,38 @@ describe("BridgeClient", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it("getPatientProfile: success and encodes path segment", async () => {
+    const body = {
+      patientId: "9",
+      chartNumber: "X-1",
+      displayName: "Synth",
+      phoneMask: "…9999",
+      reverseName: null,
+      active: true,
+      doctorId: "5",
+      entryDate: "2020-01-01",
+      lastVisit: null,
+    };
+    const fetch = vi.fn().mockResolvedValue(jsonResponse(body));
+    const client = createBridgeClient({ baseUrl, fetch });
+    await expect(client.getPatientProfile("9")).resolves.toEqual(body);
+    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/v1/patients/9/profile`, expect.anything());
+  });
+
+  it("getPatientProfile: rejects invalid id before fetch", async () => {
+    const fetch = vi.fn();
+    const client = createBridgeClient({ baseUrl, fetch });
+    await expect(client.getPatientProfile("0")).rejects.toMatchObject({
+      name: "BridgeClientError",
+      kind: "invalid_argument",
+    });
+    await expect(client.getPatientProfile("01")).rejects.toMatchObject({
+      name: "BridgeClientError",
+      kind: "invalid_argument",
+    });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("getScheduleRooms: success", async () => {
     const body = {
       rooms: [

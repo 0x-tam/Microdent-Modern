@@ -17,10 +17,18 @@ export {
   PatientSearchQueryParamsSchema,
   PatientSearchResponseSchema,
   PatientSearchResultItemSchema,
+  SafePatientSummarySchema,
   type PatientSearchQueryParams,
   type PatientSearchResponse,
   type PatientSearchResultItem,
+  type SafePatientSummary,
 } from "./patient-search.js";
+export {
+  PatientProfilePathParamsSchema,
+  PatientProfileResponseSchema,
+  type PatientProfilePathParams,
+  type PatientProfileResponse,
+} from "./patient-profile.js";
 export {
   ScheduleRoomActiveDaysSchema,
   ScheduleRoomItemSchema,

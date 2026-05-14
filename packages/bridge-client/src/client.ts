@@ -3,6 +3,8 @@ import {
   ApiErrorBodySchema,
   HealthResponseSchema,
   LegacyCatalogResponseSchema,
+  PatientProfilePathParamsSchema,
+  PatientProfileResponseSchema,
   PatientSearchResponseSchema,
   ScheduleAppointmentsResponseSchema,
   ScheduleRoomsResponseSchema,
@@ -11,6 +13,7 @@ import {
   TableSchemaResponseSchema,
   type HealthResponse,
   type LegacyCatalogResponse,
+  type PatientProfileResponse,
   type PatientSearchResponse,
   type ScheduleAppointmentsResponse,
   type ScheduleRoomsResponse,
@@ -81,6 +84,20 @@ export class BridgeClient {
     }
     const qs = new URLSearchParams({ q: trimmed });
     return this.requestJson(`/v1/patients/search?${qs.toString()}`, PatientSearchResponseSchema);
+  }
+
+  /**
+   * Read-only patient profile (`PATIENT.DBF` only). `patientId` must match search ids (positive integer, no leading zeros).
+   */
+  async getPatientProfile(patientId: string): Promise<PatientProfileResponse> {
+    const parsed = PatientProfilePathParamsSchema.safeParse({ patientId });
+    if (!parsed.success) {
+      throw new BridgeClientError("Invalid patient id", {
+        kind: "invalid_argument",
+      });
+    }
+    const id = parsed.data.patientId;
+    return this.requestJson(`/v1/patients/${encodeURIComponent(id)}/profile`, PatientProfileResponseSchema);
   }
 
   async getScheduleRooms(): Promise<ScheduleRoomsResponse> {

@@ -10,8 +10,8 @@ export const PatientSearchQueryParamsSchema = z.object({
 
 export type PatientSearchQueryParams = z.infer<typeof PatientSearchQueryParamsSchema>;
 
-/** One patient search hit — safe subset only; no raw DBF row. */
-export const PatientSearchResultItemSchema = z.object({
+/** Safe patient summary (search hit + profile core) — no raw DBF row, no memos, no full phone. */
+export const SafePatientSummarySchema = z.object({
   /** Numeric internal id from `PATIENT.DBF` `ID` (stringified for JSON). */
   patientId: z.string(),
   /** Chart / case number from `CASENB` when present. */
@@ -21,6 +21,11 @@ export const PatientSearchResultItemSchema = z.object({
   /** Masked phone hint from `HOME_PHONE` or `MOBILE` (last digits only); never full number. */
   phoneMask: z.string().nullable(),
 });
+
+export type SafePatientSummary = z.infer<typeof SafePatientSummarySchema>;
+
+/** One patient search hit — same shape as {@link SafePatientSummarySchema}. */
+export const PatientSearchResultItemSchema = SafePatientSummarySchema;
 
 export type PatientSearchResultItem = z.infer<typeof PatientSearchResultItemSchema>;
 
