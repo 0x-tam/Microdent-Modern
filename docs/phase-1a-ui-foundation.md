@@ -23,7 +23,7 @@
 | §2 palette | `--ui-bg-*`, `--ui-text-*`, `--ui-primary-*`, `--ui-success-*`, … |
 | §3 typography | `--ui-font-sans`, `--ui-font-mono`; heading/body sizes in CSS per component |
 | §4 spacing / radius | `--ui-space-*`, `--ui-radius-*` |
-| §2 extended | `--ui-bg-canvas-wash`, `--ui-bg-rail`, `--ui-bg-shell-fade`, `--ui-primary-700`, `--ui-gradient-shell`, `--ui-gradient-topbar`, `--ui-shadow-card-hover` (shell polish; see [phase-1a-visual-polish.md](../docs/phase-1a-visual-polish.md)) |
+| §2 extended | `--ui-bg-canvas-wash`, `--ui-bg-rail`, `--ui-bg-shell-fade`, `--ui-primary-700`, `--ui-gradient-shell`, `--ui-gradient-topbar`, `--ui-shadow-card-hover` (shell polish; see [phase-1a-visual-polish.md](phase-1a-visual-polish.md)) |
 | §6 buttons | `.ui-btn--*` variants, hover transitions |
 | §7 cards | `.ui-card*` structure |
 | §8 tables | sticky header row, subtle borders, optional zebra |
