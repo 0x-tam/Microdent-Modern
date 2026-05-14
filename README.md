@@ -21,7 +21,7 @@ From the repository root after `pnpm install` or `npm install`:
 npm test
 ```
 
-The same script runs if you use `pnpm test` at the root. It builds `@microdent/contracts`, then runs `services/bridge` Vitest and **`packages/bridge-client`** Vitest (mocked `fetch`, no live bridge required for the client tests).
+The same script runs if you use `pnpm test` at the root. It builds `@microdent/contracts`, runs bridge and bridge-client Vitest suites, then **builds and tests `@microdent/ui`**.
 
 To run only the bridge tests (after contracts are already built):
 
@@ -67,3 +67,7 @@ Only the synthetic registry entry **`fixture_tiny`** is available. Details and p
 ## Typed bridge client (Band A4)
 
 The **`@microdent/bridge-client`** package wraps the HTTP API with Zod-validated responses. See [docs/phase-1a-bridge-client.md](docs/phase-1a-bridge-client.md).
+
+## UI primitives (Band A5)
+
+The **`@microdent/ui`** package provides design tokens (CSS variables) and base React components. See [docs/phase-1a-ui-foundation.md](docs/phase-1a-ui-foundation.md) and [packages/ui/README.md](packages/ui/README.md).

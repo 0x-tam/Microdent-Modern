@@ -1,0 +1,77 @@
+/**
+ * Maps design-system.md §2–4 semantic names to concrete values (light mode default).
+ * Dark: optional `[data-theme="dark"]` hook reserved for a later band — tokens duplicated minimally for future remap.
+ */
+:root {
+  /* Surfaces & text */
+  --ui-bg-canvas: #f6f7f9;
+  --ui-bg-surface: #ffffff;
+  --ui-bg-subtle: #eef1f4;
+  --ui-border-subtle: #e2e6eb;
+  --ui-border-strong: #c9d0d8;
+  --ui-text-primary: #1a1f26;
+  --ui-text-secondary: #5c6570;
+  --ui-text-muted: #8a939e;
+  --ui-text-inverse: #ffffff;
+
+  /* Brand */
+  --ui-primary-600: #1b6f7a;
+  --ui-primary-500: #248b98;
+  --ui-primary-50: #e8f4f5;
+
+  /* Semantic */
+  --ui-success-600: #2f7d4a;
+  --ui-success-50: #e8f5ec;
+  --ui-warning-600: #b45309;
+  --ui-warning-50: #fef6e7;
+  --ui-danger-600: #c53030;
+  --ui-danger-50: #fcecec;
+  --ui-info-600: #2563eb;
+  --ui-info-50: #eff6ff;
+
+  /* Elevation */
+  --ui-shadow-card: 0 2px 12px rgba(26, 31, 38, 0.06);
+  --ui-shadow-modal: 0 4px 24px rgba(26, 31, 38, 0.08);
+  --ui-overlay-scrim: rgba(26, 31, 38, 0.45);
+
+  /* Typography */
+  --ui-font-sans: system-ui, -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neue", arial, sans-serif;
+  --ui-font-mono: ui-monospace, sfmono-regular, menlo, monospace;
+
+  /* Spacing (4px grid) */
+  --ui-space-1: 4px;
+  --ui-space-2: 8px;
+  --ui-space-3: 12px;
+  --ui-space-4: 16px;
+  --ui-space-5: 20px;
+  --ui-space-6: 24px;
+  --ui-space-8: 32px;
+  --ui-space-10: 40px;
+
+  /* Radius */
+  --ui-radius-sm: 6px;
+  --ui-radius-md: 8px;
+  --ui-radius-lg: 12px;
+
+  /* Focus ring (always visible on :focus-visible) */
+  --ui-focus-ring-color: rgba(27, 111, 122, 0.45);
+  --ui-focus-ring-width: 2px;
+  --ui-focus-ring-offset: 2px;
+
+  /* Motion */
+  --ui-duration-hover: 150ms;
+  --ui-ease-out: cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+/* Reserved for later dark theme — not active by default (light remains primary). */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --ui-bg-canvas: #0f1419;
+  --ui-bg-surface: #161c24;
+  --ui-bg-subtle: #1e2630;
+  --ui-border-subtle: #2a3441;
+  --ui-border-strong: #3d4a5c;
+  --ui-text-primary: #e8eaed;
+  --ui-text-secondary: #b4bcc6;
+  --ui-text-muted: #8a939e;
+}
