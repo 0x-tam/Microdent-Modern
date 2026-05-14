@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { HealthResponseSchema } from "@microdent/contracts";
 import type { BridgeConfig } from "./config.js";
 import { loadBridgeConfig } from "./config.js";
+import { localPreviewCorsMiddleware } from "./local-preview-cors.js";
 import { createV1Router } from "./routes/v1.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -24,13 +25,17 @@ export type CreateBridgeAppOptions = {
 };
 
 /**
- * Express app: `GET /health`, read-only `GET /v1/*` table APIs (Band A3 fixture only).
+ * Express app: `GET /` (service info), `GET /health`, read-only `GET /v1/*` table APIs (Band A3 fixture only).
  */
 export function createBridgeApp(version?: string, options?: CreateBridgeAppOptions): express.Express {
   const ver = version ?? readBridgeVersion();
   const bridgeConfig = options?.bridgeConfig ?? loadBridgeConfig();
   const app = express();
   app.disable("x-powered-by");
+  app.use(localPreviewCorsMiddleware);
+  app.get("/", (_req, res) => {
+    res.json({ ok: true as const, service: "Microdent bridge", health: "/health" });
+  });
   app.use("/v1", createV1Router(bridgeConfig));
   app.get("/health", (_req, res) => {
     const body = { ok: true as const, version: ver };

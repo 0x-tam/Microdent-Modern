@@ -3,6 +3,7 @@
 ## Behavior
 
 - **`apps/web`** passes **`bridgeBaseUrl`** into **`AppShell`** (default **`http://127.0.0.1:17890`**, overridable with **`VITE_BRIDGE_BASE_URL`**).
+- The **bridge** exposes **`GET /`** with a small JSON discovery payload (`service`, `health`) and sends **minimal CORS** for **`http://127.0.0.1:5173`** and **`http://localhost:5173`** only (**GET** + **OPTIONS**, no credentials), so the Vite preview can call **`GET /health`** from the browser without a wildcard `*`.
 - **`@microdent/bridge-client`** is used for **`getHealth()`** → **`GET /health`** only. No **`/v1/meta/tables`**, **`/v1/tables/...`**, or DBF access from the UI.
 - **Status line:** **Checking…** → **Connected** or **Offline**. Copy stays clinic-neutral; technical errors are **not** shown in the main UI.
 - **Diagnostics:** when **`bridgeHealthLogDiagnostics`** is true, **`apps/web`** sets it from **`import.meta.env.DEV`** so failures log to the **console only** (still no PHI).
@@ -39,6 +40,7 @@ VITE_BRIDGE_BASE_URL=http://127.0.0.1:17890
 
 ## Tests
 
+- **`services/bridge/src/root-and-cors.test.ts`** — **`GET /`**, **`GET /health`**, and CORS allowlist (**127.0.0.1:5173**, **localhost:5173** vs unrelated **`Origin`**).
 - **`packages/app/src/bridge-health.test.ts`** — mock **`getHealth`** success/failure.
 - **`packages/app/src/app-shell.test.tsx`** — with **`bridgeBaseUrl`**, first static paint shows **Checking** and **Refresh**; without it, **Offline** and no Refresh.
 
