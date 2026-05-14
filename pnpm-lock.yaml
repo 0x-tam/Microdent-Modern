@@ -44,6 +44,9 @@ importers:
       '@microdent/bridge-client':
         specifier: workspace:*
         version: link:../bridge-client
+      '@microdent/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@microdent/ui':
         specifier: workspace:*
         version: link:../ui

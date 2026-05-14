@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@microdent/bridge-client": "workspace:*",
+    "@microdent/contracts": "workspace:*",
     "@microdent/ui": "workspace:*"
   },
   "peerDependencies": {

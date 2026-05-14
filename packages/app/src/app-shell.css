@@ -885,6 +885,193 @@
   border-bottom: none;
 }
 
+/* ----- Schedule (read-only) ----- */
+.app-schedule {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(var(--ui-space-3), 1.4vw, var(--ui-space-4));
+  max-width: min(960px, 100%);
+  width: 100%;
+}
+
+.app-schedule__toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+}
+
+.app-schedule__toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-2) var(--ui-space-3);
+}
+
+.app-schedule__granularity,
+.app-schedule__nav {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-1);
+  flex-wrap: wrap;
+}
+
+.app-schedule__toolbar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.app-schedule__room-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  font-size: 13px;
+  color: var(--ui-text-secondary);
+}
+
+.app-schedule__room-filter-label {
+  font-weight: 500;
+}
+
+.app-schedule__select {
+  min-height: 36px;
+  padding: 0 var(--ui-space-2);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-primary);
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.app-schedule__select:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.app-schedule__range {
+  margin: 0;
+  font-size: clamp(15px, 0.88rem + 0.3vw, 17px);
+  font-weight: 600;
+  color: var(--ui-text-primary);
+}
+
+.app-schedule__privacy {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ui-text-muted);
+}
+
+.app-schedule__state {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.app-schedule__state--muted {
+  color: var(--ui-text-secondary);
+}
+
+.app-schedule__state--error {
+  color: var(--ui-text-primary);
+}
+
+.app-schedule__days {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+}
+
+.app-schedule__day-card .ui-card__body {
+  padding: var(--ui-space-3) var(--ui-space-4);
+}
+
+.app-schedule__day-title {
+  margin: 0;
+}
+
+.app-schedule__room-block {
+  margin-bottom: var(--ui-space-4);
+}
+
+.app-schedule__room-block:last-child {
+  margin-bottom: 0;
+}
+
+.app-schedule__room-heading {
+  margin: 0 0 var(--ui-space-2);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ui-primary-700);
+}
+
+.app-schedule__appt-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+}
+
+.app-schedule__appt-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-subtle);
+}
+
+.app-schedule__appt-time {
+  flex-shrink: 0;
+  width: clamp(3.2rem, 9vw, 3.75rem);
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ui-primary-700);
+}
+
+.app-schedule__appt-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+}
+
+.app-schedule__appt-line1 {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.app-schedule__appt-duration {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ui-text-primary);
+}
+
+.app-schedule__appt-meta {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ui-text-secondary);
+}
+
+.app-schedule__appt-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+}
+
+.app-schedule__footer {
+  padding-top: var(--ui-space-2);
+}
+
 /* ----- Module home ----- */
 .app-module-home {
   display: flex;

@@ -8,6 +8,7 @@ import { AppErrorBoundary } from "./AppErrorBoundary.js";
 import { FixtureConnectionPanel } from "./FixtureConnectionPanel.js";
 import { LegacyCatalogPanel } from "./LegacyCatalogPanel.js";
 import { PatientSearchBar } from "./PatientSearchBar.js";
+import { SchedulePanel } from "./SchedulePanel.js";
 
 export const APP_NAV_MODULES = [
   { id: "today", label: "Today" },
@@ -492,6 +493,10 @@ export function AppShell({
               </h2>
               {active === "today" ? (
                 <p className="app-main__lede">Who is on the schedule, what is next, and where to go next.</p>
+              ) : active === "schedule" ? (
+                <p className="app-main__lede">
+                  Read-only view of appointments from your copied data. Names and notes stay off this screen.
+                </p>
               ) : (
                 <p className="app-main__lede">Overview for {moduleLabel(active)}.</p>
               )}
@@ -500,6 +505,13 @@ export function AppShell({
             <div className="app-main__content">
               {active === "today" ? (
                 <DashboardHome onOpenModule={setActive} bridgeBaseUrl={bridgeBaseUrl} bridgePhase={bridgePhase} />
+              ) : active === "schedule" ? (
+                <SchedulePanel
+                  isActive={active === "schedule"}
+                  bridgePhase={bridgePhase}
+                  bridgeBaseUrl={bridgeBaseUrl}
+                  onBackToday={() => setActive("today")}
+                />
               ) : (
                 <ModuleHome moduleId={active} onOpenModule={setActive} onBackToday={() => setActive("today")} />
               )}
