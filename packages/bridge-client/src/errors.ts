@@ -41,3 +41,14 @@ export class BridgeClientError extends Error {
     });
   }
 }
+
+function isZodErrorLike(cause: unknown): boolean {
+  if (typeof cause !== "object" || cause === null) return false;
+  if (!("issues" in cause)) return false;
+  return Array.isArray((cause as { issues: unknown }).issues);
+}
+
+/** True when a 200 JSON body failed Zod validation (safe to surface dev-only UI hints). */
+export function isInvalidBodySchemaMismatch(error: unknown): error is BridgeClientError {
+  return error instanceof BridgeClientError && error.kind === "invalid_body" && isZodErrorLike(error.cause);
+}

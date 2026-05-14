@@ -225,12 +225,101 @@ describe("BridgeClient", () => {
   });
 
   it("2xx with JSON that fails Zod throws invalid_body", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const fetch = vi.fn().mockResolvedValue(jsonResponse({ wrong: true }));
     const client = createBridgeClient({ baseUrl, fetch });
     await expect(client.getHealth()).rejects.toMatchObject({
       name: "BridgeClientError",
       kind: "invalid_body",
       status: 200,
+    });
+    expect(warn).toHaveBeenCalled();
+    expect(warn.mock.calls[0]?.[0]).toBe("[@microdent/bridge-client] response schema mismatch");
+    warn.mockRestore();
+  });
+
+  it("searchPatients: accepts numeric patientId and numeric chartNumber in JSON", async () => {
+    const body = {
+      results: [
+        {
+          patientId: 42,
+          chartNumber: null,
+          displayName: "Coerced Id",
+          phoneMask: null,
+        },
+        {
+          patientId: 99,
+          displayName: "Chart Num",
+          chartNumber: 305,
+          phoneMask: null,
+        },
+      ],
+    };
+    const fetch = vi.fn().mockResolvedValue(jsonResponse(body));
+    const client = createBridgeClient({ baseUrl, fetch });
+    await expect(client.searchPatients("ab")).resolves.toEqual({
+      results: [
+        {
+          patientId: "42",
+          chartNumber: null,
+          displayName: "Coerced Id",
+          phoneMask: null,
+        },
+        {
+          patientId: "99",
+          chartNumber: "305",
+          displayName: "Chart Num",
+          phoneMask: null,
+        },
+      ],
+    });
+  });
+
+  it("searchPatients: rejects result items with unknown keys (strict wire)", async () => {
+    const body = {
+      results: [
+        {
+          patientId: "1",
+          chartNumber: null,
+          displayName: "Ok",
+          phoneMask: null,
+          extraField: true,
+        },
+      ],
+    };
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fetch = vi.fn().mockResolvedValue(jsonResponse(body));
+    const client = createBridgeClient({ baseUrl, fetch });
+    await expect(client.searchPatients("ab")).rejects.toMatchObject({
+      name: "BridgeClientError",
+      kind: "invalid_body",
+    });
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("searchPatients: drops non-canonical phone values (never forwards full numbers)", async () => {
+    const body = {
+      results: [
+        {
+          patientId: "1",
+          chartNumber: null,
+          displayName: "Ok",
+          phoneMask: "(555) 111-2222",
+        },
+      ],
+    };
+    const fetch = vi.fn().mockResolvedValue(jsonResponse(body));
+    const client = createBridgeClient({ baseUrl, fetch });
+    await expect(client.searchPatients("ab")).resolves.toEqual({
+      results: [
+        {
+          patientId: "1",
+          chartNumber: null,
+          displayName: "Ok",
+          phoneMask: null,
+        },
+      ],
     });
   });
 

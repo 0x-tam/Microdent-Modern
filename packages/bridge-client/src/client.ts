@@ -22,6 +22,7 @@ import {
   type TableSchemaResponse,
 } from "@microdent/contracts";
 import { BridgeClientError } from "./errors.js";
+import { logResponseSchemaMismatch } from "./schema-mismatch-log.js";
 
 /** Same rule as the bridge: logical ids only, no path segments. */
 const TABLE_ID_PATTERN = /^[a-z][a-z0-9_]*$/;
@@ -83,7 +84,10 @@ export class BridgeClient {
       });
     }
     const qs = new URLSearchParams({ q: trimmed });
-    return this.requestJson(`/v1/patients/search?${qs.toString()}`, PatientSearchResponseSchema);
+    return this.requestJson(
+      `/v1/patients/search?${qs.toString()}`,
+      PatientSearchResponseSchema as ZodType<PatientSearchResponse>,
+    );
   }
 
   /**
@@ -167,6 +171,7 @@ export class BridgeClient {
 
     const parsed = schema.safeParse(json);
     if (!parsed.success) {
+      logResponseSchemaMismatch(path, json, parsed.error);
       throw new BridgeClientError("Response body failed schema validation", {
         kind: "invalid_body",
         status: res.status,

@@ -1,4 +1,4 @@
-import { BridgeClientError, createBridgeClient } from "@microdent/bridge-client";
+import { BridgeClientError, createBridgeClient, isInvalidBodySchemaMismatch } from "@microdent/bridge-client";
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Button } from "@microdent/ui";
 import type { BridgeHealthPhase } from "./bridge-health.js";
@@ -57,7 +57,10 @@ export function safePatientSearchError(e: unknown): string {
       return "Search could not be completed. Try again in a moment.";
     }
     if (e.kind === "invalid_body") {
-      return "The clinic service returned data this screen could not read.";
+      if (isInvalidBodySchemaMismatch(e)) {
+        return "Patient search needs a small data mapping fix. No clinic data was changed.";
+      }
+      return "Patient search could not read the clinic response format. Try again.";
     }
   }
   return "Search could not be completed.";
@@ -77,8 +80,14 @@ export function PatientSearchBar({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PatientSearchHit[]>([]);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [devSchemaHint, setDevSchemaHint] = useState(false);
   const [searching, setSearching] = useState(false);
   const [lastFinishedQuery, setLastFinishedQuery] = useState<string | null>(null);
+
+  const showDevDiagnostics = (() => {
+    const m = import.meta as { env?: { DEV?: boolean; MODE?: string } };
+    return Boolean(m.env?.DEV || m.env?.MODE === "test");
+  })();
 
   const trimmed = query.trim();
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -92,6 +101,7 @@ export function PatientSearchBar({
       const seq = ++requestSeq.current;
       setSearching(true);
       setSearchError(null);
+      setDevSchemaHint(false);
       setResults([]);
       const client = createBridgeClient({ baseUrl: base, fetch: fetchImpl });
       try {
@@ -107,6 +117,7 @@ export function PatientSearchBar({
         }
         setResults([]);
         setLastFinishedQuery(q);
+        setDevSchemaHint(showDevDiagnostics && isInvalidBodySchemaMismatch(e));
         setSearchError(safePatientSearchError(e));
       } finally {
         if (seq === requestSeq.current) {
@@ -143,6 +154,7 @@ export function PatientSearchBar({
       setSearching(false);
       setResults([]);
       setSearchError(null);
+      setDevSchemaHint(false);
       setLastFinishedQuery(null);
     }
   }, [canSearch]);
@@ -229,6 +241,7 @@ export function PatientSearchBar({
             if (e.target.value.trim().length < 2) {
               setResults([]);
               setSearchError(null);
+              setDevSchemaHint(false);
               setLastFinishedQuery(null);
             }
           }}
@@ -265,7 +278,14 @@ export function PatientSearchBar({
               Searching…
             </p>
           ) : searchError ? (
-            <p className="app-patient-search__dropdown-error">{searchError}</p>
+            <>
+              <p className="app-patient-search__dropdown-error">{searchError}</p>
+              {showDevDiagnostics && devSchemaHint ? (
+                <p className="app-patient-search__dropdown-muted" role="note">
+                  Response shape mismatch. Check console/tests for safe schema paths.
+                </p>
+              ) : null}
+            </>
           ) : results.length === 0 ? (
             <p className="app-patient-search__dropdown-muted">No matches.</p>
           ) : (

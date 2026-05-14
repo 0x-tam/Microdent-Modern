@@ -143,6 +143,48 @@ describe("GET /v1/patients/search", () => {
     }
   });
 
+  it("normalizes edge rows: empty chart, short phone, empty names, strict keys only", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "bridge-patient-search-edge-"));
+    try {
+      const path = join(tmp, "PATIENT.DBF");
+      const dbf = await DBFFile.create(path, patientFields, {});
+      await dbf.appendRecords([
+        {
+          ID: 77001,
+          CASENB: "",
+          NAME: "",
+          REV_NAME: "",
+          FIRST_NAME: "",
+          LAST_NAME: "",
+          HOME_PHONE: "12",
+          MOBILE: "",
+        },
+      ]);
+      const dataRoot = parseDataRootFromValue(tmp);
+      if (!dataRoot.configured) throw new Error("data root");
+      const app = createBridgeApp("v-test", {
+        bridgeConfig: { listen: { host: "127.0.0.1", port: 0 }, dataRoot },
+      });
+      await withServer(app, async (port) => {
+        const res = await fetch(`http://127.0.0.1:${port}/v1/patients/search?q=${encodeURIComponent("77001")}`);
+        expect(res.status).toBe(200);
+        const json: unknown = await res.json();
+        const parsed = PatientSearchResponseSchema.safeParse(json);
+        expect(parsed.success).toBe(true);
+        if (!parsed.success) return;
+        expect(parsed.data.results).toHaveLength(1);
+        const hit = parsed.data.results[0];
+        expect(hit.patientId).toBe("77001");
+        expect(hit.chartNumber).toBeNull();
+        expect(hit.displayName).toBe("Patient 77001");
+        expect(hit.phoneMask).toBeNull();
+        expect(Object.keys(hit).sort()).toEqual(["chartNumber", "displayName", "patientId", "phoneMask"]);
+      });
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it("returns 400 when q is too short or missing", async () => {
     const tmp = mkdtempSync(join(tmpdir(), "bridge-patient-search-"));
     try {

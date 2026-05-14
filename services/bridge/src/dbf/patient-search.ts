@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { DBFFile, DELETED } from "dbffile";
 import type { DataRootSet } from "../config.js";
-import type { PatientSearchResultItem } from "@microdent/contracts";
+import { normalizePatientSearchResultItemForWire, type PatientSearchResultItem } from "@microdent/contracts";
 import { resolveRegisteredDbfPath } from "./resolve-registered-dbf.js";
 import { buildDisplayName, buildSearchHaystack, pickPhoneMask, strField, strIdField } from "./patient-dbf-helpers.js";
 
@@ -14,12 +14,12 @@ const PATIENT_OPEN_OPTIONS = { encoding: "win1252" as const, readMode: "loose" a
 function toResult(row: Record<string, unknown>): PatientSearchResultItem {
   const patientId = strIdField(row, "ID");
   const chart = strField(row, "CASENB");
-  return {
+  return normalizePatientSearchResultItemForWire({
     patientId: patientId.length > 0 ? patientId : "0",
     chartNumber: chart.length > 0 ? chart : null,
     displayName: buildDisplayName(row),
     phoneMask: pickPhoneMask(row),
-  };
+  });
 }
 
 function tokenizeQuery(q: string): string[] {

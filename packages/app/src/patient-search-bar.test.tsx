@@ -17,6 +17,20 @@ describe("safePatientSearchError", () => {
     expect(safePatientSearchError(err)).toContain("clinic service");
   });
 
+  it("maps schema mismatch to the mapping-fix copy", () => {
+    const err = new BridgeClientError("Response body failed schema validation", {
+      kind: "invalid_body",
+      status: 200,
+      cause: { issues: [{ path: ["results", 0, "patientId"], code: "custom" }] },
+    });
+    expect(safePatientSearchError(err)).toContain("small data mapping fix");
+  });
+
+  it("maps invalid_body without schema cause to format copy", () => {
+    const err = new BridgeClientError("Response body is not valid JSON", { kind: "invalid_body", status: 200 });
+    expect(safePatientSearchError(err)).toContain("could not read the clinic response format");
+  });
+
   it("maps unknown errors to a generic message", () => {
     expect(safePatientSearchError(new Error("secret"))).toBe("Search could not be completed.");
   });
@@ -216,5 +230,40 @@ describe("PatientSearchBar", () => {
     });
     expect(container.textContent).not.toContain("internal");
     expect(container.textContent).toMatch(/could not be completed/i);
+  });
+
+  it("shows mapping-fix copy and dev hint when the response fails schema validation", async () => {
+    const fetchImpl = vi.fn(async () => {
+      const body = {
+        results: [
+          {
+            patientId: "1",
+            chartNumber: null,
+            displayName: "Ok",
+            phoneMask: null,
+            notAllowed: true,
+          },
+        ],
+      };
+      return new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } });
+    });
+
+    act(() => {
+      root.render(
+        <PatientSearchBar bridgePhase="connected" bridgeBaseUrl="http://127.0.0.1:17890" fetchImpl={fetchImpl} />,
+      );
+    });
+    const input = container.querySelector("input#app-patient-search-input") as HTMLInputElement;
+    await act(async () => {
+      setSearchInputValue(input, "ab");
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(320);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(container.textContent).toContain("small data mapping fix");
+    expect(container.textContent).toContain("Response shape mismatch");
   });
 });

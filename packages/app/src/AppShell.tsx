@@ -1,34 +1,27 @@
 import { createBridgeClient } from "@microdent/bridge-client";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Button, Card, CardBody, CardHeader, EmptyState, ReadOnlyBanner } from "@microdent/ui";
+import { Button, EmptyState, ReadOnlyBanner } from "@microdent/ui";
 import { probeBridgeHealth, describeBridgeHealthProbeError, type BridgeHealthPhase } from "./bridge-health.js";
+
+export function resolveShellClinicLabel(phase: BridgeHealthPhase, clinicLabel?: string): string {
+  const trimmed = clinicLabel?.trim();
+  if (trimmed && trimmed.length > 0) return trimmed;
+  if (phase === "connected") return "Connected to copied clinic data";
+  return "Read-only preview";
+}
 
 export type { BridgeHealthPhase } from "./bridge-health.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
-import { FixtureConnectionPanel } from "./FixtureConnectionPanel.js";
-import { LegacyCatalogPanel } from "./LegacyCatalogPanel.js";
 import { PatientProfilePanel } from "./PatientProfilePanel.js";
 import { PatientSearchBar } from "./PatientSearchBar.js";
 import { SchedulePanel } from "./SchedulePanel.js";
+import { DashboardHome } from "./today-dashboard.js";
+import { APP_NAV_MODULES, type AppNavModuleId } from "./app-nav-modules.js";
 
-export const APP_NAV_MODULES = [
-  { id: "today", label: "Today" },
-  { id: "patients", label: "Patients" },
-  { id: "schedule", label: "Schedule" },
-  { id: "dental-chart", label: "Dental Chart" },
-  { id: "treatments", label: "Treatments" },
-  { id: "payments", label: "Payments" },
-  { id: "reports", label: "Reports" },
-  { id: "settings", label: "Settings" },
-] as const;
-
-export type AppNavModuleId = (typeof APP_NAV_MODULES)[number]["id"];
+export { APP_NAV_MODULES, type AppNavModuleId } from "./app-nav-modules.js";
 
 export type AppShellProps = {
-  /**
-   * Shown in the top bar when set (e.g. a named clinic in tests).
-   * When omitted, the label follows bridge status: connected → copied-data line; otherwise read-only preview.
-   */
+  /** Shown in the top bar; use a clinic name in production. */
   clinicLabel?: string;
   /** Optional slot above the main landmark (e.g. future alerts). */
   topSlot?: ReactNode;
@@ -49,99 +42,72 @@ export type AppShellProps = {
   bridgeConnectionDiagnostics?: boolean;
 };
 
-const COMING_NEXT_COPY: Record<
-  Exclude<AppNavModuleId, "today" | "patients" | "schedule">,
-  { title: string; description: string }
+const MODULE_PREVIEW: Record<
+  AppNavModuleId,
+  { summary: string; bullets: readonly string[] }
 > = {
+  today: {
+    summary: "See who is on the schedule and what is next for your day.",
+    bullets: ["Open appointments from one place", "Jump to the patient or chart when you are ready"],
+  },
+  patients: {
+    summary: "Look up patients quickly and open their chart or next visit.",
+    bullets: ["Search by name or chart number", "See the details that help you pick the right person"],
+  },
+  schedule: {
+    summary: "Manage the day: who sits where, when, and with which provider.",
+    bullets: ["Week and day views tuned for the front desk", "Clear visit status at a glance"],
+  },
   "dental-chart": {
-    title: "Dental chart — coming next",
-    description:
-      "Dental chart view is coming next. No chart data is shown yet. This area will stay read-only in this phase.",
+    summary: "Review and record what you see in the mouth with a clear tooth chart.",
+    bullets: ["Chart by tooth and surface", "Keep clinical notes easy to find later"],
   },
   treatments: {
-    title: "Treatments — coming next",
-    description: "Treatment history is coming next. No treatment data is shown yet.",
+    summary: "See planned care, phases, and estimates in one place.",
+    bullets: ["Share plans with patients in plain language", "Connect plans to visits and payments when enabled"],
   },
   payments: {
-    title: "Payments — coming next",
-    description: "Payments and ledger view are coming next. No payment data is shown yet.",
+    summary: "Understand balances, insurance, and what the family owes.",
+    bullets: ["Ledger lines in date order", "Highlights when something needs a follow-up"],
   },
   reports: {
-    title: "Reports — coming later",
-    description: "Reports are coming later. No report data is shown yet.",
+    summary: "Run the lists and summaries your clinic relies on.",
+    bullets: ["Day sheets, aging, and activity by provider", "Filters that match how you already work"],
   },
   settings: {
-    title: "Settings",
-    description: "Settings are not editable in this read-only preview.",
+    summary: "Set up people, rooms, hours, and how Microdent fits your clinic.",
+    bullets: ["Users and roles", "Locations and schedule templates"],
   },
 };
-
-/** Exported for unit tests. */
-export function resolveShellClinicLabel(bridgePhase: BridgeHealthPhase, clinicLabel?: string): string {
-  const trimmed = clinicLabel?.trim();
-  if (trimmed) {
-    return trimmed;
-  }
-  return bridgePhase === "connected" ? "Connected to copied clinic data" : "Read-only preview";
-}
 
 function moduleLabel(id: AppNavModuleId): string {
   const m = APP_NAV_MODULES.find((x) => x.id === id);
   return m?.label ?? id;
 }
 
-function mainLedeText(active: AppNavModuleId): string {
-  switch (active) {
-    case "today":
-      return "Today’s dashboard is still being wired. Use Schedule for the live read-only appointment list.";
-    case "schedule":
-      return "Read-only view of appointments from your copied data. Names and notes stay off this screen.";
-    case "patients":
-      return "Read-only summary from your copied data. Search in the top bar, pick a patient, and only safe fields load here — no address, insurance, or clinical notes in this preview.";
-    case "dental-chart":
-      return "Dental charting is not available yet in this preview.";
-    case "treatments":
-      return "Treatment history is not available yet in this preview.";
-    case "payments":
-      return "Payments and ledger views are not available yet in this preview.";
-    case "reports":
-      return "Reports are not available yet in this preview.";
-    case "settings":
-      return "Settings are view-only in this preview; nothing here can be changed.";
-    default: {
-      const _x: never = active;
-      return _x;
-    }
-  }
-}
-
-function formatTodayLine(): string {
-  try {
-    return new Intl.DateTimeFormat(undefined, {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-    }).format(new Date());
-  } catch {
-    return "Today";
-  }
-}
-
-function ModuleComingNext({
+function ModuleHome({
   moduleId,
   onOpenModule,
   onBackToday,
 }: {
-  moduleId: Exclude<AppNavModuleId, "today" | "patients" | "schedule">;
+  moduleId: AppNavModuleId;
   onOpenModule: (id: AppNavModuleId) => void;
   onBackToday: () => void;
 }) {
-  const copy = COMING_NEXT_COPY[moduleId];
+  const copy = MODULE_PREVIEW[moduleId];
   return (
     <div className="app-module-home">
-      <AppErrorBoundary>
-        <EmptyState className="ui-empty--start" title={copy.title} description={copy.description} />
-      </AppErrorBoundary>
+      <div className="app-module-home__header">
+        <p className="app-module-home__summary">
+          <strong>{moduleLabel(moduleId)}</strong> — {copy.summary}
+        </p>
+      </div>
+
+      <ul className="app-module-home__bullets" aria-label={`What ${moduleLabel(moduleId)} will include`}>
+        {copy.bullets.map((b) => (
+          <li key={b}>{b}</li>
+        ))}
+      </ul>
 
       <div className="app-module-home__actions">
         <Button type="button" variant="secondary" className="ui-focusable" onClick={onBackToday}>
@@ -151,101 +117,14 @@ function ModuleComingNext({
           Open schedule
         </Button>
       </div>
-    </div>
-  );
-}
 
-function DashboardHome({
-  onOpenModule,
-  bridgeBaseUrl,
-  bridgePhase,
-}: {
-  onOpenModule: (id: AppNavModuleId) => void;
-  bridgeBaseUrl?: string;
-  bridgePhase: BridgeHealthPhase;
-}) {
-  return (
-    <div className="app-dashboard">
-      <p className="app-dashboard__kicker">
-        <span className="app-dashboard__date">{formatTodayLine()}</span>
-      </p>
-
-      <div className="app-dashboard__layout">
-        <div className="app-dashboard__primary">
-          <Card>
-            <CardHeader>
-              <p className="ui-card__title app-card-title-lg">Today&apos;s schedule</p>
-            </CardHeader>
-            <CardBody>
-              <AppErrorBoundary>
-                <EmptyState
-                  className="ui-empty--start"
-                  title="Schedule not on this page yet"
-                  description="Today's real schedule will load here once the dashboard is wired. Until then, open Schedule for read-only appointments (safe fields only)."
-                />
-              </AppErrorBoundary>
-              <div className="app-appt-list__footer">
-                <Button type="button" variant="secondary" className="ui-focusable" onClick={() => onOpenModule("schedule")}>
-                  Open schedule
-                </Button>
-              </div>
-            </CardBody>
-          </Card>
-        </div>
-
-        <aside className="app-dashboard__aside" aria-label="Shortcuts and developer diagnostics">
-          <Card>
-            <CardHeader>
-              <p className="ui-card__title app-card-title-lg">Quick actions</p>
-            </CardHeader>
-            <CardBody>
-              <div className="app-quick-actions">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="ui-focusable app-quick-actions__btn"
-                  onClick={() => onOpenModule("patients")}
-                  title="Opens the Patients area; search stays in the top bar"
-                >
-                  Find patient
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="ui-focusable app-quick-actions__btn"
-                  onClick={() => onOpenModule("schedule")}
-                >
-                  Open schedule
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="ui-focusable app-quick-actions__btn"
-                  onClick={() => onOpenModule("dental-chart")}
-                >
-                  Review chart
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="ui-focusable app-quick-actions__btn"
-                  disabled
-                  title="Payments are not available in this read-only preview"
-                >
-                  Record payment
-                </Button>
-              </div>
-            </CardBody>
-          </Card>
-
-          <LegacyCatalogPanel bridgeBaseUrl={bridgeBaseUrl} bridgePhase={bridgePhase} />
-          <FixtureConnectionPanel
-            bridgeBaseUrl={bridgeBaseUrl}
-            bridgePhase={bridgePhase}
-            className="app-fixture-panel--deemphasized"
-          />
-        </aside>
-      </div>
+      <AppErrorBoundary>
+        <EmptyState
+          className="ui-empty--start"
+          title="Nothing to show yet"
+          description="When this area is turned on for your clinic, your team's work will show up here."
+        />
+      </AppErrorBoundary>
     </div>
   );
 }
@@ -279,9 +158,9 @@ export function AppShell({
   const [lastHealthOfflineReason, setLastHealthOfflineReason] = useState<string | null>(null);
   const [previewOrigin, setPreviewOrigin] = useState<string>("—");
 
-  const resolvedClinicLabel = resolveShellClinicLabel(bridgePhase, clinicLabel);
-
   const mainHeadingId = "app-main-heading";
+
+  const displayClinicLabel = resolveShellClinicLabel(bridgePhase, clinicLabel);
 
   const runBridgeHealthCheck = useCallback(async () => {
     if (!bridgeBaseUrl?.trim()) {
@@ -353,7 +232,7 @@ export function AppShell({
       <header className="app-topbar" role="banner">
         <div className="app-topbar__brand">
           <h1 className="app-brand">Microdent</h1>
-          <span className="app-topbar__clinic">{resolvedClinicLabel}</span>
+          <span className="app-topbar__clinic">{displayClinicLabel}</span>
         </div>
 
         <div className="app-topbar__search" role="search">
@@ -422,11 +301,8 @@ export function AppShell({
 
       <div className="app-shell__banner">
         <ReadOnlyBanner label="Read-only mode" className="ui-readonly-banner--compact">
-          This preview cannot change clinic data.
+          This preview cannot change clinic data. Names, notes, and phone numbers are hidden in this preview.
         </ReadOnlyBanner>
-        <p className="app-shell__privacy-note" role="note">
-          Names, notes, and phone numbers are hidden in this preview.
-        </p>
       </div>
 
       {topSlot}
@@ -445,7 +321,20 @@ export function AppShell({
               <h2 className="app-main__heading" id={mainHeadingId}>
                 {moduleLabel(active)}
               </h2>
-              <p className="app-main__lede">{mainLedeText(active)}</p>
+              {active === "today" ? (
+                <p className="app-main__lede">Who is on the schedule, what is next, and where to go next.</p>
+              ) : active === "schedule" ? (
+                <p className="app-main__lede">
+                  Read-only view of appointments from your copied data. Names and notes stay off this screen.
+                </p>
+              ) : active === "patients" ? (
+                <p className="app-main__lede">
+                  Read-only summary from your copied data. Search in the top bar, pick a patient, and only safe fields load
+                  here — no address, insurance, or clinical notes in this preview.
+                </p>
+              ) : (
+                <p className="app-main__lede">Overview for {moduleLabel(active)}.</p>
+              )}
             </div>
 
             <div className="app-main__content">
@@ -467,11 +356,7 @@ export function AppShell({
                   onClearPatient={() => setSelectedPatientId(null)}
                 />
               ) : (
-                <ModuleComingNext
-                  moduleId={active as Exclude<AppNavModuleId, "today" | "patients" | "schedule">}
-                  onOpenModule={setActive}
-                  onBackToday={() => setActive("today")}
-                />
+                <ModuleHome moduleId={active} onOpenModule={setActive} onBackToday={() => setActive("today")} />
               )}
             </div>
           </div>

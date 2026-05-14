@@ -14,6 +14,7 @@ export {
   type LegacyCatalogTableItem,
 } from "./legacy-catalog.js";
 export {
+  normalizePatientSearchResultItemForWire,
   PatientSearchQueryParamsSchema,
   PatientSearchResponseSchema,
   PatientSearchResultItemSchema,

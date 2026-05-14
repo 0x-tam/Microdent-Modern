@@ -1,4 +1,4 @@
-import { BridgeClientError, createBridgeClient } from "@microdent/bridge-client";
+import { BridgeClientError, createBridgeClient, isInvalidBodySchemaMismatch } from "@microdent/bridge-client";
 import type { PatientProfileResponse } from "@microdent/contracts";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge, Button, Card, CardBody, CardHeader, EmptyState } from "@microdent/ui";
@@ -42,7 +42,10 @@ export function safePatientProfileError(e: unknown): string {
       return "The profile could not be loaded. Try again in a moment.";
     }
     if (e.kind === "invalid_body") {
-      return "The clinic service returned data this screen could not read.";
+      if (isInvalidBodySchemaMismatch(e)) {
+        return "Patient profile needs a small data mapping fix. No clinic data was changed.";
+      }
+      return "The profile could not read the clinic response format. Try again.";
     }
   }
   return "The profile could not be loaded.";
@@ -140,7 +143,7 @@ export function PatientProfilePanel({
           <EmptyState
             className="ui-empty--start app-patient-profile__empty"
             title="No patient selected"
-            description="Search for a patient above to open their read-only profile."
+            description="Use Find a patient in the top bar, pick a row when the clinic service is connected, and this area will open their read-only summary."
           />
         ) : state.phase === "offline" ? (
           <EmptyState
