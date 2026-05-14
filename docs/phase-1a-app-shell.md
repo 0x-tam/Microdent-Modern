@@ -2,15 +2,15 @@
 
 ## What was built
 
-- **`packages/app`**: exportable **`AppShell`** and **`AppErrorBoundary`** for a future host (`apps/web` / desktop) — **no `apps/web` package** in this band to avoid extra bundler surface; hosts only need to import CSS and render the shell.
-- **Layout** (see [design-system.md](design-system.md) §13 for target dimensions):
-  - **Top bar** (`role="banner"`): product name **Microdent**, configurable **`clinicLabel`**, **bridge status pill** (`role="status"`, two-line human copy — not color-only), optional **search teaser** (`role="note"`, non-interactive), and a **`Preview UI`** `Badge` with explicit `semanticLabel`.
-  - **Global `ReadOnlyBanner`** under the bar (read-only phase messaging).
-  - **Left rail** (~272px): **grouped** navigation (**Today**, **Patients & clinical**, **Plans & finance**, **Office**) with glyph + label **buttons**, **`aria-current="true"`** on the active item, **`aria-controls`** → main region.
-  - **Main** (`role="main"`, `id="app-main-region"`): page **`h2`** + short lede; **Dashboard** shows sample stat tiles, “next on the floor”, bridge explainer card, and a **module tile grid**; other modules show a **Module home** summary + bullets + `EmptyState` preview — still **no HTTP calls** from the shell.
-- **Navigation modules** (match [ui-redesign-plan.md](ui-redesign-plan.md) rail list): Dashboard, Patients, Schedule, Dental Chart, Treatment Plans, Payments, Reports, Settings — selection is **`useState`**, **no React Router**.
-- **Styling**: **`app-shell.css`** uses only **`var(--ui-*)`** tokens; consumers must load UI tokens + component CSS first (documented in [packages/app/README.md](../packages/app/README.md)).
-- **Visual polish (2026):** see [phase-1a-visual-polish.md](phase-1a-visual-polish.md) for tokens, banner/card tweaks, and dashboard/module UX.
+- **`packages/app`**: exportable **`AppShell`** and **`AppErrorBoundary`** for a future host (`apps/web` / desktop). Hosts import CSS and render the shell.
+- **Layout** (see [design-system.md](design-system.md) §13):
+  - **Top bar** (`role="banner"`): **Microdent**, **`clinicLabel`**, large **patient search** field (`role="search"`, disabled in the static shell), and a compact **`Clinic data off`** status (`role="status"`).
+  - **Global `ReadOnlyBanner`** (compact variant): **Read-only mode** — short safety copy (see [phase-1a-clinic-ux-simplification.md](phase-1a-clinic-ux-simplification.md)).
+  - **Left rail** (~220px): flat **Today**, **Patients**, **Schedule**, **Dental Chart**, **Treatments**, **Payments**, **Reports**, **Settings** — **`aria-current="true"`** on the active item, **`aria-controls`** → main.
+  - **Main** (`role="main"`, `id="app-main-region"`): **`h2`** + lede; **Today** uses a **two-column** layout (appointments + next visit / quick actions / reminders) with **generic Sample patient** copy only; other modules use **`ModuleHome`** (summary, bullets, **EmptyState**) — still **no HTTP calls** from the shell.
+- **Navigation IDs** (`AppNavModuleId`): **`today`**, **`patients`**, **`schedule`**, **`dental-chart`**, **`treatments`**, **`payments`**, **`reports`**, **`settings`** — **`useState`**, **no React Router**.
+- **Styling**: **`app-shell.css`** uses **`var(--ui-*)`** only; load UI tokens + component CSS first ([packages/app/README.md](../packages/app/README.md)).
+- **Docs:** [phase-1a-visual-polish.md](phase-1a-visual-polish.md) (earlier decorative pass); [phase-1a-clinic-ux-simplification.md](phase-1a-clinic-ux-simplification.md) (calmer clinic-first chrome and Today layout).
 
 ## What was intentionally not built
 

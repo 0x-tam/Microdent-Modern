@@ -1,21 +1,13 @@
 import { useMemo, useState, type ReactNode } from "react";
-import {
-  Badge,
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  EmptyState,
-  ReadOnlyBanner,
-} from "@microdent/ui";
+import { Badge, Button, Card, CardBody, CardHeader, EmptyState, ReadOnlyBanner } from "@microdent/ui";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
 
 export const APP_NAV_MODULES = [
-  { id: "dashboard", label: "Dashboard" },
+  { id: "today", label: "Today" },
   { id: "patients", label: "Patients" },
   { id: "schedule", label: "Schedule" },
   { id: "dental-chart", label: "Dental Chart" },
-  { id: "treatment-plans", label: "Treatment Plans" },
+  { id: "treatments", label: "Treatments" },
   { id: "payments", label: "Payments" },
   { id: "reports", label: "Reports" },
   { id: "settings", label: "Settings" },
@@ -30,99 +22,41 @@ export type AppShellProps = {
   topSlot?: ReactNode;
 };
 
-const SIDEBAR_GROUPS: readonly { label: string; modules: readonly AppNavModuleId[] }[] = [
-  { label: "Today", modules: ["dashboard", "schedule"] },
-  { label: "Patients & clinical", modules: ["patients", "dental-chart"] },
-  { label: "Plans & finance", modules: ["treatment-plans", "payments"] },
-  { label: "Office", modules: ["reports", "settings"] },
-] as const;
-
-const NAV_GLYPH: Record<AppNavModuleId, string> = {
-  dashboard: "Db",
-  patients: "Pt",
-  schedule: "Sc",
-  "dental-chart": "Ch",
-  "treatment-plans": "Tx",
-  payments: "Py",
-  reports: "Rp",
-  settings: "St",
-};
-
 const MODULE_PREVIEW: Record<
   AppNavModuleId,
-  { summary: string; bullets: readonly string[]; chip: string }
+  { summary: string; bullets: readonly string[] }
 > = {
-  dashboard: {
-    summary: "Your morning control room: who is in the clinic, what is next, and what needs a nudge.",
-    bullets: [
-      "At-a-glance counts for visits, chairs, and follow-ups",
-      "Queues that deep-link into Schedule and Patients when data is on",
-      "Calm alerts when something needs attention",
-    ],
-    chip: "Home",
+  today: {
+    summary: "See who is on the schedule and what is next for your day.",
+    bullets: ["Open appointments from one place", "Jump to the patient or chart when you are ready"],
   },
   patients: {
-    summary: "Fast lookup and a trustworthy profile for every person you care for.",
-    bullets: [
-      "Forgiving search with disambiguation fields",
-      "Sticky patient header with alerts and balances",
-      "Jump straight into charting or booking",
-    ],
-    chip: "Front desk",
+    summary: "Look up patients quickly and open their chart or next visit.",
+    bullets: ["Search by name or chart number", "See the details that help you pick the right person"],
   },
   schedule: {
-    summary: "The operational truth for chair time — built for drag efficiency without hiding risk.",
-    bullets: [
-      "Week-first calendar with resource columns",
-      "Clear status story from scheduled to completed",
-      "Conflict and overlap warnings before they become surprises",
-    ],
-    chip: "Operations",
+    summary: "Manage the day: who sits where, when, and with which provider.",
+    bullets: ["Week and day views tuned for the front desk", "Clear visit status at a glance"],
   },
   "dental-chart": {
-    summary: "Structured clinical truth with FDI-first notation and audit-friendly history.",
-    bullets: [
-      "Tooth and surface targets sized for chairside use",
-      "Patterns and labels so color is never the only signal",
-      "Visit timeline when historical snapshots are available",
-    ],
-    chip: "Clinical",
+    summary: "Review and record what you see in the mouth with a clear tooth chart.",
+    bullets: ["Chart by tooth and surface", "Keep clinical notes easy to find later"],
   },
-  "treatment-plans": {
-    summary: "Proposed care pathways patients can understand — phased, priced, and consent-aware.",
-    bullets: [
-      "Phases that connect to scheduling and ledger",
-      "Insurance estimate disclaimers kept visible",
-      "Presentation-ready summaries when you are ready to share",
-    ],
-    chip: "Treatment",
+  treatments: {
+    summary: "See planned care, phases, and estimates in one place.",
+    bullets: ["Share plans with patients in plain language", "Connect plans to visits and payments when enabled"],
   },
   payments: {
-    summary: "A readable ledger so the front desk never has to be an accountant.",
-    bullets: [
-      "Running balance with insurance vs patient responsibility",
-      "Claim status surfaced next to charges",
-      "Read-only import tags when data is bridged from legacy",
-    ],
-    chip: "Finance",
+    summary: "Understand balances, insurance, and what the family owes.",
+    bullets: ["Ledger lines in date order", "Highlights when something needs a follow-up"],
   },
   reports: {
-    summary: "Operational and compliance outputs you can trust — with filters that respect roles.",
-    bullets: [
-      "Catalog grouped by clinical, scheduling, and finance",
-      "As-of timestamps and migration footnotes",
-      "Exports when policy allows",
-    ],
-    chip: "Insights",
+    summary: "Run the lists and summaries your clinic relies on.",
+    bullets: ["Day sheets, aging, and activity by provider", "Filters that match how you already work"],
   },
   settings: {
-    summary: "People, places, templates, and integrations — shallow in early phases, deeper when you are ready.",
-    bullets: [
-      "Role capability visibility so disabled controls make sense",
-      "Schedule templates and operatory hours",
-      "Integration cards with clear setup steps",
-    ],
-    chip: "Admin",
+    summary: "Set up people, rooms, hours, and how Microdent fits your clinic.",
+    bullets: ["Users and roles", "Locations and schedule templates"],
   },
 };
 
@@ -135,7 +69,7 @@ function formatTodayLine(): string {
   try {
     return new Intl.DateTimeFormat(undefined, {
       weekday: "long",
-      month: "short",
+      month: "long",
       day: "numeric",
     }).format(new Date());
   } catch {
@@ -146,49 +80,41 @@ function formatTodayLine(): string {
 function ModuleHome({
   moduleId,
   onOpenModule,
-  onBackHome,
+  onBackToday,
 }: {
   moduleId: AppNavModuleId;
   onOpenModule: (id: AppNavModuleId) => void;
-  onBackHome: () => void;
+  onBackToday: () => void;
 }) {
   const copy = MODULE_PREVIEW[moduleId];
   return (
     <div className="app-module-home">
       <div className="app-module-home__header">
-        <Badge variant="info" semanticLabel={`Module area: ${copy.chip}`}>
-          {copy.chip}
-        </Badge>
         <p className="app-module-home__summary">
           <strong>{moduleLabel(moduleId)}</strong> — {copy.summary}
         </p>
       </div>
 
-      <ul className="app-module-home__bullets" aria-label="Planned capabilities for this module">
+      <ul className="app-module-home__bullets" aria-label={`What ${moduleLabel(moduleId)} will include`}>
         {copy.bullets.map((b) => (
           <li key={b}>{b}</li>
         ))}
       </ul>
 
       <div className="app-module-home__actions">
-        <Button type="button" variant="secondary" className="ui-focusable" onClick={onBackHome}>
-          Back to dashboard
+        <Button type="button" variant="secondary" className="ui-focusable" onClick={onBackToday}>
+          Back to Today
         </Button>
         <Button type="button" variant="ghost" className="ui-focusable" onClick={() => onOpenModule("schedule")}>
-          Peek at Schedule copy
+          Open schedule
         </Button>
       </div>
 
       <AppErrorBoundary>
         <EmptyState
           className="ui-empty--start"
-          title="Preview workspace"
-          description="This screen is layout-only. No charts, schedules, or ledgers are loaded yet — we are polishing the experience before wiring the bridge."
-          actions={
-            <Badge variant="neutral" semanticLabel="Build mode: interface sample only">
-              Sample UI · no PHI
-            </Badge>
-          }
+          title="Nothing to show yet"
+          description="When this area is turned on for your clinic, your team's work will show up here."
         />
       </AppErrorBoundary>
     </div>
@@ -200,261 +126,221 @@ function DashboardHome({ onOpenModule }: { onOpenModule: (id: AppNavModuleId) =>
     <div className="app-dashboard">
       <p className="app-dashboard__kicker">
         <span className="app-dashboard__date">{formatTodayLine()}</span>
-        <span className="app-dashboard__dot" aria-hidden>
-          ·
-        </span>
-        <span>Preview counts are placeholders only.</span>
       </p>
 
-      <ul className="app-dashboard__stats" aria-label="Sample summary tiles">
-        <li>
-          <Card className="app-stat-card ui-card--accent">
+      <div className="app-dashboard__layout">
+        <div className="app-dashboard__primary">
+          <Card>
+            <CardHeader>
+              <p className="ui-card__title app-card-title-lg">Today&apos;s appointments</p>
+            </CardHeader>
             <CardBody>
-              <p className="app-stat-card__label">Visits on the book</p>
-              <p className="app-stat-card__value" aria-label="Not connected">
-                —
-              </p>
-              <p className="app-stat-card__hint">Live total when the schedule is linked</p>
+              <ul className="app-appt-list" aria-label="Example appointments for layout only">
+                <li className="app-appt-list__row">
+                  <span className="app-appt-list__time">8:00</span>
+                  <div className="app-appt-list__main">
+                    <span className="app-appt-list__patient">Sample patient</span>
+                    <span className="app-appt-list__visit">Cleaning · Chair 1</span>
+                  </div>
+                  <Badge variant="success" semanticLabel="Visit status: confirmed (example)">
+                    Confirmed
+                  </Badge>
+                </li>
+                <li className="app-appt-list__row">
+                  <span className="app-appt-list__time">9:30</span>
+                  <div className="app-appt-list__main">
+                    <span className="app-appt-list__patient">Sample patient</span>
+                    <span className="app-appt-list__visit">Exam · Chair 2</span>
+                  </div>
+                  <Badge variant="info" semanticLabel="Visit status: scheduled (example)">
+                    Scheduled
+                  </Badge>
+                </li>
+                <li className="app-appt-list__row">
+                  <span className="app-appt-list__time">11:15</span>
+                  <div className="app-appt-list__main">
+                    <span className="app-appt-list__patient">Sample patient</span>
+                    <span className="app-appt-list__visit">New patient visit · Chair 1</span>
+                  </div>
+                  <Badge variant="info" semanticLabel="Visit status: scheduled (example)">
+                    Scheduled
+                  </Badge>
+                </li>
+                <li className="app-appt-list__row">
+                  <span className="app-appt-list__time">1:00 PM</span>
+                  <div className="app-appt-list__main">
+                    <span className="app-appt-list__patient">Sample patient</span>
+                    <span className="app-appt-list__visit">Filling · Chair 3</span>
+                  </div>
+                  <Badge variant="warning" semanticLabel="Reminder: verify benefits (example)">
+                    Check benefits
+                  </Badge>
+                </li>
+                <li className="app-appt-list__row">
+                  <span className="app-appt-list__time">2:45</span>
+                  <div className="app-appt-list__main">
+                    <span className="app-appt-list__patient">Sample patient</span>
+                    <span className="app-appt-list__visit">Child checkup · Chair 2</span>
+                  </div>
+                  <Badge variant="success" semanticLabel="Visit status: confirmed (example)">
+                    Confirmed
+                  </Badge>
+                </li>
+              </ul>
+              <div className="app-appt-list__footer">
+                <Button type="button" variant="secondary" className="ui-focusable" onClick={() => onOpenModule("schedule")}>
+                  Open schedule
+                </Button>
+              </div>
             </CardBody>
           </Card>
-        </li>
-        <li>
-          <Card className="app-stat-card ui-card--accent">
-            <CardBody>
-              <p className="app-stat-card__label">Chairs in motion</p>
-              <p className="app-stat-card__value" aria-label="Not connected">
-                —
-              </p>
-              <p className="app-stat-card__hint">Checked-in visits appear here first</p>
-            </CardBody>
-          </Card>
-        </li>
-        <li>
-          <Card className="app-stat-card ui-card--accent">
-            <CardBody>
-              <p className="app-stat-card__label">Follow-ups due</p>
-              <p className="app-stat-card__value" aria-label="Not connected">
-                —
-              </p>
-              <p className="app-stat-card__hint">Recare and billing nudges stack here</p>
-            </CardBody>
-          </Card>
-        </li>
-        <li>
-          <Card className="app-stat-card ui-card--accent">
-            <CardBody>
-              <p className="app-stat-card__label">New patients (30d)</p>
-              <p className="app-stat-card__value" aria-label="Not connected">
-                —
-              </p>
-              <p className="app-stat-card__hint">Marketing-friendly snapshot</p>
-            </CardBody>
-          </Card>
-        </li>
-      </ul>
+        </div>
 
-      <div className="app-dashboard__split">
-        <Card className="app-next-card">
-          <CardHeader>
-            <p className="ui-card__title">Next on the floor</p>
-            <Badge variant="neutral" semanticLabel="Sample queue rows">
-              Sample queue
-            </Badge>
-          </CardHeader>
-          <CardBody>
-            <ol className="app-next-list">
-              <li>
-                <span className="app-next-list__time">10:30</span>
-                <span className="app-next-list__body">
-                  <span className="app-next-list__title">Recall visit · Chair 2</span>
-                  <span className="app-next-list__meta">Preview row · no real patient</span>
-                </span>
-                <Badge variant="info" semanticLabel="Visit status: scheduled (sample)">
-                  Scheduled
-                </Badge>
-              </li>
-              <li>
-                <span className="app-next-list__time">11:15</span>
-                <span className="app-next-list__body">
-                  <span className="app-next-list__title">New patient exam · Chair 1</span>
-                  <span className="app-next-list__meta">Preview row · generic copy</span>
-                </span>
-                <Badge variant="success" semanticLabel="Visit status: confirmed (sample)">
-                  Confirmed
-                </Badge>
-              </li>
-              <li>
-                <span className="app-next-list__time">1:00 PM</span>
-                <span className="app-next-list__body">
-                  <span className="app-next-list__title">Restorative block · Chair 3</span>
-                  <span className="app-next-list__meta">Preview row · placeholder</span>
-                </span>
-                <Badge variant="warning" semanticLabel="Visit status: needs insurance check (sample)">
-                  Verify benefits
-                </Badge>
-              </li>
-            </ol>
-            <div className="app-next-card__footer">
-              <Button type="button" variant="primary" className="ui-focusable" onClick={() => onOpenModule("schedule")}>
-                Open Schedule module
+        <aside className="app-dashboard__aside" aria-label="Next visit and shortcuts">
+          <Card className="app-next-patient-card">
+            <CardHeader>
+              <p className="ui-card__title app-card-title-lg">Next appointment</p>
+            </CardHeader>
+            <CardBody>
+              <p className="app-next-patient__time">11:15</p>
+              <p className="app-next-patient__name">Sample patient</p>
+              <p className="app-next-patient__detail">New patient visit · Chair 1</p>
+              <Button type="button" variant="primary" className="ui-focusable app-next-patient__btn" onClick={() => onOpenModule("patients")}>
+                Open Patients
               </Button>
-              <Button type="button" variant="ghost" className="ui-focusable" onClick={() => onOpenModule("patients")}>
-                Review Patients copy
-              </Button>
-            </div>
-          </CardBody>
-        </Card>
+              <p className="app-next-patient__hint">Search by name will be added here in a later update.</p>
+            </CardBody>
+          </Card>
 
-        <Card className="app-bridge-card">
-          <CardHeader>
-            <p className="ui-card__title">Local desktop bridge</p>
-            <Badge variant="warning" semanticLabel="Bridge status: not connected">
-              Waiting
-            </Badge>
-          </CardHeader>
-          <CardBody>
-            <p className="app-bridge-card__lead">
-              The bridge is the narrow door between this workspace and your on-prem data. It is not running in this
-              preview, so everything you see is intentionally static.
-            </p>
-            <ol className="app-bridge-card__steps">
-              <li>Start the bridge service on the clinic workstation.</li>
-              <li>Confirm it listens on the loopback address your IT team assigns.</li>
-              <li>Watch this card flip to “Connected” before any live tables load.</li>
-            </ol>
-            <p className="app-bridge-card__note">
-              <strong>No network calls</strong> are made from this shell in the preview build — safe for demos and
-              screenshots.
-            </p>
-          </CardBody>
-        </Card>
+          <Card>
+            <CardHeader>
+              <p className="ui-card__title app-card-title-lg">Quick actions</p>
+            </CardHeader>
+            <CardBody>
+              <div className="app-quick-actions">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="ui-focusable app-quick-actions__btn"
+                  disabled
+                  title="Not available in this preview"
+                >
+                  Find patient
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="ui-focusable app-quick-actions__btn"
+                  onClick={() => onOpenModule("schedule")}
+                >
+                  Open schedule
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="ui-focusable app-quick-actions__btn"
+                  onClick={() => onOpenModule("dental-chart")}
+                >
+                  Review chart
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="ui-focusable app-quick-actions__btn"
+                  disabled
+                  title="Recording payments is read-only in this preview"
+                >
+                  Record payment
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <p className="ui-card__title app-card-title-lg">Reminders</p>
+            </CardHeader>
+            <CardBody>
+              <ul className="app-reminder-list">
+                <li>Hygiene recall list for next week — review when Reports is on.</li>
+                <li>One benefit check pending for a visit this afternoon (example).</li>
+              </ul>
+            </CardBody>
+          </Card>
+        </aside>
       </div>
-
-      <section className="app-dashboard__modules" aria-labelledby="app-module-tiles-heading">
-        <div className="app-dashboard__modules-head">
-          <h3 className="app-dashboard__modules-title" id="app-module-tiles-heading">
-            Jump to a workspace area
-          </h3>
-          <p className="app-dashboard__modules-desc">
-            Each tile opens the same polished placeholder with context for that team — pick what you want to critique
-            first.
-          </p>
-        </div>
-        <div className="app-module-tiles">
-          {APP_NAV_MODULES.filter((m) => m.id !== "dashboard").map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              className={`app-module-tile ui-focusable app-module-tile--${m.id}`}
-              onClick={() => onOpenModule(m.id)}
-            >
-              <span className="app-module-tile__glyph" aria-hidden>
-                {NAV_GLYPH[m.id]}
-              </span>
-              <span className="app-module-tile__text">
-                <span className="app-module-tile__label">{m.label}</span>
-                <span className="app-module-tile__hint">{MODULE_PREVIEW[m.id].chip}</span>
-              </span>
-            </button>
-          ))}
-        </div>
-      </section>
     </div>
   );
 }
 
 /**
  * Static first-run shell: top bar, global read-only banner, sidebar navigation (local state),
- * bridge-offline placeholder, and a main canvas with an error boundary.
+ * and a main canvas with an error boundary.
  *
  * **Styles:** the host app must import `@microdent/ui/tokens.css`, `@microdent/ui/components.css`,
  * and `@microdent/app/app-shell.css` before rendering.
  */
-export function AppShell({ clinicLabel = "Clinic workspace", topSlot }: AppShellProps) {
-  const [active, setActive] = useState<AppNavModuleId>("dashboard");
+export function AppShell({ clinicLabel = "Main clinic", topSlot }: AppShellProps) {
+  const [active, setActive] = useState<AppNavModuleId>("today");
 
   const mainHeadingId = "app-main-heading";
 
   const sidebar = useMemo(
-    () =>
-      SIDEBAR_GROUPS.map((group) => (
-        <div key={group.label} className="app-sidebar__group">
-          <p className="app-sidebar__group-label">{group.label}</p>
-          <ul className="app-sidebar__nav">
-            {group.modules.map((id) => {
-              const m = APP_NAV_MODULES.find((x) => x.id === id);
-              if (!m) return null;
-              return (
-                <li key={id}>
-                  <button
-                    type="button"
-                    className={`app-sidebar__btn ui-focusable app-sidebar__btn--${id}`}
-                    aria-current={active === id ? "true" : undefined}
-                    aria-controls="app-main-region"
-                    onClick={() => setActive(id)}
-                  >
-                    <span className="app-sidebar__glyph" aria-hidden>
-                      {NAV_GLYPH[id]}
-                    </span>
-                    <span className="app-sidebar__label-text">{m.label}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )),
+    () => (
+      <ul className="app-sidebar__nav">
+        {APP_NAV_MODULES.map((m) => (
+          <li key={m.id}>
+            <button
+              type="button"
+              className={`app-sidebar__btn ui-focusable app-sidebar__btn--${m.id}`}
+              aria-current={active === m.id ? "true" : undefined}
+              aria-controls="app-main-region"
+              onClick={() => setActive(m.id)}
+            >
+              {m.label}
+            </button>
+          </li>
+        ))}
+      </ul>
+    ),
     [active],
   );
 
   return (
     <div className="app-shell">
       <header className="app-topbar" role="banner">
-        <div className="app-topbar__left">
-          <div className="app-brand-block">
-            <p className="app-brand-kicker">Dental clinic workspace</p>
-            <div className="app-brand-row">
-              <h1 className="app-brand">Microdent</h1>
-              <span className="app-topbar__subtitle">{clinicLabel}</span>
-            </div>
-          </div>
+        <div className="app-topbar__brand">
+          <h1 className="app-brand">Microdent</h1>
+          <span className="app-topbar__clinic">{clinicLabel}</span>
         </div>
 
-        <div className="app-topbar__mid" role="note" aria-label="Patient search preview (not interactive yet)">
-          <span className="app-search-teaser__glyph" aria-hidden>
-            ⌕
-          </span>
-          <span className="app-search-teaser__text">Search patients, visits, and ledger lines…</span>
-          <Badge variant="neutral" semanticLabel="Feature status: not available in this preview">
-            Soon
-          </Badge>
+        <div className="app-topbar__search" role="search">
+          <label className="app-sr-only" htmlFor="app-patient-search-teaser">
+            Find a patient
+          </label>
+          <input
+            id="app-patient-search-teaser"
+            className="app-topbar-search__input ui-focusable"
+            type="search"
+            disabled
+            autoComplete="off"
+            placeholder="Find a patient by name or chart number"
+            aria-describedby="app-search-teaser-hint"
+          />
+          <p id="app-search-teaser-hint" className="app-sr-only">
+            Patient search is not active on this screen yet.
+          </p>
         </div>
 
-        <div className="app-topbar__right">
-          <div
-            className="app-bridge-pill"
-            role="status"
-            aria-live="polite"
-            aria-label="Local bridge status: idle, not connected to clinic data"
-          >
-            <span className="app-bridge-pill__dot" aria-hidden>
-              ●
-            </span>
-            <span className="app-bridge-pill__text">
-              <span className="app-bridge-pill__main">Local bridge idle</span>
-              <span className="app-bridge-pill__sub">No clinic link yet</span>
-            </span>
-          </div>
-          <Badge variant="info" semanticLabel="Build mode: sample interface only">
-            Preview UI
-          </Badge>
+        <div className="app-topbar__status" role="status" aria-live="polite" aria-label="Clinic data is not connected on this screen">
+          <span className="app-topbar__status-dot" aria-hidden />
+          <span className="app-topbar__status-label">Clinic data off</span>
         </div>
       </header>
 
       <div className="app-shell__banner">
-        <ReadOnlyBanner>
-          You are in an interface that stays <em>read-first</em> until write paths are approved. Legacy DBFs are not
-          edited from here, and nothing in this preview is patient-identifiable.
+        <ReadOnlyBanner label="Read-only mode" className="ui-readonly-banner--compact">
+          This preview cannot change clinic data.
         </ReadOnlyBanner>
       </div>
 
@@ -462,33 +348,32 @@ export function AppShell({ clinicLabel = "Clinic workspace", topSlot }: AppShell
 
       <div className="app-shell__body">
         <aside className="app-sidebar" aria-labelledby="sidebar-nav-label">
-          <div className="app-sidebar__head">
-            <p className="app-sidebar__label" id="sidebar-nav-label">
-              Navigate
-            </p>
-            <p className="app-sidebar__hint">Keyboard-friendly · same order as production rail</p>
-          </div>
+          <p id="sidebar-nav-label" className="app-sr-only">
+            Main navigation
+          </p>
           <nav aria-labelledby="sidebar-nav-label">{sidebar}</nav>
         </aside>
 
         <main className="app-main" id="app-main-region" role="main" aria-labelledby={mainHeadingId}>
-          <div className="app-main__head">
-            <h2 className="app-main__heading" id={mainHeadingId}>
-              {moduleLabel(active)}
-            </h2>
-            {active === "dashboard" ? (
-              <p className="app-main__lede">A calmer morning view for the whole team — tuned for front desk speed.</p>
-            ) : (
-              <p className="app-main__lede">Context for {moduleLabel(active)} while data wiring lands.</p>
-            )}
-          </div>
+          <div className="app-main__inner">
+            <div className="app-main__head">
+              <h2 className="app-main__heading" id={mainHeadingId}>
+                {moduleLabel(active)}
+              </h2>
+              {active === "today" ? (
+                <p className="app-main__lede">Who is on the schedule, what is next, and where to go next.</p>
+              ) : (
+                <p className="app-main__lede">Overview for {moduleLabel(active)}.</p>
+              )}
+            </div>
 
-          <div className="app-main__content">
-            {active === "dashboard" ? (
-              <DashboardHome onOpenModule={setActive} />
-            ) : (
-              <ModuleHome moduleId={active} onOpenModule={setActive} onBackHome={() => setActive("dashboard")} />
-            )}
+            <div className="app-main__content">
+              {active === "today" ? (
+                <DashboardHome onOpenModule={setActive} />
+              ) : (
+                <ModuleHome moduleId={active} onOpenModule={setActive} onBackToday={() => setActive("today")} />
+              )}
+            </div>
           </div>
         </main>
       </div>

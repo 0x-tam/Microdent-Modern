@@ -1,5 +1,7 @@
 # Phase 1A — Visual polish (shell + UI)
 
+> **Note (later pass):** the **Today** home screen and top bar were **simplified** for a calmer, less “admin preview” feel — see [phase-1a-clinic-ux-simplification.md](phase-1a-clinic-ux-simplification.md). Token and component work below (e.g. `--ui-gradient-shell`, read-only banner base styles, `ui-card--accent`) still applies unless superseded there.
+
 ## Summary
 
 A **design-only** pass on `@microdent/ui` and `@microdent/app` to make the read-only shell feel closer to **modern dental clinic software**: clearer hierarchy, teal-forward canvas, grouped navigation, a **dashboard-shaped** home (sample tiles, “next on the floor”, module jump grid), and **human bridge copy** — still **no data wiring**, **no bridge-client**, **no router/query**, and **no PHI** (only generic preview labels).
@@ -19,22 +21,18 @@ A **design-only** pass on `@microdent/ui` and `@microdent/app` to make the read-
   - **`ui-card--accent`**: optional elevated border/shadow for summary cards.
   - **`ui-empty--start`**: left-aligned “module preview” empty layout with gentle primary wash (used under module home).
 
-## App shell (`packages/app`)
+## App shell (`packages/app`) — historical detail
 
-- **Top bar**: brand **kicker** (“Dental clinic workspace”), **underline accent** on “Microdent”, **search teaser** strip (non-interactive, `Soon` badge, `role="note"`), **two-line bridge pill** (“Local bridge idle” + “No clinic link yet”), **`Preview UI`** badge.
-- **Read-only banner**: warmer, explicit **read-first** + no PHI copy (still `role="status"` via `ReadOnlyBanner`).
-- **Sidebar**: **`Navigate`** header + hint; **grouped modules** (Today / Patients & clinical / Plans & finance / Office); each row is a **glyph + label** button with rail background and clearer active/hover elevation.
-- **Dashboard route** (`active === "dashboard"`):
-  - **Date kicker** + “preview counts” disclaimer.
-  - **Four stat cards** (em dash placeholders, tabular feel, semantic hints).
-  - **Split row**: “Next on the floor” sample queue (badged statuses) + **Local desktop bridge** card (plain-language lead, numbered steps, info callout).
-  - **Module tile grid** (all modules except Dashboard) — navigates via existing `useState` (no router).
-- **Other modules**: **`ModuleHome`** — area badge, summary + bullet “planned capabilities”, actions to return to dashboard / peek Schedule, plus the **`EmptyState`** preview panel (`Sample UI · no PHI`).
-- **`app-shell.css`**: layout, grids, tile hover/focus, queue list, bridge card, module home — **gradients and colors reference `var(--ui-*)` only** (no raw hex in rulesets).
+The following described an **earlier** shell layout (grouped sidebar, stat tiles, bridge explainer, module tiles). The **current** shell is documented in [phase-1a-clinic-ux-simplification.md](phase-1a-clinic-ux-simplification.md).
 
-## Tests
+- **Top bar (earlier)**: brand kicker, search teaser with “Soon” badge, two-line bridge pill, “Preview UI” badge.
+- **Sidebar (earlier)**: grouped nav + glyph cells.
+- **Home (earlier)**: stat tiles, “next on the floor” + bridge card, module jump grid.
+- **Module home (earlier)**: area badge, “Sample UI · no PHI” empty panel.
 
-- `packages/app/src/app-shell.test.tsx` updated for **“Local bridge idle”** and sidebar label **“Navigate”**.
+## Tests (at time of polish)
+
+- `packages/app/src/app-shell.test.tsx` was updated during that iteration (later superseded by clinic UX pass).
 
 ## Dependencies
 

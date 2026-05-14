@@ -1,6 +1,6 @@
 # @microdent/app
 
-Application shell for Microdent Modern (layout, navigation state, read-only chrome). **No router, no data fetching, no bridge-client** in Band A6.
+Application shell for Microdent Modern (layout, navigation state, read-only chrome, **Today** home with sample appointments). **No router, no data fetching, no bridge-client.**
 
 ## Styles
 
@@ -23,7 +23,7 @@ pnpm --filter @microdent/app run build
 
 ## API
 
-- **`AppShell`** — top bar, read-only banner, sidebar (`useState` selection), bridge-offline placeholder card, main placeholder per module.
+- **`AppShell`** — top bar (patient search teaser, quiet clinic-data status), compact read-only banner, sidebar (`useState` selection), **Today** two-column home, module summaries + empty state per route. See [docs/phase-1a-clinic-ux-simplification.md](../../docs/phase-1a-clinic-ux-simplification.md).
 - **`AppErrorBoundary`** — wraps volatile main content; shows **`ErrorState`** + retry.
 
 ## Dependencies
