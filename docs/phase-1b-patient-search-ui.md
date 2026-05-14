@@ -8,21 +8,20 @@
 - **Debounce:** **300 ms** after typing stops, without new npm dependencies. **Search** button and **Enter** skip the wait and run immediately (clears the pending timer first).
 - **Results:** up to **20** rows from the API; a short note appears when the list is capped at 20.
 - **Displayed fields only:** **`displayName`**, **`chartNumber`** (as “Chart …” when present), **`phoneMask`** when present, and **`patientId`** only as **`Record {id}`** when there is **no** chart number (helps tell similar names apart without extra columns).
-- **Selection:** clicking a row highlights it and shows a compact **“Patient selected”** line with the **display name** and explicit copy that **charts / visits are not available** in this preview (no profile route, no navigation).
+- **Selection:** clicking a row highlights it (via shell **`selectedPatientId`**) and opens the **Patients** module, which loads **`getPatientProfile(patientId)`** — see [phase-1b-patient-profile-ui.md](phase-1b-patient-profile-ui.md). Typing in the search field clears the selection.
 - **States:** clinic-oriented copy for **service offline / waiting**, **type at least 2 characters**, **searching**, **no matches**, **search failed**, plus the **hint** under the field.
 - **Layout:** results open in a **dropdown** under the top search so the **Today** dashboard stays unchanged.
 - **Types:** **`BridgeHealthPhase`** (`"checking" | "connected" | "offline"`) now lives in **`bridge-health.ts`** and is re-exported from **`AppShell`** / package **`index`** for hosts.
 
 ## Tests
 
-- **`packages/app/src/patient-search-bar.test.tsx`** (jsdom + fake timers): offline and **checking** disabled states, **under-2-character** guard (no `fetch`), **happy path** (assert URL contains `/v1/patients/search` and safe mock fields only), **empty results**, **HTTP error** without echoing raw server messages.
+- **`packages/app/src/patient-search-bar.test.tsx`** (jsdom + fake timers): offline and **checking** disabled states, **under-2-character** guard (no `fetch`), **happy path**, **row click** invokes **`onPatientRecordSelect`**, **empty results**, **HTTP error** without echoing raw server messages.
 - **`safePatientSearchError`** unit coverage for **network** and unknown errors (no PHI, no stack text in UI).
 
 ## What remains intentionally blocked / out of scope
 
-- **Patient profile** or any **`/v1/patients/:id`** (or similar) detail routes — not called; selection is a placeholder only.
-- **Schedule** routes and **DBF** access from the browser — unchanged; still only **typed bridge HTTP**.
-- **Writes**, **editing**, **localStorage / sessionStorage** for results — not implemented; results live in React state only.
+- **Patient editing**, **writes**, **localStorage / sessionStorage** for results — not implemented; search hits stay in component state until the shell stores **`patientId`** for the profile.
+- **Schedule** routes and **DBF** access from the browser — unchanged outside the schedule module; search/profile use **typed bridge HTTP** only.
 - **TanStack Query / React Router** — not added; local state + `BridgeClient` only.
 - **Logging patient search results** — no `console.log` of hits; dev diagnostics remain limited to existing shell bridge health behavior.
 

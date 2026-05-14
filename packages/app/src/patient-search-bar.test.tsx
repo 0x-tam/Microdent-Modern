@@ -118,6 +118,52 @@ describe("PatientSearchBar", () => {
     expect(container.textContent).toContain("…9000");
   });
 
+  it("calls onPatientRecordSelect when a result row is clicked", async () => {
+    const fetchImpl = vi.fn(async () => {
+      const body = {
+        results: [
+          {
+            patientId: "90001",
+            chartNumber: "C-100",
+            displayName: "Demo Alpha",
+            phoneMask: "…9000",
+          },
+        ],
+      };
+      return new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } });
+    });
+    const onPatientRecordSelect = vi.fn();
+
+    act(() => {
+      root.render(
+        <PatientSearchBar
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onPatientRecordSelect={onPatientRecordSelect}
+        />,
+      );
+    });
+    const input = container.querySelector("input#app-patient-search-input") as HTMLInputElement;
+    await act(async () => {
+      setSearchInputValue(input, "De");
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(320);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const btn = Array.from(container.querySelectorAll("button")).find((b) => b.textContent?.includes("Demo Alpha"));
+    expect(btn).toBeTruthy();
+    await act(async () => {
+      btn?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(onPatientRecordSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ patientId: "90001", displayName: "Demo Alpha" }),
+    );
+  });
+
   it("shows a clear empty state when there are no matches", async () => {
     const fetchImpl = vi.fn(async () => {
       return new Response(JSON.stringify({ results: [] }), {

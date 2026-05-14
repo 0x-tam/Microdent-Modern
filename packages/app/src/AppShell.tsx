@@ -7,6 +7,7 @@ export type { BridgeHealthPhase } from "./bridge-health.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
 import { FixtureConnectionPanel } from "./FixtureConnectionPanel.js";
 import { LegacyCatalogPanel } from "./LegacyCatalogPanel.js";
+import { PatientProfilePanel } from "./PatientProfilePanel.js";
 import { PatientSearchBar } from "./PatientSearchBar.js";
 import { SchedulePanel } from "./SchedulePanel.js";
 
@@ -334,6 +335,7 @@ export function AppShell({
   bridgeConnectionDiagnostics = false,
 }: AppShellProps) {
   const [active, setActive] = useState<AppNavModuleId>("today");
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [bridgePhase, setBridgePhase] = useState<BridgeHealthPhase>(() => (bridgeBaseUrl?.trim() ? "checking" : "offline"));
   const [lastHealthCheckAt, setLastHealthCheckAt] = useState<number | null>(null);
   const [lastHealthOfflineReason, setLastHealthOfflineReason] = useState<string | null>(null);
@@ -415,7 +417,16 @@ export function AppShell({
         </div>
 
         <div className="app-topbar__search" role="search">
-          <PatientSearchBar bridgePhase={bridgePhase} bridgeBaseUrl={bridgeBaseUrl} />
+          <PatientSearchBar
+            bridgePhase={bridgePhase}
+            bridgeBaseUrl={bridgeBaseUrl}
+            selectedPatientId={selectedPatientId}
+            onPatientRecordSelect={(hit) => {
+              setSelectedPatientId(hit.patientId);
+              setActive("patients");
+            }}
+            onPatientSelectionClear={() => setSelectedPatientId(null)}
+          />
         </div>
 
         <div className="app-topbar__status-wrap">
@@ -497,6 +508,11 @@ export function AppShell({
                 <p className="app-main__lede">
                   Read-only view of appointments from your copied data. Names and notes stay off this screen.
                 </p>
+              ) : active === "patients" ? (
+                <p className="app-main__lede">
+                  Read-only summary from your copied data. Search in the top bar, pick a patient, and only safe fields load
+                  here — no address, insurance, or clinical notes in this preview.
+                </p>
               ) : (
                 <p className="app-main__lede">Overview for {moduleLabel(active)}.</p>
               )}
@@ -511,6 +527,14 @@ export function AppShell({
                   bridgePhase={bridgePhase}
                   bridgeBaseUrl={bridgeBaseUrl}
                   onBackToday={() => setActive("today")}
+                />
+              ) : active === "patients" ? (
+                <PatientProfilePanel
+                  patientId={selectedPatientId}
+                  bridgePhase={bridgePhase}
+                  bridgeBaseUrl={bridgeBaseUrl}
+                  onBackToday={() => setActive("today")}
+                  onClearPatient={() => setSelectedPatientId(null)}
                 />
               ) : (
                 <ModuleHome moduleId={active} onOpenModule={setActive} onBackToday={() => setActive("today")} />

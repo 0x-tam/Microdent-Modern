@@ -1122,3 +1122,151 @@
   flex-wrap: wrap;
   gap: var(--ui-space-3);
 }
+
+/* ----- Patient profile (read-only) ----- */
+.app-patient-profile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-4);
+  max-width: min(720px, 100%);
+}
+
+.app-patient-profile__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-3);
+  align-items: center;
+}
+
+.app-patient-profile__readonly-note {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-radius: var(--ui-radius-sm);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-surface);
+}
+
+.app-patient-profile__empty {
+  margin-top: var(--ui-space-2);
+}
+
+.app-patient-profile__status {
+  margin: 0;
+  font-size: 16px;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__error {
+  padding: var(--ui-space-4);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-surface);
+}
+
+.app-patient-profile__error p {
+  margin: 0 0 var(--ui-space-3);
+  color: var(--ui-text-primary);
+}
+
+.app-patient-profile__card {
+  margin-top: var(--ui-space-1);
+}
+
+.app-patient-profile__card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+}
+
+.app-patient-profile__name {
+  margin: 0;
+  font-size: clamp(1.35rem, 1.1rem + 1.2vw, 1.85rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--ui-text-primary);
+}
+
+.app-patient-profile__rev {
+  margin: var(--ui-space-1) 0 0;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__dl {
+  margin: 0;
+  display: grid;
+  gap: var(--ui-space-3);
+}
+
+.app-patient-profile__row {
+  display: grid;
+  grid-template-columns: minmax(120px, 34%) 1fr;
+  gap: var(--ui-space-2);
+  align-items: baseline;
+  font-size: 15px;
+}
+
+.app-patient-profile__row dt {
+  margin: 0;
+  font-weight: 600;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__row dd {
+  margin: 0;
+  color: var(--ui-text-primary);
+  word-break: break-word;
+}
+
+.app-patient-profile__tabs {
+  margin-top: var(--ui-space-2);
+}
+
+.app-patient-profile__tabs-lede {
+  margin: 0 0 var(--ui-space-2);
+  font-size: 14px;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__tablist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+}
+
+.app-patient-profile__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-2) var(--ui-space-3);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--ui-radius-sm);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-subtle);
+  color: var(--ui-text-secondary);
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.app-patient-profile__tab-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-bg-surface);
+  border: 1px solid var(--ui-border-subtle);
+  color: var(--ui-text-secondary);
+}

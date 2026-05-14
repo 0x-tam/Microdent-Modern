@@ -5,23 +5,29 @@ import type { BridgeHealthPhase } from "./bridge-health.js";
 
 const SEARCH_DEBOUNCE_MS = 300;
 
-export type PatientSearchBarProps = {
-  bridgePhase: BridgeHealthPhase;
-  bridgeBaseUrl?: string;
-  /**
-   * Optional fetch override (tests); production uses the bound global `fetch` from the bridge client.
-   */
-  fetchImpl?: typeof fetch;
-};
-
-type SearchHit = {
+export type PatientSearchHit = {
   patientId: string;
   chartNumber: string | null;
   displayName: string;
   phoneMask: string | null;
 };
 
-function formatHitSecondary(hit: SearchHit): string | null {
+export type PatientSearchBarProps = {
+  bridgePhase: BridgeHealthPhase;
+  bridgeBaseUrl?: string;
+  /** Highlight the row that matches the profile currently shown (controlled from the shell). */
+  selectedPatientId?: string | null;
+  /** When the user picks a search row, the shell stores `patientId` and may navigate to Patients. */
+  onPatientRecordSelect?: (hit: PatientSearchHit) => void;
+  /** When the user edits the query, the shell should clear the selected patient id. */
+  onPatientSelectionClear?: () => void;
+  /**
+   * Optional fetch override (tests); production uses the bound global `fetch` from the bridge client.
+   */
+  fetchImpl?: typeof fetch;
+};
+
+function formatHitSecondary(hit: PatientSearchHit): string | null {
   const parts: string[] = [];
   if (hit.chartNumber) {
     parts.push(`Chart ${hit.chartNumber}`);
@@ -57,16 +63,22 @@ export function safePatientSearchError(e: unknown): string {
   return "Search could not be completed.";
 }
 
-export function PatientSearchBar({ bridgePhase, bridgeBaseUrl, fetchImpl }: PatientSearchBarProps) {
+export function PatientSearchBar({
+  bridgePhase,
+  bridgeBaseUrl,
+  selectedPatientId = null,
+  onPatientRecordSelect,
+  onPatientSelectionClear,
+  fetchImpl,
+}: PatientSearchBarProps) {
   const base = bridgeBaseUrl?.trim() ?? "";
   const canSearch = Boolean(base) && bridgePhase === "connected";
 
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<SearchHit[]>([]);
+  const [results, setResults] = useState<PatientSearchHit[]>([]);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
   const [lastFinishedQuery, setLastFinishedQuery] = useState<string | null>(null);
-  const [selected, setSelected] = useState<SearchHit | null>(null);
 
   const trimmed = query.trim();
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -212,8 +224,8 @@ export function PatientSearchBar({ bridgePhase, bridgeBaseUrl, fetchImpl }: Pati
           role="combobox"
           value={query}
           onChange={(e) => {
+            onPatientSelectionClear?.();
             setQuery(e.target.value);
-            setSelected(null);
             if (e.target.value.trim().length < 2) {
               setResults([]);
               setSearchError(null);
@@ -246,14 +258,6 @@ export function PatientSearchBar({ bridgePhase, bridgeBaseUrl, fetchImpl }: Pati
         </p>
       )}
 
-      {selected ? (
-        <div className="app-patient-search__selected" aria-live="polite">
-          <strong>Patient selected</strong>
-          <span className="app-patient-search__selected-name"> — {selected.displayName}</span>
-          <span className="app-patient-search__selected-placeholder">. Opening charts and visits here is not available in this preview.</span>
-        </div>
-      ) : null}
-
       {showDropdown ? (
         <div id="app-patient-search-listbox" className="app-patient-search__dropdown" role="listbox" aria-label="Patient search results">
           {searching ? (
@@ -268,7 +272,7 @@ export function PatientSearchBar({ bridgePhase, bridgeBaseUrl, fetchImpl }: Pati
             <ul className="app-patient-search__hits">
               {results.map((hit) => {
                 const secondary = formatHitSecondary(hit);
-                const isSelected = selected?.patientId === hit.patientId;
+                const isSelected = selectedPatientId !== null && selectedPatientId === hit.patientId;
                 return (
                   <li key={hit.patientId} className="app-patient-search__hit-wrap">
                     <button
@@ -276,7 +280,7 @@ export function PatientSearchBar({ bridgePhase, bridgeBaseUrl, fetchImpl }: Pati
                       role="option"
                       aria-selected={isSelected}
                       className={`app-patient-search__hit ui-focusable${isSelected ? " app-patient-search__hit--selected" : ""}`}
-                      onClick={() => setSelected(hit)}
+                      onClick={() => onPatientRecordSelect?.(hit)}
                     >
                       <span className="app-patient-search__hit-name">{hit.displayName}</span>
                       {secondary ? <span className="app-patient-search__hit-meta">{secondary}</span> : null}
