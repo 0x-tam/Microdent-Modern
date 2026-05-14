@@ -1,10 +1,13 @@
 import { createBridgeClient } from "@microdent/bridge-client";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Badge, Button, Card, CardBody, CardHeader, EmptyState, ReadOnlyBanner } from "@microdent/ui";
-import { probeBridgeHealth, describeBridgeHealthProbeError } from "./bridge-health.js";
+import { probeBridgeHealth, describeBridgeHealthProbeError, type BridgeHealthPhase } from "./bridge-health.js";
+
+export type { BridgeHealthPhase } from "./bridge-health.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
 import { FixtureConnectionPanel } from "./FixtureConnectionPanel.js";
 import { LegacyCatalogPanel } from "./LegacyCatalogPanel.js";
+import { PatientSearchBar } from "./PatientSearchBar.js";
 
 export const APP_NAV_MODULES = [
   { id: "today", label: "Today" },
@@ -18,8 +21,6 @@ export const APP_NAV_MODULES = [
 ] as const;
 
 export type AppNavModuleId = (typeof APP_NAV_MODULES)[number]["id"];
-
-export type BridgeHealthPhase = "checking" | "connected" | "offline";
 
 export type AppShellProps = {
   /** Shown in the top bar; use a clinic name in production. */
@@ -237,7 +238,7 @@ function DashboardHome({
               <Button type="button" variant="primary" className="ui-focusable app-next-patient__btn" onClick={() => onOpenModule("patients")}>
                 Open Patients
               </Button>
-              <p className="app-next-patient__hint">Search by name will be added here in a later update.</p>
+              <p className="app-next-patient__hint">Use Find a patient in the top bar when the clinic service is connected.</p>
             </CardBody>
           </Card>
 
@@ -413,21 +414,7 @@ export function AppShell({
         </div>
 
         <div className="app-topbar__search" role="search">
-          <label className="app-sr-only" htmlFor="app-patient-search-teaser">
-            Find a patient
-          </label>
-          <input
-            id="app-patient-search-teaser"
-            className="app-topbar-search__input ui-focusable"
-            type="search"
-            disabled
-            autoComplete="off"
-            placeholder="Find a patient by name or chart number"
-            aria-describedby="app-search-teaser-hint"
-          />
-          <p id="app-search-teaser-hint" className="app-sr-only">
-            Patient search is not active on this screen yet.
-          </p>
+          <PatientSearchBar bridgePhase={bridgePhase} bridgeBaseUrl={bridgeBaseUrl} />
         </div>
 
         <div className="app-topbar__status-wrap">

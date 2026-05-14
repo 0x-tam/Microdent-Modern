@@ -1,6 +1,9 @@
 import type { BridgeClient } from "@microdent/bridge-client";
 import { BridgeClientError } from "@microdent/bridge-client";
 
+/** Top-bar bridge probe lifecycle (includes the initial in-flight check). */
+export type BridgeHealthPhase = "checking" | "connected" | "offline";
+
 export type BridgeHealthStatus = "connected" | "offline";
 
 export type BridgeHealthProbe = { status: BridgeHealthStatus; error?: unknown };
