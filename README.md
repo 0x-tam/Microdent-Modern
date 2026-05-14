@@ -29,11 +29,28 @@ The **`@microdent/app`** package exports **`AppShell`** (top bar with optional *
 
 ### Browser preview (`apps/web`)
 
-Run the shell in a local Vite dev server (loopback only; optional **`GET /health`** to the local bridge — no patient data):
+**Bridge URL:** tracked example at [`apps/web/.env.local.example`](apps/web/.env.local.example). Local file **`apps/web/.env.local`** (gitignored) should set `VITE_BRIDGE_BASE_URL=http://127.0.0.1:17890`. If it is missing after clone, run `test -f apps/web/.env.local || cp apps/web/.env.local.example apps/web/.env.local` from the repo root (does not overwrite an existing file).
 
-```bash
-pnpm preview:web
-```
+**Run the shell in a local Vite dev server** (loopback only; **`GET /health`** to the local bridge — no patient data):
+
+1. **Terminal A — start the bridge:**
+
+   ```bash
+   pnpm install
+   pnpm --filter @microdent/contracts run build
+   pnpm --filter @microdent/bridge run build
+   pnpm --filter @microdent/bridge run start
+   ```
+
+2. **Terminal B — web preview:**
+
+   ```bash
+   pnpm preview:web
+   ```
+
+3. Open **http://127.0.0.1:5173**. Confirm the bridge with **http://127.0.0.1:17890/health** (JSON `ok`). The top bar should show **Connected** when health succeeds and the preview URL matches the bridge CORS allowlist (`127.0.0.1:5173` / `localhost:5173`).
+
+**Troubleshooting:** If the UI is **Offline** but you expect the bridge up, open **`/health`** in the browser first. After changing **`apps/web/.env.local`**, restart **`pnpm preview:web`** so Vite picks up env changes.
 
 Or: `pnpm --filter @microdent/web run dev`. Details: [docs/phase-1a-web-preview.md](docs/phase-1a-web-preview.md) and [apps/web/README.md](apps/web/README.md).
 
@@ -86,7 +103,7 @@ Only the synthetic registry entry **`fixture_tiny`** is available. Details and p
 
 ## Typed bridge client (Band A4)
 
-The **`@microdent/bridge-client`** package wraps the HTTP API with Zod-validated responses. See [docs/phase-1a-bridge-client.md](docs/phase-1a-bridge-client.md). The **`apps/web`** preview uses **`getHealth()`** only; see [docs/phase-1a-bridge-health-ui.md](docs/phase-1a-bridge-health-ui.md) to run the bridge and preview together.
+The **`@microdent/bridge-client`** package wraps the HTTP API with Zod-validated responses. See [docs/phase-1a-bridge-client.md](docs/phase-1a-bridge-client.md). The **`apps/web`** preview uses **`getHealth()`** for the status bar and optional **`/v1/*`** calls for the synthetic fixture only; see [docs/phase-1a-bridge-health-ui.md](docs/phase-1a-bridge-health-ui.md) and [docs/phase-1a-fixture-ui.md](docs/phase-1a-fixture-ui.md). Set **`VITE_BRIDGE_BASE_URL`** via **`apps/web/.env.local`** (see **`apps/web/.env.local.example`**).
 
 ## UI primitives (Band A5)
 

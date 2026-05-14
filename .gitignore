@@ -9,6 +9,8 @@ dist/
 *.log
 .env
 .env.*
+# Tracked template for web preview bridge URL (see apps/web/README.md)
+!apps/web/.env.local.example
 
 # OS / editor
 .DS_Store
