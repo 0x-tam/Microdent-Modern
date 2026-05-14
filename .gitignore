@@ -16,5 +16,49 @@ dist/
 .DS_Store
 Thumbs.db
 
-# Docs and project files are tracked; legacy DATA in repo (if present) stays as-is per repo history.
-# Add local secrets or large artifacts below as needed.
+# -----------------------------------------------------------------------------
+# Legacy Microdent / FoxPro — do NOT commit real DATA or binaries
+# -----------------------------------------------------------------------------
+# Real clinic DATA, legacy install trees, and FoxPro/VB runtime files must never
+# be committed to this repository. Use DATA_ROOT (or equivalent) pointing at a
+# path outside git for read-only local testing against a copied DATA folder.
+#
+# The only DBF that belongs in git is the synthetic bridge test fixture below.
+
+# If legacy folders are ever linked or copied under the repo root, keep them out of git:
+/Microdent-Legacy/
+/Microdent-Legacy-Copy/
+/DATA/
+/DATA old/
+/DATA ORIG/
+
+# Real legacy / FoxPro-related extensions (case variants for cross-platform clones)
+*.dbf
+*.DBF
+*.fpt
+*.FPT
+*.cdx
+*.CDX
+*.dbc
+*.DBC
+*.dct
+*.DCT
+*.dcx
+*.DCX
+*.exe
+*.EXE
+*.dll
+*.DLL
+*.ocx
+*.OCX
+*.vbx
+*.VBX
+*.rpt
+*.RPT
+*.frx
+*.FRX
+*.frt
+*.FRT
+
+# Synthetic fixture used by bridge tests — must remain tracked
+!services/bridge/fixtures/sandbox/FAKE_TINY.dbf
