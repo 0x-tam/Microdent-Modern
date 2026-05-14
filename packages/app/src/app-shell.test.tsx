@@ -12,6 +12,12 @@ describe("AppShell", () => {
     expect(html).toContain("Offline");
   });
 
+  it("includes the synthetic fixture data connection test on Today", () => {
+    const html = renderToStaticMarkup(<AppShell />);
+    expect(html).toContain("Data connection test");
+    expect(html).toContain("Synthetic fixture only");
+  });
+
   it("shows offline when bridge URL is not configured", () => {
     const html = renderToStaticMarkup(<AppShell />);
     expect(html).toContain("Offline");

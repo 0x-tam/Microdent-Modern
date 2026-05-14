@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { Badge, Button, Card, CardBody, CardHeader, EmptyState, ReadOnlyBanner } from "@microdent/ui";
 import { probeBridgeHealth } from "./bridge-health.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
+import { FixtureConnectionPanel } from "./FixtureConnectionPanel.js";
 
 export const APP_NAV_MODULES = [
   { id: "today", label: "Today" },
@@ -135,7 +136,15 @@ function ModuleHome({
   );
 }
 
-function DashboardHome({ onOpenModule }: { onOpenModule: (id: AppNavModuleId) => void }) {
+function DashboardHome({
+  onOpenModule,
+  bridgeBaseUrl,
+  bridgePhase,
+}: {
+  onOpenModule: (id: AppNavModuleId) => void;
+  bridgeBaseUrl?: string;
+  bridgePhase: BridgeHealthPhase;
+}) {
   return (
     <div className="app-dashboard">
       <p className="app-dashboard__kicker">
@@ -281,6 +290,8 @@ function DashboardHome({ onOpenModule }: { onOpenModule: (id: AppNavModuleId) =>
               </ul>
             </CardBody>
           </Card>
+
+          <FixtureConnectionPanel bridgeBaseUrl={bridgeBaseUrl} bridgePhase={bridgePhase} />
         </aside>
       </div>
     </div>
@@ -445,7 +456,7 @@ export function AppShell({
 
             <div className="app-main__content">
               {active === "today" ? (
-                <DashboardHome onOpenModule={setActive} />
+                <DashboardHome onOpenModule={setActive} bridgeBaseUrl={bridgeBaseUrl} bridgePhase={bridgePhase} />
               ) : (
                 <ModuleHome moduleId={active} onOpenModule={setActive} onBackToday={() => setActive("today")} />
               )}
