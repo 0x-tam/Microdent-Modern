@@ -38,6 +38,7 @@ export {
   ScheduleAppointmentPatientSummarySchema,
   ScheduleAppointmentsResponseSchema,
   ScheduleAppointmentsQuerySchema,
+  PatientAppointmentsQuerySchema,
   type ScheduleRoomActiveDays,
   type ScheduleRoomItem,
   type ScheduleRoomsResponse,
@@ -45,4 +46,5 @@ export {
   type ScheduleAppointmentPatientSummary,
   type ScheduleAppointmentsResponse,
   type ScheduleAppointmentsQuery,
+  type PatientAppointmentsQuery,
 } from "./schedule.js";

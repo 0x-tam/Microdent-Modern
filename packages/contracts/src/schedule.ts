@@ -169,3 +169,30 @@ export const ScheduleAppointmentsQuerySchema = z
   });
 
 export type ScheduleAppointmentsQuery = z.infer<typeof ScheduleAppointmentsQuerySchema>;
+
+const MAX_PATIENT_APPOINTMENTS_INCLUSIVE_DAY_SPAN = 365;
+
+/** Query for `GET /v1/patients/:patientId/appointments` (wide read-only history; max 365 days inclusive). */
+export const PatientAppointmentsQuerySchema = z
+  .object({
+    from: isoDate,
+    to: isoDate,
+  })
+  .superRefine((q, ctx) => {
+    const df = parseUtcDateOnly(q.from).getTime();
+    const dt = parseUtcDateOnly(q.to).getTime();
+    if (df > dt) {
+      ctx.addIssue({ code: "custom", message: "from must be on or before to", path: ["from"] });
+      return;
+    }
+    const span = inclusiveDaySpan(q.from, q.to);
+    if (span > MAX_PATIENT_APPOINTMENTS_INCLUSIVE_DAY_SPAN) {
+      ctx.addIssue({
+        code: "custom",
+        message: `date range must be at most ${MAX_PATIENT_APPOINTMENTS_INCLUSIVE_DAY_SPAN} calendar days inclusive`,
+        path: ["to"],
+      });
+    }
+  });
+
+export type PatientAppointmentsQuery = z.infer<typeof PatientAppointmentsQuerySchema>;

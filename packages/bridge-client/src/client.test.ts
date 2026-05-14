@@ -172,6 +172,25 @@ describe("BridgeClient", () => {
     );
   });
 
+  it("getPatientAppointments: builds path and query; rejects invalid id or range locally", async () => {
+    const body = { appointments: [] };
+    const fetch = vi.fn().mockResolvedValue(jsonResponse(body));
+    const client = createBridgeClient({ baseUrl, fetch });
+    await expect(
+      client.getPatientAppointments("50001", { from: "2026-05-20", to: "2026-05-21" }),
+    ).resolves.toEqual(body);
+    expect(fetch).toHaveBeenCalledWith(
+      `${baseUrl}/v1/patients/50001/appointments?from=2026-05-20&to=2026-05-21`,
+      expect.anything(),
+    );
+    await expect(
+      client.getPatientAppointments("01", { from: "2026-05-20", to: "2026-05-21" }),
+    ).rejects.toMatchObject({ kind: "invalid_argument" });
+    await expect(
+      client.getPatientAppointments("1", { from: "2025-01-01", to: "2026-01-01" }),
+    ).rejects.toMatchObject({ kind: "invalid_argument" });
+  });
+
   it("getTableSchema: success", async () => {
     const body = {
       tableId: "fixture_tiny",

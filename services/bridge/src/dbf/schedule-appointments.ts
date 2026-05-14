@@ -104,6 +104,8 @@ export async function readScheduleAppointments(
   fromIso: string,
   toIso: string,
   roomFilter?: number,
+  /** When set, only rows whose normalized `PAT_ID` equals this string (same form as profile `patientId`). */
+  patientIdFilter?: string,
 ): Promise<ScheduleAppointmentsOutcome> {
   let abs: string;
   try {
@@ -135,6 +137,7 @@ export async function readScheduleAppointments(
       if (dateStr < fromIso || dateStr > toIso) continue;
       const room = Math.trunc(num(rec, "ROOM"));
       if (roomFilter !== undefined && room !== roomFilter) continue;
+      if (patientIdFilter !== undefined && strId(rec, "PAT_ID") !== patientIdFilter) continue;
       appointments.push(rowToAppointment(rec));
     }
   } catch {

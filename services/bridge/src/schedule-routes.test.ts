@@ -6,6 +6,7 @@ import { once } from "node:events";
 import { describe, expect, it } from "vitest";
 import { DBFFile } from "dbffile";
 import {
+  PatientAppointmentsQuerySchema,
   ScheduleAppointmentsResponseSchema,
   ScheduleRoomsResponseSchema,
 } from "@microdent/contracts";
@@ -549,6 +550,192 @@ describe("GET /v1/schedule/appointments", () => {
       expect(a.status).toBe(503);
       const b = await fetch(`http://127.0.0.1:${port}/v1/schedule/rooms`);
       expect(b.status).toBe(503);
+      const c = await fetch(
+        `http://127.0.0.1:${port}/v1/patients/1/appointments?from=2026-01-01&to=2026-01-02`,
+      );
+      expect(c.status).toBe(503);
     });
+  });
+});
+
+describe("GET /v1/patients/:patientId/appointments", () => {
+  it("returns only appointments whose patId matches the path patient id", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "bridge-patient-appt-filter-"));
+    try {
+      await writeScheduleFixtures(tmp);
+      const dataRoot = parseDataRootFromValue(tmp);
+      if (!dataRoot.configured) throw new Error("data root");
+      const app = createBridgeApp("v-test", {
+        bridgeConfig: { listen: { host: "127.0.0.1", port: 0 }, dataRoot },
+      });
+      await withServer(app, async (port) => {
+        const res = await fetch(
+          `http://127.0.0.1:${port}/v1/patients/50001/appointments?from=2026-05-20&to=2026-05-21`,
+        );
+        expect(res.status).toBe(200);
+        const json: unknown = await res.json();
+        const parsed = ScheduleAppointmentsResponseSchema.safeParse(json);
+        expect(parsed.success).toBe(true);
+        if (!parsed.success) return;
+        expect(parsed.data.appointments.map((a) => a.id).sort()).toEqual(["1001"]);
+        expect(parsed.data.appointments.every((a) => a.patId === "50001")).toBe(true);
+      });
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("returns empty appointments when pat id matches no rows", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "bridge-patient-appt-empty-"));
+    try {
+      await writeScheduleFixtures(tmp);
+      const dataRoot = parseDataRootFromValue(tmp);
+      if (!dataRoot.configured) throw new Error("data root");
+      const app = createBridgeApp("v-test", {
+        bridgeConfig: { listen: { host: "127.0.0.1", port: 0 }, dataRoot },
+      });
+      await withServer(app, async (port) => {
+        const res = await fetch(
+          `http://127.0.0.1:${port}/v1/patients/99999/appointments?from=2026-05-20&to=2026-05-21`,
+        );
+        expect(res.status).toBe(200);
+        const json: unknown = await res.json();
+        const parsed = ScheduleAppointmentsResponseSchema.safeParse(json);
+        expect(parsed.success).toBe(true);
+        if (!parsed.success) return;
+        expect(parsed.data.appointments).toEqual([]);
+      });
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("returns 400 for invalid patient id", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "bridge-patient-appt-badid-"));
+    try {
+      await writeScheduleFixtures(tmp);
+      const dataRoot = parseDataRootFromValue(tmp);
+      if (!dataRoot.configured) throw new Error("data root");
+      const app = createBridgeApp("v-test", {
+        bridgeConfig: { listen: { host: "127.0.0.1", port: 0 }, dataRoot },
+      });
+      await withServer(app, async (port) => {
+        const base = `http://127.0.0.1:${port}/v1/patients`;
+        const r1 = await fetch(`${base}/0/appointments?from=2026-05-20&to=2026-05-21`);
+        expect(r1.status).toBe(400);
+        const r2 = await fetch(`${base}/0123/appointments?from=2026-05-20&to=2026-05-21`);
+        expect(r2.status).toBe(400);
+        const j = (await r1.json()) as { error?: { code?: string } };
+        expect(j.error?.code).toBe("INVALID_PATIENT_ID");
+      });
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("does not return PAT_NAME, TELEPHONE, COMMENT body, or disallowed keys", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "bridge-patient-appt-safe-"));
+    try {
+      await writeScheduleFixtures(tmp);
+      const dataRoot = parseDataRootFromValue(tmp);
+      if (!dataRoot.configured) throw new Error("data root");
+      const app = createBridgeApp("v-test", {
+        bridgeConfig: { listen: { host: "127.0.0.1", port: 0 }, dataRoot },
+      });
+      await withServer(app, async (port) => {
+        const res = await fetch(
+          `http://127.0.0.1:${port}/v1/patients/50002/appointments?from=2026-05-20&to=2026-05-21`,
+        );
+        expect(res.status).toBe(200);
+        const text = await res.text();
+        expect(text).not.toContain("SYNTHETIC_NAME_TOKEN_YY");
+        expect(text).not.toContain("SYNTHETIC_PHONE_TOKEN_ZZ");
+        expect(text).not.toContain("SYNTHETIC_COMMENT_TOKEN_XX");
+        const json: unknown = JSON.parse(text);
+        const parsed = ScheduleAppointmentsResponseSchema.safeParse(json);
+        expect(parsed.success).toBe(true);
+        if (!parsed.success) return;
+        const allowedTop = new Set([
+          "id",
+          "date",
+          "time",
+          "durationSlots",
+          "periodMinutes",
+          "room",
+          "status",
+          "docId",
+          "patId",
+          "patient",
+          "procClass",
+          "vacId",
+          "recall",
+          "unreason",
+          "missed",
+          "hasComment",
+        ]);
+        for (const a of parsed.data.appointments) {
+          for (const k of Object.keys(a)) {
+            expect(allowedTop.has(k)).toBe(true);
+          }
+        }
+      });
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("allows up to 365 inclusive calendar days and rejects 366", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "bridge-patient-appt-span-"));
+    try {
+      await writeScheduleFixtures(tmp);
+      const dataRoot = parseDataRootFromValue(tmp);
+      if (!dataRoot.configured) throw new Error("data root");
+      const app = createBridgeApp("v-test", {
+        bridgeConfig: { listen: { host: "127.0.0.1", port: 0 }, dataRoot },
+      });
+      await withServer(app, async (port) => {
+        const ok = await fetch(
+          `http://127.0.0.1:${port}/v1/patients/50001/appointments?from=2026-01-01&to=2026-12-31`,
+        );
+        expect(ok.status).toBe(200);
+        const bad = await fetch(
+          `http://127.0.0.1:${port}/v1/patients/50001/appointments?from=2025-01-01&to=2026-01-01`,
+        );
+        expect(bad.status).toBe(400);
+        const j = (await bad.json()) as { error?: { code?: string } };
+        expect(j.error?.code).toBe("INVALID_PATIENT_APPOINTMENTS_QUERY");
+      });
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("schema: 365-day window is valid and 366-day window fails", () => {
+    expect(
+      PatientAppointmentsQuerySchema.safeParse({ from: "2026-01-01", to: "2026-12-31" }).success,
+    ).toBe(true);
+    expect(
+      PatientAppointmentsQuerySchema.safeParse({ from: "2025-01-01", to: "2026-01-01" }).success,
+    ).toBe(false);
+  });
+
+  it("returns 400 when from or to is missing", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "bridge-patient-appt-missingq-"));
+    try {
+      await writeScheduleFixtures(tmp);
+      const dataRoot = parseDataRootFromValue(tmp);
+      if (!dataRoot.configured) throw new Error("data root");
+      const app = createBridgeApp("v-test", {
+        bridgeConfig: { listen: { host: "127.0.0.1", port: 0 }, dataRoot },
+      });
+      await withServer(app, async (port) => {
+        const r = await fetch(`http://127.0.0.1:${port}/v1/patients/1/appointments?from=2026-05-20`);
+        expect(r.status).toBe(400);
+        const j = (await r.json()) as { error?: { code?: string } };
+        expect(j.error?.code).toBe("INVALID_PATIENT_APPOINTMENTS_QUERY");
+      });
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
   });
 });

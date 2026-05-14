@@ -7,6 +7,7 @@ import {
   PatientProfileResponseSchema,
   PatientSearchQueryParamsSchema,
   PatientSearchResponseSchema,
+  PatientAppointmentsQuerySchema,
   ScheduleAppointmentsQuerySchema,
   ScheduleAppointmentsResponseSchema,
   ScheduleRoomsResponseSchema,
@@ -147,6 +148,47 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
 
     const body = outcome.profile;
     PatientProfileResponseSchema.parse(body);
+    res.json(body);
+  });
+
+  router.get("/patients/:patientId/appointments", async (req, res) => {
+    if (!requireConfiguredDataRoot(res, bridgeConfig)) return;
+    const dr = bridgeConfig.dataRoot;
+
+    const parsedParams = PatientProfilePathParamsSchema.safeParse({ patientId: req.params.patientId });
+    if (!parsedParams.success) {
+      sendError(res, 400, "INVALID_PATIENT_ID", "invalid patient id");
+      return;
+    }
+
+    const rawFrom = firstQueryString(req.query.from);
+    const rawTo = firstQueryString(req.query.to);
+    if (rawFrom === undefined || rawFrom === "" || rawTo === undefined || rawTo === "") {
+      sendError(res, 400, "INVALID_PATIENT_APPOINTMENTS_QUERY", "from and to are required (YYYY-MM-DD)");
+      return;
+    }
+
+    const parsed = PatientAppointmentsQuerySchema.safeParse({ from: rawFrom, to: rawTo });
+    if (!parsed.success) {
+      sendError(res, 400, "INVALID_PATIENT_APPOINTMENTS_QUERY", "invalid dates or range");
+      return;
+    }
+
+    const { from, to } = parsed.data;
+    const patientId = parsedParams.data.patientId;
+    const outcome = await readScheduleAppointments(dr, from, to, undefined, patientId);
+    if (outcome.kind === "missing_schedule") {
+      sendError(res, 404, "SCHEDULE_DBF_NOT_FOUND", "SCHEDULE.DBF not found under DATA_ROOT");
+      return;
+    }
+    if (outcome.kind === "read_error") {
+      sendError(res, 500, "PATIENT_APPOINTMENTS_ERROR", "failed to read appointments");
+      return;
+    }
+
+    const appointments = await mergePatientSummariesIntoScheduleAppointments(dr, outcome.appointments);
+    const body = { appointments };
+    ScheduleAppointmentsResponseSchema.parse(body);
     res.json(body);
   });
 

@@ -3,6 +3,7 @@ import {
   ApiErrorBodySchema,
   HealthResponseSchema,
   LegacyCatalogResponseSchema,
+  PatientAppointmentsQuerySchema,
   PatientProfilePathParamsSchema,
   PatientProfileResponseSchema,
   PatientSearchResponseSchema,
@@ -115,6 +116,34 @@ export class BridgeClient {
     }
     return this.requestJson(
       `/v1/schedule/appointments?${q.toString()}`,
+      ScheduleAppointmentsResponseSchema as ZodType<ScheduleAppointmentsResponse>,
+    );
+  }
+
+  /**
+   * Read-only appointment history for one patient from `SCHEDULE.DBF` (same safe DTO as schedule view).
+   * `patientId` matches profile/search ids; `from`/`to` may span up to 365 calendar days inclusive.
+   */
+  async getPatientAppointments(
+    patientId: string,
+    params: { from: string; to: string },
+  ): Promise<ScheduleAppointmentsResponse> {
+    const parsedId = PatientProfilePathParamsSchema.safeParse({ patientId });
+    if (!parsedId.success) {
+      throw new BridgeClientError("Invalid patient id", {
+        kind: "invalid_argument",
+      });
+    }
+    const parsedRange = PatientAppointmentsQuerySchema.safeParse(params);
+    if (!parsedRange.success) {
+      throw new BridgeClientError("Invalid appointment date range", {
+        kind: "invalid_argument",
+      });
+    }
+    const id = parsedId.data.patientId;
+    const q = new URLSearchParams({ from: parsedRange.data.from, to: parsedRange.data.to });
+    return this.requestJson(
+      `/v1/patients/${encodeURIComponent(id)}/appointments?${q.toString()}`,
       ScheduleAppointmentsResponseSchema as ZodType<ScheduleAppointmentsResponse>,
     );
   }
