@@ -392,13 +392,6 @@
   flex-shrink: 0;
 }
 
-.app-shell__privacy-note {
-  margin: var(--ui-space-2) 0 var(--ui-space-3);
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--ui-text-secondary);
-}
-
 /* ----- Body ----- */
 .app-shell__body {
   display: flex;
@@ -1276,4 +1269,82 @@
   background: var(--ui-bg-surface);
   border: 1px solid var(--ui-border-subtle);
   color: var(--ui-text-secondary);
+}
+
+/* ----- Today dashboard (live schedule strip) ----- */
+.app-dashboard-sched__count {
+  margin: var(--ui-space-1) 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ui-text-secondary);
+}
+
+.app-dashboard-sched__privacy {
+  margin: 0 0 var(--ui-space-3);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+.app-dashboard-sched__offline,
+.app-dashboard-sched__waiting,
+.app-dashboard-sched__loading,
+.app-dashboard-sched__empty {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ui-text-secondary);
+}
+
+.app-dashboard-sched__error {
+  padding: var(--ui-space-3);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-surface);
+}
+
+.app-dashboard-sched__error p {
+  margin: 0 0 var(--ui-space-2);
+}
+
+.app-appt-list__extras {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-2);
+  margin-top: var(--ui-space-1);
+}
+
+.app-appt-list__pill {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--ui-radius-sm);
+  border: 1px dashed var(--ui-border-subtle);
+  color: var(--ui-text-secondary);
+}
+
+.app-appt-list__patient--muted {
+  color: var(--ui-text-secondary);
+  font-style: italic;
+}
+
+.app-next-patient__patid {
+  margin: var(--ui-space-1) 0 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ui-text-primary);
+}
+
+.app-next-patient__patid--muted {
+  font-weight: 500;
+  color: var(--ui-text-secondary);
+  font-style: italic;
+}
+
+.app-next-patient__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  margin: var(--ui-space-2) 0 var(--ui-space-3);
 }
