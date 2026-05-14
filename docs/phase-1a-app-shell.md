@@ -4,12 +4,13 @@
 
 - **`packages/app`**: exportable **`AppShell`** and **`AppErrorBoundary`** for a future host (`apps/web` / desktop) — **no `apps/web` package** in this band to avoid extra bundler surface; hosts only need to import CSS and render the shell.
 - **Layout** (see [design-system.md](design-system.md) §13 for target dimensions):
-  - **Top bar** (`role="banner"`, 56px): product name **Microdent**, configurable **`clinicLabel`**, **bridge-offline pill** (`role="status"`, visible dot + text — not color-only), and a **neutral `Badge`** (“Sample UI”) with explicit `semanticLabel`.
+  - **Top bar** (`role="banner"`): product name **Microdent**, configurable **`clinicLabel`**, **bridge status pill** (`role="status"`, two-line human copy — not color-only), optional **search teaser** (`role="note"`, non-interactive), and a **`Preview UI`** `Badge` with explicit `semanticLabel`.
   - **Global `ReadOnlyBanner`** under the bar (read-only phase messaging).
-  - **Left rail** (~260px): labelled **“Modules”** + `<nav>` with `<ul>` of **buttons** using **`aria-current="true"`** for the active item and **`aria-controls`** pointing at the main region.
-  - **Main** (`role="main"`, `id="app-main-region"`): page heading (`<h2>`) for the active module, **“Local bridge”** `Card` (bridge-down / not-connected copy — **no HTTP calls**), and **`AppErrorBoundary`** around the per-module **placeholder** (`EmptyState` only).
+  - **Left rail** (~272px): **grouped** navigation (**Today**, **Patients & clinical**, **Plans & finance**, **Office**) with glyph + label **buttons**, **`aria-current="true"`** on the active item, **`aria-controls`** → main region.
+  - **Main** (`role="main"`, `id="app-main-region"`): page **`h2`** + short lede; **Dashboard** shows sample stat tiles, “next on the floor”, bridge explainer card, and a **module tile grid**; other modules show a **Module home** summary + bullets + `EmptyState` preview — still **no HTTP calls** from the shell.
 - **Navigation modules** (match [ui-redesign-plan.md](ui-redesign-plan.md) rail list): Dashboard, Patients, Schedule, Dental Chart, Treatment Plans, Payments, Reports, Settings — selection is **`useState`**, **no React Router**.
 - **Styling**: **`app-shell.css`** uses only **`var(--ui-*)`** tokens; consumers must load UI tokens + component CSS first (documented in [packages/app/README.md](../packages/app/README.md)).
+- **Visual polish (2026):** see [phase-1a-visual-polish.md](phase-1a-visual-polish.md) for tokens, banner/card tweaks, and dashboard/module UX.
 
 ## What was intentionally not built
 

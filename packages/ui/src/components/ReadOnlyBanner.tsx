@@ -16,7 +16,7 @@ export function ReadOnlyBanner({ label = "Read-only", children, className, ...re
       {...rest}
     >
       <span className="ui-readonly-banner__icon" aria-hidden>
-        ℹ
+        i
       </span>
       <div className="ui-readonly-banner__body">
         <strong>{label}</strong>

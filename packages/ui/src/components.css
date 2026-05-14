@@ -93,6 +93,14 @@
   font-family: var(--ui-font-sans);
 }
 
+/** Optional: interactive / highlighted card shell (host adds hover rules). */
+.ui-card--accent {
+  border-color: rgba(27, 111, 122, 0.22);
+  box-shadow:
+    var(--ui-shadow-card),
+    0 0 0 1px rgba(27, 111, 122, 0.06);
+}
+
 .ui-card__header {
   padding: var(--ui-space-4);
   border-bottom: 1px solid var(--ui-border-subtle);
@@ -299,6 +307,15 @@
   color: var(--ui-text-primary);
 }
 
+/** Left-aligned empty / onboarding style for module previews. */
+.ui-empty--start {
+  text-align: left;
+  padding: var(--ui-space-6);
+  border-radius: var(--ui-radius-md);
+  background: linear-gradient(120deg, var(--ui-primary-50) 0%, var(--ui-bg-surface) 55%);
+  border: 1px solid var(--ui-border-subtle);
+}
+
 .ui-empty__title {
   margin: 0 0 var(--ui-space-2);
   font-size: 16px;
@@ -320,15 +337,27 @@
   flex-wrap: wrap;
 }
 
+.ui-empty--start .ui-empty__actions {
+  justify-content: flex-start;
+}
+
 /* ----- Read-only banner ----- */
 .ui-readonly-banner {
   display: flex;
   align-items: flex-start;
   gap: var(--ui-space-3);
   padding: var(--ui-space-3) var(--ui-space-4);
-  border-radius: var(--ui-radius-sm);
-  border: 1px solid rgba(37, 99, 235, 0.25);
-  background: var(--ui-info-50);
+  padding-left: calc(var(--ui-space-4) - 3px);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-border-subtle);
+  border-left: 3px solid var(--ui-primary-600);
+  background: linear-gradient(
+    100deg,
+    var(--ui-primary-50) 0%,
+    var(--ui-bg-surface) 55%,
+    var(--ui-info-50) 100%
+  );
+  box-shadow: var(--ui-shadow-card);
   color: var(--ui-text-primary);
   font-family: var(--ui-font-sans);
   font-size: 14px;
@@ -337,13 +366,24 @@
 
 .ui-readonly-banner__icon {
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-top: 1px;
+  border-radius: var(--ui-radius-sm);
   font-weight: 700;
-  color: var(--ui-info-600);
-  line-height: 1.2;
+  font-size: 13px;
+  color: var(--ui-text-inverse);
+  background: var(--ui-primary-600);
+  line-height: 1;
 }
 
-.ui-readonly-banner__body strong {
-  color: var(--ui-info-600);
+.ui-readonly-banner__body em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--ui-primary-700);
 }
 
 /* ----- Loading ----- */

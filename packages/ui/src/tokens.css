@@ -5,8 +5,12 @@
 :root {
   /* Surfaces & text */
   --ui-bg-canvas: #f6f7f9;
+  /** Slightly cooler wash for layered gradients behind the shell (still neutral). */
+  --ui-bg-canvas-wash: #edf4f5;
   --ui-bg-surface: #ffffff;
   --ui-bg-subtle: #eef1f4;
+  /** Sidebar / rail tint — distinct from flat gray admin templates. */
+  --ui-bg-rail: #f5fafb;
   --ui-border-subtle: #e2e6eb;
   --ui-border-strong: #c9d0d8;
   --ui-text-primary: #1a1f26;
@@ -18,6 +22,21 @@
   --ui-primary-600: #1b6f7a;
   --ui-primary-500: #248b98;
   --ui-primary-50: #e8f4f5;
+  /** Deep brand step for small accents (nav bar, kicker text). */
+  --ui-primary-700: #145a63;
+
+  /** Third stop for shell canvas gradient (cool neutral). */
+  --ui-bg-shell-fade: #f1f4f8;
+
+  /** Soft shell backdrop — teal-forward, not loud (design-system §1). */
+  --ui-gradient-shell: linear-gradient(
+    152deg,
+    var(--ui-bg-canvas-wash) 0%,
+    var(--ui-bg-canvas) 45%,
+    var(--ui-bg-shell-fade) 100%
+  );
+  /** Hairline sheen on chrome (very low contrast). */
+  --ui-gradient-topbar: linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.55) 100%);
 
   /* Semantic */
   --ui-success-600: #2f7d4a;
@@ -31,6 +50,8 @@
 
   /* Elevation */
   --ui-shadow-card: 0 2px 12px rgba(26, 31, 38, 0.06);
+  /** Slightly deeper lift for interactive tiles on the canvas. */
+  --ui-shadow-card-hover: 0 6px 20px rgba(27, 111, 122, 0.1);
   --ui-shadow-modal: 0 4px 24px rgba(26, 31, 38, 0.08);
   --ui-overlay-scrim: rgba(26, 31, 38, 0.45);
 
@@ -67,11 +88,17 @@
 [data-theme="dark"] {
   color-scheme: dark;
   --ui-bg-canvas: #0f1419;
+  --ui-bg-canvas-wash: #121a20;
   --ui-bg-surface: #161c24;
   --ui-bg-subtle: #1e2630;
+  --ui-bg-rail: #141b22;
   --ui-border-subtle: #2a3441;
   --ui-border-strong: #3d4a5c;
   --ui-text-primary: #e8eaed;
   --ui-text-secondary: #b4bcc6;
   --ui-text-muted: #8a939e;
+  --ui-primary-700: #7ebcc5;
+  --ui-gradient-shell: linear-gradient(152deg, var(--ui-bg-canvas) 0%, var(--ui-bg-canvas-wash) 100%);
+  --ui-gradient-topbar: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 100%);
+  --ui-shadow-card-hover: 0 6px 20px rgba(0, 0, 0, 0.35);
 }
