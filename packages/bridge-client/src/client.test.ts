@@ -32,6 +32,25 @@ describe("BridgeClient", () => {
     expect(fetch).toHaveBeenCalledWith(`${baseUrl}/v1/meta/tables`, expect.anything());
   });
 
+  it("getLegacyCatalog: success", async () => {
+    const body = {
+      tables: [
+        {
+          tableId: "patient",
+          displayName: "Patients (master)",
+          fileName: "PATIENT.DBF",
+          present: false,
+          recordCount: null,
+          fieldCount: null,
+        },
+      ],
+    };
+    const fetch = vi.fn().mockResolvedValue(jsonResponse(body));
+    const client = createBridgeClient({ baseUrl, fetch });
+    await expect(client.getLegacyCatalog()).resolves.toEqual(body);
+    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/v1/legacy/catalog`, expect.anything());
+  });
+
   it("getTableSchema: success", async () => {
     const body = {
       tableId: "fixture_tiny",

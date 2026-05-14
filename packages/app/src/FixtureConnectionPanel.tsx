@@ -10,9 +10,11 @@ export type FixtureConnectionPanelProps = {
   bridgeBaseUrl?: string;
   /** Mirrors top-bar bridge health: only auto-runs the fixture probe when `connected`. */
   bridgePhase: "checking" | "connected" | "offline";
+  /** Optional extra class on the root card (e.g. de-emphasize beside the legacy catalog). */
+  className?: string;
 };
 
-export function FixtureConnectionPanel({ bridgeBaseUrl, bridgePhase }: FixtureConnectionPanelProps) {
+export function FixtureConnectionPanel({ bridgeBaseUrl, bridgePhase, className }: FixtureConnectionPanelProps) {
   const [panelPhase, setPanelPhase] = useState<PanelPhase>("idle");
   const [result, setResult] = useState<Awaited<ReturnType<typeof probeSyntheticFixtureConnection>> | null>(null);
 
@@ -55,9 +57,11 @@ export function FixtureConnectionPanel({ bridgeBaseUrl, bridgePhase }: FixtureCo
 
   const showWaitingForBridge = Boolean(base) && bridgePhase !== "connected" && result === null;
 
+  const cardClass = ["app-fixture-panel", className].filter(Boolean).join(" ");
+
   return (
     <AppErrorBoundary>
-      <Card className="app-fixture-panel">
+      <Card className={cardClass}>
         <CardHeader>
           <p className="ui-card__title app-card-title-lg">Data connection test</p>
           <p className="app-fixture-panel__subtitle">

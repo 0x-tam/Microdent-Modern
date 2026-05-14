@@ -1,6 +1,7 @@
 /**
- * Logical table registry (Band A3). Only the synthetic fixture is registered.
- * Real Microdent tables (PATIENT, SCHEDULE, etc.) are intentionally absent.
+ * Logical table registry for **row/schema** APIs (`GET /v1/tables/...`).
+ * Only the synthetic fixture is registered here so production-like tables are not exposed via row routes in this band.
+ * Legacy table **presence** is listed separately via `GET /v1/legacy/catalog` and `LEGACY_CATALOG_REGISTRY`.
  */
 export type TableRegistryEntry = {
   /** URL path segment id (lowercase snake_case). */

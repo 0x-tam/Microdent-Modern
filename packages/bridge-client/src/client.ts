@@ -2,10 +2,12 @@ import type { ZodType } from "zod";
 import {
   ApiErrorBodySchema,
   HealthResponseSchema,
+  LegacyCatalogResponseSchema,
   TableRowsResponseSchema,
   TablesListResponseSchema,
   TableSchemaResponseSchema,
   type HealthResponse,
+  type LegacyCatalogResponse,
   type TableRowsResponse,
   type TablesListResponse,
   type TableSchemaResponse,
@@ -54,6 +56,10 @@ export class BridgeClient {
 
   async getMetaTables(): Promise<TablesListResponse> {
     return this.requestJson("/v1/meta/tables", TablesListResponseSchema);
+  }
+
+  async getLegacyCatalog(): Promise<LegacyCatalogResponse> {
+    return this.requestJson("/v1/legacy/catalog", LegacyCatalogResponseSchema);
   }
 
   async getTableSchema(tableId: string): Promise<TableSchemaResponse> {

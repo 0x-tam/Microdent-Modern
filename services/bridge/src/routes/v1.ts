@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { Router, type Response } from "express";
 import {
   ApiErrorBodySchema,
+  LegacyCatalogResponseSchema,
   TableRowsResponseSchema,
   TablesListResponseSchema,
   TableSchemaResponseSchema,
@@ -10,6 +11,7 @@ import type { BridgeConfig } from "../config.js";
 import { openRegisteredDbf, parsePagination, readRegisteredTableRows } from "../dbf/read-table.js";
 import { resolveRegisteredDbfPath } from "../dbf/resolve-registered-dbf.js";
 import { findRegistryEntry, TABLE_ID_PATTERN, TABLE_REGISTRY } from "../dbf/table-registry.js";
+import { readLegacyCatalogRows } from "../dbf/read-legacy-catalog.js";
 
 function sendError(res: Response, status: number, code: string, message: string): void {
   const body = { error: { code, message } };
@@ -51,6 +53,19 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
     const body = { tables };
     TablesListResponseSchema.parse(body);
     res.json(body);
+  });
+
+  router.get("/legacy/catalog", async (_req, res) => {
+    if (!requireConfiguredDataRoot(res, bridgeConfig)) return;
+    const dr = bridgeConfig.dataRoot;
+    try {
+      const tables = await readLegacyCatalogRows(dr);
+      const body = { tables };
+      LegacyCatalogResponseSchema.parse(body);
+      res.json(body);
+    } catch {
+      sendError(res, 500, "LEGACY_CATALOG_ERROR", "failed to build legacy catalog");
+    }
   });
 
   router.get("/tables/:tableId/schema", async (req, res) => {

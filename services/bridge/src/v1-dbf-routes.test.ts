@@ -1,8 +1,12 @@
 import { createServer } from "node:http";
+import { copyFileSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { once } from "node:events";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  LegacyCatalogResponseSchema,
   TableRowsResponseSchema,
   TablesListResponseSchema,
   TableSchemaResponseSchema,
@@ -143,6 +147,69 @@ describe("GET /v1 DBF fixture routes", () => {
     await withServer(app, async (port) => {
       const res = await fetch(`http://127.0.0.1:${port}/v1/meta/tables`);
       expect(res.status).toBe(503);
+      const legacy = await fetch(`http://127.0.0.1:${port}/v1/legacy/catalog`);
+      expect(legacy.status).toBe(503);
+    });
+  });
+});
+
+describe("GET /v1/legacy/catalog", () => {
+  it("returns all registry entries with absent files in the fixture sandbox", async () => {
+    const app = createBridgeApp("v-test", { bridgeConfig: fixtureBridgeConfig() });
+    await withServer(app, async (port) => {
+      const res = await fetch(`http://127.0.0.1:${port}/v1/legacy/catalog`);
+      expect(res.status).toBe(200);
+      const json: unknown = await res.json();
+      const parsed = LegacyCatalogResponseSchema.safeParse(json);
+      expect(parsed.success).toBe(true);
+      if (!parsed.success) return;
+      expect(parsed.data.tables).toHaveLength(11);
+      expect(parsed.data.tables.every((t) => t.present === false)).toBe(true);
+      expect(parsed.data.tables.every((t) => t.recordCount === null && t.fieldCount === null)).toBe(true);
+    });
+  });
+
+  it("marks patient present with header counts when PATIENT.DBF is a readable copy of the synthetic DBF", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "bridge-legacy-catalog-"));
+    try {
+      const tiny = join(fixtureDataRoot(), "FAKE_TINY.dbf");
+      copyFileSync(tiny, join(tmp, "PATIENT.DBF"));
+      const dataRoot = parseDataRootFromValue(tmp);
+      if (!dataRoot.configured) {
+        throw new Error("expected temp DATA_ROOT to configure");
+      }
+      const app = createBridgeApp("v-test", {
+        bridgeConfig: { listen: { host: "127.0.0.1", port: 0 }, dataRoot },
+      });
+      await withServer(app, async (port) => {
+        const res = await fetch(`http://127.0.0.1:${port}/v1/legacy/catalog`);
+        expect(res.status).toBe(200);
+        const json: unknown = await res.json();
+        const parsed = LegacyCatalogResponseSchema.safeParse(json);
+        expect(parsed.success).toBe(true);
+        if (!parsed.success) return;
+        const patient = parsed.data.tables.find((t) => t.tableId === "patient");
+        expect(patient?.present).toBe(true);
+        expect(patient?.recordCount).toBe(3);
+        expect(patient?.fieldCount).toBe(2);
+        const schedule = parsed.data.tables.find((t) => t.tableId === "schedule");
+        expect(schedule?.present).toBe(false);
+      });
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("still lists the synthetic fixture via meta/tables when legacy files are absent", async () => {
+    const app = createBridgeApp("v-test", { bridgeConfig: fixtureBridgeConfig() });
+    await withServer(app, async (port) => {
+      const meta = await fetch(`http://127.0.0.1:${port}/v1/meta/tables`);
+      expect(meta.status).toBe(200);
+      const metaJson: unknown = await meta.json();
+      const metaParsed = TablesListResponseSchema.safeParse(metaJson);
+      expect(metaParsed.success).toBe(true);
+      if (!metaParsed.success) return;
+      expect(metaParsed.data.tables.some((t) => t.id === "fixture_tiny")).toBe(true);
     });
   });
 });

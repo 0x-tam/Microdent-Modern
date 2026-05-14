@@ -4,6 +4,7 @@ import { Badge, Button, Card, CardBody, CardHeader, EmptyState, ReadOnlyBanner }
 import { probeBridgeHealth, describeBridgeHealthProbeError } from "./bridge-health.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
 import { FixtureConnectionPanel } from "./FixtureConnectionPanel.js";
+import { LegacyCatalogPanel } from "./LegacyCatalogPanel.js";
 
 export const APP_NAV_MODULES = [
   { id: "today", label: "Today" },
@@ -296,7 +297,12 @@ function DashboardHome({
             </CardBody>
           </Card>
 
-          <FixtureConnectionPanel bridgeBaseUrl={bridgeBaseUrl} bridgePhase={bridgePhase} />
+          <LegacyCatalogPanel bridgeBaseUrl={bridgeBaseUrl} bridgePhase={bridgePhase} />
+          <FixtureConnectionPanel
+            bridgeBaseUrl={bridgeBaseUrl}
+            bridgePhase={bridgePhase}
+            className="app-fixture-panel--deemphasized"
+          />
         </aside>
       </div>
     </div>

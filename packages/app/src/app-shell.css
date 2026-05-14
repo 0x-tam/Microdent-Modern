@@ -512,11 +512,118 @@
   margin-bottom: 0;
 }
 
+/* ----- Legacy DATA catalog (metadata only; Today dashboard aside) ----- */
+.app-legacy-catalog-panel {
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-surface);
+  box-shadow: var(--ui-shadow-card);
+}
+
+.app-legacy-catalog-panel .ui-card__header {
+  padding-bottom: var(--ui-space-2);
+}
+
+.app-legacy-catalog-panel__subtitle {
+  margin: var(--ui-space-1) 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+.app-legacy-catalog-panel__code {
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  color: var(--ui-text-primary);
+}
+
+.app-legacy-catalog-panel__muted {
+  margin: 0 0 var(--ui-space-3);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ui-text-secondary);
+}
+
+.app-legacy-catalog-panel__actions {
+  margin-bottom: var(--ui-space-3);
+}
+
+.app-legacy-catalog-panel__error {
+  margin: 0 0 var(--ui-space-3);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ui-text-primary);
+}
+
+.app-legacy-catalog-panel__table-wrap {
+  overflow-x: auto;
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-subtle);
+}
+
+.app-legacy-catalog-panel__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.app-legacy-catalog-panel__table th,
+.app-legacy-catalog-panel__table td {
+  padding: var(--ui-space-2) var(--ui-space-3);
+  text-align: left;
+  border-bottom: 1px solid var(--ui-border-subtle);
+  vertical-align: top;
+}
+
+.app-legacy-catalog-panel__table th {
+  font-weight: 600;
+  color: var(--ui-text-secondary);
+  background: var(--ui-bg-surface);
+}
+
+.app-legacy-catalog-panel__table tr:last-child td {
+  border-bottom: none;
+}
+
+.app-legacy-catalog-panel__name {
+  display: block;
+  font-weight: 600;
+  color: var(--ui-text-primary);
+}
+
+.app-legacy-catalog-panel__id {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  color: var(--ui-text-muted);
+}
+
+.app-legacy-catalog-panel__file {
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  color: var(--ui-text-primary);
+}
+
+.app-legacy-catalog-panel__num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
 /* ----- Synthetic fixture dev panel (Today dashboard aside) ----- */
 .app-fixture-panel {
   border-style: dashed;
   border-color: var(--ui-border-subtle);
   background: var(--ui-bg-subtle);
+}
+
+.app-fixture-panel--deemphasized {
+  opacity: 0.88;
+}
+
+.app-fixture-panel--deemphasized .ui-card__title {
+  font-size: clamp(0.95rem, 0.88rem + 0.25vw, 1.05rem);
+  font-weight: 600;
 }
 
 .app-fixture-panel .ui-card__header {

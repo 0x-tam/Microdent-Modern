@@ -7,3 +7,9 @@ export {
   type TableSchemaResponse,
 } from "./table-schema.js";
 export { TableRowsResponseSchema, TableRowSchema, type TableRowsResponse } from "./table-rows.js";
+export {
+  LegacyCatalogResponseSchema,
+  LegacyCatalogTableItemSchema,
+  type LegacyCatalogResponse,
+  type LegacyCatalogTableItem,
+} from "./legacy-catalog.js";
