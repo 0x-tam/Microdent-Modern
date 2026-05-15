@@ -8,6 +8,7 @@ import {
   safePatientAppointmentsError,
   safePatientMedicalSummaryError,
   safePatientProfileError,
+  safePatientTreatmentsError,
 } from "./PatientProfilePanel.js";
 import { defaultPatientApptRange, inclusiveDayCount } from "./patient-appointments-range.js";
 
@@ -103,8 +104,49 @@ async function clickMedicalTab(container: HTMLElement): Promise<void> {
   });
 }
 
+async function clickTreatmentsTab(container: HTMLElement): Promise<void> {
+  const tab = container.querySelector("#patient-tab-treatments");
+  if (!(tab instanceof HTMLButtonElement)) {
+    throw new Error("Treatments tab button not found");
+  }
+  await act(async () => {
+    tab.click();
+  });
+}
+
 const PRIVACY_NOTE =
   "Problem description, allergy free text, and medical notes remain hidden until field mapping is reviewed." as const;
+
+const TREATMENTS_PRIVACY_NOTE =
+  "Procedure memos, per-line descriptions, fee columns, and raw OPERTBL rows are never exposed by this route." as const;
+
+const syntheticTreatment = {
+  treatmentId: "100",
+  patientId: "42",
+  date: "2024-06-01",
+  tooth: 14,
+  procedureCode: "SYN01",
+  procedureLabel: "Synthetic dictionary label",
+  doctorId: "3",
+  doctorLabel: "Synthetic Provider Three",
+  status: 2,
+  hasDescription: true,
+};
+
+function treatmentsFetchHandler(
+  body: unknown,
+): (input: RequestInfo | URL) => Promise<Response> {
+  return (input) => {
+    const u = String(input);
+    if (u.includes("/profile")) {
+      return Promise.resolve(jsonResponse(validProfile));
+    }
+    if (u.includes("/treatments")) {
+      return Promise.resolve(jsonResponse(body));
+    }
+    return Promise.reject(new Error(`unexpected ${u}`));
+  };
+}
 
 const nullConditions = {
   hospital: null,
@@ -174,6 +216,21 @@ describe("safePatientAppointmentsError", () => {
   it("maps invalid range to a neutral message", () => {
     const err = new BridgeClientError("n", { kind: "invalid_argument" });
     expect(safePatientAppointmentsError(err)).toMatch(/date range/i);
+  });
+});
+
+describe("safePatientTreatmentsError", () => {
+  it("maps OPERTBL_DBF_NOT_FOUND to admin copy", () => {
+    const err = new BridgeClientError("n", {
+      kind: "http",
+      status: 404,
+      apiCode: "OPERTBL_DBF_NOT_FOUND",
+    });
+    expect(safePatientTreatmentsError(err)).toMatch(/not available on this bridge/i);
+  });
+
+  it("maps unknown errors to a generic message", () => {
+    expect(safePatientTreatmentsError(new Error("secret"))).toMatch(/could not be loaded/i);
   });
 });
 
@@ -885,6 +942,245 @@ describe("PatientProfilePanel", () => {
     await flush();
     expect(container.textContent).not.toContain("secret leak");
     expect(container.textContent).toMatch(/medical summary could not be loaded|Try again/i);
+  });
+
+  it("exposes a Treatments tab that can be activated", async () => {
+    const fetchImpl = withReferenceDoctors((input) => {
+      const u = String(input);
+      if (u.includes("/profile")) {
+        return Promise.resolve(jsonResponse(validProfile));
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    const tab = container.querySelector("#patient-tab-treatments");
+    expect(tab).toBeTruthy();
+    expect(tab?.getAttribute("aria-selected")).toBe("false");
+    await clickTreatmentsTab(container);
+    expect(tab?.getAttribute("aria-selected")).toBe("true");
+    expect(container.querySelector("#patient-panel-treatments")).toBeTruthy();
+  });
+
+  it("fetches treatments only when Treatments tab is active and bridge is connected", async () => {
+    const fetchImpl = withReferenceDoctors(
+      treatmentsFetchHandler({
+        patientId: "42",
+        treatments: [],
+        truncated: false,
+        privacyNote: TREATMENTS_PRIVACY_NOTE,
+      }),
+    );
+
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    expect(fetchImpl.mock.calls.some((c) => String(c[0]).includes("/treatments"))).toBe(false);
+
+    await clickTreatmentsTab(container);
+    await flush();
+
+    const txUrl = fetchImpl.mock.calls.map((c) => String(c[0])).find((u) => u.includes("/treatments"));
+    expect(txUrl).toContain("/v1/patients/42/treatments");
+  });
+
+  it("does not fetch treatments when the bridge is offline", async () => {
+    const fetchImpl = vi.fn();
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="offline"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("renders safe treatment fields when load succeeds", async () => {
+    const fetchImpl = withReferenceDoctors(
+      treatmentsFetchHandler({
+        patientId: "42",
+        treatments: [syntheticTreatment],
+        truncated: false,
+        privacyNote: TREATMENTS_PRIVACY_NOTE,
+      }),
+    );
+
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    await clickTreatmentsTab(container);
+    await flush();
+
+    const t = container.textContent ?? "";
+    expect(t).toMatch(/Procedure history is read-only/i);
+    expect(t).toContain("SYN01");
+    expect(t).toContain("Synthetic dictionary label");
+    expect(t).toContain("Tooth 14");
+    expect(t).toContain("Synthetic Provider Three");
+    expect(t).toContain("Status 2");
+    expect(t).toContain("Description hidden");
+    expect(t).toContain(TREATMENTS_PRIVACY_NOTE);
+    expect(t).not.toMatch(/\bDoctor 3\b/);
+  });
+
+  it("shows empty state when no treatments are returned", async () => {
+    const fetchImpl = withReferenceDoctors(
+      treatmentsFetchHandler({
+        patientId: "42",
+        treatments: [],
+        truncated: false,
+        privacyNote: TREATMENTS_PRIVACY_NOTE,
+      }),
+    );
+
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    await clickTreatmentsTab(container);
+    await flush();
+    expect(container.textContent).toMatch(/No treatments found/i);
+  });
+
+  it("shows error state when treatments cannot be loaded", async () => {
+    const fetchImpl = withReferenceDoctors((input) => {
+      const u = String(input);
+      if (u.includes("/profile")) {
+        return Promise.resolve(jsonResponse(validProfile));
+      }
+      if (u.includes("/treatments")) {
+        return Promise.resolve(
+          jsonResponse({ error: { code: "PATIENT_TREATMENTS_ERROR", message: "secret leak" } }, 500),
+        );
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    await clickTreatmentsTab(container);
+    await flush();
+    expect(container.textContent).not.toContain("secret leak");
+    expect(container.textContent).toMatch(/Treatment history could not be loaded|Try again/i);
+  });
+
+  it("does not render forbidden treatment field tokens in the Treatments tab", async () => {
+    const fetchImpl = withReferenceDoctors(
+      treatmentsFetchHandler({
+        patientId: "42",
+        treatments: [syntheticTreatment],
+        truncated: false,
+        privacyNote: TREATMENTS_PRIVACY_NOTE,
+      }),
+    );
+
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    await clickTreatmentsTab(container);
+    await flush();
+
+    const t = container.textContent ?? "";
+    expect(t).not.toMatch(/\b(DESCRIPT|DESC|NOTE|FEE|CHARGE)\b/);
+    expect(t).not.toMatch(/\braw row\b/i);
+    expect(t).not.toContain("SYNTHETIC_TREATMENT_DESC_TOKEN");
+    expect(t).not.toContain("SYNTHETIC_PATIENT_SPECIFIC_PROCEDURE_TEXT");
+  });
+
+  it("still renders Payments and Chart as disabled coming-soon tabs", async () => {
+    const fetchImpl = withReferenceDoctors((input) => {
+      const u = String(input);
+      if (u.includes("/profile")) {
+        return Promise.resolve(jsonResponse(validProfile));
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    const disabled = [...container.querySelectorAll(".app-patient-profile__tab[disabled]")];
+    expect(disabled).toHaveLength(2);
+    const labels = disabled.map((el) => el.textContent ?? "");
+    expect(labels.some((l) => /Payments/i.test(l))).toBe(true);
+    expect(labels.some((l) => /Chart/i.test(l))).toBe(true);
+    expect(labels.some((l) => /Treatments/i.test(l))).toBe(false);
   });
 
   it("still renders appointments when reference doctors fail", async () => {

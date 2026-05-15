@@ -15,7 +15,13 @@ The bridge exposes **`GET /v1/legacy/catalog`**, which returns a fixed list of *
 | `recordCount` | Active record count from the **DBF header** when the file opens; otherwise `null` |
 | `fieldCount` | Number of field definitions from the **DBF header** when readable; otherwise `null` |
 
-The reader uses **`DBFFile.open`** and header metadata only; it does **not** call `readRecords` or stream cell values. Logs and API responses must not include row contents.
+The reader uses **`DBFFile.open`** and header metadata only; it does **not** call `readRecords` or stream cell values. Logs and API responses must not include row contents or field names.
+
+### OPERTBL and loose header mode
+
+Production **`OPERTBL.DBF`** (Visual FoxPro) includes a trailing **`_NullFlags`** column reported as type **`0`**, which makes **`dbffile`** strict mode fail with `Type '0' is not supported`. The catalog reader therefore tries **strict open first**, then **`readMode: "loose"`** with **`encoding: "win1252"`** for basenames listed in `LEGACY_CATALOG_LOOSE_HEADER_FILE_NAMES` (currently **`OPERTBL.DBF` only`). Loose mode reads the **header** (`recordCount`, field-definition count) only; unsupported columns are skipped if rows were ever read elsewhere — the catalog path never calls `readRecords`.
+
+When loose mode succeeds, `fieldCount` reflects the number of field descriptors in the header (including unsupported types such as `_NullFlags`); those names are **not** returned in the API.
 
 ## What stays blocked
 
@@ -55,4 +61,4 @@ The **Today** dashboard shows a **“Legacy data catalog”** card: availability
 
 ## Parser notes (real files)
 
-Some production DBFs use formats or flags that **`dbffile`** may not fully support. If a specific file fails to open, the catalog still lists it with `present: true` and `recordCount` / `fieldCount` set to `null`. Document any recurring basenames in runbooks after operator verification — do not paste row samples into docs.
+Some production DBFs use formats or flags that **`dbffile`** may not fully support in strict mode. **`OPERTBL.DBF`** is handled via the loose header fallback above; other basenames still use strict open only. If a file fails both applicable modes, the catalog still lists it with `present: true` and `recordCount` / `fieldCount` set to `null`. Document any other recurring basenames in runbooks after operator verification — do not paste row samples into docs.

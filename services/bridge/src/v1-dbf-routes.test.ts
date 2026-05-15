@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { once } from "node:events";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { DBFFile } from "dbffile";
 import {
   LegacyCatalogResponseSchema,
   TableRowsResponseSchema,
@@ -167,6 +168,39 @@ describe("GET /v1/legacy/catalog", () => {
       expect(parsed.data.tables.every((t) => t.present === false)).toBe(true);
       expect(parsed.data.tables.every((t) => t.recordCount === null && t.fieldCount === null)).toBe(true);
     });
+  });
+
+  it("marks opertbl present with header counts when OPERTBL.DBF is readable (loose fallback)", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "bridge-legacy-catalog-opertbl-"));
+    try {
+      const operPath = join(tmp, "OPERTBL.DBF");
+      const dbf = await DBFFile.create(operPath, [
+        { name: "ID", type: "N", size: 10, decimalPlaces: 0 },
+        { name: "OPNUM", type: "N", size: 10, decimalPlaces: 0 },
+      ]);
+      await dbf.appendRecords([{ ID: 1, OPNUM: 1 }]);
+      const dataRoot = parseDataRootFromValue(tmp);
+      if (!dataRoot.configured) throw new Error("expected temp DATA_ROOT to configure");
+      const app = createBridgeApp("v-test", {
+        bridgeConfig: { listen: { host: "127.0.0.1", port: 0 }, dataRoot },
+      });
+      await withServer(app, async (port) => {
+        const res = await fetch(`http://127.0.0.1:${port}/v1/legacy/catalog`);
+        expect(res.status).toBe(200);
+        const json: unknown = await res.json();
+        const parsed = LegacyCatalogResponseSchema.safeParse(json);
+        expect(parsed.success).toBe(true);
+        if (!parsed.success) return;
+        const opertbl = parsed.data.tables.find((t) => t.tableId === "opertbl");
+        expect(opertbl?.present).toBe(true);
+        expect(opertbl?.recordCount).toBe(1);
+        expect(opertbl?.fieldCount).toBe(2);
+        const body = JSON.stringify(parsed.data);
+        expect(body).not.toMatch(/"fields"\s*:/);
+      });
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
   });
 
   it("marks patient present with header counts when PATIENT.DBF is a readable copy of the synthetic DBF", async () => {

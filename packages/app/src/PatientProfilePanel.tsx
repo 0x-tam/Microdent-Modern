@@ -2,6 +2,7 @@ import { BridgeClientError, createBridgeClient, isInvalidBodySchemaMismatch } fr
 import type {
   PatientMedicalSummaryResponse,
   PatientProfileResponse,
+  PatientTreatmentItem,
   ScheduleAppointmentItem,
 } from "@microdent/contracts";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -23,6 +24,14 @@ import { doctorDisplayLabel } from "./doctor-labels.js";
 import { useDoctorLabels } from "./useDoctorLabels.js";
 import { useProcedureReference } from "./useProcedureReference.js";
 import { medicalConditionItemsForDisplay } from "./patient-medical-summary-display.js";
+import {
+  formatTreatmentDate,
+  sortTreatmentsForDisplay,
+  treatmentProcedureLine,
+  treatmentProviderLabel,
+  treatmentStatusLabel,
+  treatmentToothLabel,
+} from "./patient-treatments-display.js";
 
 export type PatientProfilePanelProps = {
   /** When null, shows the “no patient selected” state. */
@@ -60,8 +69,15 @@ type MedLoadState =
   | { phase: "loaded"; summary: PatientMedicalSummaryResponse }
   | { phase: "error"; message: string };
 
-const COMING_TABS: { id: Exclude<ProfileTab, "appointments" | "medical">; label: string }[] = [
-  { id: "treatments", label: "Treatments" },
+type TxLoadState =
+  | { phase: "idle" }
+  | { phase: "offline" }
+  | { phase: "loading" }
+  | { phase: "loaded"; treatments: PatientTreatmentItem[]; truncated: boolean; privacyNote: string }
+  | { phase: "empty" }
+  | { phase: "error"; message: string };
+
+const COMING_TABS: { id: Exclude<ProfileTab, "appointments" | "medical" | "treatments">; label: string }[] = [
   { id: "payments", label: "Payments" },
   { id: "chart", label: "Chart" },
 ];
@@ -159,6 +175,40 @@ export function safePatientMedicalSummaryError(e: unknown): string {
   return "The medical summary could not be loaded.";
 }
 
+export function safePatientTreatmentsError(e: unknown): string {
+  if (e instanceof BridgeClientError) {
+    if (e.kind === "network") {
+      return "Could not reach the clinic service. Check that the bridge is running.";
+    }
+    if (e.kind === "http") {
+      const code = e.apiCode ?? "";
+      if (code === "OPERTBL_DBF_NOT_FOUND") {
+        return "Treatment history is not available on this bridge yet. Ask your administrator to check the data folder.";
+      }
+      if (code === "DATA_ROOT_NOT_CONFIGURED") {
+        return "Treatment history is not available on this bridge yet. Ask your administrator to check the data folder.";
+      }
+      if (code === "INVALID_PATIENT_ID") {
+        return "This patient id is not valid for a treatment history request.";
+      }
+      if (code === "PATIENT_TREATMENTS_ERROR") {
+        return "Treatment history could not be loaded. Try again in a moment.";
+      }
+      return "Treatment history could not be loaded. Try again in a moment.";
+    }
+    if (e.kind === "invalid_body") {
+      if (isInvalidBodySchemaMismatch(e)) {
+        return "Treatment history needs a small data mapping fix. No clinic data was changed.";
+      }
+      return "Treatment history could not read the clinic response format. Try again.";
+    }
+    if (e.kind === "invalid_argument") {
+      return "This patient id is not valid for a treatment history request.";
+    }
+  }
+  return "Treatment history could not be loaded.";
+}
+
 function formatApptRangeHeading(from: string, to: string): string {
   try {
     const fmt = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" });
@@ -169,6 +219,61 @@ function formatApptRangeHeading(from: string, to: string): string {
   } catch {
     return `${from} – ${to}`;
   }
+}
+
+function TreatmentsBody({
+  treatments,
+  truncated,
+  privacyNote,
+  doctorLabels,
+}: {
+  treatments: PatientTreatmentItem[];
+  truncated: boolean;
+  privacyNote: string;
+  doctorLabels: ReadonlyMap<string, string>;
+}) {
+  const sorted = sortTreatmentsForDisplay(treatments);
+
+  return (
+    <div className="app-patient-profile__treatments-body">
+      {truncated ? (
+        <p className="app-patient-profile__treatments-banner" role="note">
+          Showing the most recent procedures only. Older lines are omitted in this read-only preview.
+        </p>
+      ) : null}
+      <ul className="app-patient-profile__treatment-list" aria-label="Procedure history">
+        {sorted.map((t) => {
+          const dateLabel = formatTreatmentDate(t.date);
+          const procedure = treatmentProcedureLine(t);
+          const tooth = treatmentToothLabel(t.tooth);
+          const provider = treatmentProviderLabel(t, doctorLabels);
+          const status = treatmentStatusLabel(t.status);
+
+          return (
+            <li key={t.treatmentId} className="app-patient-profile__treatment-row">
+              <div className="app-patient-profile__treatment-date">{dateLabel ?? "—"}</div>
+              <div className="app-patient-profile__treatment-main">
+                {procedure ? <p className="app-patient-profile__treatment-procedure">{procedure}</p> : null}
+                <div className="app-patient-profile__treatment-meta">
+                  {tooth ? <span>{tooth}</span> : null}
+                  {provider ? <span>{provider}</span> : null}
+                  {status ? <span>{status}</span> : null}
+                </div>
+                <div className="app-patient-profile__treatment-badges">
+                  {t.hasDescription ? (
+                    <Badge variant="neutral" semanticLabel="Procedure description hidden">
+                      Description hidden
+                    </Badge>
+                  ) : null}
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="app-patient-profile__treatments-privacy">{privacyNote}</p>
+    </div>
+  );
 }
 
 function MedicalSummaryBody({ summary }: { summary: PatientMedicalSummaryResponse }) {
@@ -266,6 +371,10 @@ export function PatientProfilePanel({
   const [medState, setMedState] = useState<MedLoadState>({ phase: "idle" });
   const [medRefreshNonce, setMedRefreshNonce] = useState(0);
   const medRequestSeq = useRef(0);
+
+  const [txState, setTxState] = useState<TxLoadState>({ phase: "idle" });
+  const [txRefreshNonce, setTxRefreshNonce] = useState(0);
+  const txRequestSeq = useRef(0);
 
   useEffect(() => {
     if (patientId === null) {
@@ -389,11 +498,57 @@ export function PatientProfilePanel({
 
   useEffect(() => {
     if (patientId === null) {
+      setTxState({ phase: "idle" });
+      return;
+    }
+    if (activeTab !== "treatments") {
+      setTxState({ phase: "idle" });
+      return;
+    }
+    if (!base || bridgePhase !== "connected") {
+      setTxState({ phase: "offline" });
+      return;
+    }
+
+    const seq = ++txRequestSeq.current;
+    setTxState({ phase: "loading" });
+
+    const client = createBridgeClient({ baseUrl: base, fetch: fetchImpl });
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const data = await client.getPatientTreatments(patientId);
+        if (cancelled || seq !== txRequestSeq.current) return;
+        if (data.treatments.length === 0) {
+          setTxState({ phase: "empty" });
+        } else {
+          setTxState({
+            phase: "loaded",
+            treatments: data.treatments,
+            truncated: data.truncated,
+            privacyNote: data.privacyNote,
+          });
+        }
+      } catch (e: unknown) {
+        if (cancelled || seq !== txRequestSeq.current) return;
+        setTxState({ phase: "error", message: safePatientTreatmentsError(e) });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [patientId, base, bridgePhase, fetchImpl, activeTab, txRefreshNonce]);
+
+  useEffect(() => {
+    if (patientId === null) {
       setActiveTab(null);
       setRangePreset("default");
       setApptRange(defaultPatientApptRange());
       setApptState({ phase: "idle" });
       setMedState({ phase: "idle" });
+      setTxState({ phase: "idle" });
     }
   }, [patientId]);
 
@@ -542,6 +697,19 @@ export function PatientProfilePanel({
                     onClick={() => setActiveTab("medical")}
                   >
                     Medical
+                  </button>
+                </li>
+                <li role="presentation">
+                  <button
+                    type="button"
+                    role="tab"
+                    id="patient-tab-treatments"
+                    aria-selected={activeTab === "treatments"}
+                    aria-controls="patient-panel-treatments"
+                    className={`app-patient-profile__tab ui-focusable${activeTab === "treatments" ? " app-patient-profile__tab--active" : ""}`}
+                    onClick={() => setActiveTab("treatments")}
+                  >
+                    Treatments
                   </button>
                 </li>
                 {COMING_TABS.map((t) => (
@@ -738,6 +906,67 @@ export function PatientProfilePanel({
                   />
                 ) : medState.phase === "loaded" ? (
                   <MedicalSummaryBody summary={medState.summary} />
+                ) : null}
+              </section>
+            ) : null}
+
+            {activeTab === "treatments" ? (
+              <section
+                id="patient-panel-treatments"
+                role="tabpanel"
+                aria-labelledby="patient-tab-treatments"
+                className="app-patient-profile__treatments"
+              >
+                <p className="app-patient-profile__treatments-lede">
+                  Procedure history is read-only. Memos, per-line descriptions, and fees stay hidden.
+                </p>
+
+                <div className="app-patient-profile__treatments-controls">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="ui-focusable"
+                    onClick={() => setTxRefreshNonce((n) => n + 1)}
+                  >
+                    Refresh
+                  </Button>
+                </div>
+
+                {txState.phase === "offline" ? (
+                  <EmptyState
+                    className="ui-empty--start app-patient-profile__empty"
+                    title="Clinic service offline"
+                    description="Connect the bridge to load treatment history."
+                  />
+                ) : txState.phase === "loading" ? (
+                  <p className="app-patient-profile__status" role="status" aria-live="polite">
+                    Loading treatments…
+                  </p>
+                ) : txState.phase === "error" ? (
+                  <div className="app-patient-profile__error" role="alert">
+                    <p>{txState.message}</p>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="ui-focusable"
+                      onClick={() => setTxRefreshNonce((n) => n + 1)}
+                    >
+                      Retry
+                    </Button>
+                  </div>
+                ) : txState.phase === "empty" ? (
+                  <EmptyState
+                    className="ui-empty--start app-patient-profile__empty"
+                    title="No treatments found"
+                    description="This patient has no procedure lines in the read-only copy, or none match the current bridge scan."
+                  />
+                ) : txState.phase === "loaded" ? (
+                  <TreatmentsBody
+                    treatments={txState.treatments}
+                    truncated={txState.truncated}
+                    privacyNote={txState.privacyNote}
+                    doctorLabels={doctorLabels}
+                  />
                 ) : null}
               </section>
             ) : null}

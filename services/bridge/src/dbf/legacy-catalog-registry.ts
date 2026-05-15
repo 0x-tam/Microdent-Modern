@@ -12,6 +12,12 @@ export type LegacyCatalogRegistryEntry = {
   fileName: string;
 };
 
+/**
+ * DBF basenames that may require `readMode: "loose"` to read header metadata only
+ * (e.g. Visual FoxPro `_NullFlags` type `0` on `OPERTBL.DBF`).
+ */
+export const LEGACY_CATALOG_LOOSE_HEADER_FILE_NAMES = new Set<string>(["OPERTBL.DBF"]);
+
 export const LEGACY_CATALOG_REGISTRY: readonly LegacyCatalogRegistryEntry[] = [
   { id: "patient", label: "Patients (master)", fileName: "PATIENT.DBF" },
   { id: "schedule", label: "Appointments (schedule)", fileName: "SCHEDULE.DBF" },

@@ -80,6 +80,8 @@ Cross-checks use `docs/legacy-system-map.md` (counts from a different legacy tre
 
 ## 2. Payments / ledger (`TRANS.DBF`)
 
+**Detailed ledger plan:** `docs/phase-1b-ledger-payments-mapping.md` (blocked fields, v1 DTO, route cap, tests).
+
 ### 2.1 Likely patient reference
 
 - **`PATIENT_ID`** — `N` 6,0. Intended join to `PATIENT.ID`, but **`PATIENT.ID` is `N` 10** in the patient profile docs — assume **semantic match with possible legacy width difference**; validate joins on a copy with **counts and orphan checks**, not by logging row values.
@@ -199,6 +201,7 @@ All routes assume **localhost / staff auth later**, strict caps, no full-row log
 | `GET /v1/reference/procedures` | Map `PROCNB` to labels | `PROCCHRT` (+ later `PROCINIT` / others) | Return **`procedureCode`** + **`label`** + low-risk flags; **block all `PRICE*`** fields. |
 | `GET /v1/patients/:patientId/appointments` | Profile-scoped schedule | `SCHEDULE` | Reuse privacy pattern from `docs/phase-1b-calendar-backend.md`: filter **`PAT_ID`**, **omit** `PAT_NAME`, `TELEPHONE`, `COMMENT` body (boolean `hasComment` only), cap results. |
 | `GET /v1/patients/:patientId/treatments` | Procedure history | `OPERTBL` (+ optional `PROCCHRT` join) | Allow **`DATE`**, **`OPNUM`**, **`TOOTHNB`**, **`PROCNB`**, **`STATUS`**, **`DOCT`**, **`TRANSNUM`**, **`PLANNUM`**, surface codes; **block** memos and `DESC` / raw `PROCEDURE` / **all amounts** initially. |
+| `GET /v1/patients/:patientId/chart` | Odontogram / tooth state | `CHARTDBF` | See **`docs/phase-1b-dental-chart-mapping.md`**: filter **`ID`**, opaque `*_S` / `*_C` codes, cap rows; **block `NOTE`** memo; list UI before visual grid. |
 | `GET /v1/patients/:patientId/ledger` | Financial lines | `TRANS` | **High risk** — first design should avoid **`DESCR`** and raw amounts; consider **deferred** until type enums documented. |
 | `GET /v1/patients/:patientId/medical-summary` | Non-text screening flags | `MEDICAL` | **Booleans only**; no `PROBLEM` / `ALLERGY_TO` / `NOTES`. |
 
