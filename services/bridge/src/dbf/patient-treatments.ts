@@ -107,7 +107,8 @@ export function buildDoctorLabelLookup(
   return map;
 }
 
-function compareTreatments(a: PatientTreatmentItem, b: PatientTreatmentItem): number {
+/** Sort treatments newest-first (matches API wire order after DBF scan cap). */
+export function comparePatientTreatmentItems(a: PatientTreatmentItem, b: PatientTreatmentItem): number {
   const dateCmp = compareIsoDates(b.date, a.date);
   if (dateCmp !== 0) return dateCmp;
   const aNum = Number(a.treatmentId);
@@ -226,7 +227,7 @@ export async function readPatientTreatmentsFromDbf(
     return { kind: "read_error" };
   }
 
-  collected.sort(compareTreatments);
+  collected.sort(comparePatientTreatmentItems);
 
   return {
     kind: "ok",

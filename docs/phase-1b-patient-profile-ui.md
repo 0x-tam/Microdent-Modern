@@ -11,7 +11,7 @@
 
 ## States
 
-1. **No patient selected** — empty state with guidance to use top-bar search.
+1. **No patient selected** — embedded **Find a patient** search on the Patients page (same `GET /v1/patients/search` as the top bar; no full directory). See [phase-1b-patients-page-ux.md](phase-1b-patients-page-ux.md).
 2. **Clinic service offline** — when **`patientId`** is set but the bridge is not **connected** (or URL missing); no profile `fetch`.
 3. **Loading profile** — short status line while **`getPatientProfile`** is in flight.
 4. **Profile loaded** — card + future tab strip.

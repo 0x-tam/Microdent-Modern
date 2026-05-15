@@ -17,6 +17,7 @@ import {
   ScheduleAppointmentsResponseSchema,
   ReferenceProceduresResponseSchema,
   ScheduleRoomsResponseSchema,
+  MirrorStatusResponseSchema,
   TableRowsResponseSchema,
   TablesListResponseSchema,
   TableSchemaResponseSchema,
@@ -32,15 +33,18 @@ import { openRegisteredDbf, parsePagination, readRegisteredTableRows } from "../
 import { resolveRegisteredDbfPath } from "../dbf/resolve-registered-dbf.js";
 import { findRegistryEntry, TABLE_ID_PATTERN, TABLE_REGISTRY } from "../dbf/table-registry.js";
 import { readLegacyCatalogRows } from "../dbf/read-legacy-catalog.js";
-import { mergePatientSummariesIntoScheduleAppointments } from "../dbf/schedule-appointment-patients.js";
-import { readScheduleAppointments } from "../dbf/schedule-appointments.js";
+import { readScheduleAppointmentsForApi } from "../schedule-appointments-read.js";
 import { readReferenceDoctorsFromDbf } from "../dbf/reference-doctors.js";
 import { readReferenceProcedures } from "../dbf/reference-procedures.js";
 import { readScheduleRooms } from "../dbf/schedule-rooms.js";
 import { isSqliteMirrorUsable } from "../sqlite/mirror-usable.js";
+import { readPatientProfileFromSqlite } from "../sqlite/patient-profile.js";
+import { readPatientMedicalSummaryFromSqlite } from "../sqlite/patient-medical-summary.js";
 import { searchPatientsInSqlite } from "../sqlite/patient-search.js";
+import { readPatientTreatmentsFromSqlite } from "../sqlite/patient-treatments.js";
 import { readReferenceDoctorsFromSqlite } from "../sqlite/reference-doctors.js";
 import { readReferenceProceduresFromSqlite } from "../sqlite/reference-procedures.js";
+import { readMirrorStatus } from "../sqlite/mirror-status.js";
 
 function sendError(res: Response, status: number, code: string, message: string): void {
   const body = { error: { code, message } };
@@ -71,6 +75,12 @@ function firstQueryString(value: unknown): string | undefined {
 
 export function createV1Router(bridgeConfig: BridgeConfig): Router {
   const router = Router();
+
+  router.get("/mirror/status", (_req, res) => {
+    const body = readMirrorStatus(bridgeConfig.sqlitePath);
+    MirrorStatusResponseSchema.parse(body);
+    res.json(body);
+  });
 
   router.get("/meta/tables", (_req, res) => {
     if (!requireConfiguredDataRoot(res, bridgeConfig)) return;
@@ -155,7 +165,18 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
       return;
     }
 
-    const outcome = await readPatientProfileFromDbf(dr, parsedParams.data.patientId);
+    const patientId = parsedParams.data.patientId;
+    let outcome;
+    if (isSqliteMirrorUsable(bridgeConfig.sqlitePath, "patients")) {
+      const sqliteOutcome = readPatientProfileFromSqlite(bridgeConfig.sqlitePath.path, patientId);
+      if (sqliteOutcome.kind === "ok" || sqliteOutcome.kind === "not_found") {
+        outcome = sqliteOutcome;
+      } else {
+        outcome = await readPatientProfileFromDbf(dr, patientId);
+      }
+    } else {
+      outcome = await readPatientProfileFromDbf(dr, patientId);
+    }
     if (outcome.kind === "missing_table") {
       sendError(res, 404, "PATIENT_DBF_NOT_FOUND", "PATIENT.DBF not found under DATA_ROOT");
       return;
@@ -184,7 +205,15 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
       return;
     }
 
-    const outcome = await readPatientMedicalSummaryFromDbf(dr, parsedParams.data.patientId);
+    const patientId = parsedParams.data.patientId;
+    let outcome;
+    if (isSqliteMirrorUsable(bridgeConfig.sqlitePath, "medical_summary")) {
+      const sqliteOutcome = readPatientMedicalSummaryFromSqlite(bridgeConfig.sqlitePath.path, patientId);
+      outcome =
+        sqliteOutcome.kind === "ok" ? sqliteOutcome : await readPatientMedicalSummaryFromDbf(dr, patientId);
+    } else {
+      outcome = await readPatientMedicalSummaryFromDbf(dr, patientId);
+    }
     if (outcome.kind === "missing_table") {
       sendError(res, 404, "MEDICAL_DBF_NOT_FOUND", "MEDICAL.DBF not found under DATA_ROOT");
       return;
@@ -209,7 +238,19 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
       return;
     }
 
-    const outcome = await readPatientTreatmentsFromDbf(dr, parsedParams.data.patientId);
+    let outcome;
+    if (isSqliteMirrorUsable(bridgeConfig.sqlitePath, "treatments")) {
+      const sqliteOutcome = readPatientTreatmentsFromSqlite(
+        bridgeConfig.sqlitePath.path,
+        parsedParams.data.patientId,
+      );
+      outcome =
+        sqliteOutcome.kind === "ok"
+          ? sqliteOutcome
+          : await readPatientTreatmentsFromDbf(dr, parsedParams.data.patientId);
+    } else {
+      outcome = await readPatientTreatmentsFromDbf(dr, parsedParams.data.patientId);
+    }
     if (outcome.kind === "missing_table") {
       sendError(res, 404, "OPERTBL_DBF_NOT_FOUND", "OPERTBL.DBF not found under DATA_ROOT");
       return;
@@ -276,7 +317,6 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
 
   router.get("/patients/:patientId/appointments", async (req, res) => {
     if (!requireConfiguredDataRoot(res, bridgeConfig)) return;
-    const dr = bridgeConfig.dataRoot;
 
     const parsedParams = PatientProfilePathParamsSchema.safeParse({ patientId: req.params.patientId });
     if (!parsedParams.success) {
@@ -299,7 +339,7 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
 
     const { from, to } = parsed.data;
     const patientId = parsedParams.data.patientId;
-    const outcome = await readScheduleAppointments(dr, from, to, undefined, patientId);
+    const outcome = await readScheduleAppointmentsForApi(bridgeConfig, from, to, undefined, patientId);
     if (outcome.kind === "missing_schedule") {
       sendError(res, 404, "SCHEDULE_DBF_NOT_FOUND", "SCHEDULE.DBF not found under DATA_ROOT");
       return;
@@ -309,8 +349,7 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
       return;
     }
 
-    const appointments = await mergePatientSummariesIntoScheduleAppointments(dr, outcome.appointments);
-    const body = { appointments };
+    const body = { appointments: outcome.appointments };
     ScheduleAppointmentsResponseSchema.parse(body);
     res.json(body);
   });
@@ -382,7 +421,6 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
 
   router.get("/schedule/appointments", async (req, res) => {
     if (!requireConfiguredDataRoot(res, bridgeConfig)) return;
-    const dr = bridgeConfig.dataRoot;
 
     const rawFrom = firstQueryString(req.query.from);
     const rawTo = firstQueryString(req.query.to);
@@ -403,7 +441,7 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
     }
 
     const { from, to, room } = parsed.data;
-    const outcome = await readScheduleAppointments(dr, from, to, room);
+    const outcome = await readScheduleAppointmentsForApi(bridgeConfig, from, to, room);
     if (outcome.kind === "missing_schedule") {
       sendError(res, 404, "SCHEDULE_DBF_NOT_FOUND", "SCHEDULE.DBF not found under DATA_ROOT");
       return;
@@ -413,8 +451,7 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
       return;
     }
 
-    const appointments = await mergePatientSummariesIntoScheduleAppointments(dr, outcome.appointments);
-    const body = { appointments };
+    const body = { appointments: outcome.appointments };
     ScheduleAppointmentsResponseSchema.parse(body);
     res.json(body);
   });

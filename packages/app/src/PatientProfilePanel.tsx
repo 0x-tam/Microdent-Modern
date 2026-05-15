@@ -40,11 +40,14 @@ import {
   ledgerPaymentTypeLabel,
   sortLedgerEntriesForDisplay,
 } from "./patient-ledger-display.js";
+import { PatientSearchBar, type PatientSearchHit } from "./PatientSearchBar.js";
 import {
   CLINIC_SERVICE_OFFLINE_PANEL,
   CLINIC_SERVICE_OFFLINE_SECTION,
   CLINIC_SERVICE_OFFLINE_TITLE,
-  PATIENT_NO_SELECTION_DESCRIPTION,
+  PATIENT_CHANGE_PATIENT_LABEL,
+  PATIENT_PAGE_SEARCH_LEDE,
+  PATIENT_PAGE_SEARCH_TITLE,
   PATIENT_PROFILE_READONLY_NOTE,
   PATIENT_TAB_APPOINTMENTS_LEDE,
   PATIENT_TAB_CHART_LEDE,
@@ -65,13 +68,15 @@ import {
 } from "./patient-treatments-display.js";
 
 export type PatientProfilePanelProps = {
-  /** When null, shows the “no patient selected” state. */
+  /** When null, shows the embedded patient search/open area. */
   patientId: string | null;
   bridgePhase: BridgeHealthPhase;
   bridgeBaseUrl?: string;
   fetchImpl?: typeof fetch;
   onBackToday: () => void;
   onClearPatient: () => void;
+  /** When the user picks a row from page search (or change-patient search). */
+  onPatientRecordSelect?: (hit: PatientSearchHit) => void;
 };
 
 type LoadState =
@@ -610,6 +615,46 @@ function groupAppointmentsByDate(
   return new Map([...map.entries()].sort(([a], [b]) => a.localeCompare(b)));
 }
 
+function PatientPageSearchBlock({
+  patientId,
+  bridgePhase,
+  bridgeBaseUrl,
+  fetchImpl,
+  onPatientRecordSelect,
+  onPatientSelectionClear,
+  clearSelectionOnQueryChange,
+  title,
+}: {
+  patientId: string | null;
+  bridgePhase: BridgeHealthPhase;
+  bridgeBaseUrl?: string;
+  fetchImpl?: typeof fetch;
+  onPatientRecordSelect?: (hit: PatientSearchHit) => void;
+  onPatientSelectionClear?: () => void;
+  clearSelectionOnQueryChange: boolean;
+  title?: string;
+}) {
+  return (
+    <section className="app-patient-profile__search" aria-labelledby={title ? "app-patients-page-search-heading" : undefined}>
+      {title ? (
+        <h3 id="app-patients-page-search-heading" className="app-patient-profile__search-title">
+          {title}
+        </h3>
+      ) : null}
+      <PatientSearchBar
+        instanceId="page"
+        bridgePhase={bridgePhase}
+        bridgeBaseUrl={bridgeBaseUrl}
+        selectedPatientId={patientId}
+        fetchImpl={fetchImpl}
+        clearSelectionOnQueryChange={clearSelectionOnQueryChange}
+        onPatientRecordSelect={onPatientRecordSelect}
+        onPatientSelectionClear={onPatientSelectionClear}
+      />
+    </section>
+  );
+}
+
 export function PatientProfilePanel({
   patientId,
   bridgePhase,
@@ -617,6 +662,7 @@ export function PatientProfilePanel({
   fetchImpl,
   onBackToday,
   onClearPatient,
+  onPatientRecordSelect,
 }: PatientProfilePanelProps) {
   const base = bridgeBaseUrl?.trim() ?? "";
   const { labels: doctorLabels } = useDoctorLabels({
@@ -658,6 +704,14 @@ export function PatientProfilePanel({
   const [ledgerState, setLedgerState] = useState<LedgerLoadState>({ phase: "idle" });
   const [ledgerRefreshNonce, setLedgerRefreshNonce] = useState(0);
   const ledgerRequestSeq = useRef(0);
+
+  const [changePatientSearchOpen, setChangePatientSearchOpen] = useState(false);
+
+  useEffect(() => {
+    if (patientId === null) {
+      setChangePatientSearchOpen(false);
+    }
+  }, [patientId]);
 
   useEffect(() => {
     if (patientId === null) {
@@ -960,8 +1014,16 @@ export function PatientProfilePanel({
           Back to Today
         </Button>
         {patientId !== null ? (
-          <Button type="button" variant="ghost" className="ui-focusable" onClick={onClearPatient}>
-            Clear patient
+          <Button
+            type="button"
+            variant="ghost"
+            className="ui-focusable"
+            onClick={() => {
+              setChangePatientSearchOpen((open) => !open);
+            }}
+            aria-expanded={changePatientSearchOpen}
+          >
+            {PATIENT_CHANGE_PATIENT_LABEL}
           </Button>
         ) : null}
       </div>
@@ -972,11 +1034,19 @@ export function PatientProfilePanel({
 
       <AppErrorBoundary>
         {patientId === null ? (
-          <EmptyState
-            className="ui-empty--start app-patient-profile__empty"
-            title="No patient selected"
-            description={PATIENT_NO_SELECTION_DESCRIPTION}
-          />
+          <div className="app-patient-profile__open">
+            <p className="app-patient-profile__open-lede">{PATIENT_PAGE_SEARCH_LEDE}</p>
+            <PatientPageSearchBlock
+              patientId={null}
+              bridgePhase={bridgePhase}
+              bridgeBaseUrl={bridgeBaseUrl}
+              fetchImpl={fetchImpl}
+              clearSelectionOnQueryChange
+              title={PATIENT_PAGE_SEARCH_TITLE}
+              onPatientRecordSelect={onPatientRecordSelect}
+              onPatientSelectionClear={onClearPatient}
+            />
+          </div>
         ) : state.phase === "offline" ? (
           <EmptyState
             className="ui-empty--start app-patient-profile__empty"
@@ -1008,6 +1078,21 @@ export function PatientProfilePanel({
                 <span className="app-patient-profile__identity-chart"> · Chart {state.profile.chartNumber}</span>
               ) : null}
             </p>
+
+            {changePatientSearchOpen ? (
+              <PatientPageSearchBlock
+                patientId={patientId}
+                bridgePhase={bridgePhase}
+                bridgeBaseUrl={bridgeBaseUrl}
+                fetchImpl={fetchImpl}
+                clearSelectionOnQueryChange={false}
+                title={PATIENT_CHANGE_PATIENT_LABEL}
+                onPatientRecordSelect={(hit) => {
+                  onPatientRecordSelect?.(hit);
+                  setChangePatientSearchOpen(false);
+                }}
+              />
+            ) : null}
 
             <nav className="app-patient-profile__tabs" aria-label="Patient sections">
               <ul className="app-patient-profile__tablist" role="tablist">

@@ -18,6 +18,7 @@ createRoot(el).render(
       bridgeBaseUrl={bridgeBaseUrl}
       bridgeHealthLogDiagnostics={import.meta.env.DEV}
       bridgeConnectionDiagnostics={import.meta.env.DEV}
+      mirrorConnectionDiagnostics={import.meta.env.DEV}
     />
   </StrictMode>,
 );

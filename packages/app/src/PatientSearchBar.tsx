@@ -2,6 +2,7 @@ import { BridgeClientError, createBridgeClient, isInvalidBodySchemaMismatch } fr
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Button } from "@microdent/ui";
 import type { BridgeHealthPhase } from "./bridge-health.js";
+import { PATIENT_PAGE_SEARCH_PRIVACY } from "./read-only-ui-copy.js";
 
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -12,20 +13,37 @@ export type PatientSearchHit = {
   phoneMask: string | null;
 };
 
+export type PatientSearchInstanceId = "topbar" | "page";
+
 export type PatientSearchBarProps = {
   bridgePhase: BridgeHealthPhase;
   bridgeBaseUrl?: string;
+  /** DOM id prefix — use `page` for the Patients module search (default `topbar`). */
+  instanceId?: PatientSearchInstanceId;
   /** Highlight the row that matches the profile currently shown (controlled from the shell). */
   selectedPatientId?: string | null;
   /** When the user picks a search row, the shell stores `patientId` and may navigate to Patients. */
   onPatientRecordSelect?: (hit: PatientSearchHit) => void;
   /** When the user edits the query, the shell should clear the selected patient id. */
   onPatientSelectionClear?: () => void;
+  /** When false, typing does not call `onPatientSelectionClear` (e.g. change-patient search while a profile is open). */
+  clearSelectionOnQueryChange?: boolean;
+  className?: string;
   /**
    * Optional fetch override (tests); production uses the bound global `fetch` from the bridge client.
    */
   fetchImpl?: typeof fetch;
 };
+
+function patientSearchDomIds(instanceId: PatientSearchInstanceId) {
+  const prefix = instanceId === "page" ? "app-patients-page-search" : "app-patient-search";
+  return {
+    input: `${prefix}-input`,
+    hint: `${prefix}-hint`,
+    status: `${prefix}-status`,
+    listbox: `${prefix}-listbox`,
+  };
+}
 
 function formatHitSecondary(hit: PatientSearchHit): string | null {
   const parts: string[] = [];
@@ -69,11 +87,15 @@ export function safePatientSearchError(e: unknown): string {
 export function PatientSearchBar({
   bridgePhase,
   bridgeBaseUrl,
+  instanceId = "topbar",
   selectedPatientId = null,
   onPatientRecordSelect,
   onPatientSelectionClear,
+  clearSelectionOnQueryChange = true,
+  className,
   fetchImpl,
 }: PatientSearchBarProps) {
+  const domIds = patientSearchDomIds(instanceId);
   const base = bridgeBaseUrl?.trim() ?? "";
   const canSearch = Boolean(base) && bridgePhase === "connected";
 
@@ -262,28 +284,34 @@ export function PatientSearchBar({
 
   const cappedList = results.length >= 20;
 
+  const rootClassName = ["app-patient-search", instanceId === "page" ? "app-patient-search--page" : null, className]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <div ref={rootRef} className="app-patient-search">
-      <label className="app-sr-only" htmlFor="app-patient-search-input">
+    <div ref={rootRef} className={rootClassName}>
+      <label className="app-sr-only" htmlFor={domIds.input}>
         Find a patient
       </label>
       <div className="app-patient-search__row">
         <input
-          id="app-patient-search-input"
-          className="app-topbar-search__input ui-focusable"
+          id={domIds.input}
+          className={`app-topbar-search__input ui-focusable${instanceId === "page" ? " app-patient-search__input--page" : ""}`}
           type="search"
           disabled={!canSearch}
           autoComplete="off"
           spellCheck={false}
           placeholder="Find a patient by name or chart number"
-          aria-describedby="app-patient-search-hint app-patient-search-status"
+          aria-describedby={`${domIds.hint} ${domIds.status}`}
           aria-expanded={showDropdown}
-          aria-controls="app-patient-search-listbox"
+          aria-controls={domIds.listbox}
           aria-autocomplete="list"
           role="combobox"
           value={query}
           onChange={(e) => {
-            onPatientSelectionClear?.();
+            if (clearSelectionOnQueryChange) {
+              onPatientSelectionClear?.();
+            }
             setQuery(e.target.value);
             if (e.target.value.trim().length < 2) {
               setIsResultsPanelOpen(false);
@@ -306,21 +334,25 @@ export function PatientSearchBar({
           Search
         </Button>
       </div>
-      <p id="app-patient-search-hint" className="app-patient-search__hint">
-        {canSearch ? "Uses your copied clinic data. Names and safe hints only." : "Search is off until the clinic service is connected."}
+      <p id={domIds.hint} className="app-patient-search__hint">
+        {canSearch
+          ? instanceId === "page"
+            ? PATIENT_PAGE_SEARCH_PRIVACY
+            : "Uses your copied clinic data. Names and safe hints only."
+          : "Search is off until the clinic service is connected."}
       </p>
       {statusLine ? (
-        <p id="app-patient-search-status" className="app-patient-search__status" role="status" aria-live="polite">
+        <p id={domIds.status} className="app-patient-search__status" role="status" aria-live="polite">
           {statusLine}
         </p>
       ) : (
-        <p id="app-patient-search-status" className="app-sr-only">
+        <p id={domIds.status} className="app-sr-only">
           Ready.
         </p>
       )}
 
       {showDropdown ? (
-        <div id="app-patient-search-listbox" className="app-patient-search__dropdown" role="listbox" aria-label="Patient search results">
+        <div id={domIds.listbox} className="app-patient-search__dropdown" role="listbox" aria-label="Patient search results">
           {searching ? (
             <p className="app-patient-search__dropdown-muted" role="status">
               Searching…

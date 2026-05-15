@@ -22,6 +22,27 @@ describe("BridgeClient", () => {
     );
   });
 
+  it("getMirrorStatus: success", async () => {
+    const body = {
+      sqliteConfigured: true,
+      sqliteUsable: true,
+      importedTables: ["doctors", "patients"],
+      latestImportRuns: [
+        {
+          tableName: "doctors",
+          status: "success",
+          rowCount: 2,
+          errorCount: 0,
+          finishedAt: "2026-05-01T12:00:00.000Z",
+        },
+      ],
+    };
+    const fetch = vi.fn().mockResolvedValue(jsonResponse(body));
+    const client = createBridgeClient({ baseUrl, fetch });
+    await expect(client.getMirrorStatus()).resolves.toEqual(body);
+    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/v1/mirror/status`, expect.anything());
+  });
+
   it("getMetaTables: success", async () => {
     const body = {
       tables: [{ id: "fixture_tiny", label: "Synthetic", fileName: "FAKE_TINY.dbf" }],

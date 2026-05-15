@@ -21,7 +21,7 @@ Import from here when adding new surfaces so wording stays aligned.
 | Area | Module / component | Notes |
 | --- | --- | --- |
 | Today | `today-dashboard.tsx` | Privacy lede, offline/checking copy, neutral reminders, quick actions titles |
-| Patients | `PatientProfilePanel.tsx` | Tab order below; Summary holds profile card |
+| Patients | `PatientProfilePanel.tsx` | Page search when no patient; tab order below; see [phase-1b-patients-page-ux.md](phase-1b-patients-page-ux.md) |
 | Schedule | `SchedulePanel.tsx` | Privacy lede; `Note hidden` badge |
 | Appointments | Patient **Appointments** tab | Range presets; shared offline empty state |
 | Medical | Patient **Medical** tab | Sensitive banner uses read-only viewer wording |

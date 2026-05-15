@@ -6,10 +6,31 @@ import { once } from "node:events";
 import { describe, expect, it } from "vitest";
 import { DBFFile } from "dbffile";
 import { PatientTreatmentsResponseSchema } from "@microdent/contracts";
+import { importDoctors, importProcedures, importTreatments } from "@microdent/sqlite-mirror";
 import { createBridgeApp } from "./app.js";
 import type { BridgeConfig } from "./config.js";
-import { parseDataRootFromValue } from "./config.js";
+import { parseDataRootFromValue, parseSqlitePathFromValue } from "./config.js";
 import { PATIENT_TREATMENTS_MAX } from "./dbf/patient-treatments.js";
+
+function bridgeConfig(dataRootPath: string, sqlitePath?: string): BridgeConfig {
+  const dataRoot = parseDataRootFromValue(dataRootPath);
+  if (!dataRoot.configured) throw new Error("data root");
+  return {
+    listen: { host: "127.0.0.1", port: 0 },
+    dataRoot,
+    sqlitePath:
+      sqlitePath === undefined ? { configured: false } : parseSqlitePathFromValue(sqlitePath),
+  };
+}
+
+async function importTreatmentMirror(dataRoot: string, sqlitePath: string): Promise<void> {
+  const procedures = await importProcedures({ dataRoot, sqlitePath });
+  expect(procedures.status).toBe("success");
+  const doctors = await importDoctors({ dataRoot, sqlitePath });
+  expect(doctors.status).toBe("success");
+  const treatments = await importTreatments({ dataRoot, sqlitePath });
+  expect(treatments.status).toBe("success");
+}
 
 async function withServer(app: ReturnType<typeof createBridgeApp>, fn: (port: number) => Promise<void>): Promise<void> {
   const server = createServer(app);
@@ -281,6 +302,105 @@ describe("GET /v1/patients/:patientId/treatments", () => {
       });
     } finally {
       rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("GET /v1/patients/:patientId/treatments (SQLITE_PATH)", () => {
+  it("reads from mirror with same safe DTO shape and no blocked fields", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "bridge-treatments-sqlite-"));
+    const sqlitePath = join(dir, "mirror.sqlite");
+    try {
+      await writeTreatmentsFixture(dir);
+      await importTreatmentMirror(dir, sqlitePath);
+      const app = createBridgeApp("v-test", { bridgeConfig: bridgeConfig(dir, sqlitePath) });
+      await withServer(app, async (port) => {
+        const res = await fetch(`http://127.0.0.1:${port}/v1/patients/501/treatments`);
+        expect(res.status).toBe(200);
+        const text = await res.text();
+        const parsed = PatientTreatmentsResponseSchema.parse(JSON.parse(text));
+
+        expect(parsed.patientId).toBe("501");
+        expect(parsed.truncated).toBe(false);
+        expect(parsed.treatments).toHaveLength(2);
+        expect(parsed.treatments[0]?.treatmentId).toBe("100");
+        expect(parsed.treatments[0]?.procedureLabel).toBe("Synthetic dictionary label");
+        expect(parsed.treatments[0]?.hasDescription).toBe(true);
+
+        expect(text).not.toContain(SECRET_DESC);
+        expect(text).not.toContain(SECRET_PROCEDURE);
+        expect(text).not.toContain(String(SECRET_FEE));
+        expect(text).not.toContain("treatment_date");
+        expect(text).not.toContain("has_description");
+        expect(text).not.toContain("source_deleted");
+        expect(text).not.toContain("imported_at");
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("caps and sets truncated from mirror when patient exceeds PATIENT_TREATMENTS_MAX", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "bridge-treatments-sqlite-cap-"));
+    const sqlitePath = join(dir, "mirror.sqlite");
+    try {
+      const extra = Array.from({ length: PATIENT_TREATMENTS_MAX + 5 }, (_, i) => ({
+        ID: 888,
+        OPNUM: 10_000 + i,
+        TOOTHNB: 0,
+        PROCEDURE: "",
+        DATE: new Date(Date.UTC(2020, 0, 1)),
+        STATUS: 0,
+        PROCNB: "",
+        DOCT: 0,
+        DESC: "",
+        FEE: 0,
+      }));
+      await writeTreatmentsFixture(dir, extra);
+      await importTreatmentMirror(dir, sqlitePath);
+      const app = createBridgeApp("v-test", { bridgeConfig: bridgeConfig(dir, sqlitePath) });
+      await withServer(app, async (port) => {
+        const res = await fetch(`http://127.0.0.1:${port}/v1/patients/888/treatments`);
+        const parsed = PatientTreatmentsResponseSchema.parse(await res.json());
+        expect(parsed.treatments.length).toBe(PATIENT_TREATMENTS_MAX);
+        expect(parsed.truncated).toBe(true);
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("falls back to DBF when SQLITE_PATH file is missing", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "bridge-treatments-sqlite-fallback-"));
+    const missingSqlite = join(dir, "missing.sqlite");
+    try {
+      await writeTreatmentsFixture(dir);
+      const app = createBridgeApp("v-test", {
+        bridgeConfig: bridgeConfig(dir, missingSqlite),
+      });
+      await withServer(app, async (port) => {
+        const res = await fetch(`http://127.0.0.1:${port}/v1/patients/501/treatments`);
+        const parsed = PatientTreatmentsResponseSchema.parse(await res.json());
+        expect(parsed.treatments).toHaveLength(2);
+        expect(parsed.treatments[0]?.doctorLabel).toBe("Synthetic Provider Three");
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("uses DBF only when sqlitePath is not configured", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "bridge-treatments-sqlite-dbf-only-"));
+    try {
+      await writeTreatmentsFixture(dir);
+      const app = createBridgeApp("v-test", { bridgeConfig: bridgeConfig(dir) });
+      await withServer(app, async (port) => {
+        const res = await fetch(`http://127.0.0.1:${port}/v1/patients/501/treatments`);
+        expect(res.status).toBe(200);
+        expect(PatientTreatmentsResponseSchema.parse(await res.json()).treatments).toHaveLength(2);
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
     }
   });
 });

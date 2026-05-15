@@ -1,6 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { AppShell, resolveShellClinicLabel } from "./AppShell.js";
+import { AppShell, resolveMirrorDiagnosticLabel, resolveShellClinicLabel } from "./AppShell.js";
+
+describe("resolveMirrorDiagnosticLabel", () => {
+  it("returns null when diagnostics are disabled or bridge is not connected", () => {
+    expect(resolveMirrorDiagnosticLabel(false, "connected", true)).toBeNull();
+    expect(resolveMirrorDiagnosticLabel(true, "offline", true)).toBeNull();
+    expect(resolveMirrorDiagnosticLabel(true, "connected", null)).toBeNull();
+  });
+
+  it("returns active vs DBF fallback labels", () => {
+    expect(resolveMirrorDiagnosticLabel(true, "connected", true)).toBe("Mirror: active");
+    expect(resolveMirrorDiagnosticLabel(true, "connected", false)).toBe("Mirror: DBF fallback");
+  });
+});
 
 describe("resolveShellClinicLabel", () => {
   it("uses an explicit clinic label when provided", () => {
@@ -85,5 +98,17 @@ describe("AppShell", () => {
   it("shows the global privacy note under the read-only banner", () => {
     const html = renderToStaticMarkup(<AppShell />);
     expect(html).toContain("stay hidden in this read-only viewer");
+  });
+
+  it("does not show mirror diagnostic in static markup (dev fetch runs client-side only)", () => {
+    const html = renderToStaticMarkup(
+      <AppShell
+        bridgeBaseUrl="http://127.0.0.1:17890"
+        bridgeConnectionDiagnostics
+        mirrorConnectionDiagnostics
+      />,
+    );
+    expect(html).not.toContain("Mirror: active");
+    expect(html).not.toContain("Mirror: DBF fallback");
   });
 });

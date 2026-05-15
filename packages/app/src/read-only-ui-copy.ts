@@ -31,8 +31,18 @@ export const CLINIC_SERVICE_CONNECT_TODAY =
 export const PATIENT_PROFILE_READONLY_NOTE =
   "Read-only patient record — safe fields from your copied data only. Nothing here can be edited.";
 
+export const PATIENT_PAGE_SEARCH_TITLE = "Find a patient";
+
+export const PATIENT_PAGE_SEARCH_LEDE =
+  "Search by name or chart number when the clinic service is connected. There is no full patient directory in this read-only viewer — only matches for your query are shown.";
+
+export const PATIENT_PAGE_SEARCH_PRIVACY =
+  "Uses your copied clinic data. Names, chart numbers, record ids, and masked phone hints only — no notes, addresses, or payment fields.";
+
+export const PATIENT_CHANGE_PATIENT_LABEL = "Search another patient";
+
 export const PATIENT_NO_SELECTION_DESCRIPTION =
-  "Use Find a patient in the top bar, pick a row when the clinic service is connected, and this area will open their record.";
+  "Search below or in the top bar, pick a row when the clinic service is connected, and this area will open their record.";
 
 export const PATIENT_TAB_SUMMARY_LEDE =
   "Safe demographics from your copied patient file. Addresses, coverage details, and clinical notes stay hidden.";

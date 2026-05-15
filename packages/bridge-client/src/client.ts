@@ -18,7 +18,9 @@ import {
   TableRowsResponseSchema,
   TablesListResponseSchema,
   TableSchemaResponseSchema,
+  MirrorStatusResponseSchema,
   type HealthResponse,
+  type MirrorStatusResponse,
   type LegacyCatalogResponse,
   type PatientProfileResponse,
   type PatientMedicalSummaryResponse,
@@ -79,6 +81,11 @@ export class BridgeClient {
 
   async getMetaTables(): Promise<TablesListResponse> {
     return this.requestJson("/v1/meta/tables", TablesListResponseSchema);
+  }
+
+  /** Safe SQLite mirror metadata (no paths or row payloads). */
+  async getMirrorStatus(): Promise<MirrorStatusResponse> {
+    return this.requestJson("/v1/mirror/status", MirrorStatusResponseSchema);
   }
 
   async getLegacyCatalog(): Promise<LegacyCatalogResponse> {

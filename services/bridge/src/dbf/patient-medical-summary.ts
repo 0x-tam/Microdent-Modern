@@ -112,7 +112,11 @@ export function pickPreferredMedicalRow(
   return candidate;
 }
 
-function emptySummary(patientId: string): PatientMedicalSummaryResponse {
+export const PATIENT_MEDICAL_SUMMARY_PRIVACY_NOTE =
+  "Problem description, allergy free text, and medical notes remain hidden until field mapping is reviewed." as const;
+
+/** Empty medical summary when no mirror row / no matching `MEDICAL` row. */
+export function emptyPatientMedicalSummary(patientId: string): PatientMedicalSummaryResponse {
   return {
     patientId,
     hasMedicalRecord: false,
@@ -121,8 +125,7 @@ function emptySummary(patientId: string): PatientMedicalSummaryResponse {
     lastDentalVisit: null,
     flaggedConditionCount: 0,
     conditions: null,
-    privacyNote:
-      "Problem description, allergy free text, and medical notes remain hidden until field mapping is reviewed.",
+    privacyNote: PATIENT_MEDICAL_SUMMARY_PRIVACY_NOTE,
   };
 }
 
@@ -153,8 +156,7 @@ function toMirrorSummary(row: Record<string, unknown>, patientId: string): Medic
 export function toMedicalSummary(row: Record<string, unknown>, patientId: string): PatientMedicalSummaryResponse {
   return {
     ...toMirrorSummary(row, patientId),
-    privacyNote:
-      "Problem description, allergy free text, and medical notes remain hidden until field mapping is reviewed.",
+    privacyNote: PATIENT_MEDICAL_SUMMARY_PRIVACY_NOTE,
   };
 }
 
@@ -263,7 +265,7 @@ export async function readPatientMedicalSummaryFromDbf(
   }
 
   if (chosen === null) {
-    return { kind: "ok", summary: emptySummary(patientIdDigits) };
+    return { kind: "ok", summary: emptyPatientMedicalSummary(patientIdDigits) };
   }
   return { kind: "ok", summary: toMedicalSummary(chosen, patientIdDigits) };
 }

@@ -1,4 +1,10 @@
 export { HealthResponseSchema, type HealthResponse } from "./health.js";
+export {
+  MirrorImportRunSummarySchema,
+  MirrorStatusResponseSchema,
+  type MirrorImportRunSummary,
+  type MirrorStatusResponse,
+} from "./mirror-status.js";
 export { ApiErrorBodySchema, type ApiErrorBody } from "./api-error.js";
 export { TablesListResponseSchema, TableListItemSchema, type TablesListResponse } from "./meta-tables.js";
 export {

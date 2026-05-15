@@ -72,6 +72,16 @@ describe("PatientSearchBar", () => {
     vi.restoreAllMocks();
   });
 
+  it("uses distinct DOM ids for the Patients page instance", () => {
+    act(() => {
+      root.render(
+        <PatientSearchBar instanceId="page" bridgePhase="offline" bridgeBaseUrl="http://127.0.0.1:17890" />,
+      );
+    });
+    expect(container.querySelector("input#app-patients-page-search-input")).toBeTruthy();
+    expect(container.querySelector("#app-patient-search-input")).toBeFalsy();
+  });
+
   it("disables search when the bridge is offline", () => {
     act(() => {
       root.render(<PatientSearchBar bridgePhase="offline" bridgeBaseUrl="http://127.0.0.1:17890" />);

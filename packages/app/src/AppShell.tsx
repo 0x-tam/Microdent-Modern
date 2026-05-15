@@ -11,6 +11,15 @@ import {
   READ_ONLY_VIEWER_LABEL,
 } from "./read-only-ui-copy.js";
 
+export function resolveMirrorDiagnosticLabel(
+  enabled: boolean,
+  phase: BridgeHealthPhase,
+  sqliteUsable: boolean | null,
+): string | null {
+  if (!enabled || phase !== "connected" || sqliteUsable === null) return null;
+  return sqliteUsable ? "Mirror: active" : "Mirror: DBF fallback";
+}
+
 export function resolveShellClinicLabel(phase: BridgeHealthPhase, clinicLabel?: string): string {
   const trimmed = clinicLabel?.trim();
   if (trimmed && trimmed.length > 0) return trimmed;
@@ -48,6 +57,14 @@ export type AppShellProps = {
    * Do not enable in production patient contexts.
    */
   bridgeConnectionDiagnostics?: boolean;
+  /**
+   * When true (dev only), fetches `GET /v1/mirror/status` and shows mirror vs DBF fallback under bridge diagnostics.
+   */
+  mirrorConnectionDiagnostics?: boolean;
+  /**
+   * Optional fetch override (tests); production uses the bound global `fetch` from the bridge client.
+   */
+  fetchImpl?: typeof fetch;
 };
 
 const MODULE_PREVIEW: Record<
@@ -158,6 +175,8 @@ export function AppShell({
   bridgeBaseUrl,
   bridgeHealthLogDiagnostics = false,
   bridgeConnectionDiagnostics = false,
+  mirrorConnectionDiagnostics = false,
+  fetchImpl,
 }: AppShellProps) {
   const [active, setActive] = useState<AppNavModuleId>("today");
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
@@ -165,6 +184,7 @@ export function AppShell({
   const [lastHealthCheckAt, setLastHealthCheckAt] = useState<number | null>(null);
   const [lastHealthOfflineReason, setLastHealthOfflineReason] = useState<string | null>(null);
   const [previewOrigin, setPreviewOrigin] = useState<string>("—");
+  const [mirrorDiagLabel, setMirrorDiagLabel] = useState<string | null>(null);
 
   const mainHeadingId = "app-main-heading";
 
@@ -179,7 +199,7 @@ export function AppShell({
     }
     setBridgePhase("checking");
     setLastHealthOfflineReason(null);
-    const client = createBridgeClient({ baseUrl: bridgeBaseUrl.trim() });
+    const client = createBridgeClient({ baseUrl: bridgeBaseUrl.trim(), fetch: fetchImpl });
     const probe = await probeBridgeHealth(client);
     setLastHealthCheckAt(Date.now());
     if (probe.status === "connected") {
@@ -192,7 +212,7 @@ export function AppShell({
     if (bridgeHealthLogDiagnostics && probe.error !== undefined) {
       console.warn("[Microdent] Bridge health check did not succeed", probe.error);
     }
-  }, [bridgeBaseUrl, bridgeHealthLogDiagnostics]);
+  }, [bridgeBaseUrl, bridgeHealthLogDiagnostics, fetchImpl]);
 
   useEffect(() => {
     if (!bridgeBaseUrl?.trim()) {
@@ -213,6 +233,31 @@ export function AppShell({
     }
     setPreviewOrigin(window.location.origin);
   }, [bridgeConnectionDiagnostics]);
+
+  useEffect(() => {
+    if (!mirrorConnectionDiagnostics || !bridgeBaseUrl?.trim()) {
+      setMirrorDiagLabel(null);
+      return;
+    }
+    if (bridgePhase !== "connected") {
+      setMirrorDiagLabel(null);
+      return;
+    }
+    let cancelled = false;
+    const client = createBridgeClient({ baseUrl: bridgeBaseUrl.trim(), fetch: fetchImpl });
+    void client
+      .getMirrorStatus()
+      .then((status) => {
+        if (cancelled) return;
+        setMirrorDiagLabel(resolveMirrorDiagnosticLabel(true, "connected", status.sqliteUsable));
+      })
+      .catch(() => {
+        if (!cancelled) setMirrorDiagLabel(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mirrorConnectionDiagnostics, bridgeBaseUrl, bridgePhase, fetchImpl]);
 
   const sidebar = useMemo(
     () => (
@@ -248,6 +293,7 @@ export function AppShell({
             bridgePhase={bridgePhase}
             bridgeBaseUrl={bridgeBaseUrl}
             selectedPatientId={selectedPatientId}
+            fetchImpl={fetchImpl}
             onPatientRecordSelect={(hit) => {
               setSelectedPatientId(hit.patientId);
               setActive("patients");
@@ -302,6 +348,9 @@ export function AppShell({
               {bridgePhase === "offline" && lastHealthOfflineReason ? (
                 <div className="app-topbar__bridge-diag__line app-topbar__bridge-diag__reason">{lastHealthOfflineReason}</div>
               ) : null}
+              {mirrorConnectionDiagnostics && mirrorDiagLabel ? (
+                <div className="app-topbar__bridge-diag__line">{mirrorDiagLabel}</div>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -337,8 +386,8 @@ export function AppShell({
                 </p>
               ) : active === "patients" ? (
                 <p className="app-main__lede">
-                  Search in the top bar, pick a patient, then browse summary, visits, medical screening, treatments, chart, and
-                  ledger — read-only, with sensitive fields hidden.
+                  Search by name or chart number to open a record — or use the top bar. Browse summary, visits, medical screening,
+                  treatments, chart, and ledger read-only; sensitive fields stay hidden.
                 </p>
               ) : (
                 <p className="app-main__lede">Overview for {moduleLabel(active)}.</p>
@@ -347,12 +396,18 @@ export function AppShell({
 
             <div className="app-main__content">
               {active === "today" ? (
-                <DashboardHome onOpenModule={setActive} bridgeBaseUrl={bridgeBaseUrl} bridgePhase={bridgePhase} />
+                <DashboardHome
+                  onOpenModule={setActive}
+                  bridgeBaseUrl={bridgeBaseUrl}
+                  bridgePhase={bridgePhase}
+                  fetchImpl={fetchImpl}
+                />
               ) : active === "schedule" ? (
                 <SchedulePanel
                   isActive={active === "schedule"}
                   bridgePhase={bridgePhase}
                   bridgeBaseUrl={bridgeBaseUrl}
+                  fetchImpl={fetchImpl}
                   onBackToday={() => setActive("today")}
                 />
               ) : active === "patients" ? (
@@ -360,8 +415,10 @@ export function AppShell({
                   patientId={selectedPatientId}
                   bridgePhase={bridgePhase}
                   bridgeBaseUrl={bridgeBaseUrl}
+                  fetchImpl={fetchImpl}
                   onBackToday={() => setActive("today")}
                   onClearPatient={() => setSelectedPatientId(null)}
+                  onPatientRecordSelect={(hit) => setSelectedPatientId(hit.patientId)}
                 />
               ) : (
                 <ModuleHome moduleId={active} onOpenModule={setActive} onBackToday={() => setActive("today")} />

@@ -21,6 +21,16 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+function setSearchInputValue(input: HTMLInputElement, value: string): void {
+  const proto = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value");
+  proto?.set?.call(input, value);
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+function hasPageSearchDropdown(container: HTMLElement): boolean {
+  return container.querySelector("#app-patients-page-search-listbox") !== null;
+}
+
 const syntheticDoctors = {
   doctors: [
     { doctorId: "5", displayName: "Synthetic Provider ApptRow", active: true },
@@ -357,6 +367,7 @@ describe("PatientProfilePanel", () => {
 
   beforeEach(() => {
     (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    vi.useFakeTimers();
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -371,7 +382,7 @@ describe("PatientProfilePanel", () => {
     vi.useRealTimers();
   });
 
-  it("shows no-selection copy when patientId is null", async () => {
+  it("shows embedded patient search when patientId is null", async () => {
     await act(async () => {
       root.render(
         <PatientProfilePanel
@@ -383,8 +394,163 @@ describe("PatientProfilePanel", () => {
         />,
       );
     });
-    expect(container.textContent).toMatch(/No patient selected/i);
-    expect(container.textContent).toMatch(/Find a patient in the top bar/i);
+    expect(container.querySelector("input#app-patients-page-search-input")).toBeTruthy();
+    expect(container.textContent).toMatch(/Find a patient/i);
+    expect(container.textContent).toMatch(/no full patient directory/i);
+    expect(container.textContent).not.toMatch(/No patient selected/i);
+    expect(container.textContent).not.toContain("Synthetic Profile Patient");
+  });
+
+  it("does not fetch search when the bridge is offline on the Patients page", async () => {
+    const fetchImpl = vi.fn();
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId={null}
+          bridgePhase="offline"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    const input = container.querySelector("input#app-patients-page-search-input") as HTMLInputElement;
+    expect(input.disabled).toBe(true);
+    expect(container.textContent).toMatch(/Connect the clinic service/i);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("calls patient search from the Patients page when connected and opens profile on select", async () => {
+    const searchBody = {
+      results: [
+        {
+          patientId: "42",
+          chartNumber: "SYN-CHART",
+          displayName: "Synthetic Profile Patient",
+          phoneMask: "…4242",
+        },
+      ],
+    };
+    const fetchImpl = withReferenceDoctors((input) => {
+      const u = String(input);
+      if (u.includes("/v1/patients/search")) {
+        return Promise.resolve(jsonResponse(searchBody));
+      }
+      if (u.includes("/v1/patients/42/profile")) {
+        return Promise.resolve(jsonResponse(validProfile));
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+    const onPatientRecordSelect = vi.fn();
+
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId={null}
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+          onPatientRecordSelect={onPatientRecordSelect}
+        />,
+      );
+    });
+
+    const input = container.querySelector("input#app-patients-page-search-input") as HTMLInputElement;
+    await act(async () => {
+      setSearchInputValue(input, "Sy");
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(320);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(fetchImpl.mock.calls.some((c) => String(c[0]).includes("/v1/patients/search"))).toBe(true);
+    expect(container.textContent).toContain("Synthetic Profile Patient");
+
+    const hitBtn = Array.from(container.querySelectorAll("button")).find((b) =>
+      b.textContent?.includes("Synthetic Profile Patient"),
+    );
+    await act(async () => {
+      hitBtn?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(onPatientRecordSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ patientId: "42", displayName: "Synthetic Profile Patient" }),
+    );
+    expect(hasPageSearchDropdown(container)).toBe(false);
+
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(container.textContent).toContain("Synthetic Profile Patient");
+    expect(container.querySelector("#patient-panel-summary")).toBeTruthy();
+  });
+
+  it("does not surface forbidden legacy field labels in page search results", async () => {
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const u = String(input);
+      if (u.includes("/v1/patients/search")) {
+        return jsonResponse({
+          results: [
+            {
+              patientId: "99",
+              chartNumber: "X-1",
+              displayName: "Synthetic Search Only",
+              phoneMask: "…9900",
+            },
+          ],
+        });
+      }
+      return new Response("{}", { status: 404 });
+    });
+
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId={null}
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+
+    const input = container.querySelector("input#app-patients-page-search-input") as HTMLInputElement;
+    await act(async () => {
+      setSearchInputValue(input, "Sy");
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(320);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const text = container.textContent ?? "";
+    expect(text).toContain("Synthetic Search Only");
+    expect(text).not.toContain("TELEPHONE");
+    expect(text).not.toContain("COMMENT");
+    expect(text).not.toContain("NOTE");
+    expect(text).not.toMatch(/\braw row\b/i);
+    expect(text).not.toMatch(/555[- ]?\d{3}[- ]?\d{4}/);
   });
 
   it("does not call profile fetch when the bridge is offline", async () => {
