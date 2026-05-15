@@ -11,6 +11,12 @@ import { doctorDisplayLabel } from "./doctor-labels.js";
 import { procClassDisplayLabel, type ProcedureReferenceMaps } from "./procedure-reference.js";
 import { useDoctorLabels } from "./useDoctorLabels.js";
 import { useProcedureReference } from "./useProcedureReference.js";
+import {
+  CLINIC_SERVICE_CHECKING,
+  CLINIC_SERVICE_CONNECT_TODAY,
+  TAB_UNAVAILABLE_TITLE,
+  TODAY_PRIVACY_LEDE,
+} from "./read-only-ui-copy.js";
 
 function toLocalIsoDate(d: Date): string {
   const y = d.getFullYear();
@@ -182,14 +188,14 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
     if (!base || bridgePhase === "offline") {
       return (
         <p className="app-dashboard-sched__offline" role="status">
-          Connect the clinic service to load today’s appointments from your copied data.
+          {CLINIC_SERVICE_CONNECT_TODAY}
         </p>
       );
     }
     if (bridgePhase === "checking") {
       return (
         <p className="app-dashboard-sched__waiting" role="status">
-          Waiting for the clinic service…
+          {CLINIC_SERVICE_CHECKING}
         </p>
       );
     }
@@ -333,10 +339,7 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
               ) : null}
             </CardHeader>
             <CardBody>
-              <p className="app-dashboard-sched__privacy">
-                Read-only: display names and chart numbers use a safe patient summary from PATIENT.DBF. Full phone numbers,
-                addresses, note text, and other clinical or payment fields stay off this screen.
-              </p>
+              <p className="app-dashboard-sched__privacy">{TODAY_PRIVACY_LEDE}</p>
               {primaryBody}
               <div className="app-appt-list__footer">
                 <Button type="button" variant="secondary" className="ui-focusable" onClick={() => onOpenModule("schedule")}>
@@ -366,7 +369,7 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
                   variant="secondary"
                   className="ui-focusable app-quick-actions__btn"
                   disabled
-                  title="Not available in this preview"
+                  title={TAB_UNAVAILABLE_TITLE}
                 >
                   Find patient
                 </Button>
@@ -382,16 +385,16 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
                   type="button"
                   variant="secondary"
                   className="ui-focusable app-quick-actions__btn"
-                  onClick={() => onOpenModule("dental-chart")}
+                  onClick={() => onOpenModule("patients")}
                 >
-                  Review chart
+                  Open patient
                 </Button>
                 <Button
                   type="button"
                   variant="secondary"
                   className="ui-focusable app-quick-actions__btn"
                   disabled
-                  title="Recording payments is read-only in this preview"
+                  title={TAB_UNAVAILABLE_TITLE}
                 >
                   Record payment
                 </Button>
@@ -404,10 +407,10 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
               <p className="ui-card__title app-card-title-lg">Reminders</p>
             </CardHeader>
             <CardBody>
-              <ul className="app-reminder-list">
-                <li>Hygiene recall list for next week — review when Reports is on.</li>
-                <li>One benefit check pending for a visit this afternoon (example).</li>
-              </ul>
+              <p className="app-reminder-list__empty" role="status">
+                No reminders in this read-only viewer. Connect the clinic service and use Schedule or Patients for live data
+                from your copy.
+              </p>
             </CardBody>
           </Card>
 

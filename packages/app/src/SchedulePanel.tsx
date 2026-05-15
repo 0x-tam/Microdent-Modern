@@ -8,6 +8,11 @@ import { doctorDisplayLabel } from "./doctor-labels.js";
 import { procClassDisplayLabel } from "./procedure-reference.js";
 import { useDoctorLabels } from "./useDoctorLabels.js";
 import { useProcedureReference } from "./useProcedureReference.js";
+import {
+  CLINIC_SERVICE_CHECKING,
+  CLINIC_SERVICE_CONNECT_SCHEDULE,
+  SCHEDULE_PRIVACY_LEDE,
+} from "./read-only-ui-copy.js";
 
 export type SchedulePanelProps = {
   isActive: boolean;
@@ -320,10 +325,7 @@ export function SchedulePanel({
     return nums;
   }, [rooms]);
 
-  const offlineMessage =
-    bridgePhase === "checking"
-      ? "Waiting for the clinic service before the schedule can load."
-      : "Connect the clinic service to load your schedule.";
+  const offlineMessage = bridgePhase === "checking" ? CLINIC_SERVICE_CHECKING : CLINIC_SERVICE_CONNECT_SCHEDULE;
 
   return (
     <div className="app-schedule">
@@ -423,10 +425,7 @@ export function SchedulePanel({
         <p className="app-schedule__range" aria-live="polite">
           {rangeHeading}
         </p>
-        <p className="app-schedule__privacy">
-          Read-only schedule. Names and chart numbers come from a safe PATIENT.DBF summary; notes and phone numbers stay
-          hidden in this preview.
-        </p>
+        <p className="app-schedule__privacy">{SCHEDULE_PRIVACY_LEDE}</p>
       </div>
 
       {!canLoad ? (
@@ -498,8 +497,8 @@ export function SchedulePanel({
                                   </Badge>
                                 ) : null}
                                 {appt.hasComment ? (
-                                  <Badge variant="neutral" semanticLabel="Has internal note (content hidden)">
-                                    Note
+                                  <Badge variant="neutral" semanticLabel="Internal note hidden">
+                                    Note hidden
                                   </Badge>
                                 ) : null}
                               </div>

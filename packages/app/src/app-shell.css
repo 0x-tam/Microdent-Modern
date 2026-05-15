@@ -1484,6 +1484,39 @@
   color: var(--ui-text-secondary);
 }
 
+.app-patient-profile__identity {
+  margin: 0 0 var(--ui-space-3);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--ui-text-primary);
+}
+
+.app-patient-profile__identity-chart {
+  font-weight: 500;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+}
+
+.app-patient-profile__summary-lede {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+.app-reminder-list__empty {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
 .app-patient-profile__chart {
   display: flex;
   flex-direction: column;

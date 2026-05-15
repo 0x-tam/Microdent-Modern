@@ -2,12 +2,20 @@ import { createBridgeClient } from "@microdent/bridge-client";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Button, EmptyState, ReadOnlyBanner } from "@microdent/ui";
 import { probeBridgeHealth, describeBridgeHealthProbeError, type BridgeHealthPhase } from "./bridge-health.js";
+import {
+  MODULE_PLACEHOLDER_DESCRIPTION,
+  MODULE_PLACEHOLDER_TITLE,
+  READ_ONLY_BANNER_BODY,
+  READ_ONLY_CONNECTED_LABEL,
+  READ_ONLY_MODE_LABEL,
+  READ_ONLY_VIEWER_LABEL,
+} from "./read-only-ui-copy.js";
 
 export function resolveShellClinicLabel(phase: BridgeHealthPhase, clinicLabel?: string): string {
   const trimmed = clinicLabel?.trim();
   if (trimmed && trimmed.length > 0) return trimmed;
-  if (phase === "connected") return "Connected to copied clinic data";
-  return "Read-only preview";
+  if (phase === "connected") return READ_ONLY_CONNECTED_LABEL;
+  return READ_ONLY_VIEWER_LABEL;
 }
 
 export type { BridgeHealthPhase } from "./bridge-health.js";
@@ -59,16 +67,16 @@ const MODULE_PREVIEW: Record<
     bullets: ["Week and day views tuned for the front desk", "Clear visit status at a glance"],
   },
   "dental-chart": {
-    summary: "Review and record what you see in the mouth with a clear tooth chart.",
-    bullets: ["Chart by tooth and surface", "Keep clinical notes easy to find later"],
+    summary: "Browse odontogram rows from your copied data in read-only mode.",
+    bullets: ["Open a patient and use the Chart tab", "Chart memos and clinical labels stay hidden"],
   },
   treatments: {
-    summary: "See planned care, phases, and estimates in one place.",
-    bullets: ["Share plans with patients in plain language", "Connect plans to visits and payments when enabled"],
+    summary: "Review procedure history with safe fields only in the patient record.",
+    bullets: ["Open a patient and use the Treatments tab", "Memos, fees, and raw rows stay hidden"],
   },
   payments: {
-    summary: "Understand balances, insurance, and what the family owes.",
-    bullets: ["Ledger lines in date order", "Highlights when something needs a follow-up"],
+    summary: "Review ledger metadata without exposing payment amounts in this viewer.",
+    bullets: ["Open a patient and use the Ledger tab", "Amounts and memo text stay hidden"],
   },
   reports: {
     summary: "Run the lists and summaries your clinic relies on.",
@@ -121,8 +129,8 @@ function ModuleHome({
       <AppErrorBoundary>
         <EmptyState
           className="ui-empty--start"
-          title="Nothing to show yet"
-          description="When this area is turned on for your clinic, your team's work will show up here."
+          title={MODULE_PLACEHOLDER_TITLE}
+          description={MODULE_PLACEHOLDER_DESCRIPTION}
         />
       </AppErrorBoundary>
     </div>
@@ -300,8 +308,8 @@ export function AppShell({
       </header>
 
       <div className="app-shell__banner">
-        <ReadOnlyBanner label="Read-only mode" className="ui-readonly-banner--compact">
-          This preview cannot change clinic data. Names, notes, and phone numbers are hidden in this preview.
+        <ReadOnlyBanner label={READ_ONLY_MODE_LABEL} className="ui-readonly-banner--compact">
+          {READ_ONLY_BANNER_BODY}
         </ReadOnlyBanner>
       </div>
 
@@ -325,13 +333,12 @@ export function AppShell({
                 <p className="app-main__lede">Who is on the schedule, what is next, and where to go next.</p>
               ) : active === "schedule" ? (
                 <p className="app-main__lede">
-                  Read-only view from your copied data. Patient names use a safe PATIENT.DBF summary; note text and phones
-                  stay hidden.
+                  Day and week views from your copied schedule. Patient names use a safe summary; notes and phones stay hidden.
                 </p>
               ) : active === "patients" ? (
                 <p className="app-main__lede">
-                  Read-only summary from your copied data. Search in the top bar, pick a patient, and only safe fields load
-                  here — no address, insurance, or clinical notes in this preview.
+                  Search in the top bar, pick a patient, then browse summary, visits, medical screening, treatments, chart, and
+                  ledger — read-only, with sensitive fields hidden.
                 </p>
               ) : (
                 <p className="app-main__lede">Overview for {moduleLabel(active)}.</p>

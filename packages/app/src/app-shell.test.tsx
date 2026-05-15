@@ -12,9 +12,9 @@ describe("resolveShellClinicLabel", () => {
     expect(resolveShellClinicLabel("connected", undefined)).toBe("Connected to copied clinic data");
   });
 
-  it("uses read-only preview when no clinic label and bridge is not connected", () => {
-    expect(resolveShellClinicLabel("offline", undefined)).toBe("Read-only preview");
-    expect(resolveShellClinicLabel("checking", undefined)).toBe("Read-only preview");
+  it("uses read-only viewer label when no clinic label and bridge is not connected", () => {
+    expect(resolveShellClinicLabel("offline", undefined)).toBe("Read-only viewer");
+    expect(resolveShellClinicLabel("checking", undefined)).toBe("Read-only viewer");
   });
 
   it("treats blank clinic label as unset", () => {
@@ -66,9 +66,9 @@ describe("AppShell", () => {
     expect(html).toContain("Today");
   });
 
-  it("shows dynamic read-only preview label when no clinic name is passed", () => {
+  it("shows dynamic read-only viewer label when no clinic name is passed", () => {
     const html = renderToStaticMarkup(<AppShell />);
-    expect(html).toContain("Read-only preview");
+    expect(html).toContain("Read-only viewer");
     expect(html).not.toMatch(/sample data only/i);
   });
 
@@ -84,6 +84,6 @@ describe("AppShell", () => {
 
   it("shows the global privacy note under the read-only banner", () => {
     const html = renderToStaticMarkup(<AppShell />);
-    expect(html).toContain("Names, notes, and phone numbers are hidden in this preview.");
+    expect(html).toContain("stay hidden in this read-only viewer");
   });
 });

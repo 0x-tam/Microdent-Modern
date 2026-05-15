@@ -293,6 +293,21 @@ describe("safePatientAppointmentsError", () => {
   });
 });
 
+describe("safePatientLedgerError", () => {
+  it("maps TRANS_DBF_NOT_FOUND to admin copy", () => {
+    const err = new BridgeClientError("n", {
+      kind: "http",
+      status: 404,
+      apiCode: "TRANS_DBF_NOT_FOUND",
+    });
+    expect(safePatientLedgerError(err)).toMatch(/not available on this bridge/i);
+  });
+
+  it("maps unknown errors to a generic message", () => {
+    expect(safePatientLedgerError(new Error("secret"))).toMatch(/could not be loaded/i);
+  });
+});
+
 describe("safePatientTreatmentsError", () => {
   it("maps OPERTBL_DBF_NOT_FOUND to admin copy", () => {
     const err = new BridgeClientError("n", {
@@ -1229,7 +1244,7 @@ describe("PatientProfilePanel", () => {
     expect(t).not.toContain("SYNTHETIC_PATIENT_SPECIFIC_PROCEDURE_TEXT");
   });
 
-  it("enables Ledger preview tab and does not show a disabled Payments placeholder", async () => {
+  it("enables Ledger tab and does not show a disabled Payments placeholder", async () => {
     const fetchImpl = withReferenceDoctors((input) => {
       const u = String(input);
       if (u.includes("/profile")) {
@@ -1252,13 +1267,14 @@ describe("PatientProfilePanel", () => {
     await flush();
     const disabled = [...container.querySelectorAll(".app-patient-profile__tab[disabled]")];
     expect(disabled).toHaveLength(0);
-    expect(container.querySelector("#patient-tab-ledger")).toBeTruthy();
-    expect(container.querySelector("#patient-tab-ledger")?.hasAttribute("disabled")).toBe(false);
-    expect(container.textContent ?? "").toMatch(/Ledger preview/i);
+    const ledgerTab = container.querySelector("#patient-tab-ledger");
+    expect(ledgerTab).toBeTruthy();
+    expect(ledgerTab?.hasAttribute("disabled")).toBe(false);
+    expect(ledgerTab?.textContent ?? "").toMatch(/Ledger/);
     expect(container.textContent ?? "").not.toMatch(/\bPayments\b/);
   });
 
-  it("exposes a Ledger preview tab that can be activated", async () => {
+  it("exposes a Ledger tab that can be activated", async () => {
     const fetchImpl = withReferenceDoctors(
       ledgerFetchHandler({
         patientId: "42",
@@ -1287,7 +1303,7 @@ describe("PatientProfilePanel", () => {
     expect(container.querySelector("#patient-panel-ledger")).toBeTruthy();
   });
 
-  it("fetches ledger only when Ledger preview tab is active and bridge is connected", async () => {
+  it("fetches ledger only when Ledger tab is active and bridge is connected", async () => {
     const fetchImpl = withReferenceDoctors(
       ledgerFetchHandler({
         patientId: "42",
@@ -1342,7 +1358,7 @@ describe("PatientProfilePanel", () => {
     await flush();
     const t = container.textContent ?? "";
     expect(t).toMatch(/Ledger lines are read-only/i);
-    expect(t).toMatch(/Payment amounts are intentionally hidden/i);
+    expect(t).toMatch(/Amounts, memo text, and insurance identifiers stay hidden/i);
     expect(t).toContain("Charge type 2");
     expect(t).toContain("Payment type 100");
     expect(t).toContain("Card payment");
@@ -1351,7 +1367,7 @@ describe("PatientProfilePanel", () => {
     expect(t).toMatch(/capped list only/i);
   });
 
-  it("does not render forbidden ledger field tokens in the Ledger preview tab", async () => {
+  it("does not render forbidden ledger field tokens in the Ledger tab", async () => {
     const fetchImpl = withReferenceDoctors(
       ledgerFetchHandler({
         patientId: "42",

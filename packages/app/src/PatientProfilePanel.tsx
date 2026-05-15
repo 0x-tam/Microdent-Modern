@@ -53,7 +53,6 @@ import {
   PATIENT_TAB_SUMMARY_LEDE,
   PATIENT_TAB_TREATMENTS_LEDE,
   SENSITIVE_MEDICAL_BANNER,
-  TAB_UNAVAILABLE_TITLE,
   TRUNCATED_LIST_BANNER,
 } from "./read-only-ui-copy.js";
 import {
@@ -64,8 +63,6 @@ import {
   treatmentStatusLabel,
   treatmentToothLabel,
 } from "./patient-treatments-display.js";
-
-const COMING_TABS = [{ id: "payments" as const, label: "Payments" }];
 
 export type PatientProfilePanelProps = {
   /** When null, shows the “no patient selected” state. */
@@ -1026,21 +1023,6 @@ export function PatientProfilePanel({
                       onClick={() => setActiveTab(tab.id)}
                     >
                       {tab.label}
-                    </button>
-                  </li>
-                ))}
-                {COMING_TABS.map((tab) => (
-                  <li key={tab.id} role="presentation">
-                    <button
-                      type="button"
-                      role="tab"
-                      className="app-patient-profile__tab ui-focusable"
-                      disabled
-                      aria-disabled="true"
-                      title={TAB_UNAVAILABLE_TITLE}
-                    >
-                      {tab.label}
-                      <span className="app-patient-profile__tab-badge">Soon</span>
                     </button>
                   </li>
                 ))}
