@@ -130,7 +130,7 @@ export const PROFILE_TAB_ORDER: readonly { id: ProfileTab; label: string }[] = [
   { id: "medical", label: "Medical" },
   { id: "treatments", label: "Treatments" },
   { id: "chart", label: "Chart" },
-  { id: "ledger", label: "Ledger" },
+  { id: "ledger", label: "Ledger preview" },
 ];
 
 export function safePatientProfileError(e: unknown): string {
