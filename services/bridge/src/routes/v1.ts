@@ -6,6 +6,7 @@ import {
   PatientProfilePathParamsSchema,
   PatientProfileResponseSchema,
   PatientMedicalSummaryResponseSchema,
+  PatientTreatmentsResponseSchema,
   PatientSearchQueryParamsSchema,
   PatientSearchResponseSchema,
   PatientAppointmentsQuerySchema,
@@ -20,6 +21,7 @@ import {
 } from "@microdent/contracts";
 import type { BridgeConfig } from "../config.js";
 import { readPatientMedicalSummaryFromDbf } from "../dbf/patient-medical-summary.js";
+import { readPatientTreatmentsFromDbf } from "../dbf/patient-treatments.js";
 import { readPatientProfileFromDbf } from "../dbf/patient-profile.js";
 import { searchPatientsInDbf } from "../dbf/patient-search.js";
 import { openRegisteredDbf, parsePagination, readRegisteredTableRows } from "../dbf/read-table.js";
@@ -179,6 +181,31 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
 
     const body = outcome.summary;
     PatientMedicalSummaryResponseSchema.parse(body);
+    res.json(body);
+  });
+
+  router.get("/patients/:patientId/treatments", async (req, res) => {
+    if (!requireConfiguredDataRoot(res, bridgeConfig)) return;
+    const dr = bridgeConfig.dataRoot;
+
+    const parsedParams = PatientProfilePathParamsSchema.safeParse({ patientId: req.params.patientId });
+    if (!parsedParams.success) {
+      sendError(res, 400, "INVALID_PATIENT_ID", "invalid patient id");
+      return;
+    }
+
+    const outcome = await readPatientTreatmentsFromDbf(dr, parsedParams.data.patientId);
+    if (outcome.kind === "missing_table") {
+      sendError(res, 404, "OPERTBL_DBF_NOT_FOUND", "OPERTBL.DBF not found under DATA_ROOT");
+      return;
+    }
+    if (outcome.kind === "read_error") {
+      sendError(res, 500, "PATIENT_TREATMENTS_ERROR", "treatments could not be read");
+      return;
+    }
+
+    const body = outcome.body;
+    PatientTreatmentsResponseSchema.parse(body);
     res.json(body);
   });
 

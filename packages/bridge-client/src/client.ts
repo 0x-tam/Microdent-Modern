@@ -7,6 +7,7 @@ import {
   PatientProfilePathParamsSchema,
   PatientProfileResponseSchema,
   PatientMedicalSummaryResponseSchema,
+  PatientTreatmentsResponseSchema,
   PatientSearchResponseSchema,
   ReferenceDoctorsResponseSchema,
   ScheduleAppointmentsResponseSchema,
@@ -19,6 +20,7 @@ import {
   type LegacyCatalogResponse,
   type PatientProfileResponse,
   type PatientMedicalSummaryResponse,
+  type PatientTreatmentsResponse,
   type PatientSearchResponse,
   type ReferenceDoctorsResponse,
   type ScheduleAppointmentsResponse,
@@ -125,6 +127,23 @@ export class BridgeClient {
     return this.requestJson(
       `/v1/patients/${encodeURIComponent(id)}/medical-summary`,
       PatientMedicalSummaryResponseSchema,
+    );
+  }
+
+  /**
+   * Read-only procedure history from `OPERTBL.DBF` for one patient. Safe fields only — no memos, fees, or raw rows.
+   */
+  async getPatientTreatments(patientId: string): Promise<PatientTreatmentsResponse> {
+    const parsed = PatientProfilePathParamsSchema.safeParse({ patientId });
+    if (!parsed.success) {
+      throw new BridgeClientError("Invalid patient id", {
+        kind: "invalid_argument",
+      });
+    }
+    const id = parsed.data.patientId;
+    return this.requestJson(
+      `/v1/patients/${encodeURIComponent(id)}/treatments`,
+      PatientTreatmentsResponseSchema,
     );
   }
 

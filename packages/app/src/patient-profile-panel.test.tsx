@@ -6,6 +6,7 @@ import { BridgeClientError } from "@microdent/bridge-client";
 import {
   PatientProfilePanel,
   safePatientAppointmentsError,
+  safePatientMedicalSummaryError,
   safePatientProfileError,
 } from "./PatientProfilePanel.js";
 import { defaultPatientApptRange, inclusiveDayCount } from "./patient-appointments-range.js";
@@ -92,6 +93,68 @@ async function clickAppointmentsTab(container: HTMLElement): Promise<void> {
   });
 }
 
+async function clickMedicalTab(container: HTMLElement): Promise<void> {
+  const tab = container.querySelector("#patient-tab-medical");
+  if (!(tab instanceof HTMLButtonElement)) {
+    throw new Error("Medical tab button not found");
+  }
+  await act(async () => {
+    tab.click();
+  });
+}
+
+const PRIVACY_NOTE =
+  "Problem description, allergy free text, and medical notes remain hidden until field mapping is reviewed." as const;
+
+const nullConditions = {
+  hospital: null,
+  physician: null,
+  medicine: null,
+  ill: null,
+  reaction: null,
+  bleeding: null,
+  allergic: null,
+  heartTrouble: null,
+  congenitalHeart: null,
+  heartMurmur: null,
+  highBloodPressure: null,
+  lowBloodPressure: null,
+  anemia: null,
+  rheumaticFever: null,
+  jaundice: null,
+  asthma: null,
+  cough: null,
+  kidneyTrouble: null,
+  med1: null,
+  diabetes: null,
+  tuberculosis: null,
+  hepatitis: null,
+  arthritis: null,
+  stroke: null,
+  epilepsy: null,
+  psychiatric: null,
+  sinusTrouble: null,
+  pregnant: null,
+  ulcers: null,
+  aids: null,
+  med2: null,
+};
+
+function medicalFetchHandler(
+  summary: unknown,
+): (input: RequestInfo | URL) => Promise<Response> {
+  return (input) => {
+    const u = String(input);
+    if (u.includes("/profile")) {
+      return Promise.resolve(jsonResponse(validProfile));
+    }
+    if (u.includes("/medical-summary")) {
+      return Promise.resolve(jsonResponse(summary));
+    }
+    return Promise.reject(new Error(`unexpected ${u}`));
+  };
+}
+
 describe("safePatientProfileError", () => {
   it("maps PATIENT_NOT_FOUND to a neutral message", () => {
     const err = new BridgeClientError("n", {
@@ -111,6 +174,21 @@ describe("safePatientAppointmentsError", () => {
   it("maps invalid range to a neutral message", () => {
     const err = new BridgeClientError("n", { kind: "invalid_argument" });
     expect(safePatientAppointmentsError(err)).toMatch(/date range/i);
+  });
+});
+
+describe("safePatientMedicalSummaryError", () => {
+  it("maps MEDICAL_DBF_NOT_FOUND to admin copy", () => {
+    const err = new BridgeClientError("n", {
+      kind: "http",
+      status: 404,
+      apiCode: "MEDICAL_DBF_NOT_FOUND",
+    });
+    expect(safePatientMedicalSummaryError(err)).toMatch(/not available on this bridge/i);
+  });
+
+  it("maps unknown errors to a generic message", () => {
+    expect(safePatientMedicalSummaryError(new Error("secret"))).toMatch(/could not be loaded/i);
   });
 });
 
@@ -529,6 +607,284 @@ describe("PatientProfilePanel", () => {
     await flush();
 
     expect(container.textContent).toContain("Doctor 5");
+  });
+
+  it("does not show Medical tab when no patient is selected", async () => {
+    const fetchImpl = vi.fn();
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId={null}
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    expect(container.querySelector("#patient-tab-medical")).toBeNull();
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("exposes a Medical tab that can be activated", async () => {
+    const fetchImpl = withReferenceDoctors((input) => {
+      const u = String(input);
+      if (u.includes("/profile")) {
+        return Promise.resolve(jsonResponse(validProfile));
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    const tab = container.querySelector("#patient-tab-medical");
+    expect(tab).toBeTruthy();
+    expect(tab?.getAttribute("aria-selected")).toBe("false");
+    await clickMedicalTab(container);
+    expect(tab?.getAttribute("aria-selected")).toBe("true");
+    expect(container.querySelector("#patient-panel-medical")).toBeTruthy();
+  });
+
+  it("fetches medical summary only when Medical tab is active and bridge is connected", async () => {
+    const fetchImpl = withReferenceDoctors(medicalFetchHandler({
+      patientId: "42",
+      hasMedicalRecord: false,
+      hasSensitiveMedicalDetails: false,
+      lastUpdated: null,
+      lastDentalVisit: null,
+      flaggedConditionCount: 0,
+      conditions: null,
+      privacyNote: PRIVACY_NOTE,
+    }));
+
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    expect(fetchImpl.mock.calls.some((c) => String(c[0]).includes("/medical-summary"))).toBe(false);
+
+    await clickMedicalTab(container);
+    await flush();
+
+    const medUrl = fetchImpl.mock.calls.map((c) => String(c[0])).find((u) => u.includes("/medical-summary"));
+    expect(medUrl).toContain("/v1/patients/42/medical-summary");
+  });
+
+  it("does not fetch medical summary when the bridge is offline", async () => {
+    const fetchImpl = vi.fn();
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="offline"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("shows no medical record state", async () => {
+    const fetchImpl = withReferenceDoctors(
+      medicalFetchHandler({
+        patientId: "42",
+        hasMedicalRecord: false,
+        hasSensitiveMedicalDetails: false,
+        lastUpdated: null,
+        lastDentalVisit: null,
+        flaggedConditionCount: 0,
+        conditions: null,
+        privacyNote: PRIVACY_NOTE,
+      }),
+    );
+
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    await clickMedicalTab(container);
+    await flush();
+    expect(container.textContent).toMatch(/No medical record found for this patient/i);
+  });
+
+  it("shows medical record with screening flags when not sensitive", async () => {
+    const fetchImpl = withReferenceDoctors(
+      medicalFetchHandler({
+        patientId: "42",
+        hasMedicalRecord: true,
+        hasSensitiveMedicalDetails: false,
+        lastUpdated: "2024-06-01",
+        lastDentalVisit: "2024-01-10",
+        flaggedConditionCount: 2,
+        conditions: { ...nullConditions, asthma: true, diabetes: true },
+        privacyNote: PRIVACY_NOTE,
+      }),
+    );
+
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    await clickMedicalTab(container);
+    await flush();
+
+    const t = container.textContent ?? "";
+    expect(t).toMatch(/Medical summary is read-only/i);
+    expect(t).toContain("2024-06-01");
+    expect(t).toContain("2024-01-10");
+    expect(t).toContain("2");
+    expect(t).toContain("Asthma (screening)");
+    expect(t).toContain("Diabetes (screening)");
+    expect(t).toContain(PRIVACY_NOTE);
+    expect(t).not.toMatch(/\bheartTrouble\b/);
+  });
+
+  it("shows sensitive-details layout without per-flag list", async () => {
+    const fetchImpl = withReferenceDoctors(
+      medicalFetchHandler({
+        patientId: "42",
+        hasMedicalRecord: true,
+        hasSensitiveMedicalDetails: true,
+        lastUpdated: "2024-06-01",
+        lastDentalVisit: null,
+        flaggedConditionCount: 3,
+        conditions: { ...nullConditions, asthma: true, diabetes: true, med1: true },
+        privacyNote: PRIVACY_NOTE,
+      }),
+    );
+
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    await clickMedicalTab(container);
+    await flush();
+
+    const t = container.textContent ?? "";
+    expect(t).toMatch(/Details are hidden in this read-only preview/i);
+    expect(t).toContain("3");
+    expect(t).not.toContain("Asthma (screening)");
+    expect(t).not.toContain("Diabetes (screening)");
+    expect(t).toContain(PRIVACY_NOTE);
+  });
+
+  it("does not render forbidden medical field tokens in the Medical tab", async () => {
+    const fetchImpl = withReferenceDoctors(
+      medicalFetchHandler({
+        patientId: "42",
+        hasMedicalRecord: true,
+        hasSensitiveMedicalDetails: false,
+        lastUpdated: "2024-06-01",
+        lastDentalVisit: null,
+        flaggedConditionCount: 1,
+        conditions: { ...nullConditions, asthma: true },
+        privacyNote: PRIVACY_NOTE,
+      }),
+    );
+
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    await clickMedicalTab(container);
+    await flush();
+
+    const t = container.textContent ?? "";
+    expect(t).not.toMatch(/\b(PROBLEM|ALLERGY_TO|NOTES)\b/);
+    expect(t).not.toMatch(/\braw row\b/i);
+    expect(t).not.toContain("SYNTHETIC_MEDICAL_FREE_TEXT");
+  });
+
+  it("shows error state when medical summary cannot be loaded", async () => {
+    const fetchImpl = withReferenceDoctors((input) => {
+      const u = String(input);
+      if (u.includes("/profile")) {
+        return Promise.resolve(jsonResponse(validProfile));
+      }
+      if (u.includes("/medical-summary")) {
+        return Promise.resolve(
+          jsonResponse({ error: { code: "MEDICAL_SUMMARY_ERROR", message: "secret leak" } }, 500),
+        );
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    await clickMedicalTab(container);
+    await flush();
+    expect(container.textContent).not.toContain("secret leak");
+    expect(container.textContent).toMatch(/medical summary could not be loaded|Try again/i);
   });
 
   it("still renders appointments when reference doctors fail", async () => {

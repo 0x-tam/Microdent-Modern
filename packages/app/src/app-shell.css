@@ -1330,6 +1330,57 @@
   color: var(--ui-text-secondary);
 }
 
+.app-patient-profile__medical {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+}
+
+.app-patient-profile__medical-lede {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__medical-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+}
+
+.app-patient-profile__medical-banner {
+  margin: 0;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ui-text-primary);
+  background: var(--ui-bg-surface);
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-md);
+}
+
+.app-patient-profile__medical-flags {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ui-text-primary);
+}
+
+.app-patient-profile__medical-muted {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__medical-privacy {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
 .app-patient-profile__appt-days {
   display: flex;
   flex-direction: column;

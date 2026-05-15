@@ -39,6 +39,14 @@ export {
   type PatientMedicalSummaryResponse,
 } from "./patient-medical-summary.js";
 export {
+  PatientTreatmentItemSchema,
+  PatientTreatmentsPathParamsSchema,
+  PatientTreatmentsResponseSchema,
+  type PatientTreatmentItem,
+  type PatientTreatmentsPathParams,
+  type PatientTreatmentsResponse,
+} from "./patient-treatments.js";
+export {
   ReferenceDoctorItemSchema,
   ReferenceDoctorsResponseSchema,
   type ReferenceDoctorItem,

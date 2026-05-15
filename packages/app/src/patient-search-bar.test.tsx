@@ -11,6 +11,21 @@ function setSearchInputValue(input: HTMLInputElement, value: string): void {
   input.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
+function hasSearchResultsDropdown(container: HTMLElement): boolean {
+  return container.querySelector("#app-patient-search-listbox") !== null;
+}
+
+const demoHitResponse = {
+  results: [
+    {
+      patientId: "90001",
+      chartNumber: "C-100",
+      displayName: "Demo Alpha",
+      phoneMask: "…9000",
+    },
+  ],
+};
+
 describe("safePatientSearchError", () => {
   it("maps network errors to a neutral clinic message", () => {
     const err = new BridgeClientError("x", { kind: "network" });
@@ -176,6 +191,124 @@ describe("PatientSearchBar", () => {
     expect(onPatientRecordSelect).toHaveBeenCalledWith(
       expect.objectContaining({ patientId: "90001", displayName: "Demo Alpha" }),
     );
+    expect(hasSearchResultsDropdown(container)).toBe(false);
+    expect(input.value).toBe("Demo Alpha");
+  });
+
+  it("closes the results dropdown when Escape is pressed", async () => {
+    const fetchImpl = vi.fn(async () => {
+      return new Response(JSON.stringify(demoHitResponse), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+
+    act(() => {
+      root.render(
+        <PatientSearchBar bridgePhase="connected" bridgeBaseUrl="http://127.0.0.1:17890" fetchImpl={fetchImpl} />,
+      );
+    });
+    const input = container.querySelector("input#app-patient-search-input") as HTMLInputElement;
+    await act(async () => {
+      setSearchInputValue(input, "De");
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(320);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(hasSearchResultsDropdown(container)).toBe(true);
+
+    await act(async () => {
+      input.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    });
+    expect(hasSearchResultsDropdown(container)).toBe(false);
+    expect(input.value).toBe("De");
+  });
+
+  it("closes the results dropdown when clicking outside the search component", async () => {
+    const fetchImpl = vi.fn(async () => {
+      return new Response(JSON.stringify(demoHitResponse), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+    const outside = document.createElement("button");
+    outside.type = "button";
+    outside.textContent = "Outside";
+    document.body.appendChild(outside);
+
+    act(() => {
+      root.render(
+        <PatientSearchBar bridgePhase="connected" bridgeBaseUrl="http://127.0.0.1:17890" fetchImpl={fetchImpl} />,
+      );
+    });
+    const input = container.querySelector("input#app-patient-search-input") as HTMLInputElement;
+    await act(async () => {
+      setSearchInputValue(input, "De");
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(320);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(hasSearchResultsDropdown(container)).toBe(true);
+
+    await act(async () => {
+      outside.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    });
+    expect(hasSearchResultsDropdown(container)).toBe(false);
+    outside.remove();
+  });
+
+  it("shows results again after a new valid search query", async () => {
+    const fetchImpl = vi.fn(async () => {
+      return new Response(JSON.stringify(demoHitResponse), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+    const onPatientRecordSelect = vi.fn();
+
+    act(() => {
+      root.render(
+        <PatientSearchBar
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onPatientRecordSelect={onPatientRecordSelect}
+        />,
+      );
+    });
+    const input = container.querySelector("input#app-patient-search-input") as HTMLInputElement;
+    await act(async () => {
+      setSearchInputValue(input, "De");
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(320);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const btn = Array.from(container.querySelectorAll("button")).find((b) => b.textContent?.includes("Demo Alpha"));
+    await act(async () => {
+      btn?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(hasSearchResultsDropdown(container)).toBe(false);
+
+    await act(async () => {
+      setSearchInputValue(input, "Jo");
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(320);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(hasSearchResultsDropdown(container)).toBe(true);
+    expect(container.textContent).toContain("Demo Alpha");
   });
 
   it("shows a clear empty state when there are no matches", async () => {

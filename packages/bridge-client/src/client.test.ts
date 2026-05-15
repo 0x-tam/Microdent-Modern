@@ -173,6 +173,43 @@ describe("BridgeClient", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it("getPatientTreatments: success and encodes path segment", async () => {
+    const body = {
+      patientId: "501",
+      treatments: [
+        {
+          treatmentId: "100",
+          patientId: "501",
+          date: "2024-06-01",
+          tooth: 14,
+          procedureCode: "SYN01",
+          procedureLabel: "Synthetic dictionary label",
+          doctorId: "3",
+          doctorLabel: "Synthetic Provider Three",
+          status: 2,
+          hasDescription: true,
+        },
+      ],
+      truncated: false,
+      privacyNote:
+        "Procedure memos, per-line descriptions, fee columns, and raw OPERTBL rows are never exposed by this route.",
+    };
+    const fetch = vi.fn().mockResolvedValue(jsonResponse(body));
+    const client = createBridgeClient({ baseUrl, fetch });
+    await expect(client.getPatientTreatments("501")).resolves.toEqual(body);
+    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/v1/patients/501/treatments`, expect.anything());
+  });
+
+  it("getPatientTreatments: rejects invalid id before fetch", async () => {
+    const fetch = vi.fn();
+    const client = createBridgeClient({ baseUrl, fetch });
+    await expect(client.getPatientTreatments("0")).rejects.toMatchObject({
+      name: "BridgeClientError",
+      kind: "invalid_argument",
+    });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("getReferenceProcedures: success", async () => {
     const body = {
       procedures: [

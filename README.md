@@ -17,6 +17,44 @@ Modern read-only clinic stack (bridge + shared contracts + future desktop shell)
 pnpm install
 ```
 
+## Local development (clean startup)
+
+Helper scripts live under `scripts/` and are wired in root `package.json`. They target **macOS** first (`lsof` required); other platforms may need manual port cleanup until we add cross-platform support.
+
+| Command | Purpose |
+| --- | --- |
+| `pnpm dev:ports` | Show what is **listening** on bridge **17890** and Vite **5173** / preview **4173** |
+| `pnpm dev:kill-ports` | **SIGTERM** (then **SIGKILL** if needed) only those listeners — not arbitrary ports |
+| `pnpm dev:bridge` | Build contracts and start bridge **`dev`** (tsx watch); requires **`DATA_ROOT`** in the environment |
+| `pnpm dev:web` | Ensure `apps/web/.env.local` exists, then start Vite dev on **http://127.0.0.1:5173** |
+
+**Typical flow**
+
+1. Free stale processes: `pnpm dev:kill-ports` (optional: `pnpm dev:ports` before/after).
+2. **Terminal A — bridge** (set your own absolute path; never commit real clinic `DATA`):
+
+   ```bash
+   export DATA_ROOT="/absolute/path/to/your/read-only/DATA-copy"
+   pnpm dev:bridge
+   ```
+
+   One-liner:
+
+   ```bash
+   DATA_ROOT="/absolute/path/to/your/read-only/DATA-copy" pnpm dev:bridge
+   ```
+
+   Synthetic fixture only (no real patient tables):
+
+   ```bash
+   DATA_ROOT="$(pwd)/services/bridge/fixtures/sandbox" pnpm dev:bridge
+   ```
+
+3. **Terminal B — web:** `pnpm dev:web`
+4. **Verify bridge:** `curl -sS http://127.0.0.1:17890/health` — expect JSON with `"ok": true`. Open **http://127.0.0.1:5173**; the shell top bar should show **Connected** when health succeeds.
+
+If a port is still busy, run `pnpm dev:ports` to see the PID and command, then `pnpm dev:kill-ports` again.
+
 ## Tests
 
 From the repository root after `pnpm install` or `npm install`:
@@ -37,20 +75,20 @@ The **`@microdent/app`** package exports **`AppShell`** (top bar with optional *
 
 **Run the shell in a local Vite dev server** (loopback only; **`GET /health`** to the local bridge — no patient data):
 
-1. **Terminal A — start the bridge:**
+1. **Terminal A — start the bridge** (see [Local development (clean startup)](#local-development-clean-startup) for `pnpm dev:bridge` and port cleanup):
 
    ```bash
-   pnpm install
-   pnpm --filter @microdent/contracts run build
-   pnpm --filter @microdent/bridge run build
-   pnpm --filter @microdent/bridge run start
+   export DATA_ROOT="/absolute/path/to/your/read-only/DATA-copy"
+   pnpm dev:bridge
    ```
 
 2. **Terminal B — web preview:**
 
    ```bash
-   pnpm preview:web
+   pnpm dev:web
    ```
+
+   (`pnpm preview:web` is an alias for the same Vite dev command.)
 
 3. Open **http://127.0.0.1:5173** (or **http://127.0.0.1:4173** when using `pnpm --filter @microdent/web run preview` after a build). Confirm the bridge with **http://127.0.0.1:17890/health** (JSON `ok`). The top bar should show **Connected** when health succeeds: the bridge allows browser **`Origin`** values that are **`http://`** on **`127.0.0.1`**, **`localhost`**, or **`::1`** with a port from **3000** through **5999** (typical Vite and other local dev servers).
 

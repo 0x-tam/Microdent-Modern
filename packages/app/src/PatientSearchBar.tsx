@@ -83,6 +83,9 @@ export function PatientSearchBar({
   const [devSchemaHint, setDevSchemaHint] = useState(false);
   const [searching, setSearching] = useState(false);
   const [lastFinishedQuery, setLastFinishedQuery] = useState<string | null>(null);
+  const [isResultsPanelOpen, setIsResultsPanelOpen] = useState(false);
+
+  const rootRef = useRef<HTMLDivElement>(null);
 
   const showDevDiagnostics = (() => {
     const m = import.meta as { env?: { DEV?: boolean; MODE?: string } };
@@ -99,6 +102,7 @@ export function PatientSearchBar({
         return;
       }
       const seq = ++requestSeq.current;
+      setIsResultsPanelOpen(true);
       setSearching(true);
       setSearchError(null);
       setDevSchemaHint(false);
@@ -156,8 +160,42 @@ export function PatientSearchBar({
       setSearchError(null);
       setDevSchemaHint(false);
       setLastFinishedQuery(null);
+      setIsResultsPanelOpen(false);
     }
   }, [canSearch]);
+
+  useEffect(() => {
+    if (!isResultsPanelOpen) {
+      return;
+    }
+    const onMouseDown = (e: MouseEvent) => {
+      const root = rootRef.current;
+      if (root && !root.contains(e.target as Node)) {
+        setIsResultsPanelOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, [isResultsPanelOpen]);
+
+  const dismissResultsPanel = useCallback(() => {
+    setIsResultsPanelOpen(false);
+  }, []);
+
+  const selectPatientHit = useCallback(
+    (hit: PatientSearchHit) => {
+      onPatientRecordSelect?.(hit);
+      requestSeq.current += 1;
+      setSearching(false);
+      setResults([]);
+      setSearchError(null);
+      setDevSchemaHint(false);
+      setLastFinishedQuery(null);
+      setQuery(hit.displayName);
+      setIsResultsPanelOpen(false);
+    },
+    [onPatientRecordSelect],
+  );
 
   const flushAndSearch = useCallback(() => {
     if (debounceTimerRef.current !== null) {
@@ -172,12 +210,19 @@ export function PatientSearchBar({
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Escape") {
+        if (isResultsPanelOpen) {
+          e.preventDefault();
+          dismissResultsPanel();
+        }
+        return;
+      }
       if (e.key === "Enter") {
         e.preventDefault();
         flushAndSearch();
       }
     },
-    [flushAndSearch],
+    [dismissResultsPanel, flushAndSearch, isResultsPanelOpen],
   );
 
   const statusLine = useMemo(() => {
@@ -208,15 +253,17 @@ export function PatientSearchBar({
     return null;
   }, [base, bridgePhase, canSearch, trimmed, searching, searchError, lastFinishedQuery, results.length]);
 
-  const showDropdown =
+  const hasDropdownContent =
     canSearch &&
     trimmed.length >= 2 &&
     (searching || searchError !== null || results.length > 0 || (lastFinishedQuery === trimmed && !searching && results.length === 0));
 
+  const showDropdown = hasDropdownContent && isResultsPanelOpen;
+
   const cappedList = results.length >= 20;
 
   return (
-    <div className="app-patient-search">
+    <div ref={rootRef} className="app-patient-search">
       <label className="app-sr-only" htmlFor="app-patient-search-input">
         Find a patient
       </label>
@@ -239,6 +286,7 @@ export function PatientSearchBar({
             onPatientSelectionClear?.();
             setQuery(e.target.value);
             if (e.target.value.trim().length < 2) {
+              setIsResultsPanelOpen(false);
               setResults([]);
               setSearchError(null);
               setDevSchemaHint(false);
@@ -300,7 +348,7 @@ export function PatientSearchBar({
                       role="option"
                       aria-selected={isSelected}
                       className={`app-patient-search__hit ui-focusable${isSelected ? " app-patient-search__hit--selected" : ""}`}
-                      onClick={() => onPatientRecordSelect?.(hit)}
+                      onClick={() => selectPatientHit(hit)}
                     >
                       <span className="app-patient-search__hit-name">{hit.displayName}</span>
                       {secondary ? <span className="app-patient-search__hit-meta">{secondary}</span> : null}

@@ -1,5 +1,9 @@
 import { BridgeClientError, createBridgeClient, isInvalidBodySchemaMismatch } from "@microdent/bridge-client";
-import type { PatientProfileResponse, ScheduleAppointmentItem } from "@microdent/contracts";
+import type {
+  PatientMedicalSummaryResponse,
+  PatientProfileResponse,
+  ScheduleAppointmentItem,
+} from "@microdent/contracts";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge, Button, Card, CardBody, CardHeader, EmptyState } from "@microdent/ui";
 import type { BridgeHealthPhase } from "./bridge-health.js";
@@ -18,6 +22,7 @@ import {
 import { doctorDisplayLabel } from "./doctor-labels.js";
 import { useDoctorLabels } from "./useDoctorLabels.js";
 import { useProcedureReference } from "./useProcedureReference.js";
+import { medicalConditionItemsForDisplay } from "./patient-medical-summary-display.js";
 
 export type PatientProfilePanelProps = {
   /** When null, shows the “no patient selected” state. */
@@ -47,10 +52,17 @@ type ApptLoadState =
   | { phase: "empty" }
   | { phase: "error"; message: string };
 
-const COMING_TABS: { id: Exclude<ProfileTab, "appointments">; label: string }[] = [
+type MedLoadState =
+  | { phase: "idle" }
+  | { phase: "offline" }
+  | { phase: "loading" }
+  | { phase: "no_record" }
+  | { phase: "loaded"; summary: PatientMedicalSummaryResponse }
+  | { phase: "error"; message: string };
+
+const COMING_TABS: { id: Exclude<ProfileTab, "appointments" | "medical">; label: string }[] = [
   { id: "treatments", label: "Treatments" },
   { id: "payments", label: "Payments" },
-  { id: "medical", label: "Medical" },
   { id: "chart", label: "Chart" },
 ];
 
@@ -113,6 +125,40 @@ export function safePatientAppointmentsError(e: unknown): string {
   return "Appointment history could not be loaded.";
 }
 
+export function safePatientMedicalSummaryError(e: unknown): string {
+  if (e instanceof BridgeClientError) {
+    if (e.kind === "network") {
+      return "Could not reach the clinic service. Check that the bridge is running.";
+    }
+    if (e.kind === "http") {
+      const code = e.apiCode ?? "";
+      if (code === "MEDICAL_DBF_NOT_FOUND") {
+        return "Medical questionnaires are not available on this bridge yet. Ask your administrator to check the data folder.";
+      }
+      if (code === "DATA_ROOT_NOT_CONFIGURED") {
+        return "Medical summary is not available on this bridge yet. Ask your administrator to check the data folder.";
+      }
+      if (code === "INVALID_PATIENT_ID") {
+        return "This patient id is not valid for a medical summary request.";
+      }
+      if (code === "MEDICAL_SUMMARY_ERROR") {
+        return "The medical summary could not be loaded. Try again in a moment.";
+      }
+      return "The medical summary could not be loaded. Try again in a moment.";
+    }
+    if (e.kind === "invalid_body") {
+      if (isInvalidBodySchemaMismatch(e)) {
+        return "Medical summary needs a small data mapping fix. No clinic data was changed.";
+      }
+      return "The medical summary could not read the clinic response format. Try again.";
+    }
+    if (e.kind === "invalid_argument") {
+      return "This patient id is not valid for a medical summary request.";
+    }
+  }
+  return "The medical summary could not be loaded.";
+}
+
 function formatApptRangeHeading(from: string, to: string): string {
   try {
     const fmt = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" });
@@ -123,6 +169,50 @@ function formatApptRangeHeading(from: string, to: string): string {
   } catch {
     return `${from} – ${to}`;
   }
+}
+
+function MedicalSummaryBody({ summary }: { summary: PatientMedicalSummaryResponse }) {
+  const sensitive = summary.hasSensitiveMedicalDetails;
+  const conditionItems = sensitive ? [] : medicalConditionItemsForDisplay(summary.conditions);
+
+  return (
+    <div className="app-patient-profile__medical-body">
+      {sensitive ? (
+        <p className="app-patient-profile__medical-banner" role="note">
+          This patient has medical details recorded in the legacy system. Details are hidden in this read-only preview.
+        </p>
+      ) : null}
+
+      <dl className="app-patient-profile__dl">
+        <div className="app-patient-profile__row">
+          <dt>Questionnaire date</dt>
+          <dd>{summary.lastUpdated ?? "—"}</dd>
+        </div>
+        <div className="app-patient-profile__row">
+          <dt>Last dental visit (questionnaire)</dt>
+          <dd>{summary.lastDentalVisit ?? "—"}</dd>
+        </div>
+        <div className="app-patient-profile__row">
+          <dt>Flagged screening items</dt>
+          <dd>{summary.flaggedConditionCount}</dd>
+        </div>
+      </dl>
+
+      {!sensitive && conditionItems.length > 0 ? (
+        <ul className="app-patient-profile__medical-flags" aria-label="Screening flags marked yes">
+          {conditionItems.map((item) => (
+            <li key={item.key}>{item.label}</li>
+          ))}
+        </ul>
+      ) : null}
+
+      {!sensitive && conditionItems.length === 0 && summary.flaggedConditionCount === 0 ? (
+        <p className="app-patient-profile__medical-muted">No screening flags marked yes.</p>
+      ) : null}
+
+      <p className="app-patient-profile__medical-privacy">{summary.privacyNote}</p>
+    </div>
+  );
 }
 
 function groupAppointmentsByDate(
@@ -172,6 +262,10 @@ export function PatientProfilePanel({
   const [apptState, setApptState] = useState<ApptLoadState>({ phase: "idle" });
   const [apptRefreshNonce, setApptRefreshNonce] = useState(0);
   const apptRequestSeq = useRef(0);
+
+  const [medState, setMedState] = useState<MedLoadState>({ phase: "idle" });
+  const [medRefreshNonce, setMedRefreshNonce] = useState(0);
+  const medRequestSeq = useRef(0);
 
   useEffect(() => {
     if (patientId === null) {
@@ -255,10 +349,51 @@ export function PatientProfilePanel({
 
   useEffect(() => {
     if (patientId === null) {
+      setMedState({ phase: "idle" });
+      return;
+    }
+    if (activeTab !== "medical") {
+      setMedState({ phase: "idle" });
+      return;
+    }
+    if (!base || bridgePhase !== "connected") {
+      setMedState({ phase: "offline" });
+      return;
+    }
+
+    const seq = ++medRequestSeq.current;
+    setMedState({ phase: "loading" });
+
+    const client = createBridgeClient({ baseUrl: base, fetch: fetchImpl });
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const summary = await client.getPatientMedicalSummary(patientId);
+        if (cancelled || seq !== medRequestSeq.current) return;
+        if (!summary.hasMedicalRecord) {
+          setMedState({ phase: "no_record" });
+        } else {
+          setMedState({ phase: "loaded", summary });
+        }
+      } catch (e: unknown) {
+        if (cancelled || seq !== medRequestSeq.current) return;
+        setMedState({ phase: "error", message: safePatientMedicalSummaryError(e) });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [patientId, base, bridgePhase, fetchImpl, activeTab, medRefreshNonce]);
+
+  useEffect(() => {
+    if (patientId === null) {
       setActiveTab(null);
       setRangePreset("default");
       setApptRange(defaultPatientApptRange());
       setApptState({ phase: "idle" });
+      setMedState({ phase: "idle" });
     }
   }, [patientId]);
 
@@ -394,6 +529,19 @@ export function PatientProfilePanel({
                     onClick={() => setActiveTab("appointments")}
                   >
                     Appointments
+                  </button>
+                </li>
+                <li role="presentation">
+                  <button
+                    type="button"
+                    role="tab"
+                    id="patient-tab-medical"
+                    aria-selected={activeTab === "medical"}
+                    aria-controls="patient-panel-medical"
+                    className={`app-patient-profile__tab ui-focusable${activeTab === "medical" ? " app-patient-profile__tab--active" : ""}`}
+                    onClick={() => setActiveTab("medical")}
+                  >
+                    Medical
                   </button>
                 </li>
                 {COMING_TABS.map((t) => (
@@ -545,6 +693,51 @@ export function PatientProfilePanel({
                       </Card>
                     ))}
                   </div>
+                ) : null}
+              </section>
+            ) : null}
+
+            {activeTab === "medical" ? (
+              <section
+                id="patient-panel-medical"
+                role="tabpanel"
+                aria-labelledby="patient-tab-medical"
+                className="app-patient-profile__medical"
+              >
+                <p className="app-patient-profile__medical-lede">
+                  Medical summary is read-only. Detailed notes and allergy text are hidden in this preview.
+                </p>
+
+                {medState.phase === "offline" ? (
+                  <EmptyState
+                    className="ui-empty--start app-patient-profile__empty"
+                    title="Clinic service offline"
+                    description="Connect the bridge to load the medical summary."
+                  />
+                ) : medState.phase === "loading" ? (
+                  <p className="app-patient-profile__status" role="status" aria-live="polite">
+                    Loading medical summary…
+                  </p>
+                ) : medState.phase === "error" ? (
+                  <div className="app-patient-profile__error" role="alert">
+                    <p>{medState.message}</p>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="ui-focusable"
+                      onClick={() => setMedRefreshNonce((n) => n + 1)}
+                    >
+                      Retry
+                    </Button>
+                  </div>
+                ) : medState.phase === "no_record" ? (
+                  <EmptyState
+                    className="ui-empty--start app-patient-profile__empty"
+                    title="No medical record found for this patient."
+                    description="The read-only copy has no medical questionnaire on file for this patient."
+                  />
+                ) : medState.phase === "loaded" ? (
+                  <MedicalSummaryBody summary={medState.summary} />
                 ) : null}
               </section>
             ) : null}
