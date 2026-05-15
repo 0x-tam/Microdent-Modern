@@ -17,6 +17,29 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+const syntheticDoctors = {
+  doctors: [
+    { doctorId: "5", displayName: "Synthetic Provider ApptRow", active: true },
+    { doctorId: "7", displayName: "Synthetic Provider Profile", active: true },
+  ],
+};
+
+function withReferenceDoctors(
+  inner: (input: RequestInfo | URL) => Promise<Response>,
+  doctors: unknown | "fail" = syntheticDoctors,
+): ReturnType<typeof vi.fn> {
+  return vi.fn((input: RequestInfo | URL) => {
+    const u = String(input);
+    if (u.includes("/v1/reference/doctors")) {
+      if (doctors === "fail") {
+        return Promise.resolve(new Response("{}", { status: 500, headers: { "Content-Type": "application/json" } }));
+      }
+      return Promise.resolve(jsonResponse(doctors));
+    }
+    return inner(input);
+  });
+}
+
 const validProfile = {
   patientId: "42",
   chartNumber: "SYN-CHART",
@@ -159,7 +182,7 @@ describe("PatientProfilePanel", () => {
   });
 
   it("loads profile via getPatientProfile URL and shows safe fields", async () => {
-    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
+    const fetchImpl = withReferenceDoctors((input) => {
       const u = String(input);
       if (u.includes("/v1/patients/42/profile")) {
         return Promise.resolve(jsonResponse(validProfile));
@@ -187,8 +210,9 @@ describe("PatientProfilePanel", () => {
     expect(container.textContent).toContain("SYN-CHART");
     expect(container.textContent).toContain("…4242");
     expect(container.textContent).toContain("Active");
-    expect(container.textContent).toContain("Provider id");
-    expect(container.textContent).toContain("7");
+    expect(container.textContent).toContain("Provider");
+    expect(container.textContent).toContain("Synthetic Provider Profile");
+    expect(container.textContent).not.toMatch(/\bProvider id\b/);
     expect(container.textContent).toContain("2020-03-01");
     expect(container.textContent).toContain("2024-01-15");
   });
@@ -365,7 +389,7 @@ describe("PatientProfilePanel", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 4, 15));
 
-    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
+    const fetchImpl = withReferenceDoctors((input) => {
       const u = String(input);
       if (u.includes("/profile")) {
         return Promise.resolve(jsonResponse(validProfile));
@@ -396,8 +420,9 @@ describe("PatientProfilePanel", () => {
     expect(t).toContain("09:30");
     expect(t).toContain("60 min");
     expect(t).toContain("Room 3");
-    expect(t).toContain("Doctor 5");
-    expect(t).toContain("Proc 2");
+    expect(t).toContain("Synthetic Provider ApptRow");
+    expect(t).not.toMatch(/\bDoctor 5\b/);
+    expect(t).toContain("Procedure class 2");
     expect(t).toContain("Scheduled");
     expect(t).toContain("Missed");
     expect(t).toContain("Note hidden");
@@ -470,5 +495,77 @@ describe("PatientProfilePanel", () => {
     await flush();
     expect(container.textContent).not.toContain("secret");
     expect(container.textContent).toMatch(/Appointment history could not be loaded|Try again/i);
+  });
+
+  it("falls back to Doctor {id} on appointments when doctor is missing from reference", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 4, 15));
+
+    const fetchImpl = withReferenceDoctors((input) => {
+      const u = String(input);
+      if (u.includes("/profile")) {
+        return Promise.resolve(jsonResponse(validProfile));
+      }
+      if (u.includes("/appointments")) {
+        return Promise.resolve(jsonResponse({ appointments: [syntheticAppt] }));
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    }, { doctors: [{ doctorId: "7", displayName: "Synthetic Provider Profile", active: true }] });
+
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    await clickAppointmentsTab(container);
+    await flush();
+
+    expect(container.textContent).toContain("Doctor 5");
+  });
+
+  it("still renders appointments when reference doctors fail", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 4, 15));
+
+    const fetchImpl = withReferenceDoctors(
+      (input) => {
+        const u = String(input);
+        if (u.includes("/profile")) {
+          return Promise.resolve(jsonResponse(validProfile));
+        }
+        if (u.includes("/appointments")) {
+          return Promise.resolve(jsonResponse({ appointments: [syntheticAppt] }));
+        }
+        return Promise.reject(new Error(`unexpected ${u}`));
+      },
+      "fail",
+    );
+
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    await clickAppointmentsTab(container);
+    await flush();
+
+    expect(container.textContent).toContain("Doctor 5");
+    expect(container.textContent).toContain("Room 3");
   });
 });

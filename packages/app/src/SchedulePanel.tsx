@@ -4,6 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge, Button, Card, CardBody, CardHeader, EmptyState } from "@microdent/ui";
 import type { BridgeHealthPhase } from "./bridge-health.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
+import { doctorDisplayLabel } from "./doctor-labels.js";
+import { procClassDisplayLabel } from "./procedure-reference.js";
+import { useDoctorLabels } from "./useDoctorLabels.js";
+import { useProcedureReference } from "./useProcedureReference.js";
 
 export type SchedulePanelProps = {
   isActive: boolean;
@@ -174,6 +178,18 @@ export function SchedulePanel({
 }: SchedulePanelProps) {
   const base = bridgeBaseUrl?.trim() ?? "";
   const canLoad = Boolean(base) && bridgePhase === "connected";
+  const { labels: doctorLabels } = useDoctorLabels({
+    bridgePhase,
+    bridgeBaseUrl,
+    fetchImpl,
+    enabled: isActive,
+  });
+  const { maps: procedureMaps } = useProcedureReference({
+    bridgePhase,
+    bridgeBaseUrl,
+    fetchImpl,
+    enabled: isActive,
+  });
 
   const [granularity, setGranularity] = useState<Granularity>("week");
   const [rangeFrom, setRangeFrom] = useState(() => defaultWeekRange().from);
@@ -462,8 +478,14 @@ export function SchedulePanel({
                                   {chart !== null ? (
                                     <span className="app-schedule__appt-patient-chart"> · {chart}</span>
                                   ) : null}
-                                  {appt.docId !== 0 ? ` · Doctor ${appt.docId}` : ""}
-                                  {` · Proc ${appt.procClass}`}
+                                  {(() => {
+                                    const doc = doctorDisplayLabel(appt.docId, doctorLabels);
+                                    return doc !== null ? ` · ${doc}` : "";
+                                  })()}
+                                  {(() => {
+                                    const proc = procClassDisplayLabel(appt.procClass, procedureMaps);
+                                    return proc !== null ? ` · ${proc}` : "";
+                                  })()}
                                 </span>
                               </div>
                               <div className="app-schedule__appt-badges">

@@ -6,6 +6,7 @@ import {
   PatientAppointmentsQuerySchema,
   PatientProfilePathParamsSchema,
   PatientProfileResponseSchema,
+  PatientMedicalSummaryResponseSchema,
   PatientSearchResponseSchema,
   ReferenceDoctorsResponseSchema,
   ScheduleAppointmentsResponseSchema,
@@ -17,6 +18,7 @@ import {
   type HealthResponse,
   type LegacyCatalogResponse,
   type PatientProfileResponse,
+  type PatientMedicalSummaryResponse,
   type PatientSearchResponse,
   type ReferenceDoctorsResponse,
   type ScheduleAppointmentsResponse,
@@ -107,6 +109,23 @@ export class BridgeClient {
     }
     const id = parsed.data.patientId;
     return this.requestJson(`/v1/patients/${encodeURIComponent(id)}/profile`, PatientProfileResponseSchema);
+  }
+
+  /**
+   * Read-only medical screening summary (`MEDICAL.DBF` only). Booleans and dates only — no problem/allergy/notes text.
+   */
+  async getPatientMedicalSummary(patientId: string): Promise<PatientMedicalSummaryResponse> {
+    const parsed = PatientProfilePathParamsSchema.safeParse({ patientId });
+    if (!parsed.success) {
+      throw new BridgeClientError("Invalid patient id", {
+        kind: "invalid_argument",
+      });
+    }
+    const id = parsed.data.patientId;
+    return this.requestJson(
+      `/v1/patients/${encodeURIComponent(id)}/medical-summary`,
+      PatientMedicalSummaryResponseSchema,
+    );
   }
 
   async getReferenceProcedures(): Promise<ReferenceProceduresResponse> {

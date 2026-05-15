@@ -15,6 +15,9 @@ import {
   patientApptRangeForPreset,
   type PatientApptRangePreset,
 } from "./patient-appointments-range.js";
+import { doctorDisplayLabel } from "./doctor-labels.js";
+import { useDoctorLabels } from "./useDoctorLabels.js";
+import { useProcedureReference } from "./useProcedureReference.js";
 
 export type PatientProfilePanelProps = {
   /** When null, shows the “no patient selected” state. */
@@ -146,6 +149,18 @@ export function PatientProfilePanel({
   onClearPatient,
 }: PatientProfilePanelProps) {
   const base = bridgeBaseUrl?.trim() ?? "";
+  const { labels: doctorLabels } = useDoctorLabels({
+    bridgePhase,
+    bridgeBaseUrl,
+    fetchImpl,
+    enabled: patientId !== null,
+  });
+  const { maps: procedureMaps } = useProcedureReference({
+    bridgePhase,
+    bridgeBaseUrl,
+    fetchImpl,
+    enabled: patientId !== null,
+  });
 
   const [state, setState] = useState<LoadState>({ phase: "idle" });
   const [retryNonce, setRetryNonce] = useState(0);
@@ -347,8 +362,12 @@ export function PatientProfilePanel({
                     <dd>{state.profile.phoneMask ?? "—"}</dd>
                   </div>
                   <div className="app-patient-profile__row">
-                    <dt>Provider id</dt>
-                    <dd>{state.profile.doctorId ?? "—"}</dd>
+                    <dt>Provider</dt>
+                    <dd>
+                      {state.profile.doctorId !== null
+                        ? (doctorDisplayLabel(state.profile.doctorId, doctorLabels) ?? "—")
+                        : "—"}
+                    </dd>
                   </div>
                   <div className="app-patient-profile__row">
                     <dt>Entry date</dt>
@@ -496,7 +515,9 @@ export function PatientProfilePanel({
                                     <span className="app-patient-profile__appt-duration">
                                       {patientApptFormatDuration(appt)}
                                     </span>
-                                    <span className="app-patient-profile__appt-meta">{patientApptRowMeta(appt)}</span>
+                                    <span className="app-patient-profile__appt-meta">
+                                      {patientApptRowMeta(appt, doctorLabels, procedureMaps)}
+                                    </span>
                                   </div>
                                   <div className="app-patient-profile__appt-badges">
                                     <Badge

@@ -11,6 +11,26 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+const syntheticDoctors = {
+  doctors: [{ doctorId: "3", displayName: "Synthetic Provider Today", active: true }],
+};
+
+function withReferenceDoctors(
+  inner: (input: RequestInfo | URL) => Promise<Response>,
+  doctors: unknown | "fail" = syntheticDoctors,
+): ReturnType<typeof vi.fn> {
+  return vi.fn((input: RequestInfo | URL) => {
+    const u = String(input);
+    if (u.includes("/v1/reference/doctors")) {
+      if (doctors === "fail") {
+        return Promise.resolve(new Response("{}", { status: 500, headers: { "Content-Type": "application/json" } }));
+      }
+      return Promise.resolve(jsonResponse(doctors));
+    }
+    return inner(input);
+  });
+}
+
 function appt(over: Partial<Record<string, unknown>> = {}): Record<string, unknown> {
   return {
     id: "1",
@@ -291,6 +311,113 @@ describe("DashboardHome (Today schedule)", () => {
     expect(t).toContain("Patient ID 1");
   });
 
+  it("shows mapped procedure label on visit meta when reference matches procClass", async () => {
+    vi.useFakeTimers({ now: new Date(2026, 5, 15, 10, 30, 0), toFake: ["Date"] });
+    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
+      const u = String(input);
+      if (u.includes("/v1/schedule/appointments")) {
+        return Promise.resolve(
+          jsonResponse({
+            appointments: [
+              appt({
+                id: "1",
+                date: "2026-06-15",
+                time: "09:00",
+                procClass: 44,
+                patient: { patientId: "1", displayName: "Synthetic Today Proc", chartNumber: null },
+              }),
+            ],
+          }),
+        );
+      }
+      if (u.includes("/v1/reference/procedures")) {
+        return Promise.resolve(
+          jsonResponse({
+            procedures: [
+              {
+                procedureCode: "SYN04",
+                displayName: null,
+                category: "Synthetic today category",
+                categoryCode: null,
+                classId: 44,
+                chartRelevant: false,
+              },
+            ],
+          }),
+        );
+      }
+      if (u.includes("/v1/reference/doctors")) {
+        return Promise.resolve(jsonResponse({ doctors: [] }));
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <DashboardHome
+          onOpenModule={() => {}}
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain("Synthetic today category");
+    expect(container.textContent).not.toContain("Procedure class 44");
+    expect(container.textContent).not.toMatch(/\bPRICE\d*\b/i);
+  });
+
+  it("falls back to Procedure class when procedure reference is unavailable", async () => {
+    vi.useFakeTimers({ now: new Date(2026, 5, 15, 10, 30, 0), toFake: ["Date"] });
+    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
+      const u = String(input);
+      if (u.includes("/v1/schedule/appointments")) {
+        return Promise.resolve(
+          jsonResponse({
+            appointments: [
+              appt({
+                id: "1",
+                date: "2026-06-15",
+                time: "09:00",
+                procClass: 7,
+                patient: { patientId: "1", displayName: "Synthetic Today Fallback", chartNumber: null },
+              }),
+            ],
+          }),
+        );
+      }
+      if (u.includes("/v1/reference/procedures")) {
+        return Promise.resolve(new Response("{}", { status: 500, headers: { "Content-Type": "application/json" } }));
+      }
+      if (u.includes("/v1/reference/doctors")) {
+        return Promise.resolve(jsonResponse({ doctors: [] }));
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <DashboardHome
+          onOpenModule={() => {}}
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain("Procedure class 7");
+  });
+
   it("shows no-upcoming copy when all appointments are earlier today", async () => {
     vi.useFakeTimers({ now: new Date(2026, 3, 5, 18, 0, 0), toFake: ["Date"] });
     const fetchImpl = vi.fn(() =>
@@ -315,5 +442,115 @@ describe("DashboardHome (Today schedule)", () => {
       await Promise.resolve();
     });
     expect(container.textContent).toMatch(/No upcoming appointments on the schedule for today/i);
+  });
+
+  it("shows reference doctor label on today appointments", async () => {
+    vi.useFakeTimers({ now: new Date(2026, 5, 15, 10, 30, 0), toFake: ["Date"] });
+    const fetchImpl = withReferenceDoctors((input) => {
+      const u = String(input);
+      if (u.includes("/v1/schedule/appointments")) {
+        return Promise.resolve(
+          jsonResponse({
+            appointments: [appt({ id: "1", date: "2026-06-15", time: "08:00", docId: 3, patId: "501", patient: null })],
+          }),
+        );
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <DashboardHome
+          onOpenModule={() => {}}
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain("Synthetic Provider Today");
+    expect(container.textContent).not.toMatch(/\bDoc 3\b/);
+  });
+
+  it("falls back to Doctor {id} when doctor is not in reference", async () => {
+    vi.useFakeTimers({ now: new Date(2026, 5, 15, 10, 30, 0), toFake: ["Date"] });
+    const fetchImpl = withReferenceDoctors((input) => {
+      const u = String(input);
+      if (u.includes("/v1/schedule/appointments")) {
+        return Promise.resolve(
+          jsonResponse({
+            appointments: [appt({ id: "1", date: "2026-06-15", time: "08:00", docId: 88, patId: "501", patient: null })],
+          }),
+        );
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    }, { doctors: [] });
+
+    await act(async () => {
+      root.render(
+        <DashboardHome
+          onOpenModule={() => {}}
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain("Doctor 88");
+  });
+
+  it("still renders today schedule when reference doctors fail", async () => {
+    vi.useFakeTimers({ now: new Date(2026, 5, 15, 10, 30, 0), toFake: ["Date"] });
+    const fetchImpl = withReferenceDoctors(
+      (input) => {
+        const u = String(input);
+        if (u.includes("/v1/schedule/appointments")) {
+          return Promise.resolve(
+            jsonResponse({
+              appointments: [
+                appt({
+                  id: "1",
+                  date: "2026-06-15",
+                  time: "08:00",
+                  docId: 3,
+                  patId: "501",
+                  patient: { patientId: "501", displayName: "Synthetic Dashboard One", chartNumber: null },
+                }),
+              ],
+            }),
+          );
+        }
+        return Promise.reject(new Error(`unexpected ${u}`));
+      },
+      "fail",
+    );
+
+    await act(async () => {
+      root.render(
+        <DashboardHome
+          onOpenModule={() => {}}
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain("Synthetic Dashboard One");
+    expect(container.textContent).toContain("Doctor 3");
   });
 });

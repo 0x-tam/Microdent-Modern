@@ -31,6 +31,14 @@ export {
   type PatientProfileResponse,
 } from "./patient-profile.js";
 export {
+  MedicalConditionFlagsSchema,
+  PatientMedicalSummaryPathParamsSchema,
+  PatientMedicalSummaryResponseSchema,
+  type MedicalConditionFlags,
+  type PatientMedicalSummaryPathParams,
+  type PatientMedicalSummaryResponse,
+} from "./patient-medical-summary.js";
+export {
   ReferenceDoctorItemSchema,
   ReferenceDoctorsResponseSchema,
   type ReferenceDoctorItem,

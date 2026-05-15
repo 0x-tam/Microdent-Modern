@@ -1,4 +1,6 @@
 import type { ScheduleAppointmentItem } from "@microdent/contracts";
+import { doctorDisplayLabel } from "./doctor-labels.js";
+import { procClassDisplayLabel, type ProcedureReferenceMaps } from "./procedure-reference.js";
 
 export function patientApptStatusLabel(code: number): string {
   const map: Record<number, string> = {
@@ -29,13 +31,19 @@ export function patientApptFormatDuration(a: ScheduleAppointmentItem): string {
 }
 
 /** Safe appointment row text for profile history — no patient names from schedule rows. */
-export function patientApptRowMeta(appt: ScheduleAppointmentItem): string {
+export function patientApptRowMeta(
+  appt: ScheduleAppointmentItem,
+  doctorLabels: ReadonlyMap<string, string> = new Map(),
+  procedureMaps?: ProcedureReferenceMaps,
+): string {
   const parts: string[] = [`Room ${appt.room}`];
-  if (appt.docId !== 0) {
-    parts.push(`Doctor ${appt.docId}`);
+  const doctor = doctorDisplayLabel(appt.docId, doctorLabels);
+  if (doctor !== null) {
+    parts.push(doctor);
   }
-  if (appt.procClass !== 0) {
-    parts.push(`Proc ${appt.procClass}`);
+  const proc = procClassDisplayLabel(appt.procClass, procedureMaps);
+  if (proc !== null) {
+    parts.push(proc);
   }
   return parts.join(" · ");
 }

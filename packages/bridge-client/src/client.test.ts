@@ -113,6 +113,66 @@ describe("BridgeClient", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it("getPatientMedicalSummary: success and encodes path segment", async () => {
+    const body = {
+      patientId: "9",
+      hasMedicalRecord: true,
+      hasSensitiveMedicalDetails: false,
+      lastUpdated: "2024-01-01",
+      lastDentalVisit: null,
+      flaggedConditionCount: 1,
+      conditions: {
+        hospital: false,
+        physician: false,
+        medicine: false,
+        ill: false,
+        reaction: false,
+        bleeding: false,
+        allergic: false,
+        heartTrouble: false,
+        congenitalHeart: false,
+        heartMurmur: false,
+        highBloodPressure: false,
+        lowBloodPressure: false,
+        anemia: false,
+        rheumaticFever: false,
+        jaundice: false,
+        asthma: false,
+        cough: false,
+        kidneyTrouble: false,
+        med1: false,
+        diabetes: true,
+        tuberculosis: false,
+        hepatitis: false,
+        arthritis: false,
+        stroke: false,
+        epilepsy: false,
+        psychiatric: false,
+        sinusTrouble: false,
+        pregnant: false,
+        ulcers: false,
+        aids: false,
+        med2: false,
+      },
+      privacyNote:
+        "Problem description, allergy free text, and medical notes remain hidden until field mapping is reviewed.",
+    };
+    const fetch = vi.fn().mockResolvedValue(jsonResponse(body));
+    const client = createBridgeClient({ baseUrl, fetch });
+    await expect(client.getPatientMedicalSummary("9")).resolves.toEqual(body);
+    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/v1/patients/9/medical-summary`, expect.anything());
+  });
+
+  it("getPatientMedicalSummary: rejects invalid id before fetch", async () => {
+    const fetch = vi.fn();
+    const client = createBridgeClient({ baseUrl, fetch });
+    await expect(client.getPatientMedicalSummary("0")).rejects.toMatchObject({
+      name: "BridgeClientError",
+      kind: "invalid_argument",
+    });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("getReferenceProcedures: success", async () => {
     const body = {
       procedures: [

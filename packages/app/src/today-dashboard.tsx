@@ -7,6 +7,10 @@ import type { BridgeHealthPhase } from "./bridge-health.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
 import { FixtureConnectionPanel } from "./FixtureConnectionPanel.js";
 import { LegacyCatalogPanel } from "./LegacyCatalogPanel.js";
+import { doctorDisplayLabel } from "./doctor-labels.js";
+import { procClassDisplayLabel, type ProcedureReferenceMaps } from "./procedure-reference.js";
+import { useDoctorLabels } from "./useDoctorLabels.js";
+import { useProcedureReference } from "./useProcedureReference.js";
 
 function toLocalIsoDate(d: Date): string {
   const y = d.getFullYear();
@@ -98,10 +102,19 @@ function formatTodayLine(): string {
   }
 }
 
-function visitMetaLine(a: ScheduleAppointmentItem): string {
+function visitMetaLine(
+  a: ScheduleAppointmentItem,
+  doctorLabels: ReadonlyMap<string, string>,
+  procedureMaps: ProcedureReferenceMaps,
+): string {
   const parts: string[] = [`Room ${a.room}`, formatDuration(a)];
-  if (a.docId !== 0) {
-    parts.push(`Doc ${a.docId}`);
+  const doc = doctorDisplayLabel(a.docId, doctorLabels);
+  if (doc !== null) {
+    parts.push(doc);
+  }
+  const proc = procClassDisplayLabel(a.procClass, procedureMaps);
+  if (proc !== null) {
+    parts.push(proc);
   }
   return parts.join(" · ");
 }
@@ -116,6 +129,8 @@ export type DashboardHomeProps = {
 export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchImpl }: DashboardHomeProps) {
   const base = bridgeBaseUrl?.trim() ?? "";
   const canLoad = Boolean(base) && bridgePhase === "connected";
+  const { labels: doctorLabels } = useDoctorLabels({ bridgePhase, bridgeBaseUrl, fetchImpl });
+  const { maps: procedureMaps } = useProcedureReference({ bridgePhase, bridgeBaseUrl, fetchImpl });
 
   const todayIso = useMemo(() => toLocalIsoDate(new Date()), []);
 
@@ -216,7 +231,7 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
                   <span className="app-appt-list__patient-chart"> · {dashboardPatientChart(a)}</span>
                 ) : null}
               </span>
-              <span className="app-appt-list__visit">{visitMetaLine(a)}</span>
+              <span className="app-appt-list__visit">{visitMetaLine(a, doctorLabels, procedureMaps)}</span>
               <div className="app-appt-list__extras">
                 {a.hasComment ? <span className="app-appt-list__pill">Note hidden</span> : null}
                 {a.missed ? (
@@ -282,7 +297,7 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
           ) : null}
         </p>
         <p className="app-next-patient__detail">
-          {visitMetaLine(nextUpcoming)} · {statusLabel(nextUpcoming.status)}
+          {visitMetaLine(nextUpcoming, doctorLabels, procedureMaps)} · {statusLabel(nextUpcoming.status)}
         </p>
         <div className="app-next-patient__badges">
           {nextUpcoming.hasComment ? <span className="app-appt-list__pill">Note hidden</span> : null}
