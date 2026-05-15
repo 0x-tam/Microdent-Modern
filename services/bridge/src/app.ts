@@ -33,9 +33,19 @@ export type CreateBridgeAppOptions = {
  * Express app: `GET /` (service info), `GET /health`, read-only `GET /v1/*` (fixture table APIs, legacy catalog, patient search + profile + medical summary, schedule rooms/appointments).
  * In non-`production` Node env, also `GET /debug/cors` (static CORS policy summary, no secrets).
  */
+function resolveBridgeConfig(partial?: BridgeConfig): BridgeConfig {
+  const loaded = loadBridgeConfig();
+  if (!partial) return loaded;
+  return {
+    listen: partial.listen,
+    dataRoot: partial.dataRoot,
+    sqlitePath: partial.sqlitePath ?? { configured: false },
+  };
+}
+
 export function createBridgeApp(version?: string, options?: CreateBridgeAppOptions): express.Express {
   const ver = version ?? readBridgeVersion();
-  const bridgeConfig = options?.bridgeConfig ?? loadBridgeConfig();
+  const bridgeConfig = resolveBridgeConfig(options?.bridgeConfig);
   const app = express();
   app.disable("x-powered-by");
   app.use(localPreviewCorsMiddleware);

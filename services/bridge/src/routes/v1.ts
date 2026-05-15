@@ -37,6 +37,10 @@ import { readScheduleAppointments } from "../dbf/schedule-appointments.js";
 import { readReferenceDoctorsFromDbf } from "../dbf/reference-doctors.js";
 import { readReferenceProcedures } from "../dbf/reference-procedures.js";
 import { readScheduleRooms } from "../dbf/schedule-rooms.js";
+import { isSqliteMirrorUsable } from "../sqlite/mirror-usable.js";
+import { searchPatientsInSqlite } from "../sqlite/patient-search.js";
+import { readReferenceDoctorsFromSqlite } from "../sqlite/reference-doctors.js";
+import { readReferenceProceduresFromSqlite } from "../sqlite/reference-procedures.js";
 
 function sendError(res: Response, status: number, code: string, message: string): void {
   const body = { error: { code, message } };
@@ -119,7 +123,14 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
       return;
     }
 
-    const outcome = await searchPatientsInDbf(dr, parsedQ.data.q);
+    let outcome;
+    if (isSqliteMirrorUsable(bridgeConfig.sqlitePath, "patients")) {
+      const sqliteOutcome = searchPatientsInSqlite(bridgeConfig.sqlitePath.path, parsedQ.data.q);
+      outcome =
+        sqliteOutcome.kind === "ok" ? sqliteOutcome : await searchPatientsInDbf(dr, parsedQ.data.q);
+    } else {
+      outcome = await searchPatientsInDbf(dr, parsedQ.data.q);
+    }
     if (outcome.kind === "missing_table") {
       sendError(res, 404, "PATIENT_DBF_NOT_FOUND", "PATIENT.DBF not found under DATA_ROOT");
       return;
@@ -307,7 +318,14 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
   router.get("/reference/procedures", async (_req, res) => {
     if (!requireConfiguredDataRoot(res, bridgeConfig)) return;
     const dr = bridgeConfig.dataRoot;
-    const outcome = await readReferenceProcedures(dr);
+    let outcome;
+    if (isSqliteMirrorUsable(bridgeConfig.sqlitePath, "procedures")) {
+      const sqliteOutcome = readReferenceProceduresFromSqlite(bridgeConfig.sqlitePath.path);
+      outcome =
+        sqliteOutcome.kind === "ok" ? sqliteOutcome : await readReferenceProcedures(dr);
+    } else {
+      outcome = await readReferenceProcedures(dr);
+    }
     if (outcome.kind === "missing_procchrt") {
       sendError(res, 404, "PROCCHRT_DBF_NOT_FOUND", "PROCCHRT.DBF not found under DATA_ROOT");
       return;
@@ -324,7 +342,14 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
   router.get("/reference/doctors", async (_req, res) => {
     if (!requireConfiguredDataRoot(res, bridgeConfig)) return;
     const dr = bridgeConfig.dataRoot;
-    const outcome = await readReferenceDoctorsFromDbf(dr);
+    let outcome;
+    if (isSqliteMirrorUsable(bridgeConfig.sqlitePath, "doctors")) {
+      const sqliteOutcome = readReferenceDoctorsFromSqlite(bridgeConfig.sqlitePath.path);
+      outcome =
+        sqliteOutcome.kind === "ok" ? sqliteOutcome : await readReferenceDoctorsFromDbf(dr);
+    } else {
+      outcome = await readReferenceDoctorsFromDbf(dr);
+    }
     if (outcome.kind === "missing_table") {
       sendError(res, 404, "DOCTORS_DBF_NOT_FOUND", "DOCTORS.DBF not found under DATA_ROOT");
       return;

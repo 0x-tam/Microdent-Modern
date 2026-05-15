@@ -12,9 +12,19 @@ export type DataRootSet = {
 
 export type DataRootConfig = DataRootUnset | DataRootSet;
 
+export type SqlitePathUnset = { configured: false };
+export type SqlitePathSet = {
+  configured: true;
+  /** Normalized absolute path from env. */
+  path: string;
+};
+
+export type SqlitePathConfig = SqlitePathUnset | SqlitePathSet;
+
 export type BridgeConfig = {
   listen: { host: string; port: number };
   dataRoot: DataRootConfig;
+  sqlitePath: SqlitePathConfig;
 };
 
 /**
@@ -56,9 +66,32 @@ export function loadListenOptions(): { host: string; port: number } {
   return { host, port };
 }
 
+/**
+ * Parse `SQLITE_PATH` from a string value (use `process.env.SQLITE_PATH` in production).
+ * Empty / whitespace means not configured. When set, the path must be absolute.
+ */
+export function parseSqlitePathFromValue(value: string | undefined): SqlitePathConfig {
+  if (value === undefined) {
+    return { configured: false };
+  }
+  const trimmed = value.trim();
+  if (trimmed === "") {
+    return { configured: false };
+  }
+  if (!path.isAbsolute(trimmed)) {
+    throw new Error(`SQLITE_PATH must be an absolute path, got: ${JSON.stringify(trimmed)}`);
+  }
+  return { configured: true, path: path.normalize(trimmed) };
+}
+
+export function loadSqlitePathFromEnv(): SqlitePathConfig {
+  return parseSqlitePathFromValue(process.env.SQLITE_PATH);
+}
+
 export function loadBridgeConfig(): BridgeConfig {
   return {
     listen: loadListenOptions(),
     dataRoot: loadDataRootFromEnv(),
+    sqlitePath: loadSqlitePathFromEnv(),
   };
 }

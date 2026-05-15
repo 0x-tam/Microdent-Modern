@@ -132,6 +132,9 @@ importers:
         specifier: ^4.21.2
         version: 4.22.2
     devDependencies:
+      '@microdent/sqlite-mirror':
+        specifier: workspace:*
+        version: link:../sqlite-mirror
       '@types/express':
         specifier: ^4.17.21
         version: 4.17.25
@@ -163,6 +166,9 @@ importers:
       '@types/node':
         specifier: ^22.10.0
         version: 22.19.19
+      tsx:
+        specifier: ^4.19.2
+        version: 4.21.1
       typescript:
         specifier: ^5.7.2
         version: 5.7.2
