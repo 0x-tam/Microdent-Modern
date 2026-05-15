@@ -202,6 +202,95 @@ describe("DashboardHome (Today schedule)", () => {
     expect(slice).not.toContain("Patient ID 3");
   });
 
+  it("falls back to Patient ID when patient summary is missing", async () => {
+    vi.useFakeTimers({ now: new Date(2026, 9, 1, 9, 0, 0), toFake: ["Date"] });
+    const fetchImpl = vi.fn(() =>
+      Promise.resolve(
+        jsonResponse({
+          appointments: [appt({ id: "1", date: "2026-10-01", time: "10:00", patId: "770077", patient: null })],
+        }),
+      ),
+    );
+    await act(async () => {
+      root.render(
+        <DashboardHome
+          onOpenModule={() => {}}
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(container.textContent).toContain("Patient ID 770077");
+  });
+
+  it("shows a safe error state when schedule load fails", async () => {
+    vi.useFakeTimers({ now: new Date(2026, 4, 20, 12, 0, 0), toFake: ["Date"] });
+    const fetchImpl = vi.fn(() =>
+      Promise.resolve(new Response("{}", { status: 500, headers: { "Content-Type": "application/json" } })),
+    );
+    await act(async () => {
+      root.render(
+        <DashboardHome
+          onOpenModule={() => {}}
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(container.textContent).toMatch(/could not be loaded/i);
+    expect(container.textContent).toMatch(/Retry/i);
+  });
+
+  it("does not render PAT_NAME, TELEPHONE, or COMMENT tokens from the API", async () => {
+    vi.useFakeTimers({ now: new Date(2026, 6, 4, 10, 0, 0), toFake: ["Date"] });
+    const fetchImpl = vi.fn(() =>
+      Promise.resolve(
+        jsonResponse({
+          appointments: [
+            {
+              ...appt({ id: "1", date: "2026-07-04", time: "09:00", patId: "1", patient: null }),
+              PAT_NAME: "Leaked Schedule Name",
+              TELEPHONE: "555-0100",
+              COMMENT: "Secret note body",
+            },
+          ],
+        }),
+      ),
+    );
+    await act(async () => {
+      root.render(
+        <DashboardHome
+          onOpenModule={() => {}}
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    const t = container.textContent ?? "";
+    expect(t).not.toContain("Leaked Schedule Name");
+    expect(t).not.toContain("555-0100");
+    expect(t).not.toContain("Secret note body");
+    expect(t).not.toMatch(/\bPAT_NAME\b/i);
+    expect(t).not.toMatch(/\bTELEPHONE\b/i);
+    expect(t).not.toMatch(/\bCOMMENT\b/i);
+    expect(t).toContain("Patient ID 1");
+  });
+
   it("shows no-upcoming copy when all appointments are earlier today", async () => {
     vi.useFakeTimers({ now: new Date(2026, 3, 5, 18, 0, 0), toFake: ["Date"] });
     const fetchImpl = vi.fn(() =>

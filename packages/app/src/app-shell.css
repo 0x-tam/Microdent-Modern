@@ -1270,8 +1270,19 @@
   border: 1px solid var(--ui-border-subtle);
   background: var(--ui-bg-subtle);
   color: var(--ui-text-secondary);
+  cursor: pointer;
+}
+
+.app-patient-profile__tab:disabled {
   cursor: not-allowed;
   opacity: 0.85;
+}
+
+.app-patient-profile__tab--active {
+  border-color: var(--ui-accent);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-primary);
+  box-shadow: 0 0 0 1px var(--ui-accent-subtle, var(--ui-accent));
 }
 
 .app-patient-profile__tab-badge {
@@ -1284,6 +1295,110 @@
   background: var(--ui-bg-surface);
   border: 1px solid var(--ui-border-subtle);
   color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__appts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+}
+
+.app-patient-profile__appts-lede {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__appts-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  align-items: center;
+}
+
+.app-patient-profile__appts-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+}
+
+.app-patient-profile__appts-range {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__appt-days {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+}
+
+.app-patient-profile__appt-day-title {
+  margin: 0;
+}
+
+.app-patient-profile__appt-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+}
+
+.app-patient-profile__appt-row {
+  display: grid;
+  grid-template-columns: minmax(4.5rem, auto) 1fr;
+  gap: var(--ui-space-3);
+  align-items: start;
+  padding-bottom: var(--ui-space-3);
+  border-bottom: 1px solid var(--ui-border-subtle);
+}
+
+.app-patient-profile__appt-row:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.app-patient-profile__appt-time {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ui-text-primary);
+}
+
+.app-patient-profile__appt-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  min-width: 0;
+}
+
+.app-patient-profile__appt-line1 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  align-items: baseline;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.app-patient-profile__appt-duration {
+  font-weight: 600;
+  color: var(--ui-text-primary);
+}
+
+.app-patient-profile__appt-meta {
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__appt-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
 }
 
 /* ----- Today dashboard (live schedule strip) ----- */

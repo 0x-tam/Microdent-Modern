@@ -31,6 +31,12 @@ export {
   type PatientProfileResponse,
 } from "./patient-profile.js";
 export {
+  ReferenceDoctorItemSchema,
+  ReferenceDoctorsResponseSchema,
+  type ReferenceDoctorItem,
+  type ReferenceDoctorsResponse,
+} from "./reference-doctors.js";
+export {
   ScheduleRoomActiveDaysSchema,
   ScheduleRoomItemSchema,
   ScheduleRoomsResponseSchema,
@@ -48,3 +54,9 @@ export {
   type ScheduleAppointmentsQuery,
   type PatientAppointmentsQuery,
 } from "./schedule.js";
+export {
+  ReferenceProcedureItemSchema,
+  ReferenceProceduresResponseSchema,
+  type ReferenceProcedureItem,
+  type ReferenceProceduresResponse,
+} from "./reference-procedures.js";

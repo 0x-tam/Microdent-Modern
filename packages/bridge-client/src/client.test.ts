@@ -113,6 +113,37 @@ describe("BridgeClient", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it("getReferenceProcedures: success", async () => {
+    const body = {
+      procedures: [
+        {
+          procedureCode: "SYN01",
+          displayName: "Synthetic procedure label",
+          category: "Synthetic class",
+          categoryCode: "SYN",
+          classId: 10,
+          chartRelevant: true,
+        },
+      ],
+    };
+    const fetch = vi.fn().mockResolvedValue(jsonResponse(body));
+    const client = createBridgeClient({ baseUrl, fetch });
+    await expect(client.getReferenceProcedures()).resolves.toEqual(body);
+    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/v1/reference/procedures`, expect.anything());
+  });
+
+  it("getReferenceDoctors: success", async () => {
+    const body = {
+      doctors: [
+        { doctorId: "7", displayName: "Synthetic Provider", active: true },
+      ],
+    };
+    const fetch = vi.fn().mockResolvedValue(jsonResponse(body));
+    const client = createBridgeClient({ baseUrl, fetch });
+    await expect(client.getReferenceDoctors()).resolves.toEqual(body);
+    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/v1/reference/doctors`, expect.anything());
+  });
+
   it("getScheduleRooms: success", async () => {
     const body = {
       rooms: [

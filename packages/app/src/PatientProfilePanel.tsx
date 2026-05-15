@@ -1,9 +1,20 @@
 import { BridgeClientError, createBridgeClient, isInvalidBodySchemaMismatch } from "@microdent/bridge-client";
-import type { PatientProfileResponse } from "@microdent/contracts";
+import type { PatientProfileResponse, ScheduleAppointmentItem } from "@microdent/contracts";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge, Button, Card, CardBody, CardHeader, EmptyState } from "@microdent/ui";
 import type { BridgeHealthPhase } from "./bridge-health.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
+import {
+  patientApptFormatDuration,
+  patientApptRowMeta,
+  patientApptStatusBadgeVariant,
+  patientApptStatusLabel,
+} from "./patient-appointments-display.js";
+import {
+  defaultPatientApptRange,
+  patientApptRangeForPreset,
+  type PatientApptRangePreset,
+} from "./patient-appointments-range.js";
 
 export type PatientProfilePanelProps = {
   /** When null, shows the “no patient selected” state. */
@@ -22,6 +33,23 @@ type LoadState =
   | { phase: "loaded"; profile: PatientProfileResponse }
   | { phase: "not_found" }
   | { phase: "error"; message: string };
+
+type ProfileTab = "appointments" | "treatments" | "payments" | "medical" | "chart";
+
+type ApptLoadState =
+  | { phase: "idle" }
+  | { phase: "offline" }
+  | { phase: "loading" }
+  | { phase: "loaded"; appointments: ScheduleAppointmentItem[] }
+  | { phase: "empty" }
+  | { phase: "error"; message: string };
+
+const COMING_TABS: { id: Exclude<ProfileTab, "appointments">; label: string }[] = [
+  { id: "treatments", label: "Treatments" },
+  { id: "payments", label: "Payments" },
+  { id: "medical", label: "Medical" },
+  { id: "chart", label: "Chart" },
+];
 
 export function safePatientProfileError(e: unknown): string {
   if (e instanceof BridgeClientError) {
@@ -51,13 +79,63 @@ export function safePatientProfileError(e: unknown): string {
   return "The profile could not be loaded.";
 }
 
-const FUTURE_TABS = [
-  { id: "appointments", label: "Appointments" },
-  { id: "treatments", label: "Treatments" },
-  { id: "payments", label: "Payments" },
-  { id: "medical", label: "Medical" },
-  { id: "chart", label: "Chart" },
-] as const;
+export function safePatientAppointmentsError(e: unknown): string {
+  if (e instanceof BridgeClientError) {
+    if (e.kind === "network") {
+      return "Could not reach the clinic service. Check that the bridge is running.";
+    }
+    if (e.kind === "http") {
+      const code = e.apiCode ?? "";
+      if (code === "INVALID_PATIENT_ID") {
+        return "This patient id is not valid for an appointment history request.";
+      }
+      if (code === "INVALID_PATIENT_APPOINTMENTS_QUERY") {
+        return "The date range is not valid. Try a shorter range.";
+      }
+      if (code === "DATA_ROOT_NOT_CONFIGURED" || code === "SCHEDULE_DBF_NOT_FOUND") {
+        return "Appointment history is not available on this bridge yet. Ask your administrator to check the data folder.";
+      }
+      return "Appointment history could not be loaded. Try again in a moment.";
+    }
+    if (e.kind === "invalid_body") {
+      if (isInvalidBodySchemaMismatch(e)) {
+        return "Appointment history needs a small data mapping fix. No clinic data was changed.";
+      }
+      return "Appointment history could not read the clinic response format. Try again.";
+    }
+    if (e.kind === "invalid_argument") {
+      return "The date range is not valid. Try a shorter range.";
+    }
+  }
+  return "Appointment history could not be loaded.";
+}
+
+function formatApptRangeHeading(from: string, to: string): string {
+  try {
+    const fmt = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" });
+    if (from === to) {
+      return fmt.format(new Date(from + "T12:00:00"));
+    }
+    return `${fmt.format(new Date(from + "T12:00:00"))} – ${fmt.format(new Date(to + "T12:00:00"))}`;
+  } catch {
+    return `${from} – ${to}`;
+  }
+}
+
+function groupAppointmentsByDate(
+  list: ScheduleAppointmentItem[],
+): Map<string, ScheduleAppointmentItem[]> {
+  const map = new Map<string, ScheduleAppointmentItem[]>();
+  for (const a of list) {
+    const bucket = map.get(a.date) ?? [];
+    bucket.push(a);
+    map.set(a.date, bucket);
+  }
+  for (const [, rows] of map) {
+    rows.sort((x, y) => x.time.localeCompare(y.time) || x.id.localeCompare(y.id));
+  }
+  return new Map([...map.entries()].sort(([a], [b]) => a.localeCompare(b)));
+}
 
 export function PatientProfilePanel({
   patientId,
@@ -72,6 +150,13 @@ export function PatientProfilePanel({
   const [state, setState] = useState<LoadState>({ phase: "idle" });
   const [retryNonce, setRetryNonce] = useState(0);
   const requestSeq = useRef(0);
+
+  const [activeTab, setActiveTab] = useState<ProfileTab | null>(null);
+  const [rangePreset, setRangePreset] = useState<PatientApptRangePreset>("default");
+  const [apptRange, setApptRange] = useState(() => defaultPatientApptRange());
+  const [apptState, setApptState] = useState<ApptLoadState>({ phase: "idle" });
+  const [apptRefreshNonce, setApptRefreshNonce] = useState(0);
+  const apptRequestSeq = useRef(0);
 
   useEffect(() => {
     if (patientId === null) {
@@ -113,6 +198,55 @@ export function PatientProfilePanel({
     };
   }, [patientId, base, bridgePhase, fetchImpl, retryNonce]);
 
+  useEffect(() => {
+    if (patientId === null) {
+      setApptState({ phase: "idle" });
+      return;
+    }
+    if (activeTab !== "appointments") {
+      setApptState({ phase: "idle" });
+      return;
+    }
+    if (!base || bridgePhase !== "connected") {
+      setApptState({ phase: "offline" });
+      return;
+    }
+
+    const seq = ++apptRequestSeq.current;
+    setApptState({ phase: "loading" });
+
+    const client = createBridgeClient({ baseUrl: base, fetch: fetchImpl });
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const data = await client.getPatientAppointments(patientId, apptRange);
+        if (cancelled || seq !== apptRequestSeq.current) return;
+        if (data.appointments.length === 0) {
+          setApptState({ phase: "empty" });
+        } else {
+          setApptState({ phase: "loaded", appointments: data.appointments });
+        }
+      } catch (e: unknown) {
+        if (cancelled || seq !== apptRequestSeq.current) return;
+        setApptState({ phase: "error", message: safePatientAppointmentsError(e) });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [patientId, base, bridgePhase, fetchImpl, activeTab, apptRange, apptRefreshNonce]);
+
+  useEffect(() => {
+    if (patientId === null) {
+      setActiveTab(null);
+      setRangePreset("default");
+      setApptRange(defaultPatientApptRange());
+      setApptState({ phase: "idle" });
+    }
+  }, [patientId]);
+
   const activeLabel = useMemo(() => {
     if (state.phase === "loaded") {
       if (state.profile.active === true) return "Active";
@@ -120,6 +254,18 @@ export function PatientProfilePanel({
     }
     return null;
   }, [state]);
+
+  const groupedAppts = useMemo(() => {
+    if (apptState.phase !== "loaded") return new Map<string, ScheduleAppointmentItem[]>();
+    return groupAppointmentsByDate(apptState.appointments);
+  }, [apptState]);
+
+  const rangeHeading = formatApptRangeHeading(apptRange.from, apptRange.to);
+
+  const applyRangePreset = (preset: PatientApptRangePreset) => {
+    setRangePreset(preset);
+    setApptRange(patientApptRangeForPreset(preset));
+  };
 
   return (
     <div className="app-patient-profile">
@@ -216,12 +362,31 @@ export function PatientProfilePanel({
               </CardBody>
             </Card>
 
-            <nav className="app-patient-profile__tabs" aria-label="Patient sections (preview)">
-              <p className="app-patient-profile__tabs-lede">More sections — coming in later phases</p>
-              <ul className="app-patient-profile__tablist">
-                {FUTURE_TABS.map((t) => (
-                  <li key={t.id}>
-                    <button type="button" className="app-patient-profile__tab ui-focusable" disabled aria-disabled="true" title="Not available in this read-only preview">
+            <nav className="app-patient-profile__tabs" aria-label="Patient sections">
+              <ul className="app-patient-profile__tablist" role="tablist">
+                <li role="presentation">
+                  <button
+                    type="button"
+                    role="tab"
+                    id="patient-tab-appointments"
+                    aria-selected={activeTab === "appointments"}
+                    aria-controls="patient-panel-appointments"
+                    className={`app-patient-profile__tab ui-focusable${activeTab === "appointments" ? " app-patient-profile__tab--active" : ""}`}
+                    onClick={() => setActiveTab("appointments")}
+                  >
+                    Appointments
+                  </button>
+                </li>
+                {COMING_TABS.map((t) => (
+                  <li key={t.id} role="presentation">
+                    <button
+                      type="button"
+                      role="tab"
+                      className="app-patient-profile__tab ui-focusable"
+                      disabled
+                      aria-disabled="true"
+                      title="Not available in this read-only preview"
+                    >
                       {t.label}
                       <span className="app-patient-profile__tab-badge">Soon</span>
                     </button>
@@ -229,6 +394,139 @@ export function PatientProfilePanel({
                 ))}
               </ul>
             </nav>
+
+            {activeTab === "appointments" ? (
+              <section
+                id="patient-panel-appointments"
+                role="tabpanel"
+                aria-labelledby="patient-tab-appointments"
+                className="app-patient-profile__appts"
+              >
+                <p className="app-patient-profile__appts-lede">
+                  Read-only appointment history. Schedule names and notes stay hidden.
+                </p>
+
+                <div className="app-patient-profile__appts-controls">
+                  <div className="app-patient-profile__appts-presets" role="group" aria-label="Date range">
+                    <Button
+                      type="button"
+                      variant={rangePreset === "past90" ? "primary" : "secondary"}
+                      className="ui-focusable"
+                      onClick={() => applyRangePreset("past90")}
+                    >
+                      Past 90 days
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={rangePreset === "upcoming90" ? "primary" : "secondary"}
+                      className="ui-focusable"
+                      onClick={() => applyRangePreset("upcoming90")}
+                    >
+                      Upcoming 90 days
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={rangePreset === "thisYear" ? "primary" : "secondary"}
+                      className="ui-focusable"
+                      onClick={() => applyRangePreset("thisYear")}
+                    >
+                      This year
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="ui-focusable"
+                      onClick={() => {
+                        setApptRefreshNonce((n) => n + 1);
+                      }}
+                    >
+                      Refresh
+                    </Button>
+                  </div>
+                </div>
+
+                <p className="app-patient-profile__appts-range" aria-live="polite">
+                  {rangeHeading}
+                </p>
+
+                {apptState.phase === "offline" ? (
+                  <EmptyState
+                    className="ui-empty--start app-patient-profile__empty"
+                    title="Clinic service offline"
+                    description="Connect the bridge to load appointment history."
+                  />
+                ) : apptState.phase === "loading" ? (
+                  <p className="app-patient-profile__status" role="status" aria-live="polite">
+                    Loading appointments…
+                  </p>
+                ) : apptState.phase === "error" ? (
+                  <div className="app-patient-profile__error" role="alert">
+                    <p>{apptState.message}</p>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="ui-focusable"
+                      onClick={() => setApptRefreshNonce((n) => n + 1)}
+                    >
+                      Retry
+                    </Button>
+                  </div>
+                ) : apptState.phase === "empty" ? (
+                  <EmptyState
+                    className="ui-empty--start app-patient-profile__empty"
+                    title="No appointments found"
+                    description="Nothing is scheduled in this date range. Try another preset or refresh after the bridge loads data."
+                  />
+                ) : apptState.phase === "loaded" ? (
+                  <div className="app-patient-profile__appt-days">
+                    {[...groupedAppts.entries()].map(([dateIso, list]) => (
+                      <Card key={dateIso} className="app-patient-profile__appt-day">
+                        <CardHeader>
+                          <p className="ui-card__title app-card-title-lg app-patient-profile__appt-day-title">
+                            {dateIso}
+                          </p>
+                        </CardHeader>
+                        <CardBody>
+                          <ul className="app-patient-profile__appt-list" aria-label={`Appointments on ${dateIso}`}>
+                            {list.map((appt) => (
+                              <li key={appt.id} className="app-patient-profile__appt-row">
+                                <div className="app-patient-profile__appt-time">{appt.time}</div>
+                                <div className="app-patient-profile__appt-main">
+                                  <div className="app-patient-profile__appt-line1">
+                                    <span className="app-patient-profile__appt-duration">
+                                      {patientApptFormatDuration(appt)}
+                                    </span>
+                                    <span className="app-patient-profile__appt-meta">{patientApptRowMeta(appt)}</span>
+                                  </div>
+                                  <div className="app-patient-profile__appt-badges">
+                                    <Badge
+                                      variant={patientApptStatusBadgeVariant(appt.status)}
+                                      semanticLabel={`Visit status code ${appt.status}`}
+                                    >
+                                      {patientApptStatusLabel(appt.status)}
+                                    </Badge>
+                                    {appt.missed ? (
+                                      <Badge variant="danger" semanticLabel="Missed appointment">
+                                        Missed
+                                      </Badge>
+                                    ) : null}
+                                    {appt.hasComment ? (
+                                      <Badge variant="neutral" semanticLabel="Internal note hidden">
+                                        Note hidden
+                                      </Badge>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </CardBody>
+                      </Card>
+                    ))}
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
           </>
         ) : (
           <EmptyState className="ui-empty--start" title="Nothing to show" description="Unexpected state." />

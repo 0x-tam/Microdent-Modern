@@ -7,7 +7,9 @@ import {
   PatientProfilePathParamsSchema,
   PatientProfileResponseSchema,
   PatientSearchResponseSchema,
+  ReferenceDoctorsResponseSchema,
   ScheduleAppointmentsResponseSchema,
+  ReferenceProceduresResponseSchema,
   ScheduleRoomsResponseSchema,
   TableRowsResponseSchema,
   TablesListResponseSchema,
@@ -16,7 +18,9 @@ import {
   type LegacyCatalogResponse,
   type PatientProfileResponse,
   type PatientSearchResponse,
+  type ReferenceDoctorsResponse,
   type ScheduleAppointmentsResponse,
+  type ReferenceProceduresResponse,
   type ScheduleRoomsResponse,
   type TableRowsResponse,
   type TablesListResponse,
@@ -103,6 +107,17 @@ export class BridgeClient {
     }
     const id = parsed.data.patientId;
     return this.requestJson(`/v1/patients/${encodeURIComponent(id)}/profile`, PatientProfileResponseSchema);
+  }
+
+  async getReferenceProcedures(): Promise<ReferenceProceduresResponse> {
+    return this.requestJson("/v1/reference/procedures", ReferenceProceduresResponseSchema);
+  }
+
+  /**
+   * Read-only provider directory from `DOCTORS.DBF` (`doctorId`, `displayName`, optional `active` only).
+   */
+  async getReferenceDoctors(): Promise<ReferenceDoctorsResponse> {
+    return this.requestJson("/v1/reference/doctors", ReferenceDoctorsResponseSchema);
   }
 
   async getScheduleRooms(): Promise<ScheduleRoomsResponse> {

@@ -8,8 +8,10 @@ import {
   PatientSearchQueryParamsSchema,
   PatientSearchResponseSchema,
   PatientAppointmentsQuerySchema,
+  ReferenceDoctorsResponseSchema,
   ScheduleAppointmentsQuerySchema,
   ScheduleAppointmentsResponseSchema,
+  ReferenceProceduresResponseSchema,
   ScheduleRoomsResponseSchema,
   TableRowsResponseSchema,
   TablesListResponseSchema,
@@ -24,6 +26,8 @@ import { findRegistryEntry, TABLE_ID_PATTERN, TABLE_REGISTRY } from "../dbf/tabl
 import { readLegacyCatalogRows } from "../dbf/read-legacy-catalog.js";
 import { mergePatientSummariesIntoScheduleAppointments } from "../dbf/schedule-appointment-patients.js";
 import { readScheduleAppointments } from "../dbf/schedule-appointments.js";
+import { readReferenceDoctorsFromDbf } from "../dbf/reference-doctors.js";
+import { readReferenceProcedures } from "../dbf/reference-procedures.js";
 import { readScheduleRooms } from "../dbf/schedule-rooms.js";
 
 function sendError(res: Response, status: number, code: string, message: string): void {
@@ -189,6 +193,40 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
     const appointments = await mergePatientSummariesIntoScheduleAppointments(dr, outcome.appointments);
     const body = { appointments };
     ScheduleAppointmentsResponseSchema.parse(body);
+    res.json(body);
+  });
+
+  router.get("/reference/procedures", async (_req, res) => {
+    if (!requireConfiguredDataRoot(res, bridgeConfig)) return;
+    const dr = bridgeConfig.dataRoot;
+    const outcome = await readReferenceProcedures(dr);
+    if (outcome.kind === "missing_procchrt") {
+      sendError(res, 404, "PROCCHRT_DBF_NOT_FOUND", "PROCCHRT.DBF not found under DATA_ROOT");
+      return;
+    }
+    if (outcome.kind === "read_error") {
+      sendError(res, 500, "REFERENCE_PROCEDURES_ERROR", "failed to read procedure reference");
+      return;
+    }
+    const body = { procedures: outcome.procedures };
+    ReferenceProceduresResponseSchema.parse(body);
+    res.json(body);
+  });
+
+  router.get("/reference/doctors", async (_req, res) => {
+    if (!requireConfiguredDataRoot(res, bridgeConfig)) return;
+    const dr = bridgeConfig.dataRoot;
+    const outcome = await readReferenceDoctorsFromDbf(dr);
+    if (outcome.kind === "missing_table") {
+      sendError(res, 404, "DOCTORS_DBF_NOT_FOUND", "DOCTORS.DBF not found under DATA_ROOT");
+      return;
+    }
+    if (outcome.kind === "read_error") {
+      sendError(res, 500, "REFERENCE_DOCTORS_ERROR", "failed to read doctors reference");
+      return;
+    }
+    const body = { doctors: outcome.doctors };
+    ReferenceDoctorsResponseSchema.parse(body);
     res.json(body);
   });
 
