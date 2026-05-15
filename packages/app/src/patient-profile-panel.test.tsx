@@ -6,6 +6,8 @@ import { BridgeClientError } from "@microdent/bridge-client";
 import {
   PatientProfilePanel,
   safePatientAppointmentsError,
+  safePatientChartError,
+  safePatientLedgerError,
   safePatientMedicalSummaryError,
   safePatientProfileError,
   safePatientTreatmentsError,
@@ -114,11 +116,37 @@ async function clickTreatmentsTab(container: HTMLElement): Promise<void> {
   });
 }
 
+async function clickChartTab(container: HTMLElement): Promise<void> {
+  const tab = container.querySelector("#patient-tab-chart");
+  if (!(tab instanceof HTMLButtonElement)) {
+    throw new Error("Chart tab button not found");
+  }
+  await act(async () => {
+    tab.click();
+  });
+}
+
+async function clickLedgerTab(container: HTMLElement): Promise<void> {
+  const tab = container.querySelector("#patient-tab-ledger");
+  if (!(tab instanceof HTMLButtonElement)) {
+    throw new Error("Ledger tab button not found");
+  }
+  await act(async () => {
+    tab.click();
+  });
+}
+
 const PRIVACY_NOTE =
   "Problem description, allergy free text, and medical notes remain hidden until field mapping is reviewed." as const;
 
 const TREATMENTS_PRIVACY_NOTE =
   "Procedure memos, per-line descriptions, fee columns, and raw OPERTBL rows are never exposed by this route." as const;
+
+const CHART_PRIVACY_NOTE =
+  "Chart memos, layer code legends, clinical labels, and raw CHARTDBF rows are never exposed by this route." as const;
+
+const LEDGER_PRIVACY_NOTE =
+  "Ledger amounts, memo text, insurance identifiers, plan numbers, and raw TRANS rows are never exposed by this route." as const;
 
 const syntheticTreatment = {
   treatmentId: "100",
@@ -142,6 +170,52 @@ function treatmentsFetchHandler(
       return Promise.resolve(jsonResponse(validProfile));
     }
     if (u.includes("/treatments")) {
+      return Promise.resolve(jsonResponse(body));
+    }
+    return Promise.reject(new Error(`unexpected ${u}`));
+  };
+}
+
+const syntheticChartEntry = {
+  chartEntryId: "14-1-1",
+  patientId: "42",
+  toothNumber: 14,
+  chartType: 1,
+  treated: true,
+  hasNote: true,
+};
+
+const syntheticLedgerEntry = {
+  ledgerEntryId: "200",
+  patientId: "42",
+  date: "2024-06-01",
+  chargeTypeCode: 2,
+  adjustmentTypeCode: 0,
+  paymentTypeCode: 100,
+  isCardPayment: true,
+  hasDescription: true,
+};
+
+function ledgerFetchHandler(body: unknown): (input: RequestInfo | URL) => Promise<Response> {
+  return (input) => {
+    const u = String(input);
+    if (u.includes("/profile")) {
+      return Promise.resolve(jsonResponse(validProfile));
+    }
+    if (u.includes("/ledger")) {
+      return Promise.resolve(jsonResponse(body));
+    }
+    return Promise.reject(new Error(`unexpected ${u}`));
+  };
+}
+
+function chartFetchHandler(body: unknown): (input: RequestInfo | URL) => Promise<Response> {
+  return (input) => {
+    const u = String(input);
+    if (u.includes("/profile")) {
+      return Promise.resolve(jsonResponse(validProfile));
+    }
+    if (u.includes("/chart")) {
       return Promise.resolve(jsonResponse(body));
     }
     return Promise.reject(new Error(`unexpected ${u}`));
@@ -411,8 +485,9 @@ describe("PatientProfilePanel", () => {
       );
     });
     await flush();
-    const t = container.textContent ?? "";
-    expect(t).not.toMatch(/HOME_PHONE|STREET|EMAIL|QUICKNOTE|PAT_M_COMP|INSURANCE|raw json/i);
+    const summary = container.querySelector("#patient-panel-summary");
+    const t = summary?.textContent ?? "";
+    expect(t).not.toMatch(/HOME_PHONE|STREET|EMAIL|QUICKNOTE|PAT_M_COMP|\bINSURANCE\b|raw json/i);
     expect(t).not.toContain("PAT_NAME");
     expect(t).not.toContain("TELEPHONE");
     expect(t).not.toContain("COMMENT");
@@ -868,7 +943,7 @@ describe("PatientProfilePanel", () => {
     await flush();
 
     const t = container.textContent ?? "";
-    expect(t).toMatch(/Details are hidden in this read-only preview/i);
+    expect(t).toMatch(/Sensitive fields are hidden in this read-only viewer/i);
     expect(t).toContain("3");
     expect(t).not.toContain("Asthma (screening)");
     expect(t).not.toContain("Diabetes (screening)");
@@ -1154,7 +1229,7 @@ describe("PatientProfilePanel", () => {
     expect(t).not.toContain("SYNTHETIC_PATIENT_SPECIFIC_PROCEDURE_TEXT");
   });
 
-  it("still renders Payments and Chart as disabled coming-soon tabs", async () => {
+  it("enables Ledger preview tab and does not show a disabled Payments placeholder", async () => {
     const fetchImpl = withReferenceDoctors((input) => {
       const u = String(input);
       if (u.includes("/profile")) {
@@ -1176,11 +1251,284 @@ describe("PatientProfilePanel", () => {
     });
     await flush();
     const disabled = [...container.querySelectorAll(".app-patient-profile__tab[disabled]")];
-    expect(disabled).toHaveLength(2);
-    const labels = disabled.map((el) => el.textContent ?? "");
-    expect(labels.some((l) => /Payments/i.test(l))).toBe(true);
-    expect(labels.some((l) => /Chart/i.test(l))).toBe(true);
-    expect(labels.some((l) => /Treatments/i.test(l))).toBe(false);
+    expect(disabled).toHaveLength(0);
+    expect(container.querySelector("#patient-tab-ledger")).toBeTruthy();
+    expect(container.querySelector("#patient-tab-ledger")?.hasAttribute("disabled")).toBe(false);
+    expect(container.textContent ?? "").toMatch(/Ledger preview/i);
+    expect(container.textContent ?? "").not.toMatch(/\bPayments\b/);
+  });
+
+  it("exposes a Ledger preview tab that can be activated", async () => {
+    const fetchImpl = withReferenceDoctors(
+      ledgerFetchHandler({
+        patientId: "42",
+        entries: [],
+        truncated: false,
+        privacyNote: LEDGER_PRIVACY_NOTE,
+      }),
+    );
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    const tab = container.querySelector("#patient-tab-ledger");
+    expect(tab?.getAttribute("aria-selected")).toBe("false");
+    await clickLedgerTab(container);
+    expect(tab?.getAttribute("aria-selected")).toBe("true");
+    expect(container.querySelector("#patient-panel-ledger")).toBeTruthy();
+  });
+
+  it("fetches ledger only when Ledger preview tab is active and bridge is connected", async () => {
+    const fetchImpl = withReferenceDoctors(
+      ledgerFetchHandler({
+        patientId: "42",
+        entries: [],
+        truncated: false,
+        privacyNote: LEDGER_PRIVACY_NOTE,
+      }),
+    );
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    expect(fetchImpl.mock.calls.some((c) => String(c[0]).includes("/ledger"))).toBe(false);
+    await clickLedgerTab(container);
+    await flush();
+    const ledgerUrl = fetchImpl.mock.calls.map((c) => String(c[0])).find((u) => u.includes("/ledger"));
+    expect(ledgerUrl).toContain("/v1/patients/42/ledger");
+  });
+
+  it("renders safe ledger fields when load succeeds", async () => {
+    const fetchImpl = withReferenceDoctors(
+      ledgerFetchHandler({
+        patientId: "42",
+        entries: [syntheticLedgerEntry],
+        truncated: true,
+        privacyNote: LEDGER_PRIVACY_NOTE,
+      }),
+    );
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    await clickLedgerTab(container);
+    await flush();
+    const t = container.textContent ?? "";
+    expect(t).toMatch(/Ledger lines are read-only/i);
+    expect(t).toMatch(/Payment amounts are intentionally hidden/i);
+    expect(t).toContain("Charge type 2");
+    expect(t).toContain("Payment type 100");
+    expect(t).toContain("Card payment");
+    expect(t).toContain("Description hidden");
+    expect(t).toContain(LEDGER_PRIVACY_NOTE);
+    expect(t).toMatch(/capped list only/i);
+  });
+
+  it("does not render forbidden ledger field tokens in the Ledger preview tab", async () => {
+    const fetchImpl = withReferenceDoctors(
+      ledgerFetchHandler({
+        patientId: "42",
+        entries: [syntheticLedgerEntry],
+        truncated: false,
+        privacyNote: LEDGER_PRIVACY_NOTE,
+      }),
+    );
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    await clickLedgerTab(container);
+    await flush();
+    const t = container.textContent ?? "";
+    expect(t).not.toMatch(/\b(AMOUNT|SAMOUNT|DESCR)\b/);
+    expect(t).not.toMatch(/\braw row\b/i);
+    expect(t).not.toContain("SYNTHETIC_LEDGER_MEMO_TOKEN");
+    expect(t).not.toContain("9876.54");
+  });
+
+  it("activates Chart tab and shows panel", async () => {
+    const fetchImpl = withReferenceDoctors(
+      chartFetchHandler({
+        patientId: "42",
+        entries: [],
+        truncated: false,
+        privacyNote: CHART_PRIVACY_NOTE,
+      }),
+    );
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    const tab = container.querySelector("#patient-tab-chart");
+    expect(tab?.getAttribute("aria-selected")).toBe("false");
+    await clickChartTab(container);
+    expect(tab?.getAttribute("aria-selected")).toBe("true");
+    expect(container.querySelector("#patient-panel-chart")).toBeTruthy();
+  });
+
+  it("fetches chart only when Chart tab is active and bridge is connected", async () => {
+    const fetchImpl = withReferenceDoctors(
+      chartFetchHandler({
+        patientId: "42",
+        entries: [],
+        truncated: false,
+        privacyNote: CHART_PRIVACY_NOTE,
+      }),
+    );
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    expect(fetchImpl.mock.calls.some((c) => String(c[0]).includes("/chart"))).toBe(false);
+    await clickChartTab(container);
+    await flush();
+    const chartUrl = fetchImpl.mock.calls.map((c) => String(c[0])).find((u) => u.includes("/chart"));
+    expect(chartUrl).toContain("/v1/patients/42/chart");
+  });
+
+  it("does not fetch chart when the bridge is offline", async () => {
+    const fetchImpl = withReferenceDoctors(
+      chartFetchHandler({
+        patientId: "42",
+        entries: [syntheticChartEntry],
+        truncated: false,
+        privacyNote: CHART_PRIVACY_NOTE,
+      }),
+    );
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="offline"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    expect(fetchImpl.mock.calls.some((c) => String(c[0]).includes("/chart"))).toBe(false);
+  });
+
+  it("renders safe chart fields when load succeeds", async () => {
+    const fetchImpl = withReferenceDoctors(
+      chartFetchHandler({
+        patientId: "42",
+        entries: [syntheticChartEntry],
+        truncated: true,
+        privacyNote: CHART_PRIVACY_NOTE,
+      }),
+    );
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    await clickChartTab(container);
+    await flush();
+    const t = container.textContent ?? "";
+    expect(t).toMatch(/Dental chart is read-only/i);
+    expect(t).toContain("Tooth 14");
+    expect(t).toContain("Type 1");
+    expect(t).toContain("Treated");
+    expect(t).toContain("Note hidden");
+    expect(t).toContain(CHART_PRIVACY_NOTE);
+    expect(t).toMatch(/capped/i);
+  });
+
+  it("does not render forbidden chart field tokens in the Chart tab", async () => {
+    const fetchImpl = withReferenceDoctors(
+      chartFetchHandler({
+        patientId: "42",
+        entries: [syntheticChartEntry],
+        truncated: false,
+        privacyNote: CHART_PRIVACY_NOTE,
+      }),
+    );
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    await clickChartTab(container);
+    await flush();
+    const t = container.textContent ?? "";
+    expect(t).not.toMatch(/\bNOTE\b/);
+    expect(t).not.toMatch(/\braw row\b/i);
+    expect(t).not.toContain("SYNTHETIC_CHART_MEMO_TOKEN");
+    expect(t).not.toContain("LEAKED PATIENT NAME FROM CHART");
+    expect(t).not.toContain("F2_S");
   });
 
   it("still renders appointments when reference doctors fail", async () => {

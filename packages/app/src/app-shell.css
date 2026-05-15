@@ -1484,6 +1484,204 @@
   color: var(--ui-text-secondary);
 }
 
+.app-patient-profile__chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+}
+
+.app-patient-profile__chart-lede {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__chart-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  align-items: center;
+}
+
+.app-patient-profile__chart-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+}
+
+.app-patient-profile__chart-banner {
+  margin: 0;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ui-text-primary);
+  background: var(--ui-bg-surface);
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-md);
+}
+
+.app-patient-profile__chart-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.app-patient-profile__chart-row {
+  display: grid;
+  grid-template-columns: minmax(6rem, auto) 1fr;
+  gap: var(--ui-space-3);
+  align-items: start;
+  padding: var(--ui-space-3) 0;
+  border-bottom: 1px solid var(--ui-border-subtle);
+}
+
+.app-patient-profile__chart-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.app-patient-profile__chart-tooth {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ui-text-primary);
+}
+
+.app-patient-profile__chart-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  min-width: 0;
+}
+
+.app-patient-profile__chart-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__chart-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+}
+
+.app-patient-profile__chart-privacy {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__ledger {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+}
+
+.app-patient-profile__ledger-lede {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__ledger-amounts-note {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 600;
+  color: var(--ui-text-primary);
+}
+
+.app-patient-profile__ledger-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  align-items: center;
+}
+
+.app-patient-profile__ledger-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+}
+
+.app-patient-profile__ledger-banner {
+  margin: 0;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ui-text-primary);
+  background: var(--ui-bg-surface);
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-md);
+}
+
+.app-patient-profile__ledger-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.app-patient-profile__ledger-row {
+  display: grid;
+  grid-template-columns: minmax(6rem, auto) 1fr;
+  gap: var(--ui-space-3);
+  align-items: start;
+  padding: var(--ui-space-3) 0;
+  border-bottom: 1px solid var(--ui-border-subtle);
+}
+
+.app-patient-profile__ledger-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.app-patient-profile__ledger-date {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ui-text-primary);
+}
+
+.app-patient-profile__ledger-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  min-width: 0;
+}
+
+.app-patient-profile__ledger-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__ledger-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+}
+
+.app-patient-profile__ledger-privacy {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
 .app-patient-profile__appt-days {
   display: flex;
   flex-direction: column;

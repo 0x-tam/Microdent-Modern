@@ -1,5 +1,7 @@
 import { BridgeClientError, createBridgeClient, isInvalidBodySchemaMismatch } from "@microdent/bridge-client";
 import type {
+  LedgerEntryV1,
+  PatientChartEntry,
   PatientMedicalSummaryResponse,
   PatientProfileResponse,
   PatientTreatmentItem,
@@ -25,6 +27,36 @@ import { useDoctorLabels } from "./useDoctorLabels.js";
 import { useProcedureReference } from "./useProcedureReference.js";
 import { medicalConditionItemsForDisplay } from "./patient-medical-summary-display.js";
 import {
+  chartToothLabel,
+  chartTreatedLabel,
+  chartTypeLabel,
+  sortChartEntriesForDisplay,
+} from "./patient-chart-display.js";
+import {
+  formatLedgerDate,
+  ledgerAdjustmentTypeLabel,
+  ledgerCardPaymentLabel,
+  ledgerChargeTypeLabel,
+  ledgerPaymentTypeLabel,
+  sortLedgerEntriesForDisplay,
+} from "./patient-ledger-display.js";
+import {
+  CLINIC_SERVICE_OFFLINE_PANEL,
+  CLINIC_SERVICE_OFFLINE_SECTION,
+  CLINIC_SERVICE_OFFLINE_TITLE,
+  PATIENT_NO_SELECTION_DESCRIPTION,
+  PATIENT_PROFILE_READONLY_NOTE,
+  PATIENT_TAB_APPOINTMENTS_LEDE,
+  PATIENT_TAB_CHART_LEDE,
+  PATIENT_TAB_LEDGER_LEDE,
+  PATIENT_TAB_MEDICAL_LEDE,
+  PATIENT_TAB_SUMMARY_LEDE,
+  PATIENT_TAB_TREATMENTS_LEDE,
+  SENSITIVE_MEDICAL_BANNER,
+  TAB_UNAVAILABLE_TITLE,
+  TRUNCATED_LIST_BANNER,
+} from "./read-only-ui-copy.js";
+import {
   formatTreatmentDate,
   sortTreatmentsForDisplay,
   treatmentProcedureLine,
@@ -32,6 +64,8 @@ import {
   treatmentStatusLabel,
   treatmentToothLabel,
 } from "./patient-treatments-display.js";
+
+const COMING_TABS = [{ id: "payments" as const, label: "Payments" }];
 
 export type PatientProfilePanelProps = {
   /** When null, shows the “no patient selected” state. */
@@ -51,7 +85,7 @@ type LoadState =
   | { phase: "not_found" }
   | { phase: "error"; message: string };
 
-type ProfileTab = "appointments" | "treatments" | "payments" | "medical" | "chart";
+type ProfileTab = "summary" | "appointments" | "medical" | "treatments" | "chart" | "ledger";
 
 type ApptLoadState =
   | { phase: "idle" }
@@ -77,9 +111,29 @@ type TxLoadState =
   | { phase: "empty" }
   | { phase: "error"; message: string };
 
-const COMING_TABS: { id: Exclude<ProfileTab, "appointments" | "medical" | "treatments">; label: string }[] = [
-  { id: "payments", label: "Payments" },
+type ChartLoadState =
+  | { phase: "idle" }
+  | { phase: "offline" }
+  | { phase: "loading" }
+  | { phase: "loaded"; entries: PatientChartEntry[]; truncated: boolean; privacyNote: string }
+  | { phase: "empty" }
+  | { phase: "error"; message: string };
+
+type LedgerLoadState =
+  | { phase: "idle" }
+  | { phase: "offline" }
+  | { phase: "loading" }
+  | { phase: "loaded"; entries: LedgerEntryV1[]; truncated: boolean; privacyNote: string }
+  | { phase: "empty" }
+  | { phase: "error"; message: string };
+
+export const PROFILE_TAB_ORDER: readonly { id: ProfileTab; label: string }[] = [
+  { id: "summary", label: "Summary" },
+  { id: "appointments", label: "Appointments" },
+  { id: "medical", label: "Medical" },
+  { id: "treatments", label: "Treatments" },
   { id: "chart", label: "Chart" },
+  { id: "ledger", label: "Ledger" },
 ];
 
 export function safePatientProfileError(e: unknown): string {
@@ -209,6 +263,74 @@ export function safePatientTreatmentsError(e: unknown): string {
   return "Treatment history could not be loaded.";
 }
 
+export function safePatientChartError(e: unknown): string {
+  if (e instanceof BridgeClientError) {
+    if (e.kind === "network") {
+      return "Could not reach the clinic service. Check that the bridge is running.";
+    }
+    if (e.kind === "http") {
+      const code = e.apiCode ?? "";
+      if (code === "CHARTDBF_NOT_FOUND") {
+        return "Dental chart data is not available on this bridge yet. Ask your administrator to check the data folder.";
+      }
+      if (code === "DATA_ROOT_NOT_CONFIGURED") {
+        return "Dental chart data is not available on this bridge yet. Ask your administrator to check the data folder.";
+      }
+      if (code === "INVALID_PATIENT_ID") {
+        return "This patient id is not valid for a chart request.";
+      }
+      if (code === "PATIENT_CHART_ERROR") {
+        return "Dental chart could not be loaded. Try again in a moment.";
+      }
+      return "Dental chart could not be loaded. Try again in a moment.";
+    }
+    if (e.kind === "invalid_body") {
+      if (isInvalidBodySchemaMismatch(e)) {
+        return "Dental chart needs a small data mapping fix. No clinic data was changed.";
+      }
+      return "Dental chart could not read the clinic response format. Try again.";
+    }
+    if (e.kind === "invalid_argument") {
+      return "This patient id is not valid for a chart request.";
+    }
+  }
+  return "Dental chart could not be loaded.";
+}
+
+export function safePatientLedgerError(e: unknown): string {
+  if (e instanceof BridgeClientError) {
+    if (e.kind === "network") {
+      return "Could not reach the clinic service. Check that the bridge is running.";
+    }
+    if (e.kind === "http") {
+      const code = e.apiCode ?? "";
+      if (code === "TRANS_DBF_NOT_FOUND") {
+        return "Ledger history is not available on this bridge yet. Ask your administrator to check the data folder.";
+      }
+      if (code === "DATA_ROOT_NOT_CONFIGURED") {
+        return "Ledger history is not available on this bridge yet. Ask your administrator to check the data folder.";
+      }
+      if (code === "INVALID_PATIENT_ID") {
+        return "This patient id is not valid for a ledger request.";
+      }
+      if (code === "PATIENT_LEDGER_ERROR") {
+        return "Ledger history could not be loaded. Try again in a moment.";
+      }
+      return "Ledger history could not be loaded. Try again in a moment.";
+    }
+    if (e.kind === "invalid_body") {
+      if (isInvalidBodySchemaMismatch(e)) {
+        return "Ledger history needs a small data mapping fix. No clinic data was changed.";
+      }
+      return "Ledger history could not read the clinic response format. Try again.";
+    }
+    if (e.kind === "invalid_argument") {
+      return "This patient id is not valid for a ledger request.";
+    }
+  }
+  return "Ledger history could not be loaded.";
+}
+
 function formatApptRangeHeading(from: string, to: string): string {
   try {
     const fmt = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" });
@@ -238,7 +360,7 @@ function TreatmentsBody({
     <div className="app-patient-profile__treatments-body">
       {truncated ? (
         <p className="app-patient-profile__treatments-banner" role="note">
-          Showing the most recent procedures only. Older lines are omitted in this read-only preview.
+          {TRUNCATED_LIST_BANNER}
         </p>
       ) : null}
       <ul className="app-patient-profile__treatment-list" aria-label="Procedure history">
@@ -276,6 +398,162 @@ function TreatmentsBody({
   );
 }
 
+function ChartBody({
+  entries,
+  truncated,
+  privacyNote,
+}: {
+  entries: PatientChartEntry[];
+  truncated: boolean;
+  privacyNote: string;
+}) {
+  const sorted = sortChartEntriesForDisplay(entries);
+
+  return (
+    <div className="app-patient-profile__chart-body">
+      {truncated ? (
+        <p className="app-patient-profile__chart-banner" role="note">
+          Showing a capped set of chart rows only. Additional lines are omitted in this read-only preview.
+        </p>
+      ) : null}
+      <ul className="app-patient-profile__chart-list" aria-label="Dental chart entries">
+        {sorted.map((row) => (
+          <li key={row.chartEntryId} className="app-patient-profile__chart-row">
+            <div className="app-patient-profile__chart-tooth">{chartToothLabel(row.toothNumber)}</div>
+            <div className="app-patient-profile__chart-main">
+              <div className="app-patient-profile__chart-meta">
+                <span>{chartTypeLabel(row.chartType)}</span>
+                <span>{chartTreatedLabel(row.treated)}</span>
+              </div>
+              <div className="app-patient-profile__chart-badges">
+                {row.hasNote ? (
+                  <Badge variant="neutral" semanticLabel="Chart note hidden">
+                    Note hidden
+                  </Badge>
+                ) : null}
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <p className="app-patient-profile__chart-privacy">{privacyNote}</p>
+    </div>
+  );
+}
+
+function ProfileSummaryCard({
+  profile,
+  activeLabel,
+  doctorLabels,
+}: {
+  profile: PatientProfileResponse;
+  activeLabel: string | null;
+  doctorLabels: ReadonlyMap<string, string>;
+}) {
+  return (
+    <Card className="app-patient-profile__card">
+      <CardHeader>
+        <div className="app-patient-profile__card-head">
+          <div>
+            <p className="app-patient-profile__name">{profile.displayName}</p>
+            {profile.reverseName ? <p className="app-patient-profile__rev">{profile.reverseName}</p> : null}
+          </div>
+          {activeLabel ? (
+            <Badge variant={profile.active ? "success" : "neutral"} semanticLabel={`Account status: ${activeLabel}`}>
+              {activeLabel}
+            </Badge>
+          ) : null}
+        </div>
+      </CardHeader>
+      <CardBody>
+        <dl className="app-patient-profile__dl">
+          <div className="app-patient-profile__row">
+            <dt>Chart number</dt>
+            <dd>{profile.chartNumber ?? "—"}</dd>
+          </div>
+          <div className="app-patient-profile__row">
+            <dt>Record id</dt>
+            <dd>{profile.patientId}</dd>
+          </div>
+          <div className="app-patient-profile__row">
+            <dt>Phone (masked)</dt>
+            <dd>{profile.phoneMask ?? "—"}</dd>
+          </div>
+          <div className="app-patient-profile__row">
+            <dt>Provider</dt>
+            <dd>
+              {profile.doctorId !== null
+                ? (doctorDisplayLabel(profile.doctorId, doctorLabels) ?? "—")
+                : "—"}
+            </dd>
+          </div>
+          <div className="app-patient-profile__row">
+            <dt>Entry date</dt>
+            <dd>{profile.entryDate ?? "—"}</dd>
+          </div>
+          <div className="app-patient-profile__row">
+            <dt>Last visit</dt>
+            <dd>{profile.lastVisit ?? "—"}</dd>
+          </div>
+        </dl>
+      </CardBody>
+    </Card>
+  );
+}
+
+function LedgerBody({
+  entries,
+  truncated,
+  privacyNote,
+}: {
+  entries: LedgerEntryV1[];
+  truncated: boolean;
+  privacyNote: string;
+}) {
+  const sorted = sortLedgerEntriesForDisplay(entries);
+
+  return (
+    <div className="app-patient-profile__ledger-body">
+      {truncated ? (
+        <p className="app-patient-profile__ledger-banner" role="note">
+          {TRUNCATED_LIST_BANNER}
+        </p>
+      ) : null}
+      <ul className="app-patient-profile__ledger-list" aria-label="Ledger entries">
+        {sorted.map((row) => {
+          const dateLabel = formatLedgerDate(row.date);
+          const charge = ledgerChargeTypeLabel(row.chargeTypeCode);
+          const adjustment = ledgerAdjustmentTypeLabel(row.adjustmentTypeCode);
+          const payment = ledgerPaymentTypeLabel(row.paymentTypeCode);
+          const card = ledgerCardPaymentLabel(row.isCardPayment);
+
+          return (
+            <li key={row.ledgerEntryId} className="app-patient-profile__ledger-row">
+              <div className="app-patient-profile__ledger-date">{dateLabel ?? "—"}</div>
+              <div className="app-patient-profile__ledger-main">
+                <div className="app-patient-profile__ledger-meta">
+                  {charge ? <span>{charge}</span> : null}
+                  {adjustment ? <span>{adjustment}</span> : null}
+                  {payment ? <span>{payment}</span> : null}
+                  {card ? <span>{card}</span> : null}
+                </div>
+                <div className="app-patient-profile__ledger-badges">
+                  {row.hasDescription ? (
+                    <Badge variant="neutral" semanticLabel="Ledger description hidden">
+                      Description hidden
+                    </Badge>
+                  ) : null}
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="app-patient-profile__ledger-privacy">{privacyNote}</p>
+    </div>
+  );
+}
+
 function MedicalSummaryBody({ summary }: { summary: PatientMedicalSummaryResponse }) {
   const sensitive = summary.hasSensitiveMedicalDetails;
   const conditionItems = sensitive ? [] : medicalConditionItemsForDisplay(summary.conditions);
@@ -284,7 +562,7 @@ function MedicalSummaryBody({ summary }: { summary: PatientMedicalSummaryRespons
     <div className="app-patient-profile__medical-body">
       {sensitive ? (
         <p className="app-patient-profile__medical-banner" role="note">
-          This patient has medical details recorded in the legacy system. Details are hidden in this read-only preview.
+          {SENSITIVE_MEDICAL_BANNER}
         </p>
       ) : null}
 
@@ -375,6 +653,14 @@ export function PatientProfilePanel({
   const [txState, setTxState] = useState<TxLoadState>({ phase: "idle" });
   const [txRefreshNonce, setTxRefreshNonce] = useState(0);
   const txRequestSeq = useRef(0);
+
+  const [chartState, setChartState] = useState<ChartLoadState>({ phase: "idle" });
+  const [chartRefreshNonce, setChartRefreshNonce] = useState(0);
+  const chartRequestSeq = useRef(0);
+
+  const [ledgerState, setLedgerState] = useState<LedgerLoadState>({ phase: "idle" });
+  const [ledgerRefreshNonce, setLedgerRefreshNonce] = useState(0);
+  const ledgerRequestSeq = useRef(0);
 
   useEffect(() => {
     if (patientId === null) {
@@ -543,14 +829,112 @@ export function PatientProfilePanel({
 
   useEffect(() => {
     if (patientId === null) {
+      setChartState({ phase: "idle" });
+      return;
+    }
+    if (activeTab !== "chart") {
+      setChartState({ phase: "idle" });
+      return;
+    }
+    if (!base || bridgePhase !== "connected") {
+      setChartState({ phase: "offline" });
+      return;
+    }
+
+    const seq = ++chartRequestSeq.current;
+    setChartState({ phase: "loading" });
+
+    const client = createBridgeClient({ baseUrl: base, fetch: fetchImpl });
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const data = await client.getPatientChart(patientId);
+        if (cancelled || seq !== chartRequestSeq.current) return;
+        if (data.entries.length === 0) {
+          setChartState({ phase: "empty" });
+        } else {
+          setChartState({
+            phase: "loaded",
+            entries: data.entries,
+            truncated: data.truncated,
+            privacyNote: data.privacyNote,
+          });
+        }
+      } catch (e: unknown) {
+        if (cancelled || seq !== chartRequestSeq.current) return;
+        setChartState({ phase: "error", message: safePatientChartError(e) });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [patientId, base, bridgePhase, fetchImpl, activeTab, chartRefreshNonce]);
+
+  useEffect(() => {
+    if (patientId === null) {
+      setLedgerState({ phase: "idle" });
+      return;
+    }
+    if (activeTab !== "ledger") {
+      setLedgerState({ phase: "idle" });
+      return;
+    }
+    if (!base || bridgePhase !== "connected") {
+      setLedgerState({ phase: "offline" });
+      return;
+    }
+
+    const seq = ++ledgerRequestSeq.current;
+    setLedgerState({ phase: "loading" });
+
+    const client = createBridgeClient({ baseUrl: base, fetch: fetchImpl });
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const data = await client.getPatientLedger(patientId);
+        if (cancelled || seq !== ledgerRequestSeq.current) return;
+        if (data.entries.length === 0) {
+          setLedgerState({ phase: "empty" });
+        } else {
+          setLedgerState({
+            phase: "loaded",
+            entries: data.entries,
+            truncated: data.truncated,
+            privacyNote: data.privacyNote,
+          });
+        }
+      } catch (e: unknown) {
+        if (cancelled || seq !== ledgerRequestSeq.current) return;
+        setLedgerState({ phase: "error", message: safePatientLedgerError(e) });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [patientId, base, bridgePhase, fetchImpl, activeTab, ledgerRefreshNonce]);
+
+  useEffect(() => {
+    if (patientId === null) {
       setActiveTab(null);
       setRangePreset("default");
       setApptRange(defaultPatientApptRange());
       setApptState({ phase: "idle" });
       setMedState({ phase: "idle" });
       setTxState({ phase: "idle" });
+      setChartState({ phase: "idle" });
+      setLedgerState({ phase: "idle" });
     }
   }, [patientId]);
+
+  useEffect(() => {
+    if (state.phase === "loaded" && activeTab === null) {
+      setActiveTab("summary");
+    }
+  }, [state.phase, activeTab]);
 
   const activeLabel = useMemo(() => {
     if (state.phase === "loaded") {
@@ -586,7 +970,7 @@ export function PatientProfilePanel({
       </div>
 
       <p className="app-patient-profile__readonly-note" role="note">
-        Read-only profile — safe summary from the bridge only. Nothing here can be edited.
+        {PATIENT_PROFILE_READONLY_NOTE}
       </p>
 
       <AppErrorBoundary>
@@ -594,13 +978,13 @@ export function PatientProfilePanel({
           <EmptyState
             className="ui-empty--start app-patient-profile__empty"
             title="No patient selected"
-            description="Use Find a patient in the top bar, pick a row when the clinic service is connected, and this area will open their read-only summary."
+            description={PATIENT_NO_SELECTION_DESCRIPTION}
           />
         ) : state.phase === "offline" ? (
           <EmptyState
             className="ui-empty--start app-patient-profile__empty"
-            title="Clinic service offline"
-            description="Connect the bridge and wait until the top bar shows Connected, then try opening the patient again from search."
+            title={CLINIC_SERVICE_OFFLINE_TITLE}
+            description={CLINIC_SERVICE_OFFLINE_PANEL}
           />
         ) : state.phase === "loading" ? (
           <p className="app-patient-profile__status" role="status" aria-live="polite">
@@ -621,114 +1005,59 @@ export function PatientProfilePanel({
           </div>
         ) : state.phase === "loaded" ? (
           <>
-            <Card className="app-patient-profile__card">
-              <CardHeader>
-                <div className="app-patient-profile__card-head">
-                  <div>
-                    <p className="app-patient-profile__name">{state.profile.displayName}</p>
-                    {state.profile.reverseName ? (
-                      <p className="app-patient-profile__rev">{state.profile.reverseName}</p>
-                    ) : null}
-                  </div>
-                  {activeLabel ? (
-                    <Badge variant={state.profile.active ? "success" : "neutral"} semanticLabel={`Account status: ${activeLabel}`}>
-                      {activeLabel}
-                    </Badge>
-                  ) : null}
-                </div>
-              </CardHeader>
-              <CardBody>
-                <dl className="app-patient-profile__dl">
-                  <div className="app-patient-profile__row">
-                    <dt>Chart number</dt>
-                    <dd>{state.profile.chartNumber ?? "—"}</dd>
-                  </div>
-                  <div className="app-patient-profile__row">
-                    <dt>Record id</dt>
-                    <dd>{state.profile.patientId}</dd>
-                  </div>
-                  <div className="app-patient-profile__row">
-                    <dt>Phone (masked)</dt>
-                    <dd>{state.profile.phoneMask ?? "—"}</dd>
-                  </div>
-                  <div className="app-patient-profile__row">
-                    <dt>Provider</dt>
-                    <dd>
-                      {state.profile.doctorId !== null
-                        ? (doctorDisplayLabel(state.profile.doctorId, doctorLabels) ?? "—")
-                        : "—"}
-                    </dd>
-                  </div>
-                  <div className="app-patient-profile__row">
-                    <dt>Entry date</dt>
-                    <dd>{state.profile.entryDate ?? "—"}</dd>
-                  </div>
-                  <div className="app-patient-profile__row">
-                    <dt>Last visit</dt>
-                    <dd>{state.profile.lastVisit ?? "—"}</dd>
-                  </div>
-                </dl>
-              </CardBody>
-            </Card>
+            <p className="app-patient-profile__identity" role="status">
+              <span className="app-patient-profile__identity-name">{state.profile.displayName}</span>
+              {state.profile.chartNumber ? (
+                <span className="app-patient-profile__identity-chart"> · Chart {state.profile.chartNumber}</span>
+              ) : null}
+            </p>
 
             <nav className="app-patient-profile__tabs" aria-label="Patient sections">
               <ul className="app-patient-profile__tablist" role="tablist">
-                <li role="presentation">
-                  <button
-                    type="button"
-                    role="tab"
-                    id="patient-tab-appointments"
-                    aria-selected={activeTab === "appointments"}
-                    aria-controls="patient-panel-appointments"
-                    className={`app-patient-profile__tab ui-focusable${activeTab === "appointments" ? " app-patient-profile__tab--active" : ""}`}
-                    onClick={() => setActiveTab("appointments")}
-                  >
-                    Appointments
-                  </button>
-                </li>
-                <li role="presentation">
-                  <button
-                    type="button"
-                    role="tab"
-                    id="patient-tab-medical"
-                    aria-selected={activeTab === "medical"}
-                    aria-controls="patient-panel-medical"
-                    className={`app-patient-profile__tab ui-focusable${activeTab === "medical" ? " app-patient-profile__tab--active" : ""}`}
-                    onClick={() => setActiveTab("medical")}
-                  >
-                    Medical
-                  </button>
-                </li>
-                <li role="presentation">
-                  <button
-                    type="button"
-                    role="tab"
-                    id="patient-tab-treatments"
-                    aria-selected={activeTab === "treatments"}
-                    aria-controls="patient-panel-treatments"
-                    className={`app-patient-profile__tab ui-focusable${activeTab === "treatments" ? " app-patient-profile__tab--active" : ""}`}
-                    onClick={() => setActiveTab("treatments")}
-                  >
-                    Treatments
-                  </button>
-                </li>
-                {COMING_TABS.map((t) => (
-                  <li key={t.id} role="presentation">
+                {PROFILE_TAB_ORDER.map((tab) => (
+                  <li key={tab.id} role="presentation">
+                    <button
+                      type="button"
+                      role="tab"
+                      id={`patient-tab-${tab.id}`}
+                      aria-selected={activeTab === tab.id}
+                      aria-controls={`patient-panel-${tab.id}`}
+                      className={`app-patient-profile__tab ui-focusable${activeTab === tab.id ? " app-patient-profile__tab--active" : ""}`}
+                      onClick={() => setActiveTab(tab.id)}
+                    >
+                      {tab.label}
+                    </button>
+                  </li>
+                ))}
+                {COMING_TABS.map((tab) => (
+                  <li key={tab.id} role="presentation">
                     <button
                       type="button"
                       role="tab"
                       className="app-patient-profile__tab ui-focusable"
                       disabled
                       aria-disabled="true"
-                      title="Not available in this read-only preview"
+                      title={TAB_UNAVAILABLE_TITLE}
                     >
-                      {t.label}
+                      {tab.label}
                       <span className="app-patient-profile__tab-badge">Soon</span>
                     </button>
                   </li>
                 ))}
               </ul>
             </nav>
+
+            {activeTab === "summary" ? (
+              <section
+                id="patient-panel-summary"
+                role="tabpanel"
+                aria-labelledby="patient-tab-summary"
+                className="app-patient-profile__summary"
+              >
+                <p className="app-patient-profile__summary-lede">{PATIENT_TAB_SUMMARY_LEDE}</p>
+                <ProfileSummaryCard profile={state.profile} activeLabel={activeLabel} doctorLabels={doctorLabels} />
+              </section>
+            ) : null}
 
             {activeTab === "appointments" ? (
               <section
@@ -737,9 +1066,7 @@ export function PatientProfilePanel({
                 aria-labelledby="patient-tab-appointments"
                 className="app-patient-profile__appts"
               >
-                <p className="app-patient-profile__appts-lede">
-                  Read-only appointment history. Schedule names and notes stay hidden.
-                </p>
+                <p className="app-patient-profile__appts-lede">{PATIENT_TAB_APPOINTMENTS_LEDE}</p>
 
                 <div className="app-patient-profile__appts-controls">
                   <div className="app-patient-profile__appts-presets" role="group" aria-label="Date range">
@@ -787,8 +1114,8 @@ export function PatientProfilePanel({
                 {apptState.phase === "offline" ? (
                   <EmptyState
                     className="ui-empty--start app-patient-profile__empty"
-                    title="Clinic service offline"
-                    description="Connect the bridge to load appointment history."
+                    title={CLINIC_SERVICE_OFFLINE_TITLE}
+                    description={CLINIC_SERVICE_OFFLINE_SECTION}
                   />
                 ) : apptState.phase === "loading" ? (
                   <p className="app-patient-profile__status" role="status" aria-live="polite">
@@ -872,15 +1199,13 @@ export function PatientProfilePanel({
                 aria-labelledby="patient-tab-medical"
                 className="app-patient-profile__medical"
               >
-                <p className="app-patient-profile__medical-lede">
-                  Medical summary is read-only. Detailed notes and allergy text are hidden in this preview.
-                </p>
+                <p className="app-patient-profile__medical-lede">{PATIENT_TAB_MEDICAL_LEDE}</p>
 
                 {medState.phase === "offline" ? (
                   <EmptyState
                     className="ui-empty--start app-patient-profile__empty"
-                    title="Clinic service offline"
-                    description="Connect the bridge to load the medical summary."
+                    title={CLINIC_SERVICE_OFFLINE_TITLE}
+                    description={CLINIC_SERVICE_OFFLINE_SECTION}
                   />
                 ) : medState.phase === "loading" ? (
                   <p className="app-patient-profile__status" role="status" aria-live="polite">
@@ -917,9 +1242,7 @@ export function PatientProfilePanel({
                 aria-labelledby="patient-tab-treatments"
                 className="app-patient-profile__treatments"
               >
-                <p className="app-patient-profile__treatments-lede">
-                  Procedure history is read-only. Memos, per-line descriptions, and fees stay hidden.
-                </p>
+                <p className="app-patient-profile__treatments-lede">{PATIENT_TAB_TREATMENTS_LEDE}</p>
 
                 <div className="app-patient-profile__treatments-controls">
                   <Button
@@ -966,6 +1289,125 @@ export function PatientProfilePanel({
                     truncated={txState.truncated}
                     privacyNote={txState.privacyNote}
                     doctorLabels={doctorLabels}
+                  />
+                ) : null}
+              </section>
+            ) : null}
+
+            {activeTab === "chart" ? (
+              <section
+                id="patient-panel-chart"
+                role="tabpanel"
+                aria-labelledby="patient-tab-chart"
+                className="app-patient-profile__chart"
+              >
+                <p className="app-patient-profile__chart-lede">{PATIENT_TAB_CHART_LEDE}</p>
+
+                <div className="app-patient-profile__chart-controls">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="ui-focusable"
+                    onClick={() => setChartRefreshNonce((n) => n + 1)}
+                  >
+                    Refresh
+                  </Button>
+                </div>
+
+                {chartState.phase === "offline" ? (
+                  <EmptyState
+                    className="ui-empty--start app-patient-profile__empty"
+                    title={CLINIC_SERVICE_OFFLINE_TITLE}
+                    description={CLINIC_SERVICE_OFFLINE_SECTION}
+                  />
+                ) : chartState.phase === "loading" ? (
+                  <p className="app-patient-profile__status" role="status" aria-live="polite">
+                    Loading chart…
+                  </p>
+                ) : chartState.phase === "error" ? (
+                  <div className="app-patient-profile__error" role="alert">
+                    <p>{chartState.message}</p>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="ui-focusable"
+                      onClick={() => setChartRefreshNonce((n) => n + 1)}
+                    >
+                      Retry
+                    </Button>
+                  </div>
+                ) : chartState.phase === "empty" ? (
+                  <EmptyState
+                    className="ui-empty--start app-patient-profile__empty"
+                    title="No chart entries found"
+                    description="This patient has no chart rows in the read-only copy, or none match the current bridge scan."
+                  />
+                ) : chartState.phase === "loaded" ? (
+                  <ChartBody
+                    entries={chartState.entries}
+                    truncated={chartState.truncated}
+                    privacyNote={chartState.privacyNote}
+                  />
+                ) : null}
+              </section>
+            ) : null}
+
+            {activeTab === "ledger" ? (
+              <section
+                id="patient-panel-ledger"
+                role="tabpanel"
+                aria-labelledby="patient-tab-ledger"
+                className="app-patient-profile__ledger"
+              >
+                <p className="app-patient-profile__ledger-lede">{PATIENT_TAB_LEDGER_LEDE}</p>
+                <p className="app-patient-profile__ledger-amounts-note" role="note">
+                  Payment amounts are intentionally hidden in this preview.
+                </p>
+
+                <div className="app-patient-profile__ledger-controls">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="ui-focusable"
+                    onClick={() => setLedgerRefreshNonce((n) => n + 1)}
+                  >
+                    Refresh
+                  </Button>
+                </div>
+
+                {ledgerState.phase === "offline" ? (
+                  <EmptyState
+                    className="ui-empty--start app-patient-profile__empty"
+                    title={CLINIC_SERVICE_OFFLINE_TITLE}
+                    description={CLINIC_SERVICE_OFFLINE_SECTION}
+                  />
+                ) : ledgerState.phase === "loading" ? (
+                  <p className="app-patient-profile__status" role="status" aria-live="polite">
+                    Loading ledger…
+                  </p>
+                ) : ledgerState.phase === "error" ? (
+                  <div className="app-patient-profile__error" role="alert">
+                    <p>{ledgerState.message}</p>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="ui-focusable"
+                      onClick={() => setLedgerRefreshNonce((n) => n + 1)}
+                    >
+                      Retry
+                    </Button>
+                  </div>
+                ) : ledgerState.phase === "empty" ? (
+                  <EmptyState
+                    className="ui-empty--start app-patient-profile__empty"
+                    title="No ledger entries found"
+                    description="This patient has no billing lines in the read-only copy, or none match the current bridge scan."
+                  />
+                ) : ledgerState.phase === "loaded" ? (
+                  <LedgerBody
+                    entries={ledgerState.entries}
+                    truncated={ledgerState.truncated}
+                    privacyNote={ledgerState.privacyNote}
                   />
                 ) : null}
               </section>
