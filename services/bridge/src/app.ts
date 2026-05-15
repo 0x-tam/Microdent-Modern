@@ -4,7 +4,12 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { BridgeDevStatusResponseSchema, HealthResponseSchema } from "@microdent/contracts";
 import type { BridgeConfigInput } from "./config.js";
-import { loadBridgeConfig, normalizeBridgeConfig, writesPermitted } from "./config.js";
+import {
+  isWritableSandboxReady,
+  loadBridgeConfig,
+  normalizeBridgeConfig,
+  writesPermitted,
+} from "./config.js";
 import {
   LOCAL_PREVIEW_ALLOWED_HOSTS,
   LOCAL_PREVIEW_PORT_MAX,
@@ -59,6 +64,7 @@ export function createBridgeApp(version?: string, options?: CreateBridgeAppOptio
       const body = {
         writeMode: bridgeConfig.writeMode,
         writesPermitted: writesPermitted(bridgeConfig),
+        writableSandbox: isWritableSandboxReady(bridgeConfig),
       };
       BridgeDevStatusResponseSchema.parse(body);
       res.json(body);

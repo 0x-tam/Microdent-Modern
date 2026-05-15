@@ -402,7 +402,7 @@ describe("BridgeClient", () => {
       warnings: [],
       createdAt: "2026-05-15T12:00:00.000Z",
     };
-    const fetch = vi.fn().mockResolvedValue(jsonResponse({ plan, committed: false }));
+    const fetch = vi.fn().mockResolvedValue(jsonResponse(plan));
     const client = createBridgeClient({ baseUrl, fetch });
     await expect(client.dryRunAppointmentStatusUpdate("501", { status: 2 })).resolves.toEqual(plan);
     expect(fetch).toHaveBeenCalledWith(

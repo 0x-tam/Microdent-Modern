@@ -1111,10 +1111,21 @@
   border-top: 1px dashed var(--ui-border-subtle);
 }
 
+.app-appt-dry-run__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-1);
+}
+
 .app-appt-dry-run__btn {
   align-self: flex-start;
   font-size: 12px;
   color: var(--ui-text-muted);
+  border: 1px dashed var(--ui-border-subtle);
+}
+
+.app-appt-dry-run__btn--sandbox {
+  color: var(--ui-text-secondary);
 }
 
 .app-appt-dry-run__summary {

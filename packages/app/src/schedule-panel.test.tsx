@@ -750,7 +750,7 @@ describe("SchedulePanel", () => {
       await Promise.resolve();
       await Promise.resolve();
     });
-    expect(container.textContent).not.toContain("Dry-run status update");
+    expect(container.textContent).not.toContain("Dry-run status");
 
     await act(async () => {
       root.render(
@@ -769,9 +769,9 @@ describe("SchedulePanel", () => {
       await Promise.resolve();
     });
     if (import.meta.env.DEV) {
-      expect(container.textContent).toContain("Dry-run status update");
+      expect(container.textContent).toContain("Dry-run status");
     } else {
-      expect(container.textContent).not.toContain("Dry-run status update");
+      expect(container.textContent).not.toContain("Dry-run status");
     }
   });
 });

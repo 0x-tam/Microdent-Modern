@@ -1,5 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
-import { createReadStream } from "node:fs";
+import { randomBytes } from "node:crypto";
 import {
   access,
   constants as fsConstants,
@@ -12,6 +11,7 @@ import { join } from "node:path";
 import { parseDataRootFromValue, type DataRootSet } from "../config.js";
 import { resolvePathWithinDataRoot } from "../safety/path-sandbox.js";
 import { assertNotForbiddenLegacyPath } from "./forbidden-path.js";
+import { sha256File } from "./file-hash.js";
 import { resolveBackupMembers, type BackupMember } from "./workflow-groups.js";
 
 export type LegacyBackupFileEntry = {
@@ -56,16 +56,6 @@ function resolveDataRootSet(dataRoot: string): DataRootSet {
     throw new Error("dataRoot must be a non-empty absolute path");
   }
   return config;
-}
-
-async function sha256File(absPath: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const hash = createHash("sha256");
-    const stream = createReadStream(absPath);
-    stream.on("error", reject);
-    stream.on("data", (chunk) => hash.update(chunk));
-    stream.on("end", () => resolve(hash.digest("hex")));
-  });
 }
 
 async function copyFileToDir(sourceAbs: string, destDir: string, fileName: string): Promise<string> {

@@ -81,4 +81,6 @@ Each run creates one directory:
 | Shell | `scripts/legacy-backup.sh` |
 | Root script | `pnpm legacy:backup` in root `package.json` |
 
-**Not implemented yet:** `legacy:restore`, `legacy:backup-verify`, disk-space preflight, header-only catalog counts in manifest.
+**Not implemented yet:** `legacy:backup-verify`, disk-space preflight, header-only catalog counts in manifest.
+
+**Restore:** see [phase-3-restore-cli.md](./phase-3-restore-cli.md) (`pnpm legacy:restore`).

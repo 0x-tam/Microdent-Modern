@@ -16,7 +16,9 @@
     "dev:bridge": "bash scripts/dev-bridge.sh",
     "dev:web": "bash scripts/dev-web.sh",
     "mirror:import-safe": "bash scripts/mirror-import-safe.sh",
-    "legacy:backup": "bash scripts/legacy-backup.sh"
+    "legacy:backup": "bash scripts/legacy-backup.sh",
+    "legacy:create-sandbox": "bash scripts/legacy-create-sandbox.sh",
+    "legacy:restore": "bash scripts/legacy-restore.sh"
   },
   "engines": {
     "node": ">=18"

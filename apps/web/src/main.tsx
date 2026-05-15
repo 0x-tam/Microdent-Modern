@@ -19,7 +19,7 @@ createRoot(el).render(
       bridgeHealthLogDiagnostics={import.meta.env.DEV}
       bridgeConnectionDiagnostics={import.meta.env.DEV}
       mirrorConnectionDiagnostics={import.meta.env.DEV}
-      appointmentStatusDryRunDev={import.meta.env.DEV}
+      writeDiagnosticsActions={import.meta.env.DEV}
     />
   </StrictMode>,
 );

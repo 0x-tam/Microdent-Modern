@@ -8,6 +8,7 @@ import { SafeWritePlanSchema } from "@microdent/contracts";
 import { createBridgeApp } from "./app.js";
 import { parseDataRootFromValue } from "./config.js";
 import { writeScheduleFixtures } from "./test-fixtures/schedule-fixtures.js";
+import { writeSandboxMarker } from "./test-fixtures/write-sandbox.js";
 
 async function withServer(app: ReturnType<typeof createBridgeApp>, fn: (port: number) => Promise<void>): Promise<void> {
   const server = createServer(app);
@@ -66,6 +67,7 @@ describe("PATCH /v1/schedule/appointments/:appointmentId/status", () => {
     const tmp = mkdtempSync(join(tmpdir(), "bridge-appt-status-dryrun-"));
     try {
       await writeScheduleFixtures(tmp);
+      writeSandboxMarker(tmp);
       const dataRoot = parseDataRootFromValue(tmp);
       if (!dataRoot.configured) throw new Error("data root");
       const schedPath = join(tmp, "SCHEDULE.DBF");
@@ -105,36 +107,11 @@ describe("PATCH /v1/schedule/appointments/:appointmentId/status", () => {
     }
   });
 
-  it("does not write in enabled mode and includes REAL_WRITE_NOT_IMPLEMENTED warning", async () => {
-    const tmp = mkdtempSync(join(tmpdir(), "bridge-appt-status-enabled-"));
-    try {
-      await writeScheduleFixtures(tmp);
-      const dataRoot = parseDataRootFromValue(tmp);
-      if (!dataRoot.configured) throw new Error("data root");
-      const schedPath = join(tmp, "SCHEDULE.DBF");
-      const mtimeBefore = statSync(schedPath).mtimeMs;
-
-      const app = createBridgeApp("v-test", {
-        bridgeConfig: { listen: { host: "127.0.0.1", port: 0 }, dataRoot, writeMode: "enabled" },
-      });
-      await withServer(app, async (port) => {
-        const res = await patchStatus(port, "1002", 4);
-        expect(res.status).toBe(200);
-        const parsed = SafeWritePlanSchema.parse(await res.json());
-        expect(parsed.committed).toBe(false);
-        expect(parsed.mode).toBe("enabled");
-        expect(parsed.warnings.some((w) => w.code === "REAL_WRITE_NOT_IMPLEMENTED")).toBe(true);
-        expect(statSync(schedPath).mtimeMs).toBe(mtimeBefore);
-      });
-    } finally {
-      rmSync(tmp, { recursive: true, force: true });
-    }
-  });
-
   it("rejects invalid status values", async () => {
     const tmp = mkdtempSync(join(tmpdir(), "bridge-appt-status-invalid-"));
     try {
       await writeScheduleFixtures(tmp);
+      writeSandboxMarker(tmp);
       const dataRoot = parseDataRootFromValue(tmp);
       if (!dataRoot.configured) throw new Error("data root");
       const schedPath = join(tmp, "SCHEDULE.DBF");
@@ -159,6 +136,7 @@ describe("PATCH /v1/schedule/appointments/:appointmentId/status", () => {
     const tmp = mkdtempSync(join(tmpdir(), "bridge-appt-status-missing-"));
     try {
       await writeScheduleFixtures(tmp);
+      writeSandboxMarker(tmp);
       const dataRoot = parseDataRootFromValue(tmp);
       if (!dataRoot.configured) throw new Error("data root");
       const schedPath = join(tmp, "SCHEDULE.DBF");

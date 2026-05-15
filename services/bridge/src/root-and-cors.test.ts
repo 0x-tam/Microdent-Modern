@@ -150,7 +150,7 @@ describe("GET /debug/status (non-production only)", () => {
       expect(res.status).toBe(200);
       const json = await res.json();
       expect(BridgeDevStatusResponseSchema.safeParse(json).success).toBe(true);
-      expect(json).toEqual({ writeMode: "disabled", writesPermitted: false });
+      expect(json).toEqual({ writeMode: "disabled", writesPermitted: false, writableSandbox: false });
     });
   });
 
@@ -179,7 +179,11 @@ describe("GET /debug/status (non-production only)", () => {
       if (!addr || typeof addr === "string") throw new Error("no port");
       const res = await fetch(`http://127.0.0.1:${addr.port}/debug/status`);
       expect(res.status).toBe(200);
-      expect(await res.json()).toEqual({ writeMode: "enabled", writesPermitted: false });
+      expect(await res.json()).toEqual({
+        writeMode: "enabled",
+        writesPermitted: false,
+        writableSandbox: false,
+      });
     } finally {
       server.close();
       await once(server, "close");

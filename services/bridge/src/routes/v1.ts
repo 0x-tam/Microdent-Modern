@@ -39,6 +39,9 @@ import { readLegacyCatalogRows } from "../dbf/read-legacy-catalog.js";
 import { lookupScheduleAppointmentById } from "../dbf/schedule-appointments.js";
 import { readScheduleAppointmentsForApi } from "../schedule-appointments-read.js";
 import { buildAppointmentStatusUpdatePlan } from "../write/appointment-status-plan.js";
+import { commitAppointmentStatusUpdate } from "../write/appointment-status-commit.js";
+import { httpStatusForWriteSandboxError } from "../write/map-write-sandbox-error.js";
+import { validateWritableSandbox, WriteSandboxError } from "../write-safety/index.js";
 import { readReferenceDoctorsFromDbf } from "../dbf/reference-doctors.js";
 import { readReferenceProcedures } from "../dbf/reference-procedures.js";
 import { readScheduleRooms } from "../dbf/schedule-rooms.js";
@@ -504,10 +507,41 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
       return;
     }
 
-    const writeMode = bridgeConfig.writeMode === "enabled" ? "enabled" : "dry-run";
-    const plan = buildAppointmentStatusUpdatePlan({ appointmentId, writeMode });
-    SafeWritePlanSchema.parse(plan);
-    res.json(plan);
+    const allowLegacyWrites = process.env.ALLOW_LEGACY_WRITES;
+
+    if (bridgeConfig.writeMode === "dry-run") {
+      try {
+        validateWritableSandbox({
+          dataRoot: dr.path,
+          writeMode: "dry-run",
+          allowLegacyWritesValue: allowLegacyWrites,
+        });
+      } catch (err) {
+        if (err instanceof WriteSandboxError) {
+          sendError(res, httpStatusForWriteSandboxError(err.code), err.code, err.message);
+          return;
+        }
+        throw err;
+      }
+      const plan = buildAppointmentStatusUpdatePlan({ appointmentId, writeMode: "dry-run" });
+      SafeWritePlanSchema.parse(plan);
+      res.json(plan);
+      return;
+    }
+
+    const commit = await commitAppointmentStatusUpdate({
+      bridgeConfig,
+      dataRoot: dr,
+      appointmentId,
+      status: bodyParsed.data.status,
+      allowLegacyWritesValue: allowLegacyWrites,
+    });
+    if (!commit.ok) {
+      sendError(res, commit.httpStatus, commit.code, commit.message);
+      return;
+    }
+    SafeWritePlanSchema.parse(commit.plan);
+    res.json(commit.plan);
   });
 
   router.get("/tables/:tableId/schema", async (req, res) => {

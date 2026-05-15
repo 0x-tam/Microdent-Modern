@@ -22,8 +22,10 @@ export type SchedulePanelProps = {
   /** Test-only fetch override (same pattern as patient search). */
   fetchImpl?: typeof fetch;
   /**
-   * When true with `import.meta.env.DEV`, shows per-row dry-run status control (no real writes).
+   * When true with `import.meta.env.DEV`, shows per-row dev write diagnostics (dry-run / sandbox apply).
    */
+  writeDiagnosticsActions?: boolean;
+  /** @deprecated Use {@link writeDiagnosticsActions}. */
   appointmentStatusDryRunDev?: boolean;
   onBackToday: () => void;
 };
@@ -184,9 +186,11 @@ export function SchedulePanel({
   bridgePhase,
   bridgeBaseUrl,
   fetchImpl,
+  writeDiagnosticsActions = false,
   appointmentStatusDryRunDev = false,
   onBackToday,
 }: SchedulePanelProps) {
+  const devWriteActionsEnabled = writeDiagnosticsActions || appointmentStatusDryRunDev;
   const base = bridgeBaseUrl?.trim() ?? "";
   const canLoad = Boolean(base) && bridgePhase === "connected";
   const { labels: doctorLabels } = useDoctorLabels({
@@ -207,6 +211,7 @@ export function SchedulePanel({
   const [rangeTo, setRangeTo] = useState(() => defaultWeekRange().to);
   const [roomFilter, setRoomFilter] = useState<number | "">("");
   const [refreshTick, setRefreshTick] = useState(0);
+  const [sandboxApplyEnabled, setSandboxApplyEnabled] = useState(false);
 
   const [rooms, setRooms] = useState<ScheduleRoomItem[]>([]);
   const [appointments, setAppointments] = useState<ScheduleAppointmentItem[]>([]);
@@ -270,6 +275,28 @@ export function SchedulePanel({
     },
     [rangeFrom, setRange],
   );
+
+  useEffect(() => {
+    if (!devWriteActionsEnabled || !canLoad) {
+      setSandboxApplyEnabled(false);
+      return;
+    }
+    let cancelled = false;
+    const client = createBridgeClient({ baseUrl: base, fetch: fetchImpl });
+    void client
+      .getBridgeDevStatus()
+      .then((status) => {
+        if (!cancelled) {
+          setSandboxApplyEnabled(status.writableSandbox && status.writeMode !== "disabled");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setSandboxApplyEnabled(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [devWriteActionsEnabled, canLoad, base, fetchImpl]);
 
   useEffect(() => {
     if (!isActive || !canLoad) {
@@ -508,12 +535,14 @@ export function SchedulePanel({
                                   </Badge>
                                 ) : null}
                               </div>
-                              {bridgeBaseUrl && appointmentStatusDryRunDev ? (
+                              {bridgeBaseUrl && devWriteActionsEnabled ? (
                                 <AppointmentStatusDryRunAction
                                   appointment={appt}
                                   bridgeBaseUrl={bridgeBaseUrl}
                                   fetchImpl={fetchImpl}
-                                  devDryRunEnabled={appointmentStatusDryRunDev}
+                                  writeDiagnosticsActions={devWriteActionsEnabled}
+                                  sandboxApplyEnabled={sandboxApplyEnabled}
+                                  onCommitted={() => setRefreshTick((x) => x + 1)}
                                 />
                               ) : null}
                             </div>

@@ -66,8 +66,10 @@ export type AppShellProps = {
    */
   fetchImpl?: typeof fetch;
   /**
-   * When true with Vite dev build, schedule rows show a dry-run status action (no real writes).
+   * When true with Vite dev build, schedule rows show dev write diagnostics (dry-run / sandbox apply).
    */
+  writeDiagnosticsActions?: boolean;
+  /** @deprecated Use {@link writeDiagnosticsActions}. */
   appointmentStatusDryRunDev?: boolean;
 };
 
@@ -181,8 +183,10 @@ export function AppShell({
   bridgeConnectionDiagnostics = false,
   mirrorConnectionDiagnostics = false,
   fetchImpl,
+  writeDiagnosticsActions = false,
   appointmentStatusDryRunDev = false,
 }: AppShellProps) {
+  const devWriteActionsEnabled = writeDiagnosticsActions || appointmentStatusDryRunDev;
   const [active, setActive] = useState<AppNavModuleId>("today");
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [bridgePhase, setBridgePhase] = useState<BridgeHealthPhase>(() => (bridgeBaseUrl?.trim() ? "checking" : "offline"));
@@ -413,7 +417,7 @@ export function AppShell({
                   bridgePhase={bridgePhase}
                   bridgeBaseUrl={bridgeBaseUrl}
                   fetchImpl={fetchImpl}
-                  appointmentStatusDryRunDev={appointmentStatusDryRunDev}
+                  writeDiagnosticsActions={devWriteActionsEnabled}
                   onBackToday={() => setActive("today")}
                 />
               ) : active === "patients" ? (

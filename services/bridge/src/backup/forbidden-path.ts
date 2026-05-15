@@ -1,6 +1,9 @@
 import { existsSync, realpathSync } from "node:fs";
 import path from "node:path";
-import { FORBIDDEN_LEGACY_ROOT } from "../write-safety/constants.js";
+import {
+  FORBIDDEN_LEGACY_COPY_ROOT,
+  FORBIDDEN_LEGACY_ROOT,
+} from "../write-safety/constants.js";
 
 export function isPathUnderRoot(candidatePath: string, rootPath: string): boolean {
   const rootNorm = path.normalize(resolveRootReal(rootPath));
@@ -25,5 +28,12 @@ function resolveRootReal(rootPath: string): string {
 export function assertNotForbiddenLegacyPath(absolutePath: string, label: string): void {
   if (isPathUnderRoot(absolutePath, FORBIDDEN_LEGACY_ROOT)) {
     throw new Error(`${label} must not point at Microdent-Legacy`);
+  }
+}
+
+/** Rejects `Microdent-Legacy-Copy` paths (writable sandbox destination). */
+export function assertNotForbiddenLegacyCopyPath(absolutePath: string, label: string): void {
+  if (isPathUnderRoot(absolutePath, FORBIDDEN_LEGACY_COPY_ROOT)) {
+    throw new Error(`${label} must not point at Microdent-Legacy-Copy`);
   }
 }

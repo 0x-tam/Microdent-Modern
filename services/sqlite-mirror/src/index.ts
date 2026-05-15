@@ -66,3 +66,7 @@ export {
   type WriteAuditTerminalStatus,
   type WriteExecutionMode,
 } from "./write-audit.js";
+export {
+  verifyWriteAuditOperationExists,
+  WriteAuditVerificationError,
+} from "./verify-write-audit.js";

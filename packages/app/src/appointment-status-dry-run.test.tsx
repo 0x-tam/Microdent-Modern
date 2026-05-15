@@ -4,9 +4,11 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { AppointmentStatusDryRunAction } from "./AppointmentStatusDryRunAction.js";
 import {
-  isAppointmentStatusDryRunVisible,
+  containsForbiddenWriteResultToken,
+  FORBIDDEN_WRITE_RESULT_TOKENS,
+  isAppointmentStatusWriteActionsVisible,
   proposedDryRunStatus,
-  summarizeDryRunPlan,
+  summarizeWritePlan,
 } from "./appointment-status-dry-run.js";
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -51,25 +53,45 @@ const syntheticPlan = {
   createdAt: "2026-05-15T12:00:00.000Z",
 };
 
-describe("appointment-status-dry-run helpers", () => {
+const leakyPlan = {
+  ...syntheticPlan,
+  warnings: [
+    {
+      code: "REAL_WRITE_NOT_IMPLEMENTED",
+      message: "SYNTHETIC_NAME_TOKEN SYNTHETIC_PHONE_TOKEN PAT_NAME TELEPHONE COMMENT",
+      severity: "warn" as const,
+    },
+  ],
+};
+
+describe("appointment-status write helpers", () => {
   it("proposedDryRunStatus advances within rehearsal range", () => {
     expect(proposedDryRunStatus(1)).toBe(2);
     expect(proposedDryRunStatus(5)).toBe(1);
   });
 
-  it("summarizeDryRunPlan extracts safe summary fields", () => {
-    expect(summarizeDryRunPlan(syntheticPlan)).toEqual({
+  it("summarizeWritePlan extracts safe summary fields", () => {
+    expect(summarizeWritePlan(syntheticPlan)).toEqual({
       workflow: "appointment.statusUpdate",
+      mode: "dry-run",
+      committed: false,
       table: "SCHEDULE",
       recordId: "501",
       field: "STATUS",
-      committed: false,
+      warnings: [],
     });
   });
 
-  it("isAppointmentStatusDryRunVisible requires dev build and flag", () => {
-    expect(isAppointmentStatusDryRunVisible(false)).toBe(false);
-    expect(isAppointmentStatusDryRunVisible(true)).toBe(import.meta.env.DEV);
+  it("isAppointmentStatusWriteActionsVisible requires dev build and flag", () => {
+    expect(isAppointmentStatusWriteActionsVisible(false)).toBe(false);
+    expect(isAppointmentStatusWriteActionsVisible(true)).toBe(import.meta.env.DEV);
+  });
+
+  it("forbidden token helper matches PHI/raw row markers", () => {
+    for (const token of FORBIDDEN_WRITE_RESULT_TOKENS) {
+      expect(containsForbiddenWriteResultToken(`leak ${token} here`)).toBe(true);
+    }
+    expect(containsForbiddenWriteResultToken("appointment.statusUpdate")).toBe(false);
   });
 });
 
@@ -88,42 +110,40 @@ describe("AppointmentStatusDryRunAction", () => {
     container.remove();
   });
 
-  it("renders nothing when dev flag is off", () => {
+  function renderAction(
+    props: Partial<Parameters<typeof AppointmentStatusDryRunAction>[0]> = {},
+  ) {
     act(() => {
       root.render(
         <AppointmentStatusDryRunAction
           appointment={syntheticAppointment}
           bridgeBaseUrl="http://127.0.0.1:17890"
-          devDryRunEnabled={false}
+          writeDiagnosticsActions={import.meta.env.DEV}
+          sandboxApplyEnabled={false}
+          {...props}
         />,
       );
     });
+  }
+
+  it("renders nothing when write diagnostics flag is off", () => {
+    renderAction({ writeDiagnosticsActions: false });
     expect(container.textContent?.trim()).toBe("");
+    expect(container.querySelector('[data-testid="appt-status-write-dev"]')).toBeNull();
   });
 
   it("calls dry-run PATCH and shows plan summary", async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(
-      jsonResponse({ plan: syntheticPlan, committed: false }),
+    if (!import.meta.env.DEV) return;
+
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(syntheticPlan));
+    const onCommitted = vi.fn();
+
+    renderAction({ fetchImpl, onCommitted });
+
+    const btn = [...container.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("Dry-run status"),
     );
-
-    act(() => {
-      root.render(
-        <AppointmentStatusDryRunAction
-          appointment={syntheticAppointment}
-          bridgeBaseUrl="http://127.0.0.1:17890"
-          fetchImpl={fetchImpl}
-          devDryRunEnabled={import.meta.env.DEV}
-        />,
-      );
-    });
-
-    if (!import.meta.env.DEV) {
-      expect(container.textContent?.trim()).toBe("");
-      return;
-    }
-
-    const btn = container.querySelector("button");
-    expect(btn?.textContent).toContain("Dry-run status update");
+    expect(btn).toBeTruthy();
 
     await act(async () => {
       btn?.click();
@@ -139,34 +159,93 @@ describe("AppointmentStatusDryRunAction", () => {
       }),
     );
 
-    expect(container.textContent).toContain("appointment.statusUpdate");
-    expect(container.textContent).toContain("SCHEDULE");
-    expect(container.textContent).toContain("501");
-    expect(container.textContent).toContain("STATUS");
-    expect(container.textContent).toContain("false");
+    const text = container.textContent ?? "";
+    expect(text).toContain("appointment.statusUpdate");
+    expect(text).toContain("dry-run");
+    expect(text).toContain("SCHEDULE");
+    expect(text).toContain("501");
+    expect(text).toContain("STATUS");
+    expect(text).toContain("false");
+    expect(onCommitted).not.toHaveBeenCalled();
+    expect(containsForbiddenWriteResultToken(text)).toBe(false);
   });
 
-  it("shows graceful message when route is missing (404)", async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(new Response("{}", { status: 404 }));
+  it("shows sandbox apply only when enabled", () => {
+    if (!import.meta.env.DEV) return;
+
+    renderAction({ sandboxApplyEnabled: false });
+    expect(container.textContent).not.toContain("Apply status in sandbox");
 
     act(() => {
       root.render(
         <AppointmentStatusDryRunAction
           appointment={syntheticAppointment}
           bridgeBaseUrl="http://127.0.0.1:17890"
-          fetchImpl={fetchImpl}
-          devDryRunEnabled={import.meta.env.DEV}
+          writeDiagnosticsActions
+          sandboxApplyEnabled
         />,
       );
     });
+    expect(container.textContent).toContain("Apply status in sandbox");
+  });
 
+  it("refreshes via onCommitted when plan reports committed true", async () => {
     if (!import.meta.env.DEV) return;
+
+    const committedPlan = { ...syntheticPlan, committed: true, mode: "enabled" as const };
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(committedPlan));
+    const onCommitted = vi.fn();
+
+    renderAction({ fetchImpl, onCommitted, sandboxApplyEnabled: true });
+
+    const btn = [...container.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("Apply status in sandbox"),
+    );
+    await act(async () => {
+      btn?.click();
+    });
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: expect.objectContaining({ "X-Write-Intent": "commit" }),
+      }),
+    );
+    expect(onCommitted).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not render forbidden PHI/raw row tokens from leaky plan warnings", async () => {
+    if (!import.meta.env.DEV) return;
+
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(leakyPlan));
+    renderAction({ fetchImpl });
 
     const btn = container.querySelector("button");
     await act(async () => {
       btn?.click();
     });
 
-    expect(container.textContent).toContain("Dry-run route is not available");
+    const text = container.textContent ?? "";
+    expect(text).toContain("REAL_WRITE_NOT_IMPLEMENTED (warn)");
+    expect(text).not.toContain("SYNTHETIC_NAME_TOKEN");
+    expect(text).not.toContain("SYNTHETIC_PHONE_TOKEN");
+    expect(text).not.toMatch(/PAT_NAME/i);
+    expect(text).not.toMatch(/TELEPHONE/i);
+    expect(text).not.toMatch(/COMMENT/i);
+    expect(containsForbiddenWriteResultToken(text)).toBe(false);
+  });
+
+  it("shows graceful message when route is missing (404)", async () => {
+    if (!import.meta.env.DEV) return;
+
+    const fetchImpl = vi.fn().mockResolvedValue(new Response("{}", { status: 404 }));
+    renderAction({ fetchImpl });
+
+    const btn = container.querySelector("button");
+    await act(async () => {
+      btn?.click();
+    });
+
+    expect(container.textContent).toContain("Status route is not available");
   });
 });

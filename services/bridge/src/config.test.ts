@@ -31,17 +31,24 @@ describe("parseWriteModeFromValue", () => {
     expect(parseWriteModeFromValue(" DRY-RUN ")).toBe("dry-run");
   });
 
-  it("parses enabled without permitting writes by itself", () => {
+  it("parses enabled and permits writes only with backup dir and data root", () => {
     expect(parseWriteModeFromValue("enabled")).toBe("enabled");
     expect(parseWriteModeFromValue("ENABLED")).toBe("enabled");
 
-    const cfg: BridgeConfig = {
+    const withoutBackup: BridgeConfig = {
       listen: { host: "127.0.0.1", port: 0 },
-      dataRoot: { configured: false },
+      dataRoot: { configured: true, path: "/tmp/data", realPath: "/tmp/data" },
       sqlitePath: { configured: false },
+      backupDir: { configured: false },
       writeMode: "enabled",
     };
-    expect(writesPermitted(cfg)).toBe(false);
+    expect(writesPermitted(withoutBackup)).toBe(false);
+
+    const ready: BridgeConfig = {
+      ...withoutBackup,
+      backupDir: { configured: true, path: "/tmp/backups" },
+    };
+    expect(writesPermitted(ready)).toBe(true);
   });
 });
 

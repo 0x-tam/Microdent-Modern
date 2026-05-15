@@ -13,8 +13,9 @@ import {
   PatientSearchResponseSchema,
   ReferenceDoctorsResponseSchema,
   ScheduleAppointmentsResponseSchema,
-  AppointmentStatusDryRunResponseSchema,
   AppointmentStatusUpdateBodySchema,
+  BridgeDevStatusResponseSchema,
+  SafeWritePlanSchema,
   ReferenceProceduresResponseSchema,
   ScheduleRoomsResponseSchema,
   TableRowsResponseSchema,
@@ -33,6 +34,7 @@ import {
   type ReferenceDoctorsResponse,
   type ScheduleAppointmentsResponse,
   type AppointmentStatusUpdateBody,
+  type BridgeDevStatusResponse,
   type SafeWritePlan,
   type ReferenceProceduresResponse,
   type ScheduleRoomsResponse,
@@ -211,6 +213,11 @@ export class BridgeClient {
     return this.requestJson("/v1/schedule/rooms", ScheduleRoomsResponseSchema);
   }
 
+  /** Non-production bridge diagnostics (`GET /debug/status`). */
+  async getBridgeDevStatus(): Promise<BridgeDevStatusResponse> {
+    return this.requestJson("/debug/status", BridgeDevStatusResponseSchema);
+  }
+
   async getScheduleAppointments(params: { from: string; to: string; room?: number }): Promise<ScheduleAppointmentsResponse> {
     const q = new URLSearchParams({ from: params.from, to: params.to });
     if (params.room !== undefined) {
@@ -230,6 +237,25 @@ export class BridgeClient {
     appointmentId: string,
     body: AppointmentStatusUpdateBody,
   ): Promise<SafeWritePlan> {
+    return this.patchAppointmentStatusUpdate(appointmentId, body, "dry-run");
+  }
+
+  /**
+   * Request sandbox apply for `appointment.statusUpdate` (`X-Write-Intent: commit`).
+   * Bridge may still return `committed: false` until real DBF writes ship.
+   */
+  async applyAppointmentStatusInSandbox(
+    appointmentId: string,
+    body: AppointmentStatusUpdateBody,
+  ): Promise<SafeWritePlan> {
+    return this.patchAppointmentStatusUpdate(appointmentId, body, "commit");
+  }
+
+  async patchAppointmentStatusUpdate(
+    appointmentId: string,
+    body: AppointmentStatusUpdateBody,
+    intent: "dry-run" | "commit",
+  ): Promise<SafeWritePlan> {
     const parsedBody = AppointmentStatusUpdateBodySchema.safeParse(body);
     if (!parsedBody.success) {
       throw new BridgeClientError("Invalid appointment status body", {
@@ -240,20 +266,15 @@ export class BridgeClient {
     if (id.length === 0) {
       throw new BridgeClientError("Invalid appointment id", { kind: "invalid_argument" });
     }
-    const res = await this.requestJsonWithBody(
-      `/v1/schedule/appointments/${id}/status`,
-      AppointmentStatusDryRunResponseSchema,
-      {
-        method: "PATCH",
-        body: parsedBody.data,
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          "X-Write-Intent": "dry-run",
-        },
+    return this.requestJsonWithBody(`/v1/schedule/appointments/${id}/status`, SafeWritePlanSchema, {
+      method: "PATCH",
+      body: parsedBody.data,
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "X-Write-Intent": intent,
       },
-    );
-    return res.plan;
+    });
   }
 
   async getPatientAppointments(

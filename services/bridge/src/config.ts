@@ -1,6 +1,7 @@
 import { WriteModeSchema, type WriteMode } from "@microdent/contracts";
 import { existsSync, realpathSync } from "node:fs";
 import path from "node:path";
+import { validateWritableSandbox } from "./write-safety/validate-writable-sandbox.js";
 
 export type { WriteMode };
 
@@ -24,10 +25,15 @@ export type SqlitePathSet = {
 
 export type SqlitePathConfig = SqlitePathUnset | SqlitePathSet;
 
+export type BackupDirUnset = { configured: false };
+export type BackupDirSet = { configured: true; path: string };
+export type BackupDirConfig = BackupDirUnset | BackupDirSet;
+
 export type BridgeConfig = {
   listen: { host: string; port: number };
   dataRoot: DataRootConfig;
   sqlitePath: SqlitePathConfig;
+  backupDir: BackupDirConfig;
   writeMode: WriteMode;
 };
 
@@ -36,6 +42,7 @@ export type BridgeConfigInput = {
   listen: { host: string; port: number };
   dataRoot: DataRootConfig;
   sqlitePath?: SqlitePathConfig;
+  backupDir?: BackupDirConfig;
   writeMode?: WriteMode;
 };
 
@@ -44,6 +51,7 @@ export function normalizeBridgeConfig(input: BridgeConfigInput): BridgeConfig {
     listen: input.listen,
     dataRoot: input.dataRoot,
     sqlitePath: input.sqlitePath ?? { configured: false },
+    backupDir: input.backupDir ?? parseBackupDirFromValue(undefined),
     writeMode: input.writeMode ?? parseWriteModeFromValue(undefined),
   };
 }
@@ -72,11 +80,27 @@ export function loadWriteModeFromEnv(): WriteMode {
 }
 
 /**
- * True only when all future write gates pass (backup, audit, sandbox, workflows).
- * Phase 3.0 foundation: always false — `enabled` does not permit DBF writes yet.
+ * True when `WRITE_MODE=enabled` and `BACKUP_DIR` is configured (sandbox + allow flag checked per request).
  */
-export function writesPermitted(_config: BridgeConfig): boolean {
-  return false;
+export function writesPermitted(config: BridgeConfig): boolean {
+  return config.writeMode === "enabled" && config.backupDir.configured && config.dataRoot.configured;
+}
+
+/** True when DATA_ROOT passes the disposable sandbox marker guard and writes are not disabled. */
+export function isWritableSandboxReady(config: BridgeConfig): boolean {
+  if (!config.dataRoot.configured || config.writeMode === "disabled") {
+    return false;
+  }
+  try {
+    validateWritableSandbox({
+      dataRoot: config.dataRoot.path,
+      writeMode: config.writeMode,
+      allowLegacyWritesValue: process.env.ALLOW_LEGACY_WRITES,
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -140,11 +164,34 @@ export function loadSqlitePathFromEnv(): SqlitePathConfig {
   return parseSqlitePathFromValue(process.env.SQLITE_PATH);
 }
 
+/**
+ * Parse `BACKUP_DIR` from a string value (use `process.env.BACKUP_DIR` in production).
+ * Empty / whitespace means not configured. When set, the path must be absolute.
+ */
+export function parseBackupDirFromValue(value: string | undefined): BackupDirConfig {
+  if (value === undefined) {
+    return { configured: false };
+  }
+  const trimmed = value.trim();
+  if (trimmed === "") {
+    return { configured: false };
+  }
+  if (!path.isAbsolute(trimmed)) {
+    throw new Error(`BACKUP_DIR must be an absolute path, got: ${JSON.stringify(trimmed)}`);
+  }
+  return { configured: true, path: path.normalize(trimmed) };
+}
+
+export function loadBackupDirFromEnv(): BackupDirConfig {
+  return parseBackupDirFromValue(process.env.BACKUP_DIR);
+}
+
 export function loadBridgeConfig(): BridgeConfig {
   return {
     listen: loadListenOptions(),
     dataRoot: loadDataRootFromEnv(),
     sqlitePath: loadSqlitePathFromEnv(),
+    backupDir: loadBackupDirFromEnv(),
     writeMode: loadWriteModeFromEnv(),
   };
 }

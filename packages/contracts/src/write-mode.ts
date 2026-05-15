@@ -10,6 +10,11 @@ export const BridgeDevStatusResponseSchema = z.object({
   writeMode: WriteModeSchema,
   /** True only when all write gates pass; false until write routes and safety checks ship. */
   writesPermitted: z.boolean(),
+  /**
+   * True when `DATA_ROOT` passes the disposable sandbox marker guard and `WRITE_MODE` is not disabled.
+   * Used by dev-only UI to offer sandbox apply (still plan-only until commit ships).
+   */
+  writableSandbox: z.boolean(),
 });
 
 export type BridgeDevStatusResponse = z.infer<typeof BridgeDevStatusResponseSchema>;
