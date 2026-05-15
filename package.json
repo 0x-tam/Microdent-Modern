@@ -14,7 +14,8 @@
     "dev:ports": "bash scripts/dev-ports.sh",
     "dev:kill-ports": "bash scripts/dev-kill-ports.sh",
     "dev:bridge": "bash scripts/dev-bridge.sh",
-    "dev:web": "bash scripts/dev-web.sh"
+    "dev:web": "bash scripts/dev-web.sh",
+    "mirror:import-safe": "bash scripts/mirror-import-safe.sh"
   },
   "engines": {
     "node": ">=18"

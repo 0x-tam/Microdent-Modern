@@ -8,7 +8,8 @@
   },
   "scripts": {
     "test": "vitest run",
-    "build": "tsc -p tsconfig.build.json"
+    "build": "tsc -p tsconfig.build.json",
+    "import-safe": "tsx src/cli/mirror-import-safe.ts"
   },
   "exports": {
     ".": {
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.9"
   }

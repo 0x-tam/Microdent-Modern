@@ -67,12 +67,14 @@ function hasNonEmptyComment(row: Record<string, unknown>): boolean {
   return Boolean(v);
 }
 
-function rowToAppointment(row: Record<string, unknown>): ScheduleAppointmentItem {
+/** Maps one SCHEDULE row to the safe API shape; skips rows without a readable DATE. */
+export function mapScheduleRowToAppointment(row: Record<string, unknown>): ScheduleAppointmentItem | null {
+  const date = formatRowDate(row.DATE);
+  if (date === null) return null;
   const period = Math.trunc(num(row, "PERIOD"));
-  const date = formatRowDate(row.DATE) ?? "1970-01-01";
   return {
     id: strId(row, "ID"),
-    date,
+    date: date,
     time: strField(row, "TIME"),
     durationSlots: Math.trunc(num(row, "DURATION")),
     periodMinutes: period > 0 ? period : null,
@@ -138,7 +140,10 @@ export async function readScheduleAppointments(
       const room = Math.trunc(num(rec, "ROOM"));
       if (roomFilter !== undefined && room !== roomFilter) continue;
       if (patientIdFilter !== undefined && strId(rec, "PAT_ID") !== patientIdFilter) continue;
-      appointments.push(rowToAppointment(rec));
+      const mapped = mapScheduleRowToAppointment(rec);
+      if (mapped !== null) {
+        appointments.push(mapped);
+      }
     }
   } catch {
     return { kind: "read_error" };

@@ -66,7 +66,9 @@ function rowHasDescription(row: Record<string, unknown>): boolean {
   return memoAppearsNonEmpty(row.DESCRIPT);
 }
 
-function buildProcedureLabelLookup(procedures: Array<{ procedureCode: string; displayName: string | null }>): Map<string, string | null> {
+export function buildProcedureLabelLookup(
+  procedures: Array<{ procedureCode: string; displayName: string | null }>,
+): Map<string, string | null> {
   const map = new Map<string, string | null>();
   for (const p of procedures) {
     const code = p.procedureCode.trim();
@@ -95,7 +97,7 @@ function resolveProcedureLabel(rawCode: string, lookup: Map<string, string | nul
   return null;
 }
 
-function buildDoctorLabelLookup(
+export function buildDoctorLabelLookup(
   doctors: Array<{ doctorId: string; displayName: string }>,
 ): Map<string, string> {
   const map = new Map<string, string>();
@@ -123,7 +125,12 @@ function compareIsoDates(a: string | null, b: string | null): number {
   return a.localeCompare(b);
 }
 
-function toTreatmentItem(
+export function rowOperTblPatientId(row: Record<string, unknown>): string | null {
+  const id = strIdField(row, "ID");
+  return id.length > 0 ? id : null;
+}
+
+export function mapOperTblRowToTreatmentItem(
   row: Record<string, unknown>,
   patientId: string,
   procedureLookup: Map<string, string | null>,
@@ -210,7 +217,7 @@ export async function readPatientTreatmentsFromDbf(
         continue;
       }
 
-      const item = toTreatmentItem(rec, patientIdDigits, procedureLookup, doctorLookup);
+      const item = mapOperTblRowToTreatmentItem(rec, patientIdDigits, procedureLookup, doctorLookup);
       if (item !== null) {
         collected.push(item);
       }

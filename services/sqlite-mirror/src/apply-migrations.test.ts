@@ -19,6 +19,7 @@ const EXPECTED_TABLES = [
   "procedures",
   "schedule_rooms",
   "schema_migrations",
+  "treatments",
 ] as const;
 
 const EXPECTED_INDEXES = [
@@ -30,6 +31,10 @@ const EXPECTED_INDEXES = [
   "idx_import_runs_finished",
   "idx_patients_chart_number",
   "idx_patients_display_name",
+  "idx_treatments_date",
+  "idx_treatments_doctor",
+  "idx_treatments_patient",
+  "idx_treatments_procedure_code",
 ] as const;
 
 describe("applyMigrations", () => {
@@ -44,6 +49,9 @@ describe("applyMigrations", () => {
         "002_indexes",
         "003_patients_profile_columns",
         "003_procedures_reference_columns",
+        "004_appointments_safe_fields",
+        "005_treatments",
+        "006_treatments_indexes",
       ]);
       expect(first.skippedVersions).toEqual([]);
 
@@ -54,6 +62,9 @@ describe("applyMigrations", () => {
         "002_indexes",
         "003_patients_profile_columns",
         "003_procedures_reference_columns",
+        "004_appointments_safe_fields",
+        "005_treatments",
+        "006_treatments_indexes",
       ]);
 
       expect(listMirrorTables(dbPath)).toEqual([...EXPECTED_TABLES]);
@@ -63,6 +74,9 @@ describe("applyMigrations", () => {
         "002_indexes",
         "003_patients_profile_columns",
         "003_procedures_reference_columns",
+        "004_appointments_safe_fields",
+        "005_treatments",
+        "006_treatments_indexes",
       ]);
     } finally {
       rmSync(dir, { recursive: true, force: true });

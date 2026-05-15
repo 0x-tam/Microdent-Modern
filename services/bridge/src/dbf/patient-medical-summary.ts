@@ -47,6 +47,12 @@ function rowPatientIdMatches(row: Record<string, unknown>, patientIdDigits: stri
   return strIdField(row, "PATIENT_ID") === patientIdDigits;
 }
 
+/** Normalized PATIENT_ID for mirror grouping; null when missing or invalid. */
+export function rowPatientIdMatchesMedical(row: Record<string, unknown>): string | null {
+  const id = strIdField(row, "PATIENT_ID");
+  return id.length > 0 ? id : null;
+}
+
 /** True when blocked text/memo columns appear populated — never serializes their contents. */
 function rowHasSensitiveMedicalDetails(row: Record<string, unknown>): boolean {
   if (strField(row, "PROBLEM").length > 0) return true;
@@ -93,7 +99,7 @@ function rowQuestionnaireDate(row: Record<string, unknown>): string | null {
   return formatFoxProDateValue(row.DATE);
 }
 
-function pickPreferredRow(
+export function pickPreferredMedicalRow(
   current: Record<string, unknown> | null,
   candidate: Record<string, unknown>,
 ): Record<string, unknown> {
@@ -120,7 +126,18 @@ function emptySummary(patientId: string): PatientMedicalSummaryResponse {
   };
 }
 
-function toSummary(row: Record<string, unknown>, patientId: string): PatientMedicalSummaryResponse {
+/** Safe medical summary fields for SQLite mirror import (no free text, no `privacyNote`). */
+export type MedicalSummaryMirrorRecord = {
+  patientId: string;
+  hasMedicalRecord: true;
+  hasSensitiveMedicalDetails: boolean;
+  lastUpdated: string | null;
+  lastDentalVisit: string | null;
+  flaggedConditionCount: number;
+  conditions: MedicalConditionFlags;
+};
+
+function toMirrorSummary(row: Record<string, unknown>, patientId: string): MedicalSummaryMirrorRecord {
   const conditions = buildConditionFlags(row);
   return {
     patientId,
@@ -130,9 +147,75 @@ function toSummary(row: Record<string, unknown>, patientId: string): PatientMedi
     lastDentalVisit: formatFoxProDateValue(row.LAST_DENTA),
     flaggedConditionCount: countFlaggedTrue(conditions),
     conditions,
+  };
+}
+
+export function toMedicalSummary(row: Record<string, unknown>, patientId: string): PatientMedicalSummaryResponse {
+  return {
+    ...toMirrorSummary(row, patientId),
     privacyNote:
       "Problem description, allergy free text, and medical notes remain hidden until field mapping is reviewed.",
   };
+}
+
+export type ReadAllMedicalSummariesOutcome =
+  | { kind: "missing_table" }
+  | { kind: "read_error"; message: string }
+  | {
+      kind: "ok";
+      summaries: MedicalSummaryMirrorRecord[];
+      invalidPatientIdRows: Array<{ rowIndex: number }>;
+    };
+
+/**
+ * Read-only: scans `MEDICAL.DBF` and returns one derived summary per `PATIENT_ID`
+ * (latest `DATE` wins). Never includes `PROBLEM`, `ALLERGY_TO`, `NOTES`, or raw rows.
+ */
+export async function readAllMedicalSummariesFromDbf(
+  dataRoot: DataRootSet,
+): Promise<ReadAllMedicalSummariesOutcome> {
+  let abs: string;
+  try {
+    abs = resolveRegisteredDbfPath(dataRoot, MEDICAL_DBF);
+  } catch {
+    return { kind: "read_error", message: "invalid path" };
+  }
+  if (!existsSync(abs)) {
+    return { kind: "missing_table" };
+  }
+
+  let dbf: DBFFile;
+  try {
+    dbf = await DBFFile.open(abs, OPEN_OPTIONS);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "open failed";
+    return { kind: "read_error", message: msg };
+  }
+
+  const byPatient = new Map<string, Record<string, unknown>>();
+  const invalidPatientIdRows: Array<{ rowIndex: number }> = [];
+  let rowIndex = 0;
+
+  try {
+    for await (const row of dbf) {
+      rowIndex += 1;
+      if (row[DELETED]) continue;
+      const rec = row as Record<string, unknown>;
+      const patientId = strIdField(rec, "PATIENT_ID");
+      if (patientId.length === 0) {
+        invalidPatientIdRows.push({ rowIndex });
+        continue;
+      }
+      const existing = byPatient.get(patientId) ?? null;
+      byPatient.set(patientId, pickPreferredMedicalRow(existing, rec));
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "scan failed";
+    return { kind: "read_error", message: msg };
+  }
+
+  const summaries = [...byPatient.entries()].map(([patientId, row]) => toMirrorSummary(row, patientId));
+  return { kind: "ok", summaries, invalidPatientIdRows };
 }
 
 export type ReadPatientMedicalSummaryOutcome =
@@ -172,7 +255,7 @@ export async function readPatientMedicalSummaryFromDbf(
       if (row[DELETED]) continue;
       const rec = row as Record<string, unknown>;
       if (!rowPatientIdMatches(rec, patientIdDigits)) continue;
-      chosen = pickPreferredRow(chosen, rec);
+      chosen = pickPreferredMedicalRow(chosen, rec);
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : "scan failed";
@@ -182,5 +265,5 @@ export async function readPatientMedicalSummaryFromDbf(
   if (chosen === null) {
     return { kind: "ok", summary: emptySummary(patientIdDigits) };
   }
-  return { kind: "ok", summary: toSummary(chosen, patientIdDigits) };
+  return { kind: "ok", summary: toMedicalSummary(chosen, patientIdDigits) };
 }
