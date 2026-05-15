@@ -16,6 +16,11 @@
       "import": "./dist/index.js"
     }
   },
+  "dependencies": {
+    "@microdent/bridge": "workspace:*",
+    "@microdent/contracts": "workspace:*",
+    "dbffile": "^1.12.0"
+  },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "typescript": "^5.7.2",

@@ -149,6 +149,16 @@ importers:
         version: 2.1.9(@types/node@22.19.19)(jsdom@25.0.1)
 
   services/sqlite-mirror:
+    dependencies:
+      '@microdent/bridge':
+        specifier: workspace:*
+        version: link:../bridge
+      '@microdent/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      dbffile:
+        specifier: ^1.12.0
+        version: 1.12.0
     devDependencies:
       '@types/node':
         specifier: ^22.10.0

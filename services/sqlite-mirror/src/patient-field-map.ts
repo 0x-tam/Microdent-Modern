@@ -1,5 +1,6 @@
 /**
- * Shared read-only helpers for `PATIENT.DBF` (search + profile). No memo reads, no logging of row payloads.
+ * Safe PATIENT.DBF field mapping (mirrors bridge `patient-dbf-helpers.ts`).
+ * No memo reads; no address/email/insurance/notes columns.
  */
 
 export function strField(row: Record<string, unknown>, key: string): string {
@@ -34,15 +35,13 @@ function maskPhone(raw: unknown): string | null {
   if (raw === null || raw === undefined) return null;
   const digits = String(raw).replace(/\D/g, "");
   if (digits.length < 4) return null;
-  const last4 = digits.slice(-4);
-  return `…${last4}`;
+  return `…${digits.slice(-4)}`;
 }
 
 export function pickPhoneMask(row: Record<string, unknown>): string | null {
   return maskPhone(row.HOME_PHONE) ?? maskPhone(row.MOBILE);
 }
 
-/** FoxPro `D` decoded as `Date` — calendar components in UTC (same approach as schedule reader). */
 export function formatFoxProDateValue(v: unknown): string | null {
   if (v instanceof Date && !Number.isNaN(v.getTime())) {
     const y = v.getUTCFullYear();
@@ -51,18 +50,6 @@ export function formatFoxProDateValue(v: unknown): string | null {
     return `${y}-${m}-${d}`;
   }
   return null;
-}
-
-/** True when a FoxPro memo field value appears non-empty — never use the returned check to log content. */
-export function memoFieldAppearsNonEmpty(v: unknown): boolean {
-  if (v === null || v === undefined) return false;
-  if (typeof v === "string") return v.trim().length > 0;
-  if (typeof v === "number") return v !== 0;
-  if (typeof v === "object" && v !== null && "length" in v) {
-    const len = (v as { length: unknown }).length;
-    if (typeof len === "number") return len > 0;
-  }
-  return Boolean(v);
 }
 
 export function logicalToBoolOrNull(v: unknown): boolean | null {
@@ -88,10 +75,13 @@ export function doctorIdFromRow(row: Record<string, unknown>): string | null {
   return String(n);
 }
 
-/**
- * Text used for substring matching only — excludes phones, addresses, memos, and other PHI-heavy columns.
- */
-export function buildSearchHaystack(row: Record<string, unknown>): string {
+export function reverseNameFromRow(row: Record<string, unknown>): string | null {
+  const r = strField(row, "REV_NAME");
+  return r.length > 0 ? r : null;
+}
+
+/** Lowercase haystack for mirror search — id, chart, and name columns only. */
+export function buildSearchBlob(row: Record<string, unknown>): string {
   const parts = [
     strIdField(row, "ID"),
     strField(row, "CASENB"),
@@ -101,4 +91,43 @@ export function buildSearchHaystack(row: Record<string, unknown>): string {
     strField(row, "LAST_NAME"),
   ].filter((p) => p.length > 0);
   return parts.join(" ").toLowerCase();
+}
+
+export type SafePatientMirrorRow = {
+  patientId: string;
+  chartNumber: string | null;
+  displayName: string;
+  reverseName: string | null;
+  phoneMask: string | null;
+  active: boolean | null;
+  doctorId: string | null;
+  entryDate: string | null;
+  lastVisit: string | null;
+  searchBlob: string;
+  sourceDeleted: boolean;
+};
+
+export function mapSafePatientRow(
+  row: Record<string, unknown>,
+  sourceDeleted: boolean,
+): SafePatientMirrorRow | null {
+  const patientId = strIdField(row, "ID");
+  if (patientId.length === 0) return null;
+
+  const chart = strField(row, "CASENB");
+  const active = logicalToBoolOrNull(row.ACTIVE);
+
+  return {
+    patientId,
+    chartNumber: chart.length > 0 ? chart : null,
+    displayName: buildDisplayName(row),
+    reverseName: reverseNameFromRow(row),
+    phoneMask: pickPhoneMask(row),
+    active,
+    doctorId: doctorIdFromRow(row),
+    entryDate: formatFoxProDateValue(row.ENTRY_DATE),
+    lastVisit: formatFoxProDateValue(row.LASTVISIT),
+    searchBlob: buildSearchBlob(row),
+    sourceDeleted,
+  };
 }

@@ -8,6 +8,8 @@ import {
   PatientProfileResponseSchema,
   PatientMedicalSummaryResponseSchema,
   PatientTreatmentsResponseSchema,
+  PatientChartResponseSchema,
+  PatientLedgerResponseSchema,
   PatientSearchResponseSchema,
   ReferenceDoctorsResponseSchema,
   ScheduleAppointmentsResponseSchema,
@@ -21,6 +23,8 @@ import {
   type PatientProfileResponse,
   type PatientMedicalSummaryResponse,
   type PatientTreatmentsResponse,
+  type PatientChartResponse,
+  type PatientLedgerResponse,
   type PatientSearchResponse,
   type ReferenceDoctorsResponse,
   type ScheduleAppointmentsResponse,
@@ -144,6 +148,40 @@ export class BridgeClient {
     return this.requestJson(
       `/v1/patients/${encodeURIComponent(id)}/treatments`,
       PatientTreatmentsResponseSchema,
+    );
+  }
+
+  /**
+   * Read-only odontogram state from `CHARTDBF.DBF` for one patient. Safe fields only — no memos or layer legends.
+   */
+  async getPatientChart(patientId: string): Promise<PatientChartResponse> {
+    const parsed = PatientProfilePathParamsSchema.safeParse({ patientId });
+    if (!parsed.success) {
+      throw new BridgeClientError("Invalid patient id", {
+        kind: "invalid_argument",
+      });
+    }
+    const id = parsed.data.patientId;
+    return this.requestJson(
+      `/v1/patients/${encodeURIComponent(id)}/chart`,
+      PatientChartResponseSchema,
+    );
+  }
+
+  /**
+   * Read-only ledger lines from `TRANS.DBF` for one patient. Safe metadata only — no amounts, memos, or insurance ids.
+   */
+  async getPatientLedger(patientId: string): Promise<PatientLedgerResponse> {
+    const parsed = PatientProfilePathParamsSchema.safeParse({ patientId });
+    if (!parsed.success) {
+      throw new BridgeClientError("Invalid patient id", {
+        kind: "invalid_argument",
+      });
+    }
+    const id = parsed.data.patientId;
+    return this.requestJson(
+      `/v1/patients/${encodeURIComponent(id)}/ledger`,
+      PatientLedgerResponseSchema,
     );
   }
 

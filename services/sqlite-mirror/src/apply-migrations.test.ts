@@ -39,18 +39,30 @@ describe("applyMigrations", () => {
 
     try {
       const first = applyMigrations(dbPath);
-      expect(first.appliedVersions).toEqual(["001_initial", "002_indexes"]);
+      expect(first.appliedVersions).toEqual([
+        "001_initial",
+        "002_indexes",
+        "003_patients_profile_columns",
+        "003_procedures_reference_columns",
+      ]);
       expect(first.skippedVersions).toEqual([]);
 
       const second = applyMigrations(dbPath);
       expect(second.appliedVersions).toEqual([]);
-      expect(second.skippedVersions).toEqual(["001_initial", "002_indexes"]);
+      expect(second.skippedVersions).toEqual([
+        "001_initial",
+        "002_indexes",
+        "003_patients_profile_columns",
+        "003_procedures_reference_columns",
+      ]);
 
       expect(listMirrorTables(dbPath)).toEqual([...EXPECTED_TABLES]);
       expect(listMirrorIndexes(dbPath)).toEqual([...EXPECTED_INDEXES]);
       expect(listAppliedMigrationVersions(dbPath)).toEqual([
         "001_initial",
         "002_indexes",
+        "003_patients_profile_columns",
+        "003_procedures_reference_columns",
       ]);
     } finally {
       rmSync(dir, { recursive: true, force: true });

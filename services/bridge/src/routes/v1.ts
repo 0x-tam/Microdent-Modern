@@ -7,6 +7,8 @@ import {
   PatientProfileResponseSchema,
   PatientMedicalSummaryResponseSchema,
   PatientTreatmentsResponseSchema,
+  PatientChartResponseSchema,
+  PatientLedgerResponseSchema,
   PatientSearchQueryParamsSchema,
   PatientSearchResponseSchema,
   PatientAppointmentsQuerySchema,
@@ -22,6 +24,8 @@ import {
 import type { BridgeConfig } from "../config.js";
 import { readPatientMedicalSummaryFromDbf } from "../dbf/patient-medical-summary.js";
 import { readPatientTreatmentsFromDbf } from "../dbf/patient-treatments.js";
+import { readPatientChartFromDbf } from "../dbf/patient-chart.js";
+import { readPatientLedgerFromDbf } from "../dbf/patient-ledger.js";
 import { readPatientProfileFromDbf } from "../dbf/patient-profile.js";
 import { searchPatientsInDbf } from "../dbf/patient-search.js";
 import { openRegisteredDbf, parsePagination, readRegisteredTableRows } from "../dbf/read-table.js";
@@ -206,6 +210,56 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
 
     const body = outcome.body;
     PatientTreatmentsResponseSchema.parse(body);
+    res.json(body);
+  });
+
+  router.get("/patients/:patientId/chart", async (req, res) => {
+    if (!requireConfiguredDataRoot(res, bridgeConfig)) return;
+    const dr = bridgeConfig.dataRoot;
+
+    const parsedParams = PatientProfilePathParamsSchema.safeParse({ patientId: req.params.patientId });
+    if (!parsedParams.success) {
+      sendError(res, 400, "INVALID_PATIENT_ID", "invalid patient id");
+      return;
+    }
+
+    const outcome = await readPatientChartFromDbf(dr, parsedParams.data.patientId);
+    if (outcome.kind === "missing_table") {
+      sendError(res, 404, "CHARTDBF_NOT_FOUND", "CHARTDBF.DBF not found under DATA_ROOT");
+      return;
+    }
+    if (outcome.kind === "read_error") {
+      sendError(res, 500, "PATIENT_CHART_ERROR", "chart could not be read");
+      return;
+    }
+
+    const body = outcome.body;
+    PatientChartResponseSchema.parse(body);
+    res.json(body);
+  });
+
+  router.get("/patients/:patientId/ledger", async (req, res) => {
+    if (!requireConfiguredDataRoot(res, bridgeConfig)) return;
+    const dr = bridgeConfig.dataRoot;
+
+    const parsedParams = PatientProfilePathParamsSchema.safeParse({ patientId: req.params.patientId });
+    if (!parsedParams.success) {
+      sendError(res, 400, "INVALID_PATIENT_ID", "invalid patient id");
+      return;
+    }
+
+    const outcome = await readPatientLedgerFromDbf(dr, parsedParams.data.patientId);
+    if (outcome.kind === "missing_table") {
+      sendError(res, 404, "TRANS_DBF_NOT_FOUND", "TRANS.DBF not found under DATA_ROOT");
+      return;
+    }
+    if (outcome.kind === "read_error") {
+      sendError(res, 500, "PATIENT_LEDGER_ERROR", "patient ledger could not be read");
+      return;
+    }
+
+    const body = outcome.body;
+    PatientLedgerResponseSchema.parse(body);
     res.json(body);
   });
 

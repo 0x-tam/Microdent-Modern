@@ -3,6 +3,12 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
+  "exports": {
+    "./import-source": {
+      "types": "./dist/import-source.d.ts",
+      "import": "./dist/import-source.js"
+    }
+  },
   "scripts": {
     "test": "vitest run",
     "build": "tsc -p tsconfig.build.json",

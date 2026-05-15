@@ -210,6 +210,74 @@ describe("BridgeClient", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it("getPatientChart: success and encodes path segment", async () => {
+    const body = {
+      patientId: "501",
+      entries: [
+        {
+          chartEntryId: "14-1-1",
+          patientId: "501",
+          toothNumber: 14,
+          chartType: 1,
+          treated: true,
+          hasNote: true,
+        },
+      ],
+      truncated: false,
+      privacyNote:
+        "Chart memos, layer code legends, clinical labels, and raw CHARTDBF rows are never exposed by this route.",
+    };
+    const fetch = vi.fn().mockResolvedValue(jsonResponse(body));
+    const client = createBridgeClient({ baseUrl, fetch });
+    await expect(client.getPatientChart("501")).resolves.toEqual(body);
+    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/v1/patients/501/chart`, expect.anything());
+  });
+
+  it("getPatientChart: rejects invalid id before fetch", async () => {
+    const fetch = vi.fn();
+    const client = createBridgeClient({ baseUrl, fetch });
+    await expect(client.getPatientChart("0")).rejects.toMatchObject({
+      name: "BridgeClientError",
+      kind: "invalid_argument",
+    });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("getPatientLedger: success and encodes path segment", async () => {
+    const body = {
+      patientId: "501",
+      entries: [
+        {
+          ledgerEntryId: "200",
+          patientId: "501",
+          date: "2024-06-01",
+          chargeTypeCode: 2,
+          adjustmentTypeCode: 0,
+          paymentTypeCode: 100,
+          isCardPayment: true,
+          hasDescription: true,
+        },
+      ],
+      truncated: false,
+      privacyNote:
+        "Ledger amounts, memo text, insurance identifiers, plan numbers, and raw TRANS rows are never exposed by this route.",
+    };
+    const fetch = vi.fn().mockResolvedValue(jsonResponse(body));
+    const client = createBridgeClient({ baseUrl, fetch });
+    await expect(client.getPatientLedger("501")).resolves.toEqual(body);
+    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/v1/patients/501/ledger`, expect.anything());
+  });
+
+  it("getPatientLedger: rejects invalid id before fetch", async () => {
+    const fetch = vi.fn();
+    const client = createBridgeClient({ baseUrl, fetch });
+    await expect(client.getPatientLedger("0")).rejects.toMatchObject({
+      name: "BridgeClientError",
+      kind: "invalid_argument",
+    });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("getReferenceProcedures: success", async () => {
     const body = {
       procedures: [

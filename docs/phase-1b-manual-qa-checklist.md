@@ -12,11 +12,11 @@ Use this checklist to smoke-test the **Microdent-Modern** web preview and local 
 | --- | --- |
 | Repo | `/Users/Tamam/Desktop/Microdent/Microdent-Modern` |
 | Legacy data | Read-only copy only, e.g. `Microdent-Legacy-Copy/DATA` — **do not** open or modify `Microdent-Legacy` |
-| Node / pnpm | Installed; run `pnpm install` once after clone |
+| Node / pnpm | **Node 18+** for bridge and web; **Node 22.5+** required only for SQLite mirror checks (§15) |
 | `DATA_ROOT` | **Absolute** path to either the legacy copy `DATA` folder **or** `services/bridge/fixtures/sandbox` (fixture-only, no real patients) |
 | Web env | `apps/web/.env.local` with `VITE_BRIDGE_BASE_URL=http://127.0.0.1:17890` (created from `.env.local.example` by `pnpm dev:web` if missing) |
 
-**Privacy rule for QA:** Do not paste patient names, chart numbers, phone digits, appointment comment text, or raw JSON from clinic data into chat, email, or issue trackers. Use pass/fail and generic descriptions only.
+**Privacy rule for QA:** Do not paste patient names, chart numbers, phone digits, appointment comment text, treatment memos, medical notes, ledger amounts, or raw JSON from clinic data into chat, email, or issue trackers. Use pass/fail and generic descriptions only.
 
 ---
 
@@ -81,10 +81,22 @@ Restart bridge and confirm **Connected** returns.
 | --- | --- | --- |
 | 3.1 | Bridge connected | Table list loads (or clear error if `DATA_ROOT` wrong) |
 | 3.2 | Row content | Each row shows logical name, basename, **present** yes/no, optional record/field counts — **no row payloads** |
-| 3.3 | Expected tables | Entries align with catalog registry (patient, schedule, medical, opertbl, etc.) — presence depends on your copy |
+| 3.3 | Expected tables | Entries align with catalog registry (`patient`, `schedule`, `medical`, `opertbl`, `trans`, `chartdbf`, `doctors`, `procchrt`, …) — presence depends on your copy |
 | 3.4 | Refresh | Panel can reload without crashing |
 
-**Fail:** 503 everywhere → `DATA_ROOT` unset on bridge. Empty list with errors → path or permissions on copy.
+### 3.5 OPERTBL loose header check (catalog only)
+
+When **`OPERTBL.DBF`** is **present** on your copy:
+
+| Step | Action | Pass |
+| --- | --- | --- |
+| 3.5.1 | `opertbl` row | **Present** = yes |
+| 3.5.2 | Counts | `recordCount` and `fieldCount` are **numbers** (not both null) — bridge may use strict open first, then **`readMode: "loose"`** for VFP header metadata only |
+| 3.5.3 | No row read | Catalog never shows procedure text, fees, or arbitrary columns — header metadata only |
+
+**Fail clues:** `opertbl` present but both counts null → loose header read failed; treatments route may also fail on the same file. Re-check copy integrity (DBF + CDX/FPT sidecars if applicable).
+
+**Note:** `trans` (ledger) and `chartdbf` (odontogram) may appear in the catalog with counts; there are **no** `GET /v1/*` ledger or chart routes yet — mapping docs only (see §12).
 
 ---
 
@@ -143,8 +155,10 @@ Restart bridge and confirm **Connected** returns.
 | --- | --- | --- |
 | 7.1 | No selection | Empty state (“No patient selected” or equivalent) |
 | 7.2 | Profile card | `displayName`, chart, masked phone, active flag, entry date, last visit, provider label |
-| 7.3 | Blocked columns | Page text does **not** include `HOME_PHONE`, `STREET`, `EMAIL`, `QUICKNOTE`, `INSURANCE`, raw JSON |
-| 7.4 | Read-only banner | Still visible at top of shell |
+| 7.3 | Provider label | **Provider** row shows doctor display name from `GET /v1/reference/doctors` when `doctorId` maps — or neutral fallback, not raw id alone when reference loaded |
+| 7.4 | Blocked columns | Page text does **not** include `HOME_PHONE`, `STREET`, `EMAIL`, `QUICKNOTE`, `INSURANCE`, raw JSON |
+| 7.5 | Read-only banner | Still visible at top of shell |
+| 7.6 | Tabs | **Appointments**, **Medical**, and **Treatments** enabled; **Payments** and **Chart** show “Soon” |
 
 ---
 
@@ -168,92 +182,149 @@ Restart bridge and confirm **Connected** returns.
 
 | Step | Action | Pass |
 | --- | --- | --- |
-| 9.1 | Load | Screening summary or “no medical record” — not infinite spinner |
-| 9.2 | Flags | Boolean-style conditions or counts — **no** problem/allergy/notes paragraphs |
-| 9.3 | Sensitive flag | If `hasSensitiveMedicalDetails`, UI explains hidden text — does **not** show `PROBLEM`, `ALLERGY_TO`, `NOTES` values |
-| 9.4 | Privacy note | API `privacyNote` shown (fixed wording about hidden free text) |
-| 9.5 | Blocked labels | UI copy does not expose raw DBF column names as user-facing labels |
+| 9.1 | Lazy load | Fetch runs only when tab selected and bridge connected — not on profile load alone |
+| 9.2 | Load | Screening summary or “no medical record” — not infinite spinner |
+| 9.3 | Flags | Boolean-style conditions or counts — **no** problem/allergy/notes paragraphs |
+| 9.4 | Sensitive flag | If `hasSensitiveMedicalDetails`, UI explains hidden text — does **not** show `PROBLEM`, `ALLERGY_TO`, `NOTES` values |
+| 9.5 | Privacy note | API `privacyNote` shown (fixed wording about hidden free text) |
+| 9.6 | Blocked labels | UI copy does not expose raw DBF column names as user-facing labels |
+| 9.7 | Network | `GET …/medical-summary` JSON has no `problem`, `allergy`, `notes`, or raw row keys |
 
 ---
 
-## 10. Treatments tab check (if implemented)
+## 10. Treatments tab check
 
-**Navigate:** **Patients** → **Treatments** tab.
+**Navigate:** **Patients** → **Treatments** tab (not the sidebar **Treatments** module — that remains a placeholder).
 
 | Step | Action | Pass |
 | --- | --- | --- |
 | 10.1 | Tab visible | **Treatments** tab enabled (not “Soon”) |
 | 10.2 | Lazy load | Fetch runs only when tab selected and bridge connected |
-| 10.3 | List | Date, tooth, procedure code/label, doctor label, status — no fee columns |
-| 10.4 | Descriptions | `hasDescription` may show indicator — **no** memo/`DESC` body text |
-| 10.5 | Truncation | If many rows, banner mentions truncation when API sets `truncated: true` |
-| 10.6 | Privacy footnote | Treatments `privacyNote` visible |
+| 10.3 | Lede | Read-only copy mentions memos, descriptions, and fees stay hidden |
+| 10.4 | List | Date, tooth, procedure code/label line, doctor label, status — no fee or amount columns |
+| 10.5 | Procedure labels | Line uses `procedureCode` + `procedureLabel` from API (`PROCCHRT` join) — not raw `OPERTBL` procedure memo text |
+| 10.6 | Doctor labels | Provider shows API `doctorLabel` or name from reference map — not address/phone from `DOCTORS.DBF` |
+| 10.7 | Descriptions | `hasDescription` may show “Description hidden” badge — **no** `DESCRIPT` / `DESC` / `NOTE` body text |
+| 10.8 | Truncation | If many rows, banner mentions truncation when API sets `truncated: true` |
+| 10.9 | Privacy footnote | Treatments `privacyNote` visible at bottom of list |
+| 10.10 | Network | `GET …/treatments` JSON has no `descript`, `desc`, `fee`, `charge`, `amount`, `samount`, or `rows` keys |
+| 10.11 | Offline | Tab shows offline message when bridge down — no cached treatment rows |
 
-**Skip note:** If tab is disabled (“Soon”), record “treatments UI not shipped” and test `GET /v1/patients/:id/treatments` via route inventory curl only on a copy.
+**Fail clues:** `OPERTBL_DBF_NOT_FOUND` or empty list with error while catalog shows `opertbl` present → treatments reader needs loose mode on copy; see §3.5.
 
 ---
 
-## 11. Schedule page check
+## 11. Reference labels check (doctors + procedures)
+
+**Goal:** Confirm opaque ids resolve to staff-facing labels without exposing reference-table PII.
+
+| Step | Where | Pass |
+| --- | --- | --- |
+| 11.1 | Network (once) | `GET /v1/reference/doctors` returns `doctorId`, `displayName`, `active` only — no address, phone, fax, tax, schedule grid, or `NOTES` |
+| 11.2 | Network (once) | `GET /v1/reference/procedures` returns codes and labels — no price/fee/ledger amount fields |
+| 11.3 | **Today** | Appointment cards show doctor / procedure class names when ids exist in reference data |
+| 11.4 | **Schedule** | Grid/list shows resolved doctor and procedure class labels where hooks succeed |
+| 11.5 | **Patients** profile | Provider row uses doctor reference (§7.3) |
+| 11.6 | **Patients** → **Treatments** | Provider column matches §10.6 |
+| 11.7 | Reference failure | If doctors route 404/offline, UI falls back to neutral copy (`Doctor {id}` or em dash) — no crash, no reference row dump |
+
+Hooks cache in memory only — no `localStorage` of reference payloads.
+
+---
+
+## 12. Schedule page check
 
 **Navigate:** Sidebar → **Schedule**.
 
 | Step | Action | Pass |
 | --- | --- | --- |
-| 11.1 | Rooms | Room list or filter loads from `SC_ROOM` / dictionary |
-| 11.2 | Day / week | Toggle changes date range within API **14-day inclusive** cap |
-| 11.3 | Appointments grid/list | Times, rooms, status badges, patient safe names |
-| 11.4 | Room filter | Optional room filter narrows results |
-| 11.5 | Privacy | No comment bodies; no full phones; schedule `PAT_NAME` not used as display source |
-| 11.6 | Reference labels | Procedure class and doctor names where hooks succeed |
+| 12.1 | Rooms | Room list or filter loads from `SC_ROOM` / dictionary |
+| 12.2 | Day / week | Toggle changes date range within API **14-day inclusive** cap |
+| 12.3 | Appointments grid/list | Times, rooms, status badges, patient safe names |
+| 12.4 | Room filter | Optional room filter narrows results |
+| 12.5 | Privacy | No comment bodies; no full phones; schedule `PAT_NAME` not used as display source |
+| 12.6 | Reference labels | Procedure class and doctor names where hooks succeed (§11) |
 
 ---
 
-## 12. Placeholder modules (quick)
+## 13. Placeholder modules (quick)
 
-**Navigate:** **Dental Chart**, **Treatments** (sidebar), **Payments**, **Reports**, **Settings**.
+**Navigate:** Sidebar → **Dental Chart**, **Treatments**, **Payments**, **Reports**, **Settings**.
 
-| Step | Pass |
+| Module | Pass |
 | --- | --- |
-| Each opens module home + “Nothing to show yet” empty state | No accidental API calls to ledger/payment tables |
-| **Back to Today** works | Returns to dashboard |
+| **Dental Chart** | Module home + “Nothing to show yet” — **no** `CHARTDBF` API calls |
+| **Treatments** (sidebar) | Placeholder only — real treatment history is under **Patients** → **Treatments** tab |
+| **Payments** | Placeholder — **no** `TRANS.DBF` / ledger API |
+| **Reports**, **Settings** | Placeholder empty states |
+| **Back to Today** | Returns to dashboard from any placeholder |
+
+**Mapped-only (docs, no routes):** Ledger — [phase-1b-ledger-payments-mapping.md](./phase-1b-ledger-payments-mapping.md). Odontogram — [phase-1b-dental-chart-mapping.md](./phase-1b-dental-chart-mapping.md).
+
+Profile tabs **Payments** and **Chart** remain “Soon” — same as ledger/chart backend gap.
 
 ---
 
-## 13. Privacy checks (cross-cutting)
+## 14. Privacy checks (cross-cutting)
 
-Perform while on **Patients**, **Schedule**, and **Today** with real copied data (staff-only machine).
+Perform while on **Patients**, **Schedule**, and **Today** with real copied data (staff-only machine). Treat any failure as a **release blocker** for clinic preview.
 
 | Check | How to verify | Pass |
 | --- | --- | --- |
-| No full phone numbers | Search + profile phone row | Only `…####` mask or em dash |
-| No `COMMENT` text | Schedule + appointments with `hasComment: true` in network tab | Boolean/indicator only; no memo body in UI or Network response JSON |
-| No `PAT_NAME` from schedule | Compare Network `schedule/appointments` JSON to UI name | `patient.displayName` from patient file; response must not include `pat_name` / `PAT_NAME` keys |
-| No raw row dumps | Browse all screens except fixture card | No arbitrary column maps in UI |
-| No fees / payments | Treatments tab, sidebar Payments, TRANS | No currency columns, balances, or ledger lines unless a future band explicitly adds them |
-| No medical free text | Medical tab + Network `medical-summary` | No `problem`, `allergy`, `notes` strings; `hasSensitiveMedicalDetails` may be true without values |
-| Network hygiene | DevTools → Network → filter `17890` | Copy responses only on secure machine; redact before sharing |
-| Console | DevTools → Console | No logged row payloads (dev health logs errors only) |
+| **No full phone numbers** | Search + profile phone row | Only `…####` mask or em dash — never 7+ contiguous digits of a real number |
+| **No `COMMENT` / schedule note bodies** | Appointments with `hasComment: true` in Network | Boolean/indicator only; response and UI lack comment memo text |
+| **No `NOTE` / `DESCRIPT` / `DESC` bodies** | Treatments tab + `…/treatments` JSON | `hasDescription` flag only; no description strings in UI or API |
+| **No `AMOUNT` / `SAMOUNT`** | Any `17890` response while browsing | No currency fields, balances, or ledger lines in JSON or UI |
+| **No fees / charges / payments** | Treatments, sidebar Payments, catalog `trans` row | No `FEE`, `CHARGE`, `COST`, `PROFIT`, payment columns, or ledger module data |
+| **No medical free text** | Medical tab + `…/medical-summary` | No `problem`, `allergy`, `notes` strings; `hasSensitiveMedicalDetails` may be true without values |
+| **No `PAT_NAME` from schedule** | Compare `schedule/appointments` JSON to UI name | `patient.displayName` from patient file; response must not include `pat_name` / `PAT_NAME` keys |
+| **No raw row dumps** | All screens except fixture card (§5) | No arbitrary column maps or `rows[]` of clinic tables in UI |
+| **Network hygiene** | DevTools → Network → filter `17890` | Copy responses only on secure machine; redact before sharing |
+| **Console** | DevTools → Console | No logged row payloads (dev health logs errors only) |
 
-**Optional HTTP sanity (no PHI in notes):**
+**Optional HTTP sanity (redact IDs/dates; no PHI in notes):**
 
 ```bash
-# Replace IDs/dates with synthetic or redacted values from your environment
-curl -sS "http://127.0.0.1:17890/v1/schedule/appointments?from=YYYY-MM-DD&to=YYYY-MM-DD" | jq 'keys'
+curl -sS "http://127.0.0.1:17890/v1/schedule/appointments?from=YYYY-MM-DD&to=YYYY-MM-DD" | jq '[.appointments[0] | keys]'
+curl -sS "http://127.0.0.1:17890/v1/patients/PATIENT_ID/treatments" | jq 'keys'
+curl -sS "http://127.0.0.1:17890/v1/patients/PATIENT_ID/medical-summary" | jq 'keys'
 ```
 
-Confirm appointment objects lack `comment`, `telephone`, `pat_name`, and `rows` keys.
+Confirm: no `comment`, `telephone`, `pat_name`, `descript`, `desc`, `amount`, `samount`, `problem`, `allergy`, `notes`, or `rows` keys in safe DTOs.
 
 ---
 
-## 14. Automated regression (optional)
+## 15. SQLite mirror schema check (Phase 2.1)
 
-Before manual QA or after bridge changes:
+Schema and migrations only — **no** DBF import, **no** bridge/UI wiring yet. See [phase-2-sqlite-schema.md](./phase-2-sqlite-schema.md).
+
+| Step | Action | Pass |
+| --- | --- | --- |
+| 15.1 | Node version | `node -v` reports **v22.5.0** or newer (built-in `node:sqlite` required) |
+| 15.2 | Package tests | From repo root: `pnpm --filter @microdent/sqlite-mirror test` |
+| 15.3 | Migrations | Tests apply `001_initial` + `002_indexes` idempotently |
+| 15.4 | Tables | Expected domain tables exist (`patients`, `doctors`, `procedures`, `schedule_rooms`, `appointments`, `medical_summary`, import metadata) — **empty** after migrate |
+| 15.5 | Privacy | Schema has no full-phone, address, memo, or clinical free-text columns |
+
+**Note:** Root `pnpm test` also runs sqlite-mirror when Node ≥ 22.5; bridge/web still run on Node 18+.
+
+---
+
+## 16. Automated regression (optional)
+
+Before manual QA or after bridge/UI changes:
 
 ```bash
 pnpm test
 ```
 
-**Pass:** Contracts, bridge, bridge-client, ui, and app test suites green.
+**Pass:** Contracts, bridge, bridge-client, ui, app, and (on Node 22.5+) sqlite-mirror test suites green.
+
+For mirror-only after schema edits:
+
+```bash
+pnpm --filter @microdent/sqlite-mirror test
+```
 
 ---
 
@@ -262,22 +333,26 @@ pnpm test
 | Area | Tester | Date | Pass / Fail | Notes |
 | --- | --- | --- | --- | --- |
 | Startup + health | | | | |
-| Legacy catalog | | | | |
+| Legacy catalog + OPERTBL header | | | | |
 | Today dashboard | | | | |
 | Fixture panel | | | | |
 | Patient search | | | | |
 | Profile + appointments | | | | |
 | Medical | | | | |
-| Treatments | | | | |
+| Treatments (patient tab) | | | | |
+| Reference labels | | | | |
 | Schedule | | | | |
 | Privacy cross-check | | | | |
+| SQLite mirror (Node 22) | | | | |
 
 ---
 
 ## Known gaps (not failures)
 
-- Sidebar modules **Dental Chart**, **Payments**, **Reports**, **Settings** are placeholders — no backend routes yet.
-- Profile tabs **Payments** and **Chart** show “Soon” — not wired.
+- Sidebar **Dental Chart**, **Treatments**, **Payments**, **Reports**, **Settings** are placeholders — no dedicated module APIs except patient-level tabs under **Patients**.
+- **Ledger** (`TRANS.DBF`) and **odontogram** (`CHARTDBF.DBF`): mapping docs only — catalog may list presence; **no** `GET /v1/patients/:id/ledger` or chart routes.
+- Profile tabs **Payments** and **Chart** show “Soon”.
 - No client-side URL routing; deep links are not supported.
 - `GET /v1/tables/*/rows` is **fixture-only** by registry design — not a clinic data browser.
-- Large `OPERTBL` scans may be slow on patient treatments — see route inventory limitations.
+- Large `OPERTBL` full-table scan for patient treatments may be slow — cap 200 rows per patient (see route inventory).
+- SQLite mirror: schema/migrations only — no import CLI or bridge read path yet.
