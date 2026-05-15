@@ -2,7 +2,10 @@ import { existsSync } from "node:fs";
 import { Router, type Response } from "express";
 import {
   ApiErrorBodySchema,
+  AppointmentStatusPathParamsSchema,
+  AppointmentStatusUpdateBodySchema,
   LegacyCatalogResponseSchema,
+  SafeWritePlanSchema,
   PatientProfilePathParamsSchema,
   PatientProfileResponseSchema,
   PatientMedicalSummaryResponseSchema,
@@ -33,7 +36,9 @@ import { openRegisteredDbf, parsePagination, readRegisteredTableRows } from "../
 import { resolveRegisteredDbfPath } from "../dbf/resolve-registered-dbf.js";
 import { findRegistryEntry, TABLE_ID_PATTERN, TABLE_REGISTRY } from "../dbf/table-registry.js";
 import { readLegacyCatalogRows } from "../dbf/read-legacy-catalog.js";
+import { lookupScheduleAppointmentById } from "../dbf/schedule-appointments.js";
 import { readScheduleAppointmentsForApi } from "../schedule-appointments-read.js";
+import { buildAppointmentStatusUpdatePlan } from "../write/appointment-status-plan.js";
 import { readReferenceDoctorsFromDbf } from "../dbf/reference-doctors.js";
 import { readReferenceProcedures } from "../dbf/reference-procedures.js";
 import { readScheduleRooms } from "../dbf/schedule-rooms.js";
@@ -454,6 +459,55 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
     const body = { appointments: outcome.appointments };
     ScheduleAppointmentsResponseSchema.parse(body);
     res.json(body);
+  });
+
+  router.patch("/schedule/appointments/:appointmentId/status", async (req, res) => {
+    if (bridgeConfig.writeMode === "disabled") {
+      sendError(res, 403, "WRITE_MODE_DISABLED", "WRITE_MODE is disabled");
+      return;
+    }
+
+    const pathParsed = AppointmentStatusPathParamsSchema.safeParse({
+      appointmentId: req.params.appointmentId,
+    });
+    if (!pathParsed.success) {
+      sendError(res, 400, "INVALID_APPOINTMENT_ID", "appointmentId must be a positive integer without leading zeros");
+      return;
+    }
+
+    const bodyParsed = AppointmentStatusUpdateBodySchema.safeParse(req.body);
+    if (!bodyParsed.success) {
+      const statusIssue = bodyParsed.error.issues.find((i) => i.path[0] === "status");
+      if (statusIssue) {
+        sendError(res, 400, "INVALID_APPOINTMENT_STATUS", "status must be an integer from 0 to 5");
+        return;
+      }
+      sendError(res, 400, "INVALID_REQUEST_BODY", "request body must be { status: number }");
+      return;
+    }
+
+    if (!requireConfiguredDataRoot(res, bridgeConfig)) return;
+    const dr = bridgeConfig.dataRoot;
+    const { appointmentId } = pathParsed.data;
+
+    const lookup = await lookupScheduleAppointmentById(dr, appointmentId);
+    if (lookup.kind === "missing_schedule") {
+      sendError(res, 404, "SCHEDULE_DBF_NOT_FOUND", "SCHEDULE.DBF not found under DATA_ROOT");
+      return;
+    }
+    if (lookup.kind === "read_error") {
+      sendError(res, 500, "SCHEDULE_APPOINTMENTS_ERROR", "failed to read appointments");
+      return;
+    }
+    if (lookup.kind === "not_found") {
+      sendError(res, 404, "SCHEDULE_APPOINTMENT_NOT_FOUND", "appointment not found");
+      return;
+    }
+
+    const writeMode = bridgeConfig.writeMode === "enabled" ? "enabled" : "dry-run";
+    const plan = buildAppointmentStatusUpdatePlan({ appointmentId, writeMode });
+    SafeWritePlanSchema.parse(plan);
+    res.json(plan);
   });
 
   router.get("/tables/:tableId/schema", async (req, res) => {

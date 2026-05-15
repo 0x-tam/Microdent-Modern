@@ -13,6 +13,7 @@ import {
   CLINIC_SERVICE_CONNECT_SCHEDULE,
   SCHEDULE_PRIVACY_LEDE,
 } from "./read-only-ui-copy.js";
+import { AppointmentStatusDryRunAction } from "./AppointmentStatusDryRunAction.js";
 
 export type SchedulePanelProps = {
   isActive: boolean;
@@ -20,6 +21,10 @@ export type SchedulePanelProps = {
   bridgeBaseUrl?: string;
   /** Test-only fetch override (same pattern as patient search). */
   fetchImpl?: typeof fetch;
+  /**
+   * When true with `import.meta.env.DEV`, shows per-row dry-run status control (no real writes).
+   */
+  appointmentStatusDryRunDev?: boolean;
   onBackToday: () => void;
 };
 
@@ -179,6 +184,7 @@ export function SchedulePanel({
   bridgePhase,
   bridgeBaseUrl,
   fetchImpl,
+  appointmentStatusDryRunDev = false,
   onBackToday,
 }: SchedulePanelProps) {
   const base = bridgeBaseUrl?.trim() ?? "";
@@ -502,6 +508,14 @@ export function SchedulePanel({
                                   </Badge>
                                 ) : null}
                               </div>
+                              {bridgeBaseUrl && appointmentStatusDryRunDev ? (
+                                <AppointmentStatusDryRunAction
+                                  appointment={appt}
+                                  bridgeBaseUrl={bridgeBaseUrl}
+                                  fetchImpl={fetchImpl}
+                                  devDryRunEnabled={appointmentStatusDryRunDev}
+                                />
+                              ) : null}
                             </div>
                           </li>
                           );

@@ -1,5 +1,11 @@
 export { HealthResponseSchema, type HealthResponse } from "./health.js";
 export {
+  BridgeDevStatusResponseSchema,
+  WriteModeSchema,
+  type BridgeDevStatusResponse,
+  type WriteMode,
+} from "./write-mode.js";
+export {
   MirrorImportRunSummarySchema,
   MirrorStatusResponseSchema,
   type MirrorImportRunSummary,
@@ -98,3 +104,23 @@ export {
   type ReferenceProcedureItem,
   type ReferenceProceduresResponse,
 } from "./reference-procedures.js";
+export {
+  AppointmentStatusDryRunResponseSchema,
+  PositiveIntegerIdSchema,
+  SafeWritePlanFieldChangeSchema,
+  SafeWritePlanSchema,
+  SafeWritePlanWarningSchema,
+  type AppointmentStatusDryRunResponse,
+  type PositiveIntegerId,
+  type SafeWritePlan,
+  type SafeWritePlanFieldChange,
+  type SafeWritePlanWarning,
+} from "./safe-write-plan.js";
+export {
+  APPOINTMENT_STATUS_MAX,
+  APPOINTMENT_STATUS_MIN,
+  AppointmentStatusPathParamsSchema,
+  AppointmentStatusUpdateBodySchema,
+  type AppointmentStatusPathParams,
+  type AppointmentStatusUpdateBody,
+} from "./appointment-status-write.js";

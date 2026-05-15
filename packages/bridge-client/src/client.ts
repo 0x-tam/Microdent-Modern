@@ -13,6 +13,8 @@ import {
   PatientSearchResponseSchema,
   ReferenceDoctorsResponseSchema,
   ScheduleAppointmentsResponseSchema,
+  AppointmentStatusDryRunResponseSchema,
+  AppointmentStatusUpdateBodySchema,
   ReferenceProceduresResponseSchema,
   ScheduleRoomsResponseSchema,
   TableRowsResponseSchema,
@@ -30,6 +32,8 @@ import {
   type PatientSearchResponse,
   type ReferenceDoctorsResponse,
   type ScheduleAppointmentsResponse,
+  type AppointmentStatusUpdateBody,
+  type SafeWritePlan,
   type ReferenceProceduresResponse,
   type ScheduleRoomsResponse,
   type TableRowsResponse,
@@ -219,9 +223,39 @@ export class BridgeClient {
   }
 
   /**
-   * Read-only appointment history for one patient from `SCHEDULE.DBF` (same safe DTO as schedule view).
-   * `patientId` matches profile/search ids; `from`/`to` may span up to 365 calendar days inclusive.
+   * Rehearse `appointment.statusUpdate` without committing (requires bridge dry-run route).
+   * Sends `X-Write-Intent: dry-run`; does not mutate local appointment state.
    */
+  async dryRunAppointmentStatusUpdate(
+    appointmentId: string,
+    body: AppointmentStatusUpdateBody,
+  ): Promise<SafeWritePlan> {
+    const parsedBody = AppointmentStatusUpdateBodySchema.safeParse(body);
+    if (!parsedBody.success) {
+      throw new BridgeClientError("Invalid appointment status body", {
+        kind: "invalid_argument",
+      });
+    }
+    const id = encodeURIComponent(appointmentId.trim());
+    if (id.length === 0) {
+      throw new BridgeClientError("Invalid appointment id", { kind: "invalid_argument" });
+    }
+    const res = await this.requestJsonWithBody(
+      `/v1/schedule/appointments/${id}/status`,
+      AppointmentStatusDryRunResponseSchema,
+      {
+        method: "PATCH",
+        body: parsedBody.data,
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "X-Write-Intent": "dry-run",
+        },
+      },
+    );
+    return res.plan;
+  }
+
   async getPatientAppointments(
     patientId: string,
     params: { from: string; to: string },
@@ -269,12 +303,24 @@ export class BridgeClient {
   }
 
   private async requestJson<T>(path: string, schema: ZodType<T>): Promise<T> {
+    return this.requestJsonWithBody(path, schema, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+  }
+
+  private async requestJsonWithBody<T>(
+    path: string,
+    schema: ZodType<T>,
+    init: { method: string; body?: unknown; headers: Record<string, string> },
+  ): Promise<T> {
     const url = `${this.baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
     let res: Response;
     try {
       res = await this.fetchImpl(url, {
-        method: "GET",
-        headers: { Accept: "application/json" },
+        method: init.method,
+        headers: init.headers,
+        body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
       });
     } catch (cause) {
       throw new BridgeClientError("Network request failed", { kind: "network", cause });

@@ -20,7 +20,7 @@ async function main(): Promise<void> {
   });
   const addr = server.address();
   const where = typeof addr === "object" && addr ? `${host}:${addr.port}` : `${host}:${port}`;
-  console.error(`bridge listening on http://${where}`);
+  console.error(`bridge listening on http://${where} (writeMode=${bridgeConfig.writeMode})`);
 }
 
 if (isMainModule()) {

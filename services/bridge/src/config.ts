@@ -1,5 +1,8 @@
+import { WriteModeSchema, type WriteMode } from "@microdent/contracts";
 import { existsSync, realpathSync } from "node:fs";
 import path from "node:path";
+
+export type { WriteMode };
 
 export type DataRootUnset = { configured: false };
 export type DataRootSet = {
@@ -25,7 +28,56 @@ export type BridgeConfig = {
   listen: { host: string; port: number };
   dataRoot: DataRootConfig;
   sqlitePath: SqlitePathConfig;
+  writeMode: WriteMode;
 };
+
+/** Partial bridge config for tests and `createBridgeApp` overrides. */
+export type BridgeConfigInput = {
+  listen: { host: string; port: number };
+  dataRoot: DataRootConfig;
+  sqlitePath?: SqlitePathConfig;
+  writeMode?: WriteMode;
+};
+
+export function normalizeBridgeConfig(input: BridgeConfigInput): BridgeConfig {
+  return {
+    listen: input.listen,
+    dataRoot: input.dataRoot,
+    sqlitePath: input.sqlitePath ?? { configured: false },
+    writeMode: input.writeMode ?? parseWriteModeFromValue(undefined),
+  };
+}
+
+/**
+ * Parse `WRITE_MODE` from a string value (use `process.env.WRITE_MODE` in production).
+ * Missing, empty, or unknown values resolve to `disabled` (fail closed).
+ */
+export function parseWriteModeFromValue(value: string | undefined): WriteMode {
+  if (value === undefined) {
+    return "disabled";
+  }
+  const trimmed = value.trim().toLowerCase();
+  if (trimmed === "") {
+    return "disabled";
+  }
+  const parsed = WriteModeSchema.safeParse(trimmed);
+  if (!parsed.success) {
+    return "disabled";
+  }
+  return parsed.data;
+}
+
+export function loadWriteModeFromEnv(): WriteMode {
+  return parseWriteModeFromValue(process.env.WRITE_MODE);
+}
+
+/**
+ * True only when all future write gates pass (backup, audit, sandbox, workflows).
+ * Phase 3.0 foundation: always false — `enabled` does not permit DBF writes yet.
+ */
+export function writesPermitted(_config: BridgeConfig): boolean {
+  return false;
+}
 
 /**
  * Parse `DATA_ROOT` from a string value (use `process.env.DATA_ROOT` in production).
@@ -93,5 +145,6 @@ export function loadBridgeConfig(): BridgeConfig {
     listen: loadListenOptions(),
     dataRoot: loadDataRootFromEnv(),
     sqlitePath: loadSqlitePathFromEnv(),
+    writeMode: loadWriteModeFromEnv(),
   };
 }

@@ -389,6 +389,35 @@ describe("BridgeClient", () => {
     );
   });
 
+  it("dryRunAppointmentStatusUpdate: PATCH with dry-run intent", async () => {
+    const plan = {
+      operationId: "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+      workflow: "appointment.statusUpdate",
+      mode: "dry-run",
+      tablesAffected: ["SCHEDULE"],
+      recordIds: ["501"],
+      fieldsChanged: [{ table: "SCHEDULE", recordId: "501", field: "STATUS", changeType: "set" }],
+      backupRequired: true,
+      committed: false,
+      warnings: [],
+      createdAt: "2026-05-15T12:00:00.000Z",
+    };
+    const fetch = vi.fn().mockResolvedValue(jsonResponse({ plan, committed: false }));
+    const client = createBridgeClient({ baseUrl, fetch });
+    await expect(client.dryRunAppointmentStatusUpdate("501", { status: 2 })).resolves.toEqual(plan);
+    expect(fetch).toHaveBeenCalledWith(
+      `${baseUrl}/v1/schedule/appointments/501/status`,
+      expect.objectContaining({
+        method: "PATCH",
+        headers: expect.objectContaining({
+          "X-Write-Intent": "dry-run",
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({ status: 2 }),
+      }),
+    );
+  });
+
   it("getPatientAppointments: builds path and query; rejects invalid id or range locally", async () => {
     const body = { appointments: [] };
     const fetch = vi.fn().mockResolvedValue(jsonResponse(body));

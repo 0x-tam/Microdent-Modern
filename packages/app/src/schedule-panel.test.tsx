@@ -719,4 +719,59 @@ describe("SchedulePanel", () => {
     expect(t).not.toMatch(/\b100\b/);
     expect(t).not.toMatch(/\bfee\b/i);
   });
+
+  it("shows dry-run action only when dev flag is on", async () => {
+    const fetchImpl = withReferenceDoctors((input: RequestInfo | URL) => {
+      const u = String(input);
+      if (u.includes("/v1/schedule/rooms")) {
+        return Promise.resolve(jsonResponse(sampleRooms));
+      }
+      if (u.includes("/v1/schedule/appointments") && !u.includes("/status")) {
+        const m = u.match(/from=([^&]+)/);
+        const fromQ = m ? decodeURIComponent(m[1]) : "";
+        return Promise.resolve(jsonResponse(sampleAppointments(fromQ)));
+      }
+      return Promise.reject(new Error(`unexpected fetch ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <SchedulePanel
+          isActive
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          appointmentStatusDryRunDev={false}
+          onBackToday={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(container.textContent).not.toContain("Dry-run status update");
+
+    await act(async () => {
+      root.render(
+        <SchedulePanel
+          isActive
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          appointmentStatusDryRunDev={import.meta.env.DEV}
+          onBackToday={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    if (import.meta.env.DEV) {
+      expect(container.textContent).toContain("Dry-run status update");
+    } else {
+      expect(container.textContent).not.toContain("Dry-run status update");
+    }
+  });
 });

@@ -1102,6 +1102,54 @@
   gap: var(--ui-space-2);
 }
 
+.app-appt-dry-run {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  margin-top: var(--ui-space-1);
+  padding-top: var(--ui-space-2);
+  border-top: 1px dashed var(--ui-border-subtle);
+}
+
+.app-appt-dry-run__btn {
+  align-self: flex-start;
+  font-size: 12px;
+  color: var(--ui-text-muted);
+}
+
+.app-appt-dry-run__summary {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ui-text-secondary);
+}
+
+.app-appt-dry-run__row {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr;
+  gap: var(--ui-space-2);
+}
+
+.app-appt-dry-run__row dt {
+  margin: 0;
+  font-weight: 600;
+  color: var(--ui-text-muted);
+}
+
+.app-appt-dry-run__row dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.app-appt-dry-run__error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ui-text-secondary);
+}
+
 .app-schedule__footer {
   padding-top: var(--ui-space-2);
 }

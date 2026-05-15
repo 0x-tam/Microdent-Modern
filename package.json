@@ -8,14 +8,15 @@
   ],
   "packageManager": "pnpm@9.15.0",
   "scripts": {
-    "test": "npm run build --workspace=@microdent/contracts && npm run build --workspace=@microdent/bridge && npm run build --workspace=@microdent/sqlite-mirror && npm run test --workspace=@microdent/sqlite-mirror && npm run test --workspace=@microdent/bridge && npm run build --workspace=@microdent/bridge-client && npm run test --workspace=@microdent/bridge-client && npm run build --workspace=@microdent/ui && npm run test --workspace=@microdent/ui && npm run build --workspace=@microdent/app && npm run test --workspace=@microdent/app",
+    "test": "npm run build --workspace=@microdent/contracts && npm run test --workspace=@microdent/contracts && npm run build --workspace=@microdent/bridge && npm run build --workspace=@microdent/sqlite-mirror && npm run test --workspace=@microdent/sqlite-mirror && npm run test --workspace=@microdent/bridge && npm run build --workspace=@microdent/bridge-client && npm run test --workspace=@microdent/bridge-client && npm run build --workspace=@microdent/ui && npm run test --workspace=@microdent/ui && npm run build --workspace=@microdent/app && npm run test --workspace=@microdent/app",
     "preview:web": "pnpm --filter @microdent/web run dev",
     "build:web": "pnpm --filter @microdent/web run build",
     "dev:ports": "bash scripts/dev-ports.sh",
     "dev:kill-ports": "bash scripts/dev-kill-ports.sh",
     "dev:bridge": "bash scripts/dev-bridge.sh",
     "dev:web": "bash scripts/dev-web.sh",
-    "mirror:import-safe": "bash scripts/mirror-import-safe.sh"
+    "mirror:import-safe": "bash scripts/mirror-import-safe.sh",
+    "legacy:backup": "bash scripts/legacy-backup.sh"
   },
   "engines": {
     "node": ">=18"

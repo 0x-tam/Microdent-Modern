@@ -65,6 +65,10 @@ export type AppShellProps = {
    * Optional fetch override (tests); production uses the bound global `fetch` from the bridge client.
    */
   fetchImpl?: typeof fetch;
+  /**
+   * When true with Vite dev build, schedule rows show a dry-run status action (no real writes).
+   */
+  appointmentStatusDryRunDev?: boolean;
 };
 
 const MODULE_PREVIEW: Record<
@@ -177,6 +181,7 @@ export function AppShell({
   bridgeConnectionDiagnostics = false,
   mirrorConnectionDiagnostics = false,
   fetchImpl,
+  appointmentStatusDryRunDev = false,
 }: AppShellProps) {
   const [active, setActive] = useState<AppNavModuleId>("today");
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
@@ -408,6 +413,7 @@ export function AppShell({
                   bridgePhase={bridgePhase}
                   bridgeBaseUrl={bridgeBaseUrl}
                   fetchImpl={fetchImpl}
+                  appointmentStatusDryRunDev={appointmentStatusDryRunDev}
                   onBackToday={() => setActive("today")}
                 />
               ) : active === "patients" ? (

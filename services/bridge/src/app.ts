@@ -2,9 +2,9 @@ import express from "express";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { HealthResponseSchema } from "@microdent/contracts";
-import type { BridgeConfig } from "./config.js";
-import { loadBridgeConfig } from "./config.js";
+import { BridgeDevStatusResponseSchema, HealthResponseSchema } from "@microdent/contracts";
+import type { BridgeConfigInput } from "./config.js";
+import { loadBridgeConfig, normalizeBridgeConfig, writesPermitted } from "./config.js";
 import {
   LOCAL_PREVIEW_ALLOWED_HOSTS,
   LOCAL_PREVIEW_PORT_MAX,
@@ -26,21 +26,16 @@ function readBridgeVersion(): string {
 }
 
 export type CreateBridgeAppOptions = {
-  bridgeConfig?: BridgeConfig;
+  bridgeConfig?: BridgeConfigInput;
 };
 
 /**
  * Express app: `GET /` (service info), `GET /health`, read-only `GET /v1/*` (fixture table APIs, legacy catalog, patient search + profile + medical summary, schedule rooms/appointments).
- * In non-`production` Node env, also `GET /debug/cors` (static CORS policy summary, no secrets).
+ * In non-`production` Node env, also `GET /debug/cors` and `GET /debug/status` (safe diagnostics, no secrets).
  */
-function resolveBridgeConfig(partial?: BridgeConfig): BridgeConfig {
-  const loaded = loadBridgeConfig();
-  if (!partial) return loaded;
-  return {
-    listen: partial.listen,
-    dataRoot: partial.dataRoot,
-    sqlitePath: partial.sqlitePath ?? { configured: false },
-  };
+function resolveBridgeConfig(partial?: BridgeConfigInput) {
+  if (!partial) return loadBridgeConfig();
+  return normalizeBridgeConfig(partial);
 }
 
 export function createBridgeApp(version?: string, options?: CreateBridgeAppOptions): express.Express {
@@ -48,6 +43,7 @@ export function createBridgeApp(version?: string, options?: CreateBridgeAppOptio
   const bridgeConfig = resolveBridgeConfig(options?.bridgeConfig);
   const app = express();
   app.disable("x-powered-by");
+  app.use(express.json({ limit: "8kb" }));
   app.use(localPreviewCorsMiddleware);
   if (process.env.NODE_ENV !== "production") {
     app.get("/debug/cors", (_req, res) => {
@@ -58,6 +54,14 @@ export function createBridgeApp(version?: string, options?: CreateBridgeAppOptio
           allowedPortRange: { min: LOCAL_PREVIEW_PORT_MIN, max: LOCAL_PREVIEW_PORT_MAX },
         },
       });
+    });
+    app.get("/debug/status", (_req, res) => {
+      const body = {
+        writeMode: bridgeConfig.writeMode,
+        writesPermitted: writesPermitted(bridgeConfig),
+      };
+      BridgeDevStatusResponseSchema.parse(body);
+      res.json(body);
     });
   }
   app.get("/", (_req, res) => {

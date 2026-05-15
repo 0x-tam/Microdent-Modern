@@ -43,3 +43,26 @@ export {
   type RunMirrorImportSafeOptions,
   type RunMirrorImportSafeResult,
 } from "./run-mirror-import-safe.js";
+export {
+  AuditUnsafePayloadError,
+  FORBIDDEN_AUDIT_PAYLOAD_KEYS,
+  assertSafeAuditPayload,
+  assertSafeAuditText,
+  stringifySafeAuditJson,
+  type ForbiddenAuditPayloadKey,
+} from "./audit-payload-guard.js";
+export {
+  addWriteAuditStep,
+  beginWriteAudit,
+  finishWriteAudit,
+  recordWriteError,
+  type AddWriteAuditStepOptions,
+  type BeginWriteAuditOptions,
+  type FinishWriteAuditOptions,
+  type RecordWriteErrorOptions,
+  type WriteActorType,
+  type WriteAuditLifecycleStatus,
+  type WriteAuditTargetRecordId,
+  type WriteAuditTerminalStatus,
+  type WriteExecutionMode,
+} from "./write-audit.js";

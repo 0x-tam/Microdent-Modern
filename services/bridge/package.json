@@ -13,7 +13,8 @@
     "test": "vitest run",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
-    "dev": "tsx watch src/server.ts"
+    "dev": "tsx watch src/server.ts",
+    "legacy-backup": "tsx src/cli/legacy-backup.ts"
   },
   "dependencies": {
     "@microdent/contracts": "workspace:*",

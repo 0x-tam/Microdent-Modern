@@ -151,3 +151,48 @@ export async function readScheduleAppointments(
 
   return { kind: "ok", appointments };
 }
+
+export type ScheduleAppointmentLookupOutcome =
+  | { kind: "found" }
+  | { kind: "not_found" }
+  | { kind: "missing_schedule" }
+  | { kind: "read_error" };
+
+/**
+ * Read-only scan of SCHEDULE.DBF until `ID` matches — confirms existence without returning row values.
+ */
+export async function lookupScheduleAppointmentById(
+  dataRoot: DataRootSet,
+  appointmentId: string,
+): Promise<ScheduleAppointmentLookupOutcome> {
+  let abs: string;
+  try {
+    abs = resolveRegisteredDbfPath(dataRoot, SCHEDULE_DBF);
+  } catch {
+    return { kind: "read_error" };
+  }
+  if (!existsSync(abs)) {
+    return { kind: "missing_schedule" };
+  }
+
+  let dbf: DBFFile;
+  try {
+    dbf = await DBFFile.open(abs, OPEN_OPTIONS);
+  } catch {
+    return { kind: "read_error" };
+  }
+
+  try {
+    for await (const row of dbf) {
+      if (row[DELETED]) continue;
+      const rec = row as Record<string, unknown>;
+      if (strId(rec, "ID") === appointmentId) {
+        return { kind: "found" };
+      }
+    }
+  } catch {
+    return { kind: "read_error" };
+  }
+
+  return { kind: "not_found" };
+}

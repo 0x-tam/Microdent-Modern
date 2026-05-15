@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { once } from "node:events";
 import { describe, expect, it } from "vitest";
-import { HealthResponseSchema } from "@microdent/contracts";
+import { BridgeDevStatusResponseSchema, HealthResponseSchema } from "@microdent/contracts";
 import { createBridgeApp } from "./app.js";
 
 async function withServer<T>(run: (port: number) => Promise<T>): Promise<T> {
@@ -137,6 +137,53 @@ describe("Local preview CORS (loopback + port range)", () => {
       expect(res.headers.get("access-control-allow-origin")).toBeNull();
       expectNoCredentials(res);
     });
+  });
+});
+
+describe("GET /debug/status (non-production only)", () => {
+  it("returns write mode without permitting writes", async () => {
+    if (process.env.NODE_ENV === "production") {
+      return;
+    }
+    await withServer(async (port) => {
+      const res = await fetch(`http://127.0.0.1:${port}/debug/status`);
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(BridgeDevStatusResponseSchema.safeParse(json).success).toBe(true);
+      expect(json).toEqual({ writeMode: "disabled", writesPermitted: false });
+    });
+  });
+
+  it("reflects enabled writeMode while writesPermitted stays false", async () => {
+    if (process.env.NODE_ENV === "production") {
+      return;
+    }
+    const { createBridgeApp } = await import("./app.js");
+    const { parseDataRootFromValue } = await import("./config.js");
+    const dataRoot = parseDataRootFromValue("/tmp/microdent-write-mode-test-data");
+    if (!dataRoot.configured) throw new Error("data root");
+    const app = createBridgeApp("v-test", {
+      bridgeConfig: {
+        listen: { host: "127.0.0.1", port: 0 },
+        dataRoot,
+        writeMode: "enabled",
+      },
+    });
+    const server = createServer(app);
+    await new Promise<void>((resolve, reject) => {
+      server.listen(0, "127.0.0.1", () => resolve());
+      server.on("error", reject);
+    });
+    try {
+      const addr = server.address();
+      if (!addr || typeof addr === "string") throw new Error("no port");
+      const res = await fetch(`http://127.0.0.1:${addr.port}/debug/status`);
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ writeMode: "enabled", writesPermitted: false });
+    } finally {
+      server.close();
+      await once(server, "close");
+    }
   });
 });
 
