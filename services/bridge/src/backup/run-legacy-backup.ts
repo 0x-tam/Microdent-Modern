@@ -7,10 +7,13 @@ import {
   stat,
   writeFile,
 } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { parseDataRootFromValue, type DataRootSet } from "../config.js";
 import { resolvePathWithinDataRoot } from "../safety/path-sandbox.js";
-import { assertNotForbiddenLegacyPath } from "./forbidden-path.js";
+import {
+  assertNotForbiddenLegacyCopyPath,
+  assertNotForbiddenLegacyPath,
+} from "./forbidden-path.js";
 import { sha256File } from "./file-hash.js";
 import { resolveBackupMembers, type BackupMember } from "./workflow-groups.js";
 
@@ -108,7 +111,9 @@ async function resolveExistingMembers(
 export async function runLegacyBackup(options: RunLegacyBackupOptions): Promise<LegacyBackupResult> {
   const dataRoot = resolveDataRootSet(options.dataRoot);
   assertNotForbiddenLegacyPath(dataRoot.realPath, "DATA_ROOT");
+  assertNotForbiddenLegacyCopyPath(dataRoot.realPath, "DATA_ROOT");
   assertNotForbiddenLegacyPath(options.backupDir, "BACKUP_DIR");
+  assertNotForbiddenLegacyCopyPath(options.backupDir, "BACKUP_DIR");
 
   const members = resolveBackupMembers(options.workflow);
   const existing = await resolveExistingMembers(dataRoot, members);
@@ -150,11 +155,12 @@ export async function runLegacyBackup(options: RunLegacyBackupOptions): Promise<
   return { operationId, backupFolder, manifest };
 }
 
+/** Prints operation metadata and file basenames only — never full backup paths or row payloads. */
 export function printLegacyBackupReport(result: LegacyBackupResult): void {
   console.log("backup: created");
   console.log(`operationId: ${result.operationId}`);
   console.log(`workflow: ${result.manifest.workflow}`);
-  console.log(`backupDir: ${result.backupFolder}`);
+  console.log(`backupFolder: ${basename(result.backupFolder)}`);
   console.log(`files: ${result.manifest.files.length}`);
   for (const file of result.manifest.files) {
     console.log(`  ${file.filename} size=${file.size} sha256=${file.sha256}`);

@@ -4,6 +4,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { AppointmentStatusWriteAction } from "./AppointmentStatusWriteAction.js";
 import {
+  APPOINTMENT_STATUS_WRITE_CONFIRM,
   containsForbiddenWriteResultToken,
   isAppointmentStatusWritePilotEnabled,
   isAppointmentStatusWriteReady,
@@ -33,6 +34,22 @@ const readyCapability = {
   writeMode: "enabled" as const,
   writesPermitted: true,
   writableSandbox: true,
+};
+
+const committedPlan = {
+  operationId: "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  workflow: "appointment.statusUpdate",
+  mode: "enabled" as const,
+  tablesAffected: ["SCHEDULE"],
+  recordIds: ["501"],
+  fieldsChanged: [
+    { table: "SCHEDULE", recordId: "501", field: "STATUS", changeType: "set" as const },
+  ],
+  backupRequired: true,
+  backupWouldCreate: true,
+  warnings: [],
+  committed: true,
+  createdAt: "2026-05-15T12:00:00.000Z",
 };
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -104,27 +121,13 @@ describe("AppointmentStatusWriteAction", () => {
     expect(container.querySelector('[data-testid="appt-status-write-pilot"]')).toBeNull();
   });
 
-  it("commits after confirm and refreshes parent", async () => {
-    const committedPlan = {
-      operationId: "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-      workflow: "appointment.statusUpdate",
-      mode: "enabled" as const,
-      tablesAffected: ["SCHEDULE"],
-      recordIds: ["501"],
-      fieldsChanged: [
-        { table: "SCHEDULE", recordId: "501", field: "STATUS", changeType: "set" as const },
-      ],
-      backupRequired: true,
-      backupWouldCreate: true,
-      warnings: [],
-      committed: true,
-      createdAt: "2026-05-15T12:00:00.000Z",
-    };
-    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(committedPlan));
-    const onCommitted = vi.fn();
+  it("shows sandbox write banner when pilot is active", () => {
+    renderPilot();
+    expect(container.textContent).toContain("Sandbox write mode");
+    expect(container.textContent).toContain("disposable data only");
+  });
 
-    renderPilot({ fetchImpl, onCommitted });
-
+  async function applyStatusChange(fetchImpl: typeof fetch) {
     const select = container.querySelector("select");
     expect(select).toBeTruthy();
     await act(async () => {
@@ -140,8 +143,17 @@ describe("AppointmentStatusWriteAction", () => {
     await act(async () => {
       btn?.click();
     });
+  }
 
-    expect(window.confirm).toHaveBeenCalled();
+  it("commits after confirm and refreshes parent", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(committedPlan));
+    const onCommitted = vi.fn();
+
+    renderPilot({ fetchImpl, onCommitted });
+
+    await applyStatusChange(fetchImpl);
+
+    expect(window.confirm).toHaveBeenCalledWith(APPOINTMENT_STATUS_WRITE_CONFIRM);
     expect(fetchImpl).toHaveBeenCalledWith(
       expect.stringContaining("/status"),
       expect.objectContaining({
@@ -151,10 +163,43 @@ describe("AppointmentStatusWriteAction", () => {
     );
     expect(onCommitted).toHaveBeenCalledTimes(1);
     const text = container.textContent ?? "";
+    expect(text).toContain("Committed: true");
+    expect(text).toContain("status updated");
+    const result = container.querySelector(".app-appt-status-write__result");
+    expect(result?.getAttribute("data-committed")).toBe("true");
     assertNoForbiddenDomTokens(text);
     expect(containsForbiddenWriteResultToken(text)).toBe(false);
     expect(text).not.toMatch(/PAT_NAME/i);
     expect(text).not.toMatch(/TELEPHONE/i);
     expect(text).not.toMatch(/COMMENT/i);
+  });
+
+  it("uncommitted plan does not refresh parent or imply a save", async () => {
+    const uncommittedPlan = { ...committedPlan, committed: false, mode: "dry-run" as const };
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(uncommittedPlan));
+    const onCommitted = vi.fn();
+
+    renderPilot({ fetchImpl, onCommitted });
+    await applyStatusChange(fetchImpl);
+
+    expect(onCommitted).not.toHaveBeenCalled();
+    const text = container.textContent ?? "";
+    expect(text).toContain("Committed: false");
+    expect(text).toContain("nothing was saved");
+    expect(text).not.toContain("status updated");
+    const result = container.querySelector(".app-appt-status-write__result");
+    expect(result?.getAttribute("data-committed")).toBe("false");
+    assertNoForbiddenDomTokens(text);
+    expect(containsForbiddenWriteResultToken(text)).toBe(false);
+  });
+
+  it("does not apply when confirm is dismissed", async () => {
+    vi.mocked(window.confirm).mockReturnValue(false);
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(committedPlan));
+
+    renderPilot({ fetchImpl });
+    await applyStatusChange(fetchImpl);
+
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 });

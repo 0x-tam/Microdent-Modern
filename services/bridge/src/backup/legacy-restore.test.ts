@@ -125,6 +125,56 @@ describe("legacy restore", () => {
         dataRoot: sandboxRoot,
       }),
     ).rejects.toThrow(/sha256 mismatch for SCHEDULE\.FPT/);
+
+    const fptStat = await stat(join(sandboxRoot, "SCHEDULE.FPT"));
+    expect(fptStat.size).toBe(Buffer.byteLength("stale-fpt"));
+  });
+
+  it("rejects tampered backup bytes under files/ before copying", async () => {
+    const backupFolder = await setupBackupSource();
+    await setupSandbox();
+
+    const dbfPath = join(backupFolder, "files", "SCHEDULE.DBF");
+    const original = await readFile(dbfPath);
+    await writeFile(dbfPath, Buffer.concat([original, Buffer.from("x")]));
+
+    await expect(
+      runLegacyRestore({
+        backupFolder,
+        dataRoot: sandboxRoot,
+      }),
+    ).rejects.toThrow(/(sha256|size) mismatch for SCHEDULE\.DBF/);
+
+    const dbfStat = await stat(join(sandboxRoot, "SCHEDULE.DBF"));
+    expect(dbfStat.size).not.toBe(
+      (await stat(join(backupFolder, "files", "SCHEDULE.DBF"))).size,
+    );
+  });
+
+  it("fails preflight when manifest lists a file absent from files/", async () => {
+    const backupFolder = await setupBackupSource();
+    await setupSandbox();
+
+    const manifestPath = join(backupFolder, "manifest.json");
+    const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as {
+      files: { filename: string; size: number; sha256: string }[];
+    };
+    manifest.files.push({
+      filename: "SCHEDULE.MISSING",
+      size: 1,
+      sha256: "0".repeat(64),
+    });
+    await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+
+    await expect(
+      runLegacyRestore({
+        backupFolder,
+        dataRoot: sandboxRoot,
+      }),
+    ).rejects.toThrow(/backup file missing: SCHEDULE\.MISSING/);
+
+    const fptStat = await stat(join(sandboxRoot, "SCHEDULE.FPT"));
+    expect(fptStat.size).toBe(Buffer.byteLength("stale-fpt"));
   });
 
   it("rejects DATA_ROOT without disposable sandbox marker", async () => {
@@ -216,7 +266,10 @@ describe("legacy restore", () => {
     const report = lines.join("\n");
     expect(report).not.toContain(SECRET_COMMENT);
     expect(report).not.toContain(SECRET_NAME);
+    expect(report).not.toMatch(/\bPAT_NAME\b/);
+    expect(report).not.toMatch(/\bTELEPHONE\b/);
     expect(report).toContain("status=restored");
+    expect(report).toContain("restore: complete");
   });
 
   it("rejects relative dataRoot", async () => {

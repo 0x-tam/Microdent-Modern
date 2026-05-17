@@ -1,11 +1,18 @@
 import { createHash } from "node:crypto";
 import { mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { FORBIDDEN_LEGACY_ROOT } from "../write-safety/constants.js";
-import { assertNotForbiddenLegacyPath, isPathUnderRoot } from "./forbidden-path.js";
-import { runLegacyBackup } from "./run-legacy-backup.js";
+import {
+  FORBIDDEN_LEGACY_COPY_ROOT,
+  FORBIDDEN_LEGACY_ROOT,
+} from "../write-safety/constants.js";
+import {
+  assertNotForbiddenLegacyCopyPath,
+  assertNotForbiddenLegacyPath,
+  isPathUnderRoot,
+} from "./forbidden-path.js";
+import { printLegacyBackupReport, runLegacyBackup } from "./run-legacy-backup.js";
 import { writeScheduleFixtures } from "../test-fixtures/schedule-fixtures.js";
 
 const SECRET_COMMENT = "SYNTHETIC_COMMENT_TOKEN_XX";
@@ -109,7 +116,40 @@ describe("legacy backup", () => {
     expect(isPathUnderRoot(join(FORBIDDEN_LEGACY_ROOT, "DATA"), FORBIDDEN_LEGACY_ROOT)).toBe(true);
   });
 
-  it("does not print row payloads in CLI report output", async () => {
+  it("rejects DATA_ROOT under Microdent-Legacy-Copy", () => {
+    expect(() =>
+      assertNotForbiddenLegacyCopyPath(FORBIDDEN_LEGACY_COPY_ROOT, "DATA_ROOT"),
+    ).toThrow(/Microdent-Legacy-Copy/);
+    expect(
+      isPathUnderRoot(join(FORBIDDEN_LEGACY_COPY_ROOT, "DATA"), FORBIDDEN_LEGACY_COPY_ROOT),
+    ).toBe(true);
+  });
+
+  it("rejects Microdent-Legacy as DATA_ROOT via runLegacyBackup", async () => {
+    backupRoot = await mkdtemp(join(tmpdir(), "microdent-backup-out-"));
+
+    await expect(
+      runLegacyBackup({
+        dataRoot: FORBIDDEN_LEGACY_ROOT,
+        backupDir: backupRoot,
+        workflow: "appointment.statusUpdate",
+      }),
+    ).rejects.toThrow(/Microdent-Legacy/);
+  });
+
+  it("rejects Microdent-Legacy-Copy as DATA_ROOT via runLegacyBackup", async () => {
+    backupRoot = await mkdtemp(join(tmpdir(), "microdent-backup-out-"));
+
+    await expect(
+      runLegacyBackup({
+        dataRoot: FORBIDDEN_LEGACY_COPY_ROOT,
+        backupDir: backupRoot,
+        workflow: "appointment.statusUpdate",
+      }),
+    ).rejects.toThrow(/Microdent-Legacy-Copy/);
+  });
+
+  it("does not print row payloads or full backup paths in CLI report output", async () => {
     await setupDirs();
     const result = await runLegacyBackup({
       dataRoot,
@@ -117,15 +157,29 @@ describe("legacy backup", () => {
       workflow: "appointment.statusUpdate",
     });
 
-    const lines = [
-      `operationId: ${result.operationId}`,
-      `workflow: ${result.manifest.workflow}`,
-      `backupDir: ${result.backupFolder}`,
-      `files: ${result.manifest.files.length}`,
-    ];
+    const lines: string[] = [];
+    const log = console.log;
+    console.log = (...args: unknown[]) => {
+      lines.push(args.map(String).join(" "));
+    };
+    try {
+      printLegacyBackupReport(result);
+    } finally {
+      console.log = log;
+    }
+
     const report = lines.join("\n");
     expect(report).not.toContain(SECRET_COMMENT);
     expect(report).not.toContain(SECRET_NAME);
+    expect(report).not.toMatch(/\bPAT_NAME\b/);
+    expect(report).not.toMatch(/\bTELEPHONE\b/);
+    expect(report).not.toContain(backupRoot);
+    expect(report).not.toContain(dataRoot);
+    expect(report).toContain(result.operationId);
+    expect(report).toContain(`backupFolder: ${basename(result.backupFolder)}`);
+    for (const file of result.manifest.files) {
+      expect(report).toContain(file.filename);
+    }
   });
 
   it("leaves source bytes unchanged after copy", async () => {

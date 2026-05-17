@@ -2,7 +2,7 @@
 
 **Status:** Implemented — file-level backup skeleton for pre-write workflows (no DBF mutation, no row reads).
 
-**Related:** [phase-3-backup-restore-plan.md](./phase-3-backup-restore-plan.md), [phase-3-disposable-write-sandbox.md](./phase-3-disposable-write-sandbox.md), [phase-3-dry-run-write-plan.md](./phase-3-dry-run-write-plan.md).
+**Related:** [phase-3-backup-restore-plan.md](./phase-3-backup-restore-plan.md), [phase-3-disposable-write-sandbox.md](./phase-3-disposable-write-sandbox.md), [phase-3-dry-run-write-plan.md](./phase-3-dry-run-write-plan.md), [phase-3-sandbox-validation.md](./phase-3-sandbox-validation.md) (synthetic CI validation band).
 
 ---
 
@@ -66,8 +66,8 @@ Each run creates one directory:
 
 - **Read-only source:** Files are opened for read and copied with `copyFile`; source DBFs are not modified.
 - **No row parsing:** Backup does not call `readRecords` or emit field values.
-- **Forbidden path:** `DATA_ROOT` and `BACKUP_DIR` must not resolve under `/Users/Tamam/Desktop/Microdent/Microdent-Legacy`.
-- **Tests:** Vitest uses synthetic temp `DATA_ROOT` trees only (`services/bridge/src/backup/legacy-backup.test.ts`).
+- **Forbidden paths:** `DATA_ROOT` and `BACKUP_DIR` must not resolve under `Microdent-Legacy` or `Microdent-Legacy-Copy`.
+- **Tests:** Vitest uses synthetic temp `DATA_ROOT` trees only (`services/bridge/src/backup/legacy-backup.test.ts`). For an end-to-end dry-run band across write routes, see [phase-3-sandbox-validation.md](./phase-3-sandbox-validation.md).
 
 ---
 

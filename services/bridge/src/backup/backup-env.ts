@@ -1,6 +1,9 @@
 import path from "node:path";
 import { parseDataRootFromValue } from "../config.js";
-import { assertNotForbiddenLegacyPath } from "./forbidden-path.js";
+import {
+  assertNotForbiddenLegacyCopyPath,
+  assertNotForbiddenLegacyPath,
+} from "./forbidden-path.js";
 import { listSupportedBackupWorkflows, resolveBackupMembers } from "./workflow-groups.js";
 
 export type BackupEnv = {
@@ -64,7 +67,9 @@ export function loadBackupEnvFromProcess(): BackupEnvLoadResult {
   const dataRootRealpath = (dataRootConfig as { configured: true; realPath: string }).realPath;
 
   assertNotForbiddenLegacyPath(dataRootRealpath, "DATA_ROOT");
+  assertNotForbiddenLegacyCopyPath(dataRootRealpath, "DATA_ROOT");
   assertNotForbiddenLegacyPath(backupDir!, "BACKUP_DIR");
+  assertNotForbiddenLegacyCopyPath(backupDir!, "BACKUP_DIR");
 
   resolveBackupMembers(workflow);
 

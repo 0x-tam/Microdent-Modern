@@ -611,7 +611,6 @@ export function SchedulePanel({
                                   fetchImpl={fetchImpl}
                                   writeDiagnosticsActions={devWriteActionsEnabled}
                                   sandboxApplyEnabled={sandboxApplyEnabled}
-                                  onCommitted={() => setRefreshTick((x) => x + 1)}
                                 />
                               ) : null}
                             </div>

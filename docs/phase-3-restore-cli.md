@@ -2,7 +2,7 @@
 
 **Status:** Implemented — file-level restore skeleton from backup manifests into a disposable write sandbox (no DBF row reads, no PHI in stdout).
 
-**Related:** [phase-3-backup-cli.md](./phase-3-backup-cli.md), [phase-3-disposable-write-sandbox.md](./phase-3-disposable-write-sandbox.md), [phase-3-sandbox-guard.md](./phase-3-sandbox-guard.md), [phase-3-backup-restore-plan.md](./phase-3-backup-restore-plan.md).
+**Related:** [phase-3-backup-cli.md](./phase-3-backup-cli.md), [phase-3-disposable-write-sandbox.md](./phase-3-disposable-write-sandbox.md), [phase-3-sandbox-guard.md](./phase-3-sandbox-guard.md), [phase-3-backup-restore-plan.md](./phase-3-backup-restore-plan.md), [phase-3-sandbox-validation.md](./phase-3-sandbox-validation.md) (synthetic CI validation band).
 
 ---
 
@@ -32,6 +32,10 @@ pnpm legacy:restore
 3. **Preflight** every manifest entry: backup file exists under `files/`, size matches, sha256 matches.
 4. If any preflight fails, exit with error — **no files are copied** (whole group or nothing).
 5. Copy each file into `DATA_ROOT` and verify restored size and sha256.
+
+### Partial restore (not supported)
+
+If `manifest.json` lists a file that is missing or hash-mismatched under `files/`, restore **aborts during preflight** and leaves the sandbox unchanged (no partial file group). Vitest covers missing sidecars, extra manifest entries, manifest hash drift, and tampered `files/SCHEDULE.DBF` bytes (`services/bridge/src/backup/legacy-restore.test.ts`).
 
 ---
 
@@ -82,5 +86,7 @@ pnpm legacy:restore
 | Shell | `scripts/legacy-restore.sh` |
 | Root script | `pnpm legacy:restore` in root `package.json` |
 | Tests | `services/bridge/src/backup/legacy-restore.test.ts` |
+
+**Validation band:** [phase-3-sandbox-validation.md](./phase-3-sandbox-validation.md) (`pnpm sandbox:validate` when available).
 
 **Not implemented yet:** transactional rollback on mid-restore failure, `legacy:backup-verify`, manifest `dataRootRealpath` enforcement on restore.

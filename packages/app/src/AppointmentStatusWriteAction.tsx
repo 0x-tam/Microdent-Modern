@@ -110,10 +110,14 @@ export function AppointmentStatusWriteAction({
         </Button>
       </div>
       {state.kind === "result" ? (
-        <p className="app-appt-status-write__result" role="status">
+        <p
+          className="app-appt-status-write__result"
+          role="status"
+          data-committed={String(state.committed)}
+        >
           {state.committed
-            ? `Status updated (${state.mode}).`
-            : `Plan returned without commit (${state.mode}).`}
+            ? `Committed: true — status updated (${state.mode}).`
+            : `Committed: false — dry-run plan only; nothing was saved (${state.mode}).`}
         </p>
       ) : null}
       {state.kind === "error" ? (

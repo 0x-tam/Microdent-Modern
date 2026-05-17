@@ -1,8 +1,6 @@
-import { createServer } from "node:http";
 import { chmodSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { once } from "node:events";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DBFFile } from "dbffile";
 import { SafeWritePlanSchema } from "@microdent/contracts";
@@ -14,22 +12,7 @@ import { readScheduleAppointmentStatus } from "./write/verify/read-appointment-s
 import { ALLOW_LEGACY_WRITES_ACK } from "./write-safety/constants.js";
 import { writeScheduleFixtures } from "./test-fixtures/schedule-fixtures.js";
 import { writeSandboxMarker } from "./test-fixtures/write-sandbox.js";
-
-async function withServer(app: ReturnType<typeof createBridgeApp>, fn: (port: number) => Promise<void>): Promise<void> {
-  const server = createServer(app);
-  await new Promise<void>((resolve, reject) => {
-    server.listen(0, "127.0.0.1", () => resolve());
-    server.on("error", reject);
-  });
-  const addr = server.address();
-  if (!addr || typeof addr === "string") throw new Error("expected port");
-  try {
-    await fn(addr.port);
-  } finally {
-    server.close();
-    await once(server, "close");
-  }
-}
+import { assertSafeWritePlanJson, withHttpServer } from "./test-fixtures/write-route-gate-helpers.js";
 
 function patchStatus(
   port: number,
@@ -69,6 +52,30 @@ describe("PATCH appointment status — sandbox write band", () => {
     vi.unstubAllEnvs();
   });
 
+  it("rejects WRITE_MODE=disabled", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "bridge-appt-write-disabled-"));
+    try {
+      await writeScheduleFixtures(tmp);
+      const dataRoot = parseDataRootFromValue(tmp);
+      if (!dataRoot.configured) throw new Error("data root");
+      const schedPath = join(tmp, "SCHEDULE.DBF");
+      const mtimeBefore = statSync(schedPath).mtimeMs;
+
+      const app = createBridgeApp("v-test", {
+        bridgeConfig: { listen: { host: "127.0.0.1", port: 0 }, dataRoot, writeMode: "disabled" },
+      });
+      await withHttpServer(app, async (port) => {
+        const res = await patchStatus(port, "1001", 3);
+        expect(res.status).toBe(403);
+        const json = (await res.json()) as { error?: { code?: string } };
+        expect(json.error?.code).toBe("WRITE_MODE_DISABLED");
+        expect(statSync(schedPath).mtimeMs).toBe(mtimeBefore);
+      });
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it("rejects enabled mode without sandbox marker", async () => {
     const tmp = mkdtempSync(join(tmpdir(), "bridge-appt-write-no-marker-"));
     const backupRoot = mkdtempSync(join(tmpdir(), "bridge-appt-write-backup-"));
@@ -88,7 +95,7 @@ describe("PATCH appointment status — sandbox write band", () => {
           writeMode: "enabled",
         },
       });
-      await withServer(app, async (port) => {
+      await withHttpServer(app, async (port) => {
         const res = await patchStatus(port, "1001", 3);
         expect(res.status).toBe(403);
         const json = (await res.json()) as { error?: { code?: string } };
@@ -121,7 +128,7 @@ describe("PATCH appointment status — sandbox write band", () => {
           writeMode: "enabled",
         },
       });
-      await withServer(app, async (port) => {
+      await withHttpServer(app, async (port) => {
         const res = await patchStatus(port, "1001", 3);
         expect(res.status).toBe(403);
         const json = (await res.json()) as { error?: { code?: string } };
@@ -158,7 +165,7 @@ describe("PATCH appointment status — sandbox write band", () => {
           writeMode: "enabled",
         },
       });
-      await withServer(app, async (port) => {
+      await withHttpServer(app, async (port) => {
         const res = await patchStatus(port, "1001", 3);
         expect(res.status).toBe(503);
         const json = (await res.json()) as { error?: { code?: string } };
@@ -197,10 +204,12 @@ describe("PATCH appointment status — sandbox write band", () => {
           writeMode: "enabled",
         },
       });
-      await withServer(app, async (port) => {
+      await withHttpServer(app, async (port) => {
         const res = await patchStatus(port, "1001", 3, { "X-Write-Intent": "dry-run" });
         expect(res.status).toBe(200);
-        const parsed = SafeWritePlanSchema.parse(await res.json());
+        const text = await res.text();
+        assertSafeWritePlanJson(text);
+        const parsed = SafeWritePlanSchema.parse(JSON.parse(text));
         expect(parsed.committed).toBe(false);
         expect(parsed.mode).toBe("dry-run");
         expect(statSync(schedPath).mtimeMs).toBe(mtimeBefore);
@@ -233,7 +242,7 @@ describe("PATCH appointment status — sandbox write band", () => {
           writeMode: "enabled",
         },
       });
-      await withServer(app, async (port) => {
+      await withHttpServer(app, async (port) => {
         const res = await patchStatus(port, "1001", 3);
         expect(res.status).toBe(200);
         SafeWritePlanSchema.parse(await res.json());
@@ -282,16 +291,11 @@ describe("PATCH appointment status — sandbox write band", () => {
           writeMode: "enabled",
         },
       });
-      await withServer(app, async (port) => {
+      await withHttpServer(app, async (port) => {
         const res = await patchStatus(port, "1001", 3);
         expect(res.status).toBe(200);
         const text = await res.text();
-        expect(text).not.toContain("SYNTHETIC_COMMENT_TOKEN");
-        expect(text).not.toContain("SYNTHETIC_NAME_TOKEN");
-        expect(text).not.toContain("SYNTHETIC_PHONE_TOKEN");
-        expect(text).not.toMatch(/"PAT_NAME"/i);
-        expect(text).not.toMatch(/"TELEPHONE"/i);
-        expect(text).not.toMatch(/"COMMENT"/i);
+        assertSafeWritePlanJson(text);
 
         const parsed = SafeWritePlanSchema.parse(JSON.parse(text));
         expect(parsed.committed).toBe(true);
