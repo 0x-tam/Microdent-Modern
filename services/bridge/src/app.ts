@@ -17,6 +17,7 @@ import {
   localPreviewCorsMiddleware,
 } from "./local-preview-cors.js";
 import { createV1Router } from "./routes/v1.js";
+import { rateLimitMiddleware } from "./rate-limit.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -48,6 +49,7 @@ export function createBridgeApp(version?: string, options?: CreateBridgeAppOptio
   const bridgeConfig = resolveBridgeConfig(options?.bridgeConfig);
   const app = express();
   app.disable("x-powered-by");
+  app.use(rateLimitMiddleware);
   app.use(express.json({ limit: "8kb" }));
   app.use(localPreviewCorsMiddleware);
   if (process.env.NODE_ENV !== "production") {

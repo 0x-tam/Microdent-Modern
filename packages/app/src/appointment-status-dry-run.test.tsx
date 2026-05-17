@@ -57,7 +57,7 @@ const leakyPlan = {
   ...syntheticPlan,
   warnings: [
     {
-      code: "REAL_WRITE_NOT_IMPLEMENTED",
+      code: "WRITE_PLAN_REHEARSAL",
       message: "SYNTHETIC_NAME_TOKEN SYNTHETIC_PHONE_TOKEN PAT_NAME TELEPHONE COMMENT",
       severity: "warn" as const,
     },
@@ -226,7 +226,7 @@ describe("AppointmentStatusDryRunAction", () => {
     });
 
     const text = container.textContent ?? "";
-    expect(text).toContain("REAL_WRITE_NOT_IMPLEMENTED (warn)");
+    expect(text).toContain("WRITE_PLAN_REHEARSAL (warn)");
     expect(text).not.toContain("SYNTHETIC_NAME_TOKEN");
     expect(text).not.toContain("SYNTHETIC_PHONE_TOKEN");
     expect(text).not.toMatch(/PAT_NAME/i);

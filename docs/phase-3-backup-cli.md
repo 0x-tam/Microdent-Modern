@@ -81,6 +81,25 @@ Each run creates one directory:
 | Shell | `scripts/legacy-backup.sh` |
 | Root script | `pnpm legacy:backup` in root `package.json` |
 
-**Not implemented yet:** `legacy:backup-verify`, disk-space preflight, header-only catalog counts in manifest.
+**Also available:** `pnpm legacy:backup-verify` — read-only manifest hash check (see below).
+
+**Not implemented yet:** disk-space preflight, header-only catalog counts in manifest.
 
 **Restore:** see [phase-3-restore-cli.md](./phase-3-restore-cli.md) (`pnpm legacy:restore`).
+
+### Verify (read-only)
+
+```bash
+export BACKUP_MANIFEST="/absolute/path/to/backups/<folder>"
+pnpm legacy:backup-verify
+
+# Optional: confirm live DATA_ROOT still matches the manifest
+export DATA_ROOT="/absolute/path/to/disposable/DATA"
+pnpm legacy:backup-verify
+```
+
+| Piece | Location |
+|-------|----------|
+| Core | `services/bridge/src/backup/verify-legacy-backup.ts` |
+| CLI | `services/bridge/src/cli/legacy-backup-verify.ts` |
+| Shell | `scripts/legacy-backup-verify.sh` |

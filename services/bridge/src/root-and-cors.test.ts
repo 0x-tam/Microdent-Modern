@@ -140,6 +140,41 @@ describe("Local preview CORS (loopback + port range)", () => {
   });
 });
 
+describe("GET /v1/meta/write-capability", () => {
+  it("returns safe write capability fields", async () => {
+    const { createBridgeApp } = await import("./app.js");
+    const { parseBackupDirFromValue, parseDataRootFromValue } = await import("./config.js");
+    const dataRoot = parseDataRootFromValue("/tmp/microdent-write-capability-data");
+    const backupDir = parseBackupDirFromValue("/tmp/microdent-write-capability-backups");
+    if (!dataRoot.configured || !backupDir.configured) throw new Error("paths");
+    const app = createBridgeApp("v-test", {
+      bridgeConfig: {
+        listen: { host: "127.0.0.1", port: 0 },
+        dataRoot,
+        backupDir,
+        writeMode: "enabled",
+      },
+    });
+    const server = createServer(app);
+    await new Promise<void>((resolve, reject) => {
+      server.listen(0, "127.0.0.1", () => resolve());
+      server.on("error", reject);
+    });
+    try {
+      const addr = server.address();
+      if (!addr || typeof addr === "string") throw new Error("no port");
+      const res = await fetch(`http://127.0.0.1:${addr.port}/v1/meta/write-capability`);
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(BridgeDevStatusResponseSchema.safeParse(json).success).toBe(true);
+      expect(json).toMatchObject({ writeMode: "enabled", writesPermitted: true });
+    } finally {
+      server.close();
+      await once(server, "close");
+    }
+  });
+});
+
 describe("GET /debug/status (non-production only)", () => {
   it("returns write mode without permitting writes", async () => {
     if (process.env.NODE_ENV === "production") {
@@ -154,7 +189,7 @@ describe("GET /debug/status (non-production only)", () => {
     });
   });
 
-  it("reflects enabled writeMode while writesPermitted stays false", async () => {
+  it("reflects enabled writeMode with writesPermitted false when backup is missing", async () => {
     if (process.env.NODE_ENV === "production") {
       return;
     }
@@ -184,6 +219,45 @@ describe("GET /debug/status (non-production only)", () => {
         writesPermitted: false,
         writableSandbox: false,
       });
+    } finally {
+      server.close();
+      await once(server, "close");
+    }
+  });
+
+  it("reflects writesPermitted true when enabled with backup and data root", async () => {
+    if (process.env.NODE_ENV === "production") {
+      return;
+    }
+    const { createBridgeApp } = await import("./app.js");
+    const { parseBackupDirFromValue, parseDataRootFromValue } = await import("./config.js");
+    const dataRoot = parseDataRootFromValue("/tmp/microdent-write-mode-test-data");
+    const backupDir = parseBackupDirFromValue("/tmp/microdent-write-mode-test-backups");
+    if (!dataRoot.configured || !backupDir.configured) throw new Error("paths");
+    const app = createBridgeApp("v-test", {
+      bridgeConfig: {
+        listen: { host: "127.0.0.1", port: 0 },
+        dataRoot,
+        backupDir,
+        writeMode: "enabled",
+      },
+    });
+    const server = createServer(app);
+    await new Promise<void>((resolve, reject) => {
+      server.listen(0, "127.0.0.1", () => resolve());
+      server.on("error", reject);
+    });
+    try {
+      const addr = server.address();
+      if (!addr || typeof addr === "string") throw new Error("no port");
+      const res = await fetch(`http://127.0.0.1:${addr.port}/debug/status`);
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json).toMatchObject({
+        writeMode: "enabled",
+        writesPermitted: true,
+      });
+      expect(typeof json.writableSandbox).toBe("boolean");
     } finally {
       server.close();
       await once(server, "close");

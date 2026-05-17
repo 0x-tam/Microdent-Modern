@@ -411,6 +411,16 @@
   flex-shrink: 0;
 }
 
+.app-shell__mirror-stale {
+  padding: var(--ui-space-2) var(--app-gutter-x) 0;
+  flex-shrink: 0;
+}
+
+.app-shell__mirror-stale-banner {
+  border-color: var(--ui-border-warning, var(--ui-border-subtle));
+  background: var(--ui-bg-warning-subtle, var(--ui-bg-surface-raised));
+}
+
 /* ----- Body ----- */
 .app-shell__body {
   display: flex;
@@ -472,6 +482,14 @@
 .app-sidebar__btn:focus-visible {
   outline: var(--ui-focus-ring-width) solid var(--ui-focus-ring-color);
   outline-offset: var(--ui-focus-ring-offset);
+}
+
+.app-sidebar__hint {
+  margin: var(--ui-space-3) 0 0;
+  padding: 0 var(--ui-space-1);
+  font-size: clamp(11px, 1.1vw, 12px);
+  line-height: 1.45;
+  color: var(--ui-text-muted);
 }
 
 /* ----- Main ----- */
@@ -1161,6 +1179,65 @@
   color: var(--ui-text-secondary);
 }
 
+.app-appt-status-write {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  margin-top: var(--ui-space-2);
+  padding: var(--ui-space-2);
+  border: 1px solid var(--ui-danger-600);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-danger-50);
+}
+
+.app-appt-status-write__banner {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ui-danger-600);
+}
+
+.app-appt-status-write__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--ui-space-2);
+}
+
+.app-appt-status-write__label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.app-appt-status-write__label-text {
+  font-weight: 600;
+  color: var(--ui-text-secondary);
+}
+
+.app-appt-status-write__select {
+  min-width: 9rem;
+  font-size: 13px;
+}
+
+.app-appt-status-write__btn {
+  align-self: flex-start;
+}
+
+.app-appt-status-write__result,
+.app-appt-status-write__error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.app-appt-status-write__error {
+  color: var(--ui-danger-600);
+  font-weight: 600;
+}
+
 .app-schedule__footer {
   padding-top: var(--ui-space-2);
 }
@@ -1253,6 +1330,13 @@
   font-size: 15px;
   line-height: 1.5;
   color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__open-hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ui-text-muted);
 }
 
 .app-patient-profile__search {

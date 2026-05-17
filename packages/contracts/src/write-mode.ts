@@ -18,3 +18,8 @@ export const BridgeDevStatusResponseSchema = z.object({
 });
 
 export type BridgeDevStatusResponse = z.infer<typeof BridgeDevStatusResponseSchema>;
+
+/** JSON body for `GET /v1/meta/write-capability` (same safe fields as debug status). */
+export const WriteCapabilityResponseSchema = BridgeDevStatusResponseSchema;
+
+export type WriteCapabilityResponse = BridgeDevStatusResponse;

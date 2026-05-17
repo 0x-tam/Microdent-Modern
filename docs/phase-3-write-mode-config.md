@@ -1,8 +1,8 @@
-# Phase 3 — Write mode configuration (foundation)
+# Phase 3 — Write mode configuration
 
-**Status:** Implemented — config parsing and dev diagnostics only. **No write routes**, **no DBF mutation**.
+**Status:** Implemented — `WRITE_MODE` parsing, dev diagnostics, and appointment status route gating.
 
-**Scope:** Safe `WRITE_MODE` env parsing for future mutation routes. All tests use **synthetic fixtures**; operators use **Microdent-Legacy-Copy** read-only for reference data.
+**Scope:** Safe `WRITE_MODE` env parsing for mutation routes. All automated tests use **synthetic fixtures**; operators use **Microdent-Legacy-Copy** read-only for reference data and a **disposable write sandbox** for enabled commits.
 
 **Related:** [phase-3-dry-run-write-plan.md](./phase-3-dry-run-write-plan.md), [phase-1a-safety-module.md](./phase-1a-safety-module.md), [master-build-plan.md](./master-build-plan.md).
 
@@ -12,9 +12,9 @@
 
 | Value | Meaning | Default |
 | --- | --- | --- |
-| `disabled` | Future mutation routes return **403** `WRITE_MODE_DISABLED`. | **Yes** — unset or invalid env resolves here. |
-| `dry-run` | Future routes may validate and return a safe write plan only. | No |
-| `enabled` | Future routes may commit after backup, audit, and sandbox gates. | No |
+| `disabled` | Mutation routes return **403** `WRITE_MODE_DISABLED`. | **Yes** — unset or invalid env resolves here. |
+| `dry-run` | Validate and return a safe write plan only (`committed: false`). | No |
+| `enabled` | Commit after backup, audit (when `SQLITE_PATH` set), and sandbox gates. | No |
 
 **Parsing (bridge startup):**
 
@@ -31,35 +31,49 @@
 | Area | Path |
 | --- | --- |
 | Env parsing | `services/bridge/src/config.ts` — `parseWriteModeFromValue`, `loadWriteModeFromEnv`, `loadBridgeConfig` |
-| Write gate stub | `services/bridge/src/config.ts` — `writesPermitted()` always **`false`** until write routes and companion flags ship |
+| Write gate | `services/bridge/src/config.ts` — `writesPermitted()`, `isWritableSandboxReady()` |
 | Zod contracts | `packages/contracts/src/write-mode.ts` — `WriteModeSchema`, `BridgeDevStatusResponseSchema` |
-| Dev surface | `GET /debug/status` (non-`production` only) — `writeMode`, `writesPermitted` |
-| Tests | `services/bridge/src/config.test.ts`, `services/bridge/src/root-and-cors.test.ts` |
+| Dev surface | `GET /debug/status` (non-`production` only) — `writeMode`, `writesPermitted`, `writableSandbox` |
+| Status route | `PATCH /v1/schedule/appointments/:appointmentId/status` |
+| Tests | `services/bridge/src/config.test.ts`, `services/bridge/src/root-and-cors.test.ts`, `appointment-status-*.test.ts` |
 
-`GET /health` is unchanged (production-safe). Write mode is **not** on `/v1/*` read routes or normal clinic UI.
+`GET /health` is unchanged (production-safe). Write mode is **not** on normal clinic read UI in production builds.
 
 ---
 
-## 3. Operator runbook (future writes)
+## 3. `writesPermitted` and sandbox readiness
+
+| Diagnostic | When true |
+| --- | --- |
+| `writesPermitted` | `WRITE_MODE=enabled` **and** `BACKUP_DIR` configured **and** `DATA_ROOT` configured |
+| `writableSandbox` | `DATA_ROOT` passes disposable sandbox marker guard **and** `ALLOW_LEGACY_WRITES` ack (when required) **and** write mode ≠ `disabled` |
+
+`writesPermitted` does **not** bypass per-request sandbox checks on commit.
+
+---
+
+## 4. Operator runbook
 
 ```bash
 # Default — bridge starts with writes impossible
 unset WRITE_MODE
 
-# Plan-only rehearsal (when mutation routes exist)
+# Plan-only rehearsal
 export WRITE_MODE=dry-run
-export DATA_ROOT="/absolute/path/to/synthetic-or-copy/DATA"
+export DATA_ROOT="/absolute/path/to/disposable-sandbox/DATA"
 
-# Real commit band (not active in this foundation)
+# Sandbox commit band
 export WRITE_MODE=enabled
-# Requires WRITE_BACKUP_DIR, WRITE_AUDIT_LOG, sandbox marker, etc. — see dry-run plan
+export BACKUP_DIR="/absolute/path/outside/repo/backups"
+export ALLOW_LEGACY_WRITES=I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY
+# Optional audit: export SQLITE_PATH="/absolute/path/to/mirror.sqlite"
 ```
 
-Setting `WRITE_MODE=enabled` **today** only changes config and dev diagnostics; **`writesPermitted` remains false** and no mutation endpoints exist.
+See [phase-3-appointment-status-write-runbook.md](./phase-3-appointment-status-write-runbook.md) for the full 15-step QA flow.
 
 ---
 
-## 4. Dev diagnostics
+## 5. Dev diagnostics
 
 Non-production only:
 
@@ -67,35 +81,42 @@ Non-production only:
 GET /debug/status
 ```
 
-Example body:
+Example (enabled + backup + sandbox ready):
 
 ```json
 {
-  "writeMode": "disabled",
-  "writesPermitted": false
+  "writeMode": "enabled",
+  "writesPermitted": true,
+  "writableSandbox": true
 }
 ```
 
-Use with local preview / bridge dev scripts to confirm env before enabling future dry-run routes.
+Example (enabled but missing backup):
+
+```json
+{
+  "writeMode": "enabled",
+  "writesPermitted": false,
+  "writableSandbox": false
+}
+```
 
 ---
 
-## 5. Tests
+## 6. Tests
 
 | Case | Expected |
 | --- | --- |
 | Unset `WRITE_MODE` | `disabled` |
 | Invalid `WRITE_MODE` | `disabled` (no startup throw) |
-| `dry-run` | parses |
-| `enabled` | parses; `writesPermitted === false` |
+| `dry-run` | parses; `writesPermitted === false` |
+| `enabled` without `BACKUP_DIR` | parses; `writesPermitted === false` |
+| `enabled` with `BACKUP_DIR` + `DATA_ROOT` | `writesPermitted === true` |
 
 ---
 
-## 6. Non-goals (this band)
+## 7. Non-goals
 
-- No `POST` / `PATCH` mutation routes under `/v1`
-- No DBF `writeFile`, pack, or backup implementation
-- No change to `GET /health` or patient-facing UI
-- No modification of `Microdent-Legacy` or writable use of legacy paths
-
-**Next band (when approved):** write sandbox denylist, `WRITE_ALLOWED_WORKFLOWS`, first dry-run mutation route per [phase-3-dry-run-write-plan.md](./phase-3-dry-run-write-plan.md).
+- No writes against production `Microdent-Legacy` paths
+- No patient/profile mutation routes in this band
+- No change to `GET /health` production contract

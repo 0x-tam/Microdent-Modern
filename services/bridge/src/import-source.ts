@@ -8,6 +8,7 @@ export { readAllScheduleAppointmentsForMirror } from "./dbf/schedule-appointment
 export { readAllTreatmentsForMirror } from "./dbf/patient-treatments-mirror.js";
 export { readReferenceDoctorsFromDbf } from "./dbf/reference-doctors.js";
 export { readReferenceProcedures } from "./dbf/reference-procedures.js";
+export { readScheduleRooms, type ScheduleRoomsOutcome } from "./dbf/schedule-rooms.js";
 export {
   readAllMedicalSummariesFromDbf,
   type MedicalSummaryMirrorRecord,

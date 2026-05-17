@@ -47,6 +47,7 @@ import {
   CLINIC_SERVICE_OFFLINE_TITLE,
   PATIENT_CHANGE_PATIENT_LABEL,
   PATIENT_PAGE_SEARCH_LEDE,
+  PATIENT_MODULE_TABS_HINT,
   PATIENT_PAGE_SEARCH_TITLE,
   PATIENT_PROFILE_READONLY_NOTE,
   PATIENT_TAB_APPOINTMENTS_LEDE,
@@ -1036,6 +1037,7 @@ export function PatientProfilePanel({
         {patientId === null ? (
           <div className="app-patient-profile__open">
             <p className="app-patient-profile__open-lede">{PATIENT_PAGE_SEARCH_LEDE}</p>
+            <p className="app-patient-profile__open-hint">{PATIENT_MODULE_TABS_HINT}</p>
             <PatientPageSearchBlock
               patientId={null}
               bridgePhase={bridgePhase}

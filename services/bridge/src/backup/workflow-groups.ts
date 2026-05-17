@@ -10,6 +10,21 @@ export const BACKUP_WORKFLOW_GROUPS: Record<string, readonly BackupMember[]> = {
     { fileName: "SCHEDULE.FPT", required: false },
     { fileName: "SCHEDULE.CDX", required: false },
   ],
+  "appointment.timeMove": [
+    { fileName: "SCHEDULE.DBF", required: true },
+    { fileName: "SCHEDULE.FPT", required: false },
+    { fileName: "SCHEDULE.CDX", required: false },
+  ],
+  "appointment.create": [
+    { fileName: "SCHEDULE.DBF", required: true },
+    { fileName: "SCHEDULE.FPT", required: false },
+    { fileName: "SCHEDULE.CDX", required: false },
+  ],
+  "patient.demographics.update": [
+    { fileName: "PATIENT.DBF", required: true },
+    { fileName: "PATIENT.FPT", required: false },
+    { fileName: "PATIENT.CDX", required: false },
+  ],
 };
 
 export function listSupportedBackupWorkflows(): string[] {

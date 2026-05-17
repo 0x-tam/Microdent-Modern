@@ -14,7 +14,14 @@ export type FixtureConnectionPanelProps = {
   className?: string;
 };
 
-export function FixtureConnectionPanel({ bridgeBaseUrl, bridgePhase, className }: FixtureConnectionPanelProps) {
+export function FixtureConnectionPanel(props: FixtureConnectionPanelProps) {
+  if (!import.meta.env.DEV) {
+    return null;
+  }
+  return <FixtureConnectionPanelDev {...props} />;
+}
+
+function FixtureConnectionPanelDev({ bridgeBaseUrl, bridgePhase, className }: FixtureConnectionPanelProps) {
   const [panelPhase, setPanelPhase] = useState<PanelPhase>("idle");
   const [result, setResult] = useState<Awaited<ReturnType<typeof probeSyntheticFixtureConnection>> | null>(null);
 

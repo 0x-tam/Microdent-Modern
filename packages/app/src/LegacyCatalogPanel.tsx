@@ -10,7 +10,14 @@ export type LegacyCatalogPanelProps = {
   bridgePhase: "checking" | "connected" | "offline";
 };
 
-export function LegacyCatalogPanel({ bridgeBaseUrl, bridgePhase }: LegacyCatalogPanelProps) {
+export function LegacyCatalogPanel(props: LegacyCatalogPanelProps) {
+  if (!import.meta.env.DEV) {
+    return null;
+  }
+  return <LegacyCatalogPanelDev {...props} />;
+}
+
+function LegacyCatalogPanelDev({ bridgeBaseUrl, bridgePhase }: LegacyCatalogPanelProps) {
   const [phase, setPhase] = useState<PanelPhase>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [tables, setTables] = useState<

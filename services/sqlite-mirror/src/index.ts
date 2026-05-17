@@ -6,6 +6,11 @@ export {
   type ImportProceduresResult,
 } from "./import-procedures.js";
 export {
+  importScheduleRooms,
+  type ImportScheduleRoomsOptions,
+  type ImportScheduleRoomsResult,
+} from "./import-schedule-rooms.js";
+export {
   beginImportRun,
   finishImportRun,
   fingerprintSourceFiles,

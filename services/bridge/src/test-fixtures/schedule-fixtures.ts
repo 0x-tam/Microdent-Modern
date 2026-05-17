@@ -30,6 +30,8 @@ const patientScheduleFields = [
   { name: "LAST_NAME", type: "C" as const, size: 25 },
   { name: "HOME_PHONE", type: "C" as const, size: 19 },
   { name: "MOBILE", type: "C" as const, size: 19 },
+  { name: "ACTIVE", type: "L" as const, size: 1 },
+  { name: "DOCTOR_NB", type: "N" as const, size: 5, decimalPlaces: 0 },
 ];
 
 async function writePatientDbfForSchedule(dir: string): Promise<void> {
@@ -45,6 +47,8 @@ async function writePatientDbfForSchedule(dir: string): Promise<void> {
       LAST_NAME: "",
       HOME_PHONE: "(555) 200-3001",
       MOBILE: "",
+      ACTIVE: true,
+      DOCTOR_NB: 7,
     },
     {
       ID: 50002,
@@ -55,6 +59,8 @@ async function writePatientDbfForSchedule(dir: string): Promise<void> {
       LAST_NAME: "Schedule Beta",
       HOME_PHONE: "",
       MOBILE: "",
+      ACTIVE: true,
+      DOCTOR_NB: 0,
     },
   ]);
 }
@@ -97,21 +103,21 @@ export async function writeScheduleFixtures(dir: string, opts?: { withPatientDbf
     {
       ROOM: 1,
       DAY1: true,
-      DAY2: false,
-      DAY3: false,
-      DAY4: false,
-      DAY5: false,
+      DAY2: true,
+      DAY3: true,
+      DAY4: true,
+      DAY5: true,
       DAY6: false,
       DAY7: false,
       DOCT: 42,
     },
     {
       ROOM: 2,
-      DAY1: false,
+      DAY1: true,
       DAY2: true,
-      DAY3: false,
-      DAY4: false,
-      DAY5: false,
+      DAY3: true,
+      DAY4: true,
+      DAY5: true,
       DAY6: false,
       DAY7: false,
       DOCT: 0,

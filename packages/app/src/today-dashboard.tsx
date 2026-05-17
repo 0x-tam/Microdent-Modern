@@ -2,7 +2,7 @@ import { createBridgeClient } from "@microdent/bridge-client";
 import type { ScheduleAppointmentItem } from "@microdent/contracts";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Badge, Button, Card, CardBody, CardHeader, EmptyState } from "@microdent/ui";
-import type { AppNavModuleId } from "./app-nav-modules.js";
+import type { AppSidebarModuleId } from "./app-nav-modules.js";
 import type { BridgeHealthPhase } from "./bridge-health.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
 import { FixtureConnectionPanel } from "./FixtureConnectionPanel.js";
@@ -126,7 +126,7 @@ function visitMetaLine(
 }
 
 export type DashboardHomeProps = {
-  onOpenModule: (id: AppNavModuleId) => void;
+  onOpenModule: (id: AppSidebarModuleId) => void;
   bridgeBaseUrl?: string;
   bridgePhase: BridgeHealthPhase;
   fetchImpl?: typeof fetch;
@@ -368,8 +368,7 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
                   type="button"
                   variant="secondary"
                   className="ui-focusable app-quick-actions__btn"
-                  disabled
-                  title={TAB_UNAVAILABLE_TITLE}
+                  onClick={() => onOpenModule("patients")}
                 >
                   Find patient
                 </Button>
@@ -414,12 +413,16 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
             </CardBody>
           </Card>
 
-          <LegacyCatalogPanel bridgeBaseUrl={bridgeBaseUrl} bridgePhase={bridgePhase} />
-          <FixtureConnectionPanel
-            bridgeBaseUrl={bridgeBaseUrl}
-            bridgePhase={bridgePhase}
-            className="app-fixture-panel--deemphasized"
-          />
+          {import.meta.env.DEV ? (
+            <>
+              <LegacyCatalogPanel bridgeBaseUrl={bridgeBaseUrl} bridgePhase={bridgePhase} />
+              <FixtureConnectionPanel
+                bridgeBaseUrl={bridgeBaseUrl}
+                bridgePhase={bridgePhase}
+                className="app-fixture-panel--deemphasized"
+              />
+            </>
+          ) : null}
         </aside>
       </div>
     </div>

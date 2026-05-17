@@ -374,7 +374,8 @@ Packaging does **not** replace legacy backup discipline (`docs/legacy-system-map
 2. **Bundled artifacts:** `apps/web` production build + `services/bridge` build + pinned Node **22.5+** runtime.
 3. **Config:** `%AppData%\Microdent\config.json` with `DATA_ROOT`, optional `SQLITE_PATH`, `BRIDGE_PORT`.
 4. **Lifecycle:** Start bridge on app launch; stop on quit; single-instance lock.
-5. **UI:** Window loads app against loopback; top-bar health works; **Settings** page shows mirror status via `/v1/mirror/status`.
+5. **Config default:** `writeMode: "disabled"` in `%AppData%\Microdent\config.json` (see `apps/desktop/src/config.ts`).
+6. **UI:** Window loads app against loopback; top-bar health works; **Settings** page shows mirror status via `/v1/mirror/status`.
 6. **Import:** Menu action runs safe mirror import executable with progress + log file (no terminal).
 7. **Installer:** Signed NSIS `.exe`; optional “launch at logon” checkbox.
 8. **Docs:** Clinic runbook (copy DATA → set paths → import → daily use); **no** changes to `Microdent-Legacy`.

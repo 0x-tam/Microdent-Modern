@@ -4,6 +4,11 @@ import {
   ApiErrorBodySchema,
   AppointmentStatusPathParamsSchema,
   AppointmentStatusUpdateBodySchema,
+  AppointmentTimeMovePathParamsSchema,
+  AppointmentTimeMoveBodySchema,
+  AppointmentCreateBodySchema,
+  PatientDemographicsPathParamsSchema,
+  PatientDemographicsUpdateBodySchema,
   LegacyCatalogResponseSchema,
   SafeWritePlanSchema,
   PatientProfilePathParamsSchema,
@@ -21,11 +26,13 @@ import {
   ReferenceProceduresResponseSchema,
   ScheduleRoomsResponseSchema,
   MirrorStatusResponseSchema,
+  BridgeDevStatusResponseSchema,
   TableRowsResponseSchema,
   TablesListResponseSchema,
   TableSchemaResponseSchema,
 } from "@microdent/contracts";
 import type { BridgeConfig } from "../config.js";
+import { isWritableSandboxReady, writesPermitted } from "../config.js";
 import { readPatientMedicalSummaryFromDbf } from "../dbf/patient-medical-summary.js";
 import { readPatientTreatmentsFromDbf } from "../dbf/patient-treatments.js";
 import { readPatientChartFromDbf } from "../dbf/patient-chart.js";
@@ -38,10 +45,17 @@ import { findRegistryEntry, TABLE_ID_PATTERN, TABLE_REGISTRY } from "../dbf/tabl
 import { readLegacyCatalogRows } from "../dbf/read-legacy-catalog.js";
 import { lookupScheduleAppointmentById } from "../dbf/schedule-appointments.js";
 import { readScheduleAppointmentsForApi } from "../schedule-appointments-read.js";
-import { buildAppointmentStatusUpdatePlan } from "../write/appointment-status-plan.js";
 import { commitAppointmentStatusUpdate } from "../write/appointment-status-commit.js";
-import { httpStatusForWriteSandboxError } from "../write/map-write-sandbox-error.js";
-import { validateWritableSandbox, WriteSandboxError } from "../write-safety/index.js";
+import { sendAppointmentStatusDryRunPlan } from "../write/appointment-status-dry-run-handler.js";
+import { commitAppointmentTimeMove } from "../write/appointment-time-move-commit.js";
+import { sendAppointmentTimeMoveDryRunPlan } from "../write/appointment-time-move-dry-run-handler.js";
+import { commitAppointmentCreate } from "../write/appointment-create-commit.js";
+import { sendAppointmentCreateDryRunPlan } from "../write/appointment-create-dry-run-handler.js";
+import { commitPatientDemographicsUpdate } from "../write/patient-demographics-commit.js";
+import { sendPatientDemographicsDryRunPlan } from "../write/patient-demographics-dry-run-handler.js";
+import { findBlockedScheduleBodyKeys } from "../write/reject-blocked-body-keys.js";
+import { sendWriteModeDisabled } from "../write/write-route-guards.js";
+import { parseWriteIntentHeader } from "../write/parse-write-intent.js";
 import { readReferenceDoctorsFromDbf } from "../dbf/reference-doctors.js";
 import { readReferenceProcedures } from "../dbf/reference-procedures.js";
 import { readScheduleRooms } from "../dbf/schedule-rooms.js";
@@ -87,6 +101,16 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
   router.get("/mirror/status", (_req, res) => {
     const body = readMirrorStatus(bridgeConfig.sqlitePath);
     MirrorStatusResponseSchema.parse(body);
+    res.json(body);
+  });
+
+  router.get("/meta/write-capability", (_req, res) => {
+    const body = {
+      writeMode: bridgeConfig.writeMode,
+      writesPermitted: writesPermitted(bridgeConfig),
+      writableSandbox: isWritableSandboxReady(bridgeConfig),
+    };
+    BridgeDevStatusResponseSchema.parse(body);
     res.json(body);
   });
 
@@ -509,23 +533,14 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
 
     const allowLegacyWrites = process.env.ALLOW_LEGACY_WRITES;
 
-    if (bridgeConfig.writeMode === "dry-run") {
-      try {
-        validateWritableSandbox({
-          dataRoot: dr.path,
-          writeMode: "dry-run",
-          allowLegacyWritesValue: allowLegacyWrites,
-        });
-      } catch (err) {
-        if (err instanceof WriteSandboxError) {
-          sendError(res, httpStatusForWriteSandboxError(err.code), err.code, err.message);
-          return;
-        }
-        throw err;
-      }
-      const plan = buildAppointmentStatusUpdatePlan({ appointmentId, writeMode: "dry-run" });
-      SafeWritePlanSchema.parse(plan);
-      res.json(plan);
+    const writeIntent = parseWriteIntentHeader(req.headers["x-write-intent"]);
+
+    if (bridgeConfig.writeMode === "dry-run" || writeIntent === "dry-run") {
+      sendAppointmentStatusDryRunPlan(res, {
+        dataRoot: dr,
+        appointmentId,
+        allowLegacyWritesValue: allowLegacyWrites,
+      });
       return;
     }
 
@@ -534,6 +549,160 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
       dataRoot: dr,
       appointmentId,
       status: bodyParsed.data.status,
+      allowLegacyWritesValue: allowLegacyWrites,
+    });
+    if (!commit.ok) {
+      sendError(res, commit.httpStatus, commit.code, commit.message);
+      return;
+    }
+    SafeWritePlanSchema.parse(commit.plan);
+    res.json(commit.plan);
+  });
+
+  router.patch("/schedule/appointments/:appointmentId/time", async (req, res) => {
+    if (bridgeConfig.writeMode === "disabled") {
+      sendWriteModeDisabled(res);
+      return;
+    }
+
+    const pathParsed = AppointmentTimeMovePathParamsSchema.safeParse({
+      appointmentId: req.params.appointmentId,
+    });
+    if (!pathParsed.success) {
+      sendError(res, 400, "INVALID_APPOINTMENT_ID", "appointmentId must be a positive integer without leading zeros");
+      return;
+    }
+
+    const blocked = findBlockedScheduleBodyKeys(req.body);
+    if (blocked.length > 0) {
+      sendError(res, 400, "BLOCKED_SCHEDULE_FIELD", "request contains blocked schedule fields");
+      return;
+    }
+
+    const bodyParsed = AppointmentTimeMoveBodySchema.safeParse(req.body);
+    if (!bodyParsed.success) {
+      sendError(res, 400, "INVALID_REQUEST_BODY", "invalid appointment time move body");
+      return;
+    }
+
+    if (!requireConfiguredDataRoot(res, bridgeConfig)) return;
+    const dr = bridgeConfig.dataRoot;
+    const { appointmentId } = pathParsed.data;
+    const allowLegacyWrites = process.env.ALLOW_LEGACY_WRITES;
+    const writeIntent = parseWriteIntentHeader(req.headers["x-write-intent"]);
+
+    if (bridgeConfig.writeMode === "dry-run" || writeIntent === "dry-run") {
+      await sendAppointmentTimeMoveDryRunPlan(res, {
+        dataRoot: dr,
+        appointmentId,
+        body: bodyParsed.data,
+        allowLegacyWritesValue: allowLegacyWrites,
+      });
+      return;
+    }
+
+    const commit = await commitAppointmentTimeMove({
+      bridgeConfig,
+      dataRoot: dr,
+      appointmentId,
+      body: bodyParsed.data,
+      allowLegacyWritesValue: allowLegacyWrites,
+    });
+    if (!commit.ok) {
+      sendError(res, commit.httpStatus, commit.code, commit.message);
+      return;
+    }
+    SafeWritePlanSchema.parse(commit.plan);
+    res.json(commit.plan);
+  });
+
+  router.post("/schedule/appointments", async (req, res) => {
+    if (bridgeConfig.writeMode === "disabled") {
+      sendWriteModeDisabled(res);
+      return;
+    }
+
+    const blocked = findBlockedScheduleBodyKeys(req.body);
+    if (blocked.length > 0) {
+      sendError(res, 400, "BLOCKED_SCHEDULE_FIELD", "request contains blocked schedule fields");
+      return;
+    }
+
+    const bodyParsed = AppointmentCreateBodySchema.safeParse(req.body);
+    if (!bodyParsed.success) {
+      sendError(res, 400, "INVALID_REQUEST_BODY", "invalid appointment create body");
+      return;
+    }
+
+    if (!requireConfiguredDataRoot(res, bridgeConfig)) return;
+    const dr = bridgeConfig.dataRoot;
+    const allowLegacyWrites = process.env.ALLOW_LEGACY_WRITES;
+    const writeIntent = parseWriteIntentHeader(req.headers["x-write-intent"]);
+
+    if (bridgeConfig.writeMode === "dry-run" || writeIntent === "dry-run") {
+      await sendAppointmentCreateDryRunPlan(res, {
+        dataRoot: dr,
+        body: bodyParsed.data,
+        allowLegacyWritesValue: allowLegacyWrites,
+      });
+      return;
+    }
+
+    const commit = await commitAppointmentCreate({
+      bridgeConfig,
+      dataRoot: dr,
+      body: bodyParsed.data,
+      allowLegacyWritesValue: allowLegacyWrites,
+    });
+    if (!commit.ok) {
+      sendError(res, commit.httpStatus, commit.code, commit.message);
+      return;
+    }
+    SafeWritePlanSchema.parse(commit.plan);
+    res.json(commit.plan);
+  });
+
+  router.patch("/patients/:patientId/demographics", async (req, res) => {
+    if (bridgeConfig.writeMode === "disabled") {
+      sendWriteModeDisabled(res);
+      return;
+    }
+
+    const pathParsed = PatientDemographicsPathParamsSchema.safeParse({
+      patientId: req.params.patientId,
+    });
+    if (!pathParsed.success) {
+      sendError(res, 400, "INVALID_PATIENT_ID", "patientId must be a positive integer without leading zeros");
+      return;
+    }
+
+    const bodyParsed = PatientDemographicsUpdateBodySchema.safeParse(req.body);
+    if (!bodyParsed.success) {
+      sendError(res, 400, "INVALID_REQUEST_BODY", "invalid patient demographics body");
+      return;
+    }
+
+    if (!requireConfiguredDataRoot(res, bridgeConfig)) return;
+    const dr = bridgeConfig.dataRoot;
+    const { patientId } = pathParsed.data;
+    const allowLegacyWrites = process.env.ALLOW_LEGACY_WRITES;
+    const writeIntent = parseWriteIntentHeader(req.headers["x-write-intent"]);
+
+    if (bridgeConfig.writeMode === "dry-run" || writeIntent === "dry-run") {
+      await sendPatientDemographicsDryRunPlan(res, {
+        dataRoot: dr,
+        patientId,
+        body: bodyParsed.data,
+        allowLegacyWritesValue: allowLegacyWrites,
+      });
+      return;
+    }
+
+    const commit = await commitPatientDemographicsUpdate({
+      bridgeConfig,
+      dataRoot: dr,
+      patientId,
+      body: bodyParsed.data,
       allowLegacyWritesValue: allowLegacyWrites,
     });
     if (!commit.ok) {

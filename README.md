@@ -55,6 +55,10 @@ Helper scripts live under `scripts/` and are wired in root `package.json`. They 
 
 If a port is still busy, run `pnpm dev:ports` to see the PID and command, then `pnpm dev:kill-ports` again.
 
+## Implementation checkpoint
+
+After each code or config batch, run the mandatory checkpoint in [docs/checkpoint-workflow.md](docs/checkpoint-workflow.md) (`nvm use 22`, `pnpm test`, `pnpm build:web`, `git status`) before marking work complete.
+
 ## Tests
 
 From the repository root after `pnpm install` or `npm install`:

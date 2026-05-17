@@ -18,7 +18,8 @@
     "mirror:import-safe": "bash scripts/mirror-import-safe.sh",
     "legacy:backup": "bash scripts/legacy-backup.sh",
     "legacy:create-sandbox": "bash scripts/legacy-create-sandbox.sh",
-    "legacy:restore": "bash scripts/legacy-restore.sh"
+    "legacy:restore": "bash scripts/legacy-restore.sh",
+    "legacy:backup-verify": "bash scripts/legacy-backup-verify.sh"
   },
   "engines": {
     "node": ">=18"

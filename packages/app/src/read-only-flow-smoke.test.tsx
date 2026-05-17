@@ -165,6 +165,22 @@ describe("read-only app smoke", () => {
     assertNoForbiddenDomTokens(container.textContent ?? "");
   });
 
+  it("shows only Today, Patients, and Schedule in the sidebar", async () => {
+    const fetchImpl = vi.fn(createReadOnlySmokeFetch());
+
+    await act(async () => {
+      root.render(<AppShell bridgeBaseUrl={SMOKE_BRIDGE_BASE} fetchImpl={fetchImpl} />);
+    });
+    await waitForBridgeConnected(container);
+
+    const labels = Array.from(container.querySelectorAll(".app-sidebar__btn")).map((b) =>
+      b.textContent?.trim(),
+    );
+    expect(labels).toEqual(["Today", "Patients", "Schedule"]);
+    expect(container.textContent).toMatch(/Chart, Treatments, and Ledger preview are under Patients/i);
+    assertNoForbiddenDomTokens(container.textContent ?? "");
+  });
+
   it("shows Patients page search before a patient is selected and keeps global top search", async () => {
     const fetchImpl = vi.fn(createReadOnlySmokeFetch());
 

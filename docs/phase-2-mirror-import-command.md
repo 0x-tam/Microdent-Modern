@@ -40,10 +40,11 @@ No patient names, phones, clinical text, paths, or row payloads are printed.
 1. Schema migrations (`applyMigrations`)
 2. `doctors` ← `DOCTORS.DBF`
 3. `procedures` ← `PROCCHRT.DBF`
-4. `patients` ← `PATIENT.DBF`
-5. `appointments` ← `SCHEDULE.DBF` (skipped if file absent)
-6. `medical_summary` ← `MEDICAL.DBF` (skipped if file absent)
-7. `treatments` ← `OPERTBL.DBF` (skipped if file absent; loose read mode)
+4. `schedule_rooms` ← `SC_ROOM.DBF` (+ optional `DICSCHED.DBF` labels) — see `docs/phase-2-schedule-rooms-importer.md`
+5. `patients` ← `PATIENT.DBF`
+6. `appointments` ← `SCHEDULE.DBF` (skipped if file absent)
+7. `medical_summary` ← `MEDICAL.DBF` (skipped if file absent)
+8. `treatments` ← `OPERTBL.DBF` (skipped if file absent; loose read mode)
 
 Each table write creates its own `import_runs` audit row. Optional sources record `skipped` when the DBF is missing under `DATA_ROOT`.
 
@@ -73,13 +74,15 @@ if (!loaded.ok) throw new Error("configure DATA_ROOT and SQLITE_PATH");
 const result = await runMirrorImportSafe(loaded.env);
 ```
 
-Individual importers remain available: `importDoctors`, `importProcedures`, `importPatients`, `importAppointments`, `importMedicalSummary`, `importTreatments`.
+Individual importers remain available: `importDoctors`, `importProcedures`, `importScheduleRooms`, `importPatients`, `importAppointments`, `importMedicalSummary`, `importTreatments`.
 
 ---
 
 ## Tests
 
 - `services/sqlite-mirror/src/mirror-env.test.ts` — env validation
+- `services/sqlite-mirror/src/run-mirror-import-safe.test.ts` — full safe import on synthetic `DATA_ROOT`
+- `services/sqlite-mirror/src/import-schedule-rooms.test.ts` — synthetic `SC_ROOM.DBF` only
 - `services/sqlite-mirror/src/import-appointments.test.ts` — synthetic `SCHEDULE.DBF` only
 - Existing importer tests for doctors, procedures, patients
 

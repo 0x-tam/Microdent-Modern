@@ -1,5 +1,5 @@
 import { createBridgeClient } from "@microdent/bridge-client";
-import type { ScheduleAppointmentItem, ScheduleRoomItem } from "@microdent/contracts";
+import type { BridgeDevStatusResponse, ScheduleAppointmentItem, ScheduleRoomItem } from "@microdent/contracts";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge, Button, Card, CardBody, CardHeader, EmptyState } from "@microdent/ui";
 import type { BridgeHealthPhase } from "./bridge-health.js";
@@ -14,6 +14,7 @@ import {
   SCHEDULE_PRIVACY_LEDE,
 } from "./read-only-ui-copy.js";
 import { AppointmentStatusDryRunAction } from "./AppointmentStatusDryRunAction.js";
+import { AppointmentStatusWriteAction } from "./AppointmentStatusWriteAction.js";
 
 export type SchedulePanelProps = {
   isActive: boolean;
@@ -27,6 +28,10 @@ export type SchedulePanelProps = {
   writeDiagnosticsActions?: boolean;
   /** @deprecated Use {@link writeDiagnosticsActions}. */
   appointmentStatusDryRunDev?: boolean;
+  /**
+   * When true, schedule rows may show the sandbox status write pilot (requires bridge enabled sandbox).
+   */
+  appointmentStatusWritePilot?: boolean;
   onBackToday: () => void;
 };
 
@@ -188,9 +193,11 @@ export function SchedulePanel({
   fetchImpl,
   writeDiagnosticsActions = false,
   appointmentStatusDryRunDev = false,
+  appointmentStatusWritePilot = false,
   onBackToday,
 }: SchedulePanelProps) {
-  const devWriteActionsEnabled = writeDiagnosticsActions || appointmentStatusDryRunDev;
+  const devWriteActionsEnabled =
+    import.meta.env.DEV && (writeDiagnosticsActions || appointmentStatusDryRunDev);
   const base = bridgeBaseUrl?.trim() ?? "";
   const canLoad = Boolean(base) && bridgePhase === "connected";
   const { labels: doctorLabels } = useDoctorLabels({
@@ -212,6 +219,7 @@ export function SchedulePanel({
   const [roomFilter, setRoomFilter] = useState<number | "">("");
   const [refreshTick, setRefreshTick] = useState(0);
   const [sandboxApplyEnabled, setSandboxApplyEnabled] = useState(false);
+  const [writeCapability, setWriteCapability] = useState<BridgeDevStatusResponse | null>(null);
 
   const [rooms, setRooms] = useState<ScheduleRoomItem[]>([]);
   const [appointments, setAppointments] = useState<ScheduleAppointmentItem[]>([]);
@@ -299,6 +307,26 @@ export function SchedulePanel({
   }, [devWriteActionsEnabled, canLoad, base, fetchImpl]);
 
   useEffect(() => {
+    if (!appointmentStatusWritePilot || !canLoad) {
+      setWriteCapability(null);
+      return;
+    }
+    let cancelled = false;
+    const client = createBridgeClient({ baseUrl: base, fetch: fetchImpl });
+    void client
+      .getWriteCapability()
+      .then((status) => {
+        if (!cancelled) setWriteCapability(status);
+      })
+      .catch(() => {
+        if (!cancelled) setWriteCapability(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [appointmentStatusWritePilot, canLoad, base, fetchImpl, refreshTick]);
+
+  useEffect(() => {
     if (!isActive || !canLoad) {
       setRooms([]);
       setAppointments([]);
@@ -345,6 +373,37 @@ export function SchedulePanel({
       cancelled = true;
     };
   }, [isActive, canLoad, base, fetchImpl, rangeFrom, rangeTo, roomFilter, refreshTick]);
+
+  useEffect(() => {
+    if (!isActive || !canLoad) {
+      return;
+    }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (loading) {
+        return;
+      }
+      const target = e.target;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement
+      ) {
+        return;
+      }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        goPrev();
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        goNext();
+      } else if (e.key === "t" || e.key === "T") {
+        e.preventDefault();
+        goToday();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isActive, canLoad, loading, goPrev, goNext, goToday]);
 
   const rangeHeading = useMemo(
     () => formatRangeHeading(rangeFrom, rangeTo, granularity),
@@ -535,6 +594,16 @@ export function SchedulePanel({
                                   </Badge>
                                 ) : null}
                               </div>
+                              {bridgeBaseUrl && appointmentStatusWritePilot ? (
+                                <AppointmentStatusWriteAction
+                                  appointment={appt}
+                                  bridgeBaseUrl={bridgeBaseUrl}
+                                  fetchImpl={fetchImpl}
+                                  writePilotEnabled={appointmentStatusWritePilot}
+                                  writeCapability={writeCapability}
+                                  onCommitted={() => setRefreshTick((x) => x + 1)}
+                                />
+                              ) : null}
                               {bridgeBaseUrl && devWriteActionsEnabled ? (
                                 <AppointmentStatusDryRunAction
                                   appointment={appt}

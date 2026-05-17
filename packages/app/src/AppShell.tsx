@@ -1,15 +1,17 @@
 import { createBridgeClient } from "@microdent/bridge-client";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Button, EmptyState, ReadOnlyBanner } from "@microdent/ui";
+import { Button, ReadOnlyBanner } from "@microdent/ui";
 import { probeBridgeHealth, describeBridgeHealthProbeError, type BridgeHealthPhase } from "./bridge-health.js";
 import {
-  MODULE_PLACEHOLDER_DESCRIPTION,
-  MODULE_PLACEHOLDER_TITLE,
+  MIRROR_STALE_BANNER_BODY,
+  MIRROR_STALE_BANNER_LABEL,
   READ_ONLY_BANNER_BODY,
   READ_ONLY_CONNECTED_LABEL,
   READ_ONLY_MODE_LABEL,
   READ_ONLY_VIEWER_LABEL,
 } from "./read-only-ui-copy.js";
+import { resolveMirrorStaleBanner } from "./mirror-stale.js";
+import type { MirrorStatusResponse } from "@microdent/contracts";
 
 export function resolveMirrorDiagnosticLabel(
   enabled: boolean,
@@ -28,14 +30,18 @@ export function resolveShellClinicLabel(phase: BridgeHealthPhase, clinicLabel?: 
 }
 
 export type { BridgeHealthPhase } from "./bridge-health.js";
-import { AppErrorBoundary } from "./AppErrorBoundary.js";
 import { PatientProfilePanel } from "./PatientProfilePanel.js";
 import { PatientSearchBar } from "./PatientSearchBar.js";
 import { SchedulePanel } from "./SchedulePanel.js";
 import { DashboardHome } from "./today-dashboard.js";
-import { APP_NAV_MODULES, type AppNavModuleId } from "./app-nav-modules.js";
+import { APP_SIDEBAR_MODULES, type AppSidebarModuleId } from "./app-nav-modules.js";
 
-export { APP_NAV_MODULES, type AppNavModuleId } from "./app-nav-modules.js";
+export {
+  APP_NAV_MODULES,
+  APP_SIDEBAR_MODULES,
+  type AppNavModuleId,
+  type AppSidebarModuleId,
+} from "./app-nav-modules.js";
 
 export type AppShellProps = {
   /** Shown in the top bar; use a clinic name in production. */
@@ -71,93 +77,16 @@ export type AppShellProps = {
   writeDiagnosticsActions?: boolean;
   /** @deprecated Use {@link writeDiagnosticsActions}. */
   appointmentStatusDryRunDev?: boolean;
+  /**
+   * When true, schedule may show the sandbox status write pilot when the bridge permits writes.
+   * Default production builds should leave this false.
+   */
+  appointmentStatusWritePilot?: boolean;
 };
 
-const MODULE_PREVIEW: Record<
-  AppNavModuleId,
-  { summary: string; bullets: readonly string[] }
-> = {
-  today: {
-    summary: "See who is on the schedule and what is next for your day.",
-    bullets: ["Open appointments from one place", "Jump to the patient or chart when you are ready"],
-  },
-  patients: {
-    summary: "Look up patients quickly and open their chart or next visit.",
-    bullets: ["Search by name or chart number", "See the details that help you pick the right person"],
-  },
-  schedule: {
-    summary: "Manage the day: who sits where, when, and with which provider.",
-    bullets: ["Week and day views tuned for the front desk", "Clear visit status at a glance"],
-  },
-  "dental-chart": {
-    summary: "Browse odontogram rows from your copied data in read-only mode.",
-    bullets: ["Open a patient and use the Chart tab", "Chart memos and clinical labels stay hidden"],
-  },
-  treatments: {
-    summary: "Review procedure history with safe fields only in the patient record.",
-    bullets: ["Open a patient and use the Treatments tab", "Memos, fees, and raw rows stay hidden"],
-  },
-  payments: {
-    summary: "Review ledger metadata without exposing payment amounts in this viewer.",
-    bullets: ["Open a patient and use the Ledger tab", "Amounts and memo text stay hidden"],
-  },
-  reports: {
-    summary: "Run the lists and summaries your clinic relies on.",
-    bullets: ["Day sheets, aging, and activity by provider", "Filters that match how you already work"],
-  },
-  settings: {
-    summary: "Set up people, rooms, hours, and how Microdent fits your clinic.",
-    bullets: ["Users and roles", "Locations and schedule templates"],
-  },
-};
-
-function moduleLabel(id: AppNavModuleId): string {
-  const m = APP_NAV_MODULES.find((x) => x.id === id);
+function moduleLabel(id: AppSidebarModuleId): string {
+  const m = APP_SIDEBAR_MODULES.find((x) => x.id === id);
   return m?.label ?? id;
-}
-
-function ModuleHome({
-  moduleId,
-  onOpenModule,
-  onBackToday,
-}: {
-  moduleId: AppNavModuleId;
-  onOpenModule: (id: AppNavModuleId) => void;
-  onBackToday: () => void;
-}) {
-  const copy = MODULE_PREVIEW[moduleId];
-  return (
-    <div className="app-module-home">
-      <div className="app-module-home__header">
-        <p className="app-module-home__summary">
-          <strong>{moduleLabel(moduleId)}</strong> — {copy.summary}
-        </p>
-      </div>
-
-      <ul className="app-module-home__bullets" aria-label={`What ${moduleLabel(moduleId)} will include`}>
-        {copy.bullets.map((b) => (
-          <li key={b}>{b}</li>
-        ))}
-      </ul>
-
-      <div className="app-module-home__actions">
-        <Button type="button" variant="secondary" className="ui-focusable" onClick={onBackToday}>
-          Back to Today
-        </Button>
-        <Button type="button" variant="ghost" className="ui-focusable" onClick={() => onOpenModule("schedule")}>
-          Open schedule
-        </Button>
-      </div>
-
-      <AppErrorBoundary>
-        <EmptyState
-          className="ui-empty--start"
-          title={MODULE_PLACEHOLDER_TITLE}
-          description={MODULE_PLACEHOLDER_DESCRIPTION}
-        />
-      </AppErrorBoundary>
-    </div>
-  );
 }
 
 function formatDevCheckTime(ms: number): string {
@@ -185,15 +114,20 @@ export function AppShell({
   fetchImpl,
   writeDiagnosticsActions = false,
   appointmentStatusDryRunDev = false,
+  appointmentStatusWritePilot = false,
 }: AppShellProps) {
-  const devWriteActionsEnabled = writeDiagnosticsActions || appointmentStatusDryRunDev;
-  const [active, setActive] = useState<AppNavModuleId>("today");
+  const devWriteActionsEnabled =
+    import.meta.env.DEV && (writeDiagnosticsActions || appointmentStatusDryRunDev);
+  const showBridgeConnectionDiagnostics = import.meta.env.DEV && bridgeConnectionDiagnostics;
+  const showMirrorConnectionDiagnostics = import.meta.env.DEV && mirrorConnectionDiagnostics;
+  const [active, setActive] = useState<AppSidebarModuleId>("today");
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [bridgePhase, setBridgePhase] = useState<BridgeHealthPhase>(() => (bridgeBaseUrl?.trim() ? "checking" : "offline"));
   const [lastHealthCheckAt, setLastHealthCheckAt] = useState<number | null>(null);
   const [lastHealthOfflineReason, setLastHealthOfflineReason] = useState<string | null>(null);
   const [previewOrigin, setPreviewOrigin] = useState<string>("—");
   const [mirrorDiagLabel, setMirrorDiagLabel] = useState<string | null>(null);
+  const [mirrorStatus, setMirrorStatus] = useState<MirrorStatusResponse | null>(null);
 
   const mainHeadingId = "app-main-heading";
 
@@ -234,21 +168,23 @@ export function AppShell({
   }, [bridgeBaseUrl, runBridgeHealthCheck]);
 
   useEffect(() => {
-    if (!bridgeConnectionDiagnostics) {
+    if (!showBridgeConnectionDiagnostics) {
       return;
     }
     if (typeof window === "undefined") {
       return;
     }
     setPreviewOrigin(window.location.origin);
-  }, [bridgeConnectionDiagnostics]);
+  }, [showBridgeConnectionDiagnostics]);
 
   useEffect(() => {
-    if (!mirrorConnectionDiagnostics || !bridgeBaseUrl?.trim()) {
+    if (!bridgeBaseUrl?.trim()) {
+      setMirrorStatus(null);
       setMirrorDiagLabel(null);
       return;
     }
     if (bridgePhase !== "connected") {
+      setMirrorStatus(null);
       setMirrorDiagLabel(null);
       return;
     }
@@ -258,20 +194,37 @@ export function AppShell({
       .getMirrorStatus()
       .then((status) => {
         if (cancelled) return;
-        setMirrorDiagLabel(resolveMirrorDiagnosticLabel(true, "connected", status.sqliteUsable));
+        setMirrorStatus(status);
+        setMirrorDiagLabel(
+          showMirrorConnectionDiagnostics
+            ? resolveMirrorDiagnosticLabel(true, "connected", status.sqliteUsable)
+            : null,
+        );
       })
       .catch(() => {
-        if (!cancelled) setMirrorDiagLabel(null);
+        if (!cancelled) {
+          setMirrorStatus(null);
+          setMirrorDiagLabel(null);
+        }
       });
     return () => {
       cancelled = true;
     };
-  }, [mirrorConnectionDiagnostics, bridgeBaseUrl, bridgePhase, fetchImpl]);
+  }, [showMirrorConnectionDiagnostics, bridgeBaseUrl, bridgePhase, fetchImpl]);
+
+  const mirrorStaleBanner = useMemo(
+    () =>
+      resolveMirrorStaleBanner(bridgePhase, mirrorStatus, {
+        label: MIRROR_STALE_BANNER_LABEL,
+        body: MIRROR_STALE_BANNER_BODY,
+      }),
+    [bridgePhase, mirrorStatus],
+  );
 
   const sidebar = useMemo(
     () => (
       <ul className="app-sidebar__nav">
-        {APP_NAV_MODULES.map((m) => (
+        {APP_SIDEBAR_MODULES.map((m) => (
           <li key={m.id}>
             <button
               type="button"
@@ -346,7 +299,7 @@ export function AppShell({
               </Button>
             ) : null}
           </div>
-          {bridgeConnectionDiagnostics && bridgeBaseUrl?.trim() ? (
+          {showBridgeConnectionDiagnostics && bridgeBaseUrl?.trim() ? (
             <div className="app-topbar__bridge-diag" role="note" aria-label="Development bridge connection details">
               <div className="app-topbar__bridge-diag__line">App origin: {previewOrigin}</div>
               <div className="app-topbar__bridge-diag__line">Bridge URL: {bridgeBaseUrl.trim()}</div>
@@ -357,7 +310,7 @@ export function AppShell({
               {bridgePhase === "offline" && lastHealthOfflineReason ? (
                 <div className="app-topbar__bridge-diag__line app-topbar__bridge-diag__reason">{lastHealthOfflineReason}</div>
               ) : null}
-              {mirrorConnectionDiagnostics && mirrorDiagLabel ? (
+              {showMirrorConnectionDiagnostics && mirrorDiagLabel ? (
                 <div className="app-topbar__bridge-diag__line">{mirrorDiagLabel}</div>
               ) : null}
             </div>
@@ -371,6 +324,17 @@ export function AppShell({
         </ReadOnlyBanner>
       </div>
 
+      {mirrorStaleBanner ? (
+        <div className="app-shell__mirror-stale">
+          <ReadOnlyBanner
+            label={mirrorStaleBanner.label}
+            className="ui-readonly-banner--compact app-shell__mirror-stale-banner"
+          >
+            {mirrorStaleBanner.body}
+          </ReadOnlyBanner>
+        </div>
+      ) : null}
+
       {topSlot}
 
       <div className="app-shell__body">
@@ -379,6 +343,9 @@ export function AppShell({
             Main navigation
           </p>
           <nav aria-labelledby="sidebar-nav-label">{sidebar}</nav>
+          <p className="app-sidebar__hint" role="note">
+            Chart, Treatments, and Ledger preview are under Patients when you open a record.
+          </p>
         </aside>
 
         <main className="app-main" id="app-main-region" role="main" aria-labelledby={mainHeadingId}>
@@ -395,12 +362,10 @@ export function AppShell({
                 </p>
               ) : active === "patients" ? (
                 <p className="app-main__lede">
-                  Search by name or chart number to open a record — or use the top bar. Browse summary, visits, medical screening,
-                  treatments, chart, and ledger read-only; sensitive fields stay hidden.
+                  Search by name or chart number to open a record — or use the top bar. Summary, visits, medical screening,
+                  treatments, chart, and ledger preview are read-only tabs; sensitive fields stay hidden.
                 </p>
-              ) : (
-                <p className="app-main__lede">Overview for {moduleLabel(active)}.</p>
-              )}
+              ) : null}
             </div>
 
             <div className="app-main__content">
@@ -418,9 +383,10 @@ export function AppShell({
                   bridgeBaseUrl={bridgeBaseUrl}
                   fetchImpl={fetchImpl}
                   writeDiagnosticsActions={devWriteActionsEnabled}
+                  appointmentStatusWritePilot={appointmentStatusWritePilot}
                   onBackToday={() => setActive("today")}
                 />
-              ) : active === "patients" ? (
+              ) : (
                 <PatientProfilePanel
                   patientId={selectedPatientId}
                   bridgePhase={bridgePhase}
@@ -430,8 +396,6 @@ export function AppShell({
                   onClearPatient={() => setSelectedPatientId(null)}
                   onPatientRecordSelect={(hit) => setSelectedPatientId(hit.patientId)}
                 />
-              ) : (
-                <ModuleHome moduleId={active} onOpenModule={setActive} onBackToday={() => setActive("today")} />
               )}
             </div>
           </div>

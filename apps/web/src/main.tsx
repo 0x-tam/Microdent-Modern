@@ -20,6 +20,9 @@ createRoot(el).render(
       bridgeConnectionDiagnostics={import.meta.env.DEV}
       mirrorConnectionDiagnostics={import.meta.env.DEV}
       writeDiagnosticsActions={import.meta.env.DEV}
+      appointmentStatusWritePilot={
+        import.meta.env.VITE_APPOINTMENT_STATUS_WRITE_PILOT === "true"
+      }
     />
   </StrictMode>,
 );

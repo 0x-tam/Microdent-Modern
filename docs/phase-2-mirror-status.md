@@ -53,10 +53,21 @@ Props: `mirrorConnectionDiagnostics` on `AppShell` (paired with `bridgeConnectio
 
 ---
 
+## Stale mirror banner (production)
+
+When the bridge is **connected** and `sqliteUsable` is true, `AppShell` fetches mirror status and shows a **non-blocking** banner if the newest `latestImportRuns[].finishedAt` is older than **48 hours** (see `packages/app/src/mirror-stale.ts`).
+
+- Uses metadata only — never `import_errors.message` or row payloads.
+- Does not block navigation or API calls; bridge routes continue DBF fallback per table when needed.
+- Copy: `MIRROR_STALE_BANNER_*` in `packages/app/src/read-only-ui-copy.ts`.
+
+---
+
 ## Tests
 
 - `services/bridge/src/mirror-status-routes.test.ts` — no path, synthetic import, invalid file, missing file; JSON leak checks
 - `packages/app/src/app-shell.test.tsx` — mirror line absent without dev flag
+- `packages/app/src/mirror-stale.test.ts` — stale detection from `finishedAt` metadata
 - `packages/bridge-client` — add `getMirrorStatus` mock test if present in suite
 
 Run on **Node 22.5+** for full monorepo `pnpm test` (sqlite-mirror + bridge mirror route).

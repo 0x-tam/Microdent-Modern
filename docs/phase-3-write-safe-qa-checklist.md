@@ -4,7 +4,7 @@
 
 **Operator detail:** Step-by-step commands live in [phase-3-appointment-status-write-runbook.md](./phase-3-appointment-status-write-runbook.md).
 
-**Status (2026-05-15):** Steps **1–10** and **13–15** are executable today (dry-run route, backup CLI, manual restore). Steps **11–12** are **blocked** until enabled commit ships (`writesPermitted`, DBF writer, audit-on-commit).
+**Status (2026-05-17):** All **15** steps are executable on a **disposable write sandbox** when `WRITE_MODE`, `BACKUP_DIR`, `DATA_ROOT`, sandbox marker, and `ALLOW_LEGACY_WRITES` ack are configured per the runbook. Production Legacy paths remain forbidden.
 
 **Related:** [phase-3-disposable-write-sandbox.md](./phase-3-disposable-write-sandbox.md), [phase-3-sandbox-guard.md](./phase-3-sandbox-guard.md), [phase-3-write-mode-config.md](./phase-3-write-mode-config.md), [phase-3-backup-cli.md](./phase-3-backup-cli.md), [phase-3-appointment-status-dry-run.md](./phase-3-appointment-status-dry-run.md), [phase-3-audit-log-schema.md](./phase-3-audit-log-schema.md).
 
@@ -35,9 +35,9 @@
 | 7 | Call dry-run status route | §7 | **Yes** |
 | 8 | Confirm no file mtime/content change | §8 | **Yes** |
 | 9 | Run `pnpm legacy:backup` | §9 | **Yes** |
-| 10 | Start bridge: `WRITE_MODE=enabled`, `ALLOW_LEGACY_WRITES=I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY` | §10 | **Yes** (diagnostics only) |
-| 11 | Call status write route (commit) | §11 | **No** — plan-only; `REAL_WRITE_NOT_IMPLEMENTED` |
-| 12 | Verify backup, audit, STATUS, no other fields | §12 | **No** — depends on §11 |
+| 10 | Start bridge: `WRITE_MODE=enabled`, `BACKUP_DIR`, `ALLOW_LEGACY_WRITES=I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY` | §10 | **Yes** |
+| 11 | Call status write route (commit) | §11 | **Yes** — sandbox + ack + backup; `committed: true` |
+| 12 | Verify backup, audit, STATUS, no other fields | §12 | **Yes** — audit **N/A** if `SQLITE_PATH` unset |
 | 13 | Restore from backup | §13 | **Yes** (manual copy) |
 | 14 | Verify status reverted | §14 | **Yes** (after deliberate test or post–dry-run rehearsal) |
 | 15 | Reset sandbox | §15 | **Yes** |
@@ -75,15 +75,15 @@
 | --- | --- | --- |
 | 9 | `BACKUP_DIR`, `WORKFLOW=appointment.statusUpdate`, `pnpm legacy:backup` | Manifest + `files/`; source mtime unchanged; privacy scan clean |
 
-### 10–12. Enabled write **(blocked)**
+### 10–12. Enabled sandbox write **(today)**
 
-| Step | Action | Pass (target) |
+| Step | Action | Pass |
 | --- | --- | --- |
-| 10 | `WRITE_MODE=enabled`, `ALLOW_LEGACY_WRITES=I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY`, restart bridge | **Target:** `writesPermitted: true`. **Today:** still `false` |
-| 11 | `PATCH` same URL, `X-Write-Intent: commit` | **Target:** **200**, `committed: true`, no `REAL_WRITE_NOT_IMPLEMENTED` |
-| 12 | Backup exists; audit row if wired; `STATUS` = `STATUS_AFTER`; `.FPT`/`.CDX` hashes unchanged | All sub-checks pass |
+| 10 | `WRITE_MODE=enabled`, `BACKUP_DIR`, `ALLOW_LEGACY_WRITES=I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY`, restart bridge | `/debug/status` → `enabled`, `writesPermitted: true` (requires `BACKUP_DIR` + `DATA_ROOT`) |
+| 11 | `PATCH` same URL with commit intent (`X-Write-Intent: commit` optional) | **200**, `committed: true`, `fieldsChanged` = `STATUS` only |
+| 12 | Backup exists; audit row if `SQLITE_PATH` wired; `STATUS` = `STATUS_AFTER`; `.FPT`/`.CDX` hashes unchanged | All sub-checks pass |
 
-**Do not sign off** steps 11–12 until implementation removes `REAL_WRITE_NOT_IMPLEMENTED` and persists only `SCHEDULE.STATUS`.
+Sign off only on **disposable** sandbox data. Never run enabled commit against production Legacy or read-only Legacy-Copy paths.
 
 ### 13–15. Restore and reset **(today)**
 
@@ -159,7 +159,7 @@ Complete after runbook steps. **Pass / Fail / N/A** and initials only — no PHI
 
 **Approver (first real write):** __________________ **Date:** __________
 
-**Blockers:** Any **Fail**; steps **11–12** **N/A** without approved follow-up.
+**Blockers:** Any **Fail**; enabled commit **N/A** without sandbox marker + ack + `BACKUP_DIR`.
 
 ---
 
@@ -167,10 +167,10 @@ Complete after runbook steps. **Pass / Fail / N/A** and initials only — no PHI
 
 | Area | Gap | Checklist impact |
 | --- | --- | --- |
-| **Enabled DBF write** | `writesPermitted()` always `false`; route returns plan with `REAL_WRITE_NOT_IMPLEMENTED` | §11–12 blocked |
-| **Audit on commit** | SQLite writers tested; bridge does not append on HTTP commit yet | §12.2 often **N/A** |
+| **Audit on commit** | Bridge appends when `SQLITE_PATH` is configured and migrations apply | §12.2 **N/A** without mirror; automated in `appointment-status-write.test.ts` |
+| **Production pilot** | Only sandbox `STATUS` write is implemented | Do not point `DATA_ROOT` at live clinic Legacy |
 | **`legacy:restore`** | Manual `cp` only | §13 documented |
-| **`legacy:backup-verify`** | Not shipped | §9 manual `shasum` |
+| **`legacy:backup-verify`** | **Shipped** — `BACKUP_MANIFEST=… pnpm legacy:backup-verify` | §9 optional verify |
 | **Field-level DBF diff** | No operator CLI for row diff without PHI | §12.4 uses sidecar hashes + workflow allowlist |
 | **Schedule GET for verify** | Returns patient display fields | Use mirror `status_code` or hashes only |
 | **SafeWritePlan envelope** | Route returns plan object directly (not `{ plan }` wrapper) | Runbook `jq` matches wire today |

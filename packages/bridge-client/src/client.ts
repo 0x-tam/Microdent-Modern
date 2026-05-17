@@ -15,6 +15,7 @@ import {
   ScheduleAppointmentsResponseSchema,
   AppointmentStatusUpdateBodySchema,
   BridgeDevStatusResponseSchema,
+  WriteCapabilityResponseSchema,
   SafeWritePlanSchema,
   ReferenceProceduresResponseSchema,
   ScheduleRoomsResponseSchema,
@@ -218,6 +219,11 @@ export class BridgeClient {
     return this.requestJson("/debug/status", BridgeDevStatusResponseSchema);
   }
 
+  /** Safe write gates for pilot UI (`GET /v1/meta/write-capability`). */
+  async getWriteCapability(): Promise<BridgeDevStatusResponse> {
+    return this.requestJson("/v1/meta/write-capability", WriteCapabilityResponseSchema);
+  }
+
   async getScheduleAppointments(params: { from: string; to: string; room?: number }): Promise<ScheduleAppointmentsResponse> {
     const q = new URLSearchParams({ from: params.from, to: params.to });
     if (params.room !== undefined) {
@@ -241,14 +247,63 @@ export class BridgeClient {
   }
 
   /**
-   * Request sandbox apply for `appointment.statusUpdate` (`X-Write-Intent: commit`).
-   * Bridge may still return `committed: false` until real DBF writes ship.
+   * Commit `appointment.statusUpdate` in sandbox (`X-Write-Intent: commit`).
+   * Requires bridge `WRITE_MODE=enabled` with backup and sandbox gates.
    */
   async applyAppointmentStatusInSandbox(
     appointmentId: string,
     body: AppointmentStatusUpdateBody,
   ): Promise<SafeWritePlan> {
     return this.patchAppointmentStatusUpdate(appointmentId, body, "commit");
+  }
+
+  async patchAppointmentTimeMove(
+    appointmentId: string,
+    body: import("@microdent/contracts").AppointmentTimeMoveBody,
+    intent: "dry-run" | "commit",
+  ): Promise<SafeWritePlan> {
+    const id = encodeURIComponent(appointmentId.trim());
+    return this.requestJsonWithBody(`/v1/schedule/appointments/${id}/time`, SafeWritePlanSchema, {
+      method: "PATCH",
+      body,
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "X-Write-Intent": intent,
+      },
+    });
+  }
+
+  async postAppointmentCreate(
+    body: import("@microdent/contracts").AppointmentCreateBody,
+    intent: "dry-run" | "commit",
+  ): Promise<SafeWritePlan> {
+    return this.requestJsonWithBody("/v1/schedule/appointments", SafeWritePlanSchema, {
+      method: "POST",
+      body,
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "X-Write-Intent": intent,
+      },
+    });
+  }
+
+  async patchPatientDemographics(
+    patientId: string,
+    body: import("@microdent/contracts").PatientDemographicsUpdateBody,
+    intent: "dry-run" | "commit",
+  ): Promise<SafeWritePlan> {
+    const id = encodeURIComponent(patientId.trim());
+    return this.requestJsonWithBody(`/v1/patients/${id}/demographics`, SafeWritePlanSchema, {
+      method: "PATCH",
+      body,
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "X-Write-Intent": intent,
+      },
+    });
   }
 
   async patchAppointmentStatusUpdate(

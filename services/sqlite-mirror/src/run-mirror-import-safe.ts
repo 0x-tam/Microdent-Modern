@@ -4,6 +4,7 @@ import { importDoctors } from "./import-doctors.js";
 import { importMedicalSummary } from "./import-medical-summary.js";
 import { importPatients } from "./import-patients.js";
 import { importProcedures } from "./import-procedures.js";
+import { importScheduleRooms } from "./import-schedule-rooms.js";
 import { importTreatments } from "./import-treatments.js";
 import type { ImportRunStatus } from "./import-run.js";
 
@@ -58,6 +59,14 @@ export async function runMirrorImportSafe(
     status: procedures.status,
     rowCount: procedures.rowCount,
     errorCount: procedures.errorCount,
+  });
+
+  const scheduleRooms = await importScheduleRooms({ dataRoot, sqlitePath });
+  steps.push({
+    table: "schedule_rooms",
+    status: scheduleRooms.status,
+    rowCount: scheduleRooms.rowCount,
+    errorCount: scheduleRooms.errorCount,
   });
 
   const patients = await importPatients({ dataRoot, sqlitePath });

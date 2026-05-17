@@ -39,6 +39,9 @@ export const PATIENT_PAGE_SEARCH_LEDE =
 export const PATIENT_PAGE_SEARCH_PRIVACY =
   "Uses your copied clinic data. Names, chart numbers, record ids, and masked phone hints only — no notes, addresses, or payment fields.";
 
+export const PATIENT_MODULE_TABS_HINT =
+  "After you open a patient, use the Chart, Treatments, and Ledger preview tabs for dental chart, procedure history, and ledger metadata (read-only; sensitive fields stay hidden).";
+
 export const PATIENT_CHANGE_PATIENT_LABEL = "Search another patient";
 
 export const PATIENT_NO_SELECTION_DESCRIPTION =
@@ -77,6 +80,11 @@ export const TODAY_PRIVACY_LEDE =
 export const MODULE_PLACEHOLDER_TITLE = "Not available yet";
 
 export const MODULE_PLACEHOLDER_DESCRIPTION =
-  "This area is not part of the read-only viewer yet. Use Today, Patients, or Schedule for live data from your copy.";
+  "This module is not available in the read-only viewer yet. Use Today, Patients, or Schedule for live data from your copy.";
 
 export const TAB_UNAVAILABLE_TITLE = "Not available in this read-only viewer";
+
+export const MIRROR_STALE_BANNER_LABEL = "Local copy may be outdated";
+
+export const MIRROR_STALE_BANNER_BODY =
+  "The SQLite mirror has not been refreshed recently. Search and schedule may show older data until your operator runs a safe mirror import.";

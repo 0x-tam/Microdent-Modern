@@ -2,15 +2,15 @@
 
 **Purpose:** Exact operator flow to prove **appointment `STATUS` write** safely on a **disposable sandbox** — dry-run rehearsal, backup, optional enabled commit, verification, restore, reset.
 
-**Status (code, 2026-05-15):**
+**Status (code, 2026-05-17):**
 
 | Band | Shipped? |
 | --- | --- |
-| Dry-run plan route | **Yes** — `PATCH /v1/schedule/appointments/:appointmentId/status` with `WRITE_MODE=dry-run` |
+| Dry-run plan route | **Yes** — `PATCH …/status` with `WRITE_MODE=dry-run` → `committed: false`, no DBF mutation |
 | Backup CLI | **Yes** — `pnpm legacy:backup` |
-| Enabled DBF commit | **No** — `writesPermitted()` is always `false`; enabled responses include `REAL_WRITE_NOT_IMPLEMENTED` and `committed: false` |
+| Enabled sandbox commit | **Yes** — `WRITE_MODE=enabled` + sandbox marker + `ALLOW_LEGACY_WRITES` ack + `BACKUP_DIR` → persists **only** `SCHEDULE.STATUS` |
 
-Steps **11–12** (enabled commit) are the **target** procedure for the first real write. Do not sign off a production pilot until those steps pass without the `REAL_WRITE_NOT_IMPLEMENTED` warning. Until then, complete steps **1–10** and **13–15** as written; treat **11–12** as **blocked** (see [phase-3-write-safe-qa-checklist.md](./phase-3-write-safe-qa-checklist.md) §16).
+`writesPermitted` is **true** when `WRITE_MODE=enabled` and both `BACKUP_DIR` and `DATA_ROOT` are configured. Per-request sandbox marker and ack are still required for commit. Do not sign off a production pilot until steps **11–12** pass on **disposable** sandbox data only (see [phase-3-write-safe-qa-checklist.md](./phase-3-write-safe-qa-checklist.md)).
 
 **Related:** [phase-3-write-safe-qa-checklist.md](./phase-3-write-safe-qa-checklist.md), [phase-3-appointment-status-dry-run.md](./phase-3-appointment-status-dry-run.md), [phase-3-disposable-write-sandbox.md](./phase-3-disposable-write-sandbox.md), [phase-3-backup-cli.md](./phase-3-backup-cli.md), [phase-3-audit-log-schema.md](./phase-3-audit-log-schema.md).
 
@@ -197,7 +197,7 @@ curl -sS -X PATCH "${BRIDGE_URL}/v1/schedule/appointments/${APPT_ID}/status" \
 | `mode` | `dry-run` |
 | `committed` | `false` |
 | `fieldsChanged` | One entry: `table: "SCHEDULE"`, `field: "STATUS"`, `changeType: "set"` — **no** `before` / `after` |
-| `warnings` | No `REAL_WRITE_NOT_IMPLEMENTED` in dry-run |
+| `warnings` | Empty or informational only (no commit blockers) |
 
 ---
 
@@ -249,9 +249,7 @@ export ALLOW_LEGACY_WRITES=I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY
 pnpm dev:bridge
 ```
 
-**Pass (today):** `/debug/status` shows `"writeMode": "enabled"`, `"writesPermitted": false`.
-
-**Pass (target, first real write):** `"writesPermitted": true` and startup succeeds with sandbox marker + ack.
+**Pass:** `/debug/status` shows `"writeMode": "enabled"`, `"writesPermitted": true` (requires `BACKUP_DIR` + `DATA_ROOT`), and `"writableSandbox": true` when marker + ack are valid.
 
 ---
 
@@ -268,16 +266,15 @@ curl -sS -X PATCH "${BRIDGE_URL}/v1/schedule/appointments/${APPT_ID}/status" \
   | jq '{operationId, workflow, mode, committed, fieldsChanged, warnings}'
 ```
 
-**Pass (target):**
+**Pass:**
 
 | Check | Expected |
 | --- | --- |
 | HTTP | **200** |
 | `committed` | `true` |
-| `warnings` | **No** `REAL_WRITE_NOT_IMPLEMENTED` |
+| `warnings` | Empty or informational only |
 | Response | No `PAT_NAME`, `TELEPHONE`, `COMMENT`, raw row, or before/after values |
-
-**Blocked (2026-05-15):** Response still has `committed: false` and `REAL_WRITE_NOT_IMPLEMENTED` — DBF bytes unchanged. Do not proceed to sign-off; file a gap ticket (checklist §16).
+| `SCHEDULE.DBF` | `sha256` differs from pre-commit baseline (status changed) |
 
 ---
 
@@ -308,7 +305,7 @@ SQL
 
 **Pass:** Row for this `operationId` with `execution_mode` appropriate to real write; columns contain ids/codes only — no names, phones, notes, amounts, or row snapshots. See [phase-3-audit-log-schema.md](./phase-3-audit-log-schema.md).
 
-**Today:** Audit writers exist in `@microdent/sqlite-mirror` tests only; skip with **N/A** if bridge did not append on commit.
+**Today:** Skip with **N/A** if `SQLITE_PATH` was not set or migrations were not applied before commit.
 
 ### 12.3 `SCHEDULE.STATUS` changed
 
@@ -422,7 +419,7 @@ Do **not** run `rg` across live `DATA_ROOT` DBFs for PHI patterns — those file
 | 8 | mtime/hash unchanged |
 | 9 | `pnpm legacy:backup` |
 | 10 | Bridge: `WRITE_MODE=enabled` + `ALLOW_LEGACY_WRITES=…` |
-| 11 | `PATCH …/status` commit (**blocked** until real write ships) |
+| 11 | `PATCH …/status` commit (enabled + sandbox + backup) |
 | 12 | Backup + audit + STATUS + sidecars |
 | 13 | Restore from backup folder |
 | 14 | Status reverted |

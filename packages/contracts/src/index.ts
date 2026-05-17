@@ -1,8 +1,10 @@
 export { HealthResponseSchema, type HealthResponse } from "./health.js";
 export {
   BridgeDevStatusResponseSchema,
+  WriteCapabilityResponseSchema,
   WriteModeSchema,
   type BridgeDevStatusResponse,
+  type WriteCapabilityResponse,
   type WriteMode,
 } from "./write-mode.js";
 export {
@@ -124,3 +126,25 @@ export {
   type AppointmentStatusPathParams,
   type AppointmentStatusUpdateBody,
 } from "./appointment-status-write.js";
+export {
+  AppointmentTimeMovePathParamsSchema,
+  AppointmentTimeMoveBodySchema,
+  type AppointmentTimeMovePathParams,
+  type AppointmentTimeMoveBody,
+} from "./appointment-time-move-write.js";
+export {
+  AppointmentCreateBodySchema,
+  type AppointmentCreateBody,
+} from "./appointment-create-write.js";
+export {
+  SCHEDULE_BLOCKED_WRITE_FIELD_NAMES,
+  isScheduleBlockedWriteField,
+  type ScheduleBlockedWriteFieldName,
+} from "./schedule-write-blocked.js";
+export {
+  PatientDemographicsPathParamsSchema,
+  PatientDemographicsUpdateBodySchema,
+  PATIENT_DEMOGRAPHICS_WRITABLE_FIELDS,
+  type PatientDemographicsPathParams,
+  type PatientDemographicsUpdateBody,
+} from "./patient-demographics-write.js";

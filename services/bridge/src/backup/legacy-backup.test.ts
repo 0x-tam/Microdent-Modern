@@ -84,7 +84,7 @@ describe("legacy backup", () => {
       runLegacyBackup({
         dataRoot,
         backupDir: backupRoot,
-        workflow: "patient.demographicsEdit",
+        workflow: "payment.post",
       }),
     ).rejects.toThrow(/unsupported WORKFLOW/);
   });
