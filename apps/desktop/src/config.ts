@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { homedir } from "node:os";
+import { homedir, platform } from "node:os";
 import { join } from "node:path";
 
 export type DesktopConfig = {
@@ -11,8 +11,22 @@ export type DesktopConfig = {
   writeMode?: "disabled" | "dry-run" | "enabled";
 };
 
-const CONFIG_DIR = join(homedir(), "AppData", "Microdent");
-const CONFIG_PATH = join(CONFIG_DIR, "config.json");
+/** Operator config directory (Windows %AppData%, macOS Application Support, Linux XDG). */
+export function desktopConfigDir(): string {
+  const home = homedir();
+  switch (platform()) {
+    case "win32":
+      return join(home, "AppData", "Microdent");
+    case "darwin":
+      return join(home, "Library", "Application Support", "Microdent");
+    default:
+      return join(home, ".config", "microdent");
+  }
+}
+
+export function configPath(): string {
+  return join(desktopConfigDir(), "config.json");
+}
 
 export function defaultDesktopConfig(): DesktopConfig {
   return {
@@ -23,11 +37,12 @@ export function defaultDesktopConfig(): DesktopConfig {
 }
 
 export function loadDesktopConfig(): DesktopConfig {
-  if (!existsSync(CONFIG_PATH)) {
+  const path = configPath();
+  if (!existsSync(path)) {
     return defaultDesktopConfig();
   }
   try {
-    const raw = JSON.parse(readFileSync(CONFIG_PATH, "utf8")) as DesktopConfig;
+    const raw = JSON.parse(readFileSync(path, "utf8")) as DesktopConfig;
     return { ...defaultDesktopConfig(), ...raw, version: 1 };
   } catch {
     return defaultDesktopConfig();
@@ -35,10 +50,7 @@ export function loadDesktopConfig(): DesktopConfig {
 }
 
 export function saveDesktopConfig(config: DesktopConfig): void {
-  mkdirSync(CONFIG_DIR, { recursive: true });
-  writeFileSync(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`, "utf8");
-}
-
-export function configPath(): string {
-  return CONFIG_PATH;
+  const dir = desktopConfigDir();
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(configPath(), `${JSON.stringify(config, null, 2)}\n`, "utf8");
 }

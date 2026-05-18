@@ -1,17 +1,15 @@
 import { createBridgeClient } from "@microdent/bridge-client";
+import type { BridgeDevStatusResponse, MirrorStatusResponse } from "@microdent/contracts";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Button, ReadOnlyBanner } from "@microdent/ui";
 import { probeBridgeHealth, describeBridgeHealthProbeError, type BridgeHealthPhase } from "./bridge-health.js";
 import {
-  MIRROR_STALE_BANNER_BODY,
-  MIRROR_STALE_BANNER_LABEL,
   READ_ONLY_BANNER_BODY,
   READ_ONLY_CONNECTED_LABEL,
   READ_ONLY_MODE_LABEL,
   READ_ONLY_VIEWER_LABEL,
 } from "./read-only-ui-copy.js";
-import { resolveMirrorStaleBanner } from "./mirror-stale.js";
-import type { MirrorStatusResponse } from "@microdent/contracts";
+import { resolveShellStatusBanners } from "./shell-status-banners.js";
 
 export function resolveMirrorDiagnosticLabel(
   enabled: boolean,
@@ -128,6 +126,7 @@ export function AppShell({
   const [previewOrigin, setPreviewOrigin] = useState<string>("—");
   const [mirrorDiagLabel, setMirrorDiagLabel] = useState<string | null>(null);
   const [mirrorStatus, setMirrorStatus] = useState<MirrorStatusResponse | null>(null);
+  const [writeCapability, setWriteCapability] = useState<BridgeDevStatusResponse | null>(null);
 
   const mainHeadingId = "app-main-heading";
 
@@ -181,11 +180,13 @@ export function AppShell({
     if (!bridgeBaseUrl?.trim()) {
       setMirrorStatus(null);
       setMirrorDiagLabel(null);
+      setWriteCapability(null);
       return;
     }
     if (bridgePhase !== "connected") {
       setMirrorStatus(null);
       setMirrorDiagLabel(null);
+      setWriteCapability(null);
       return;
     }
     let cancelled = false;
@@ -212,13 +213,29 @@ export function AppShell({
     };
   }, [showMirrorConnectionDiagnostics, bridgeBaseUrl, bridgePhase, fetchImpl]);
 
-  const mirrorStaleBanner = useMemo(
-    () =>
-      resolveMirrorStaleBanner(bridgePhase, mirrorStatus, {
-        label: MIRROR_STALE_BANNER_LABEL,
-        body: MIRROR_STALE_BANNER_BODY,
-      }),
-    [bridgePhase, mirrorStatus],
+  useEffect(() => {
+    if (!bridgeBaseUrl?.trim() || bridgePhase !== "connected") {
+      setWriteCapability(null);
+      return;
+    }
+    let cancelled = false;
+    const client = createBridgeClient({ baseUrl: bridgeBaseUrl.trim(), fetch: fetchImpl });
+    void client
+      .getWriteCapability()
+      .then((cap) => {
+        if (!cancelled) setWriteCapability(cap);
+      })
+      .catch(() => {
+        if (!cancelled) setWriteCapability(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [bridgeBaseUrl, bridgePhase, fetchImpl]);
+
+  const shellStatusBanners = useMemo(
+    () => resolveShellStatusBanners(bridgePhase, mirrorStatus, writeCapability),
+    [bridgePhase, mirrorStatus, writeCapability],
   );
 
   const sidebar = useMemo(
@@ -324,16 +341,16 @@ export function AppShell({
         </ReadOnlyBanner>
       </div>
 
-      {mirrorStaleBanner ? (
-        <div className="app-shell__mirror-stale">
+      {shellStatusBanners.map((banner) => (
+        <div key={banner.key} className={`app-shell__status-banner app-shell__status-banner--${banner.tone}`}>
           <ReadOnlyBanner
-            label={mirrorStaleBanner.label}
-            className="ui-readonly-banner--compact app-shell__mirror-stale-banner"
+            label={banner.label}
+            className="ui-readonly-banner--compact app-shell__status-banner-inner"
           >
-            {mirrorStaleBanner.body}
+            {banner.body}
           </ReadOnlyBanner>
         </div>
-      ) : null}
+      ))}
 
       {topSlot}
 

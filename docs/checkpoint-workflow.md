@@ -10,6 +10,14 @@ pnpm build:web
 git status
 ```
 
+### Write-mode env hygiene
+
+QA and sandbox runs often export `WRITE_MODE`, `ALLOW_LEGACY_WRITES`, or `BACKUP_DIR`. Those variables leak into the same shell and can make bridge tests (e.g. `root-and-cors`) expect the wrong `writeMode`.
+
+- **Bridge Vitest** clears `WRITE_MODE`, `ALLOW_LEGACY_WRITES`, and `BACKUP_DIR` in `beforeEach` via `services/bridge/vitest.setup.ts` (wired in `services/bridge/vitest.config.ts`), so root `pnpm test` stays reliable even if the shell still has write env set.
+- **Optional:** unset before a full run: `env -u WRITE_MODE -u ALLOW_LEGACY_WRITES -u BACKUP_DIR pnpm test`
+- **Sandbox write smoke** (time move + create): `scripts/qa-sandbox-write-smoke.sh` with bridge up and `SQLITE_PATH` / `BRIDGE_URL` / sandbox `DATA_ROOT` set (see [phase-3-write-safe-qa-checklist.md](./phase-3-write-safe-qa-checklist.md)).
+
 ## Required report fields
 
 Final batch reports must include:

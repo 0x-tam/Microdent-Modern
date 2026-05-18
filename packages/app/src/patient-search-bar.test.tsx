@@ -205,17 +205,23 @@ describe("PatientSearchBar", () => {
     expect(input.value).toBe("Demo Alpha");
   });
 
-  it("closes the results dropdown when Escape is pressed", async () => {
+  it("clears the query and closes results when Escape is pressed", async () => {
     const fetchImpl = vi.fn(async () => {
       return new Response(JSON.stringify(demoHitResponse), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
     });
+    const onPatientSelectionClear = vi.fn();
 
     act(() => {
       root.render(
-        <PatientSearchBar bridgePhase="connected" bridgeBaseUrl="http://127.0.0.1:17890" fetchImpl={fetchImpl} />,
+        <PatientSearchBar
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onPatientSelectionClear={onPatientSelectionClear}
+        />,
       );
     });
     const input = container.querySelector("input#app-patient-search-input") as HTMLInputElement;
@@ -234,7 +240,58 @@ describe("PatientSearchBar", () => {
       input.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     });
     expect(hasSearchResultsDropdown(container)).toBe(false);
-    expect(input.value).toBe("De");
+    expect(input.value).toBe("");
+    expect(onPatientSelectionClear).toHaveBeenCalled();
+  });
+
+  it("selects the first result when Enter is pressed after a successful search", async () => {
+    const fetchImpl = vi.fn(async () => {
+      return new Response(JSON.stringify(demoHitResponse), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+    const onPatientRecordSelect = vi.fn();
+
+    act(() => {
+      root.render(
+        <PatientSearchBar
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onPatientRecordSelect={onPatientRecordSelect}
+        />,
+      );
+    });
+    const input = container.querySelector("input#app-patient-search-input") as HTMLInputElement;
+    await act(async () => {
+      setSearchInputValue(input, "De");
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(320);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    });
+    expect(onPatientRecordSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ patientId: "90001", displayName: "Demo Alpha" }),
+    );
+    expect(input.value).toBe("Demo Alpha");
+    expect(hasSearchResultsDropdown(container)).toBe(false);
+  });
+
+  it("exposes combobox listbox semantics on the search input", async () => {
+    act(() => {
+      root.render(<PatientSearchBar bridgePhase="connected" bridgeBaseUrl="http://127.0.0.1:17890" />);
+    });
+    const input = container.querySelector("input#app-patient-search-input") as HTMLInputElement;
+    expect(input.getAttribute("role")).toBe("combobox");
+    expect(input.getAttribute("aria-haspopup")).toBe("listbox");
+    expect(input.getAttribute("aria-autocomplete")).toBe("list");
   });
 
   it("closes the results dropdown when clicking outside the search component", async () => {

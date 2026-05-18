@@ -35,6 +35,11 @@ function withReferenceDoctors(
 ): ReturnType<typeof vi.fn> {
   return vi.fn((input: RequestInfo | URL) => {
     const u = String(input);
+    if (u.includes("/v1/meta/write-capability")) {
+      return Promise.resolve(inner(input)).catch(() =>
+        jsonResponse({ writeMode: "disabled", writesPermitted: false, writableSandbox: false }),
+      );
+    }
     if (u.includes("/v1/reference/doctors")) {
       if (doctors === "fail") {
         return Promise.resolve(new Response("{}", { status: 500, headers: { "Content-Type": "application/json" } }));
@@ -174,8 +179,115 @@ describe("SchedulePanel", () => {
     expect(container.textContent).toContain("Synthetic Schedule Panel Patient");
     expect(container.textContent).toContain("PNL-9K");
     expect(container.textContent).not.toContain("Patient ID 9001");
-    expect(container.textContent).toContain("Synthetic bay A");
+    expect(container.textContent).toContain("Synthetic bay A (Room 1)");
     expect(container.textContent).toMatch(/Confirmed|Note/i);
+    const rangeTime = container.querySelector("time[dateTime]");
+    expect(rangeTime).toBeTruthy();
+    expect(rangeTime?.textContent?.length).toBeGreaterThan(0);
+  });
+
+  it("exposes copy-friendly room labels in the filter and headings", async () => {
+    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
+      const u = String(input);
+      if (u.includes("/v1/schedule/rooms")) {
+        return Promise.resolve(jsonResponse(sampleRooms));
+      }
+      if (u.includes("/v1/schedule/appointments")) {
+        return Promise.resolve(jsonResponse({ appointments: [] }));
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <SchedulePanel
+          isActive
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const sel = container.querySelector("select.app-schedule__select") as HTMLSelectElement;
+    expect(sel.options[1]?.textContent).toContain("Synthetic bay A (Room 1)");
+    expect(sel.options[2]?.textContent).toContain("Synthetic bay B (Room 2)");
+  });
+
+  it("moves the schedule range with arrow keys when focus is not in a form control", async () => {
+    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
+      const u = String(input);
+      if (u.includes("/v1/schedule/rooms")) {
+        return Promise.resolve(jsonResponse({ rooms: [] }));
+      }
+      if (u.includes("/v1/schedule/appointments")) {
+        return Promise.resolve(jsonResponse({ appointments: [] }));
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <SchedulePanel
+          isActive
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const rangeBefore = container.querySelector("time[dateTime]")?.getAttribute("dateTime") ?? "";
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const rangeAfter = container.querySelector("time[dateTime]")?.getAttribute("dateTime") ?? "";
+    expect(rangeAfter).not.toBe(rangeBefore);
+  });
+
+  it("keeps toolbar navigation buttons keyboard focusable", async () => {
+    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
+      const u = String(input);
+      if (u.includes("/v1/schedule/rooms")) {
+        return Promise.resolve(jsonResponse({ rooms: [] }));
+      }
+      if (u.includes("/v1/schedule/appointments")) {
+        return Promise.resolve(jsonResponse({ appointments: [] }));
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <SchedulePanel
+          isActive
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const todayBtn = [...container.querySelectorAll("button")].find((b) => b.textContent === "Today");
+    expect(todayBtn?.classList.contains("ui-focusable")).toBe(true);
+    expect(todayBtn?.disabled).toBe(false);
   });
 
   it("falls back to Patient ID when patient summary is null", async () => {
@@ -393,12 +505,12 @@ describe("SchedulePanel", () => {
   });
 
   it("shows an error message when appointments cannot be loaded", async () => {
-    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
+    const fetchImpl = withReferenceDoctors((input: RequestInfo | URL) => {
       const u = String(input);
       if (u.includes("/v1/schedule/rooms")) {
         return Promise.resolve(jsonResponse({ rooms: [] }));
       }
-      if (u.includes("/v1/schedule/appointments")) {
+      if (u.includes("/v1/schedule/appointments") && !u.includes("/status")) {
         return Promise.resolve(new Response("{}", { status: 500, headers: { "Content-Type": "application/json" } }));
       }
       return Promise.reject(new Error(String(input)));
@@ -417,12 +529,13 @@ describe("SchedulePanel", () => {
     });
     await act(async () => {
       await Promise.resolve();
-    });
-    await act(async () => {
+      await Promise.resolve();
       await Promise.resolve();
     });
 
     expect(container.textContent).toMatch(/Could not load the schedule/i);
+    expect(container.textContent).toMatch(/clinic service connection/i);
+    expect(container.textContent).not.toMatch(/No appointments in this range/i);
   });
 
   it("shows reference doctor displayName on appointments", async () => {
@@ -773,5 +886,49 @@ describe("SchedulePanel", () => {
     } else {
       expect(container.textContent).not.toContain("Dry-run status");
     }
+  });
+
+  it("shows compact write-mode chip from write-capability", async () => {
+    const fetchImpl = withReferenceDoctors((input) => {
+      const u = String(input);
+      if (u.includes("/v1/meta/write-capability")) {
+        return Promise.resolve(
+          jsonResponse({
+            writeMode: "dry-run",
+            writesPermitted: false,
+            writableSandbox: true,
+          }),
+        );
+      }
+      if (u.includes("/v1/schedule/rooms")) {
+        return Promise.resolve(jsonResponse(sampleRooms));
+      }
+      if (u.includes("/v1/schedule/appointments")) {
+        const m = u.match(/from=([^&]+)/);
+        const fromQ = m ? decodeURIComponent(m[1]) : "";
+        return Promise.resolve(jsonResponse(sampleAppointments(fromQ)));
+      }
+      return Promise.reject(new Error(`unexpected fetch ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <SchedulePanel
+          isActive
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain("Dry-run");
+    expect(container.querySelector(".app-schedule__write-mode-chip")).toBeTruthy();
   });
 });

@@ -41,3 +41,11 @@ export function appointmentStatusWriteUnavailableMessage(status?: number): strin
   }
   return "Status change failed. Check bridge configuration.";
 }
+
+export {
+  backupCreatedFromPlan,
+  buildWriteOperationFeedback,
+  formatWriteOperationFeedbackLines,
+  resolveWriteAuditFeedback,
+  type WriteOperationFeedback,
+} from "./write-operation-feedback.js";

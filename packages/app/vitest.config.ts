@@ -4,5 +4,8 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.tsx", "src/**/*.test.ts"],
+    setupFiles: ["./vitest.setup.ts"],
+    pool: "forks",
+    restoreMocks: true,
   },
 });

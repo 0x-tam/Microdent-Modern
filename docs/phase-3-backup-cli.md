@@ -87,6 +87,16 @@ Each run creates one directory:
 
 **Restore:** see [phase-3-restore-cli.md](./phase-3-restore-cli.md) (`pnpm legacy:restore`).
 
+### Web UI feedback (sandbox pilot)
+
+After a committed appointment status change in the dev pilot UI (`AppointmentStatusWriteAction`), the operator sees PHI-safe lines only:
+
+- **Operation** — UUID from the write plan (`operationId`)
+- **Backup** — whether `backupWouldCreate` / `backupRequired` indicated a backup for that commit (no manifest paths or file names)
+- **Audit** — summary from `GET /v1/meta/write-audit-recent` (entry count, whether the operation id appears, terminal status when matched)
+
+Helpers live in `packages/app/src/write-operation-feedback.ts`. Full backup folders and manifest rows are never shown in the browser.
+
 ### Verify (read-only)
 
 ```bash

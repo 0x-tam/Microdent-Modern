@@ -302,7 +302,14 @@ export function createReadOnlySmokeFetch(): (input: RequestInfo | URL) => Promis
     }
 
     if (u.includes("/v1/mirror/status")) {
-      return Promise.resolve(jsonResponse({ sqliteUsable: false }));
+      return Promise.resolve(
+        jsonResponse({
+          sqliteConfigured: true,
+          sqliteUsable: false,
+          importedTables: [],
+          latestImportRuns: [],
+        }),
+      );
     }
 
     if (u.includes("/v1/schedule/appointments")) {

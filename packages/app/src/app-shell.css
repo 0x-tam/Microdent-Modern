@@ -411,14 +411,24 @@
   flex-shrink: 0;
 }
 
-.app-shell__mirror-stale {
+.app-shell__status-banner {
   padding: var(--ui-space-2) var(--app-gutter-x) 0;
   flex-shrink: 0;
 }
 
-.app-shell__mirror-stale-banner {
+.app-shell__status-banner-inner {
+  border-color: var(--ui-border-subtle);
+  background: var(--ui-bg-surface-raised);
+}
+
+.app-shell__status-banner--warning .app-shell__status-banner-inner {
   border-color: var(--ui-border-warning, var(--ui-border-subtle));
   background: var(--ui-bg-warning-subtle, var(--ui-bg-surface-raised));
+}
+
+.app-shell__status-banner--danger .app-shell__status-banner-inner {
+  border-color: var(--ui-border-danger, var(--ui-border-subtle));
+  background: var(--ui-bg-danger-subtle, var(--ui-bg-surface-raised));
 }
 
 /* ----- Body ----- */

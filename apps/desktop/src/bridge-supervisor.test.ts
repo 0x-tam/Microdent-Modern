@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
 const spawnMock = vi.hoisted(() => vi.fn());
@@ -6,8 +7,10 @@ vi.mock("node:child_process", () => ({
   spawn: spawnMock,
 }));
 
+const existsSyncMock = vi.hoisted(() => vi.fn(() => true));
+
 vi.mock("node:fs", () => ({
-  existsSync: vi.fn(() => true),
+  existsSync: existsSyncMock,
 }));
 
 import { BridgeSupervisor } from "./bridge-supervisor.js";
@@ -37,6 +40,8 @@ function assertNoForbiddenPaths(env: NodeJS.ProcessEnv): void {
 describe("BridgeSupervisor spawn env", () => {
   beforeEach(() => {
     spawnMock.mockReset();
+    existsSyncMock.mockReset();
+    existsSyncMock.mockReturnValue(true);
     spawnMock.mockReturnValue({
       kill: vi.fn(),
       once: vi.fn(),
@@ -99,5 +104,53 @@ describe("BridgeSupervisor spawn env", () => {
     expect(env.WRITE_MODE).toBe("dry-run");
     expect(env.BRIDGE_PORT).toBe("19999");
     assertNoForbiddenPaths(env);
+  });
+
+  it("spawns node with bridge dist/server.js only (no shell, no FoxPro)", async () => {
+    const supervisor = new BridgeSupervisor({
+      repoRoot: "C:\\repos\\Microdent-Modern",
+      config: defaultDesktopConfig(),
+      nodeBinary: "C:\\Program Files\\nodejs\\node.exe",
+    });
+
+    await supervisor.start();
+
+    const [nodeBin, args, options] = spawnMock.mock.calls[0] as [
+      string,
+      string[],
+      { env: NodeJS.ProcessEnv; stdio: string[] },
+    ];
+    expect(nodeBin).toBe("C:\\Program Files\\nodejs\\node.exe");
+    expect(args[0]).toBe(
+      join("C:\\repos\\Microdent-Modern", "services", "bridge", "dist", "server.js"),
+    );
+    expect(options.stdio).toEqual(["ignore", "pipe", "pipe"]);
+    assertNoForbiddenPaths(options.env);
+  });
+
+  it("uiUrl prefers packaged file:// index when web dist exists", () => {
+    existsSyncMock.mockImplementation((path: string) =>
+      String(path).endsWith("apps\\web\\dist\\index.html") ||
+      String(path).endsWith("apps/web/dist/index.html"),
+    );
+
+    const supervisor = new BridgeSupervisor({
+      repoRoot: "/tmp/microdent-repo",
+      config: defaultDesktopConfig(),
+    });
+
+    expect(supervisor.uiUrl).toMatch(/^file:\/\//);
+    expect(supervisor.uiUrl).toMatch(/index\.html$/);
+  });
+
+  it("uiUrl falls back to bridge HTTP when web dist is missing", () => {
+    existsSyncMock.mockReturnValue(false);
+
+    const supervisor = new BridgeSupervisor({
+      repoRoot: "/tmp/microdent-repo",
+      config: { ...defaultDesktopConfig(), bridgePort: 18888 },
+    });
+
+    expect(supervisor.uiUrl).toBe("http://127.0.0.1:18888/");
   });
 });

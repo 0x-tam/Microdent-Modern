@@ -1,6 +1,6 @@
 import { createBridgeClient } from "@microdent/bridge-client";
 import type { BridgeDevStatusResponse, ScheduleAppointmentItem, ScheduleRoomItem } from "@microdent/contracts";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge, Button, Card, CardBody, CardHeader, EmptyState } from "@microdent/ui";
 import type { BridgeHealthPhase } from "./bridge-health.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
@@ -11,10 +11,12 @@ import { useProcedureReference } from "./useProcedureReference.js";
 import {
   CLINIC_SERVICE_CHECKING,
   CLINIC_SERVICE_CONNECT_SCHEDULE,
+  SCHEDULE_LOAD_ERROR,
   SCHEDULE_PRIVACY_LEDE,
 } from "./read-only-ui-copy.js";
 import { AppointmentStatusDryRunAction } from "./AppointmentStatusDryRunAction.js";
 import { AppointmentStatusWriteAction } from "./AppointmentStatusWriteAction.js";
+import { resolveWriteModeChip } from "./shell-status-banners.js";
 
 export type SchedulePanelProps = {
   isActive: boolean;
@@ -159,6 +161,15 @@ function roomLabel(rooms: ScheduleRoomItem[], roomNum: number): string {
   return `Room ${roomNum}`;
 }
 
+/** Human-readable room label for filters and headings (includes room number when a display name is set). */
+function roomCopyLabel(rooms: ScheduleRoomItem[], roomNum: number): string {
+  const hit = rooms.find((r) => r.room === roomNum);
+  if (hit?.displayName) {
+    return `${hit.displayName} (Room ${roomNum})`;
+  }
+  return `Room ${roomNum}`;
+}
+
 function sortAppointments(a: ScheduleAppointmentItem, b: ScheduleAppointmentItem): number {
   const ta = a.time.trim();
   const tb = b.time.trim();
@@ -225,6 +236,7 @@ export function SchedulePanel({
   const [appointments, setAppointments] = useState<ScheduleAppointmentItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const scheduleLoadSeq = useRef(0);
 
   const setRange = useCallback((from: string, to: string) => {
     if (inclusiveDayCount(from, to) > 14) {
@@ -307,7 +319,7 @@ export function SchedulePanel({
   }, [devWriteActionsEnabled, canLoad, base, fetchImpl]);
 
   useEffect(() => {
-    if (!appointmentStatusWritePilot || !canLoad) {
+    if (!canLoad) {
       setWriteCapability(null);
       return;
     }
@@ -324,7 +336,7 @@ export function SchedulePanel({
     return () => {
       cancelled = true;
     };
-  }, [appointmentStatusWritePilot, canLoad, base, fetchImpl, refreshTick]);
+  }, [canLoad, base, fetchImpl, refreshTick]);
 
   useEffect(() => {
     if (!isActive || !canLoad) {
@@ -335,17 +347,22 @@ export function SchedulePanel({
       return;
     }
 
+    setLoading(true);
+    setError(null);
+
     let cancelled = false;
+    const seq = ++scheduleLoadSeq.current;
     const client = createBridgeClient({ baseUrl: base, fetch: fetchImpl });
 
     async function run(): Promise<void> {
-      setLoading(true);
-      setError(null);
       let roomsList: ScheduleRoomItem[] = [];
       try {
         roomsList = (await client.getScheduleRooms()).rooms;
       } catch {
         roomsList = [];
+      }
+      if (cancelled || seq !== scheduleLoadSeq.current) {
+        return;
       }
       try {
         const apptData = await client.getScheduleAppointments({
@@ -353,16 +370,21 @@ export function SchedulePanel({
           to: rangeTo,
           room: roomFilter === "" ? undefined : roomFilter,
         });
-        if (cancelled) return;
+        if (cancelled || seq !== scheduleLoadSeq.current) {
+          return;
+        }
         setRooms(roomsList);
         setAppointments(apptData.appointments);
+        setError(null);
       } catch {
-        if (cancelled) return;
+        if (cancelled || seq !== scheduleLoadSeq.current) {
+          return;
+        }
         setRooms(roomsList);
         setAppointments([]);
-        setError("Could not load the schedule. Check the bridge and try Refresh.");
+        setError(SCHEDULE_LOAD_ERROR);
       } finally {
-        if (!cancelled) {
+        if (!cancelled && seq === scheduleLoadSeq.current) {
           setLoading(false);
         }
       }
@@ -418,6 +440,7 @@ export function SchedulePanel({
   }, [rooms]);
 
   const offlineMessage = bridgePhase === "checking" ? CLINIC_SERVICE_CHECKING : CLINIC_SERVICE_CONNECT_SCHEDULE;
+  const writeModeChip = resolveWriteModeChip(writeCapability);
 
   return (
     <div className="app-schedule">
@@ -480,6 +503,15 @@ export function SchedulePanel({
             </Button>
           </div>
           <div className="app-schedule__toolbar-actions">
+            {writeModeChip ? (
+              <Badge
+                variant={writeModeChip.variant}
+                className="app-schedule__write-mode-chip"
+                semanticLabel={`Bridge write mode: ${writeModeChip.label}`}
+              >
+                {writeModeChip.label}
+              </Badge>
+            ) : null}
             {roomOptions.length > 0 ? (
               <label className="app-schedule__room-filter">
                 <span className="app-schedule__room-filter-label">Room</span>
@@ -496,7 +528,7 @@ export function SchedulePanel({
                   <option value="">All rooms</option>
                   {roomOptions.map((n) => (
                     <option key={n} value={String(n)}>
-                      {roomLabel(rooms, n)}
+                      {roomCopyLabel(rooms, n)}
                     </option>
                   ))}
                 </select>
@@ -514,8 +546,12 @@ export function SchedulePanel({
             </Button>
           </div>
         </div>
-        <p className="app-schedule__range" aria-live="polite">
-          {rangeHeading}
+        <p
+          className="app-schedule__range"
+          aria-live="polite"
+          aria-label={`Schedule range: ${rangeHeading}`}
+        >
+          <time dateTime={`${rangeFrom}/${rangeTo}`}>{rangeHeading}</time>
         </p>
         <p className="app-schedule__privacy">{SCHEDULE_PRIVACY_LEDE}</p>
       </div>
@@ -546,7 +582,7 @@ export function SchedulePanel({
             <Card key={dateIso} className="app-schedule__day-card">
               <CardHeader>
                 <p className="ui-card__title app-card-title-lg app-schedule__day-title">
-                  {formatRangeHeading(dateIso, dateIso, "day")}
+                  <time dateTime={dateIso}>{formatRangeHeading(dateIso, dateIso, "day")}</time>
                 </p>
               </CardHeader>
               <CardBody>
@@ -554,8 +590,11 @@ export function SchedulePanel({
                   .sort(([a], [b]) => a - b)
                   .map(([roomNum, list]) => (
                     <section key={`${dateIso}-${roomNum}`} className="app-schedule__room-block">
-                      <h3 className="app-schedule__room-heading">{roomLabel(rooms, roomNum)}</h3>
-                      <ul className="app-schedule__appt-list" aria-label={`Appointments on ${dateIso} in room ${roomNum}`}>
+                      <h3 className="app-schedule__room-heading">{roomCopyLabel(rooms, roomNum)}</h3>
+                      <ul
+                        className="app-schedule__appt-list"
+                        aria-label={`Appointments on ${formatRangeHeading(dateIso, dateIso, "day")} in ${roomCopyLabel(rooms, roomNum)}`}
+                      >
                         {list.map((appt) => {
                           const chart = schedulePatientChart(appt);
                           return (

@@ -82,6 +82,12 @@ describe("runMirrorImportSafe", () => {
       for (const token of BLOCKED_TOKENS) {
         expect(dump).not.toContain(token);
       }
+
+      const second = await runMirrorImportSafe({ dataRoot, sqlitePath });
+      expect(second.overall).toBe("success");
+      for (const step of second.steps) {
+        expect(step.status).toBe("success");
+      }
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

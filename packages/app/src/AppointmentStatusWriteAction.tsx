@@ -6,9 +6,11 @@ import {
   APPOINTMENT_STATUS_OPTIONS,
   APPOINTMENT_STATUS_WRITE_CONFIRM,
   appointmentStatusWriteUnavailableMessage,
+  formatWriteOperationFeedbackLines,
   isAppointmentStatusWritePilotEnabled,
   isAppointmentStatusWriteReady,
 } from "./appointment-status-write.js";
+import { buildWriteOperationFeedback } from "./write-operation-feedback.js";
 import { summarizeWritePlan } from "./appointment-status-dry-run.js";
 
 export type AppointmentStatusWriteActionProps = {
@@ -24,7 +26,7 @@ export type AppointmentStatusWriteActionProps = {
 type WriteUiState =
   | { kind: "idle" }
   | { kind: "loading" }
-  | { kind: "result"; committed: boolean; mode: string }
+  | { kind: "result"; committed: boolean; mode: string; feedbackLines: string[] }
   | { kind: "error"; message: string };
 
 export function AppointmentStatusWriteAction({
@@ -52,7 +54,22 @@ export function AppointmentStatusWriteAction({
     try {
       const plan = await client.applyAppointmentStatusInSandbox(appointment.id, { status: nextStatus });
       const summary = summarizeWritePlan(plan);
-      setState({ kind: "result", committed: summary.committed, mode: summary.mode });
+      let audit = null;
+      if (summary.committed) {
+        try {
+          audit = await client.getWriteAuditRecent();
+        } catch {
+          audit = null;
+        }
+      }
+      const feedback = buildWriteOperationFeedback(plan, audit);
+      const feedbackLines = formatWriteOperationFeedbackLines(feedback, audit);
+      setState({
+        kind: "result",
+        committed: summary.committed,
+        mode: summary.mode,
+        feedbackLines,
+      });
       if (summary.committed) {
         onCommitted?.();
       }
@@ -110,15 +127,18 @@ export function AppointmentStatusWriteAction({
         </Button>
       </div>
       {state.kind === "result" ? (
-        <p
-          className="app-appt-status-write__result"
-          role="status"
-          data-committed={String(state.committed)}
-        >
-          {state.committed
-            ? `Committed: true — status updated (${state.mode}).`
-            : `Committed: false — dry-run plan only; nothing was saved (${state.mode}).`}
-        </p>
+        <div className="app-appt-status-write__result" role="status" data-committed={String(state.committed)}>
+          <p className="app-appt-status-write__result-summary">
+            {state.committed
+              ? `Committed: true — status updated (${state.mode}).`
+              : `Committed: false — dry-run plan only; nothing was saved (${state.mode}).`}
+          </p>
+          <ul className="app-appt-status-write__feedback" aria-label="Write operation feedback">
+            {state.feedbackLines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </div>
       ) : null}
       {state.kind === "error" ? (
         <p className="app-appt-status-write__error" role="alert">

@@ -147,10 +147,18 @@ Migration coverage: `apply-migrations.test.ts` includes `007_write_audit`.
 
 ---
 
+## Bridge read API (operator UI)
+
+`GET /v1/meta/write-audit-recent` returns the latest operations with **safe fields only** (`operationId`, `workflow`, `terminalStatus`, `requestedAt`, `finishedAt`). The sandbox status write pilot uses this after a commit to show whether the operation appears in recent audit metadata — never step `detail_json`, paths, or row payloads.
+
+Implementation: `services/bridge/src/sqlite/write-audit-recent.ts`. Client: `getWriteAuditRecent()` in `@microdent/bridge-client`. UI formatting: `packages/app/src/write-operation-feedback.ts`.
+
+---
+
 ## Not implemented (later bands)
 
 - `write_backups` catalog table and backup executor
-- Bridge `GET /v1/audit/operations` routes
+- Bridge `GET /v1/audit/operations` routes (full operation detail)
 - Wiring into real write handlers (Phase 4)
 - DBF mutation or `O_RDWR` on production DATA_ROOT
 

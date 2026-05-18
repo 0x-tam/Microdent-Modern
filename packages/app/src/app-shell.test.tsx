@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { AppShell, resolveMirrorDiagnosticLabel, resolveShellClinicLabel } from "./AppShell.js";
+import { resolveShellStatusBanners } from "./shell-status-banners.js";
 
 describe("resolveMirrorDiagnosticLabel", () => {
   it("returns null when diagnostics are disabled or bridge is not connected", () => {
@@ -105,6 +106,15 @@ describe("AppShell", () => {
   it("shows the global privacy note under the read-only banner", () => {
     const html = renderToStaticMarkup(<AppShell />);
     expect(html).toContain("stay hidden in this read-only viewer");
+  });
+
+  it("resolveShellStatusBanners includes write mode when connected", () => {
+    const banners = resolveShellStatusBanners("connected", null, {
+      writeMode: "dry-run",
+      writesPermitted: false,
+      writableSandbox: true,
+    });
+    expect(banners.some((b) => b.key === "write-mode-dry-run")).toBe(true);
   });
 
   it("does not show mirror diagnostic in static markup (dev fetch runs client-side only)", () => {

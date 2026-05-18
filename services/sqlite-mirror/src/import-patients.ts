@@ -46,6 +46,15 @@ function activeToSqlite(active: boolean | null): number | null {
   return active ? 1 : 0;
 }
 
+function deriveSafeSqliteSubcode(error: unknown): string {
+  if (!(error instanceof Error)) return "UNKNOWN";
+  const codeMatch = error.message.match(/\b(SQLITE_[A-Z0-9_]+)\b/);
+  if (codeMatch) return codeMatch[1];
+  if (/foreign key/i.test(error.message)) return "SQLITE_CONSTRAINT";
+  if (/constraint/i.test(error.message)) return "SQLITE_CONSTRAINT";
+  return "SQLITE_ERROR";
+}
+
 function insertPatientBatch(db: SqliteDatabase, importedAt: string, rows: ReturnType<typeof mapSafePatientRow>[]): void {
   const stmt = db.prepare(
     `INSERT OR REPLACE INTO patients (
@@ -131,82 +140,88 @@ export async function importPatients(options: ImportPatientsOptions): Promise<Im
     let rowIndex = 0;
     let batch: NonNullable<ReturnType<typeof mapSafePatientRow>>[] = [];
 
-    db.exec("BEGIN IMMEDIATE;");
+    db.exec("PRAGMA foreign_keys = OFF;");
     try {
-      db.exec("DELETE FROM patients");
-
-      const flush = () => {
-        if (batch.length === 0) return;
-        insertPatientBatch(db, importedAt, batch);
-        patientsImported += batch.length;
-        batch = [];
-      };
-
+      db.exec("BEGIN IMMEDIATE;");
       try {
-        for await (const row of dbf) {
-          rowIndex += 1;
-          const rec = row as Record<string, unknown>;
-          const mapped = mapSafePatientRow(rec, Boolean(row[DELETED]));
-          if (!mapped) {
-            errorCount += 1;
-            recordImportError(db, runId, {
-              sourceTable: SOURCE_TABLE,
-              sourceFile: PATIENT_DBF,
-              errorCode: "INVALID_PATIENT_ID",
-              message: "row skipped: missing or invalid ID",
-              rowIndex,
-            });
-            continue;
+        db.exec("DELETE FROM patients");
+
+        const flush = () => {
+          if (batch.length === 0) return;
+          insertPatientBatch(db, importedAt, batch);
+          patientsImported += batch.length;
+          batch = [];
+        };
+
+        try {
+          for await (const row of dbf) {
+            rowIndex += 1;
+            const rec = row as Record<string, unknown>;
+            const mapped = mapSafePatientRow(rec, Boolean(row[DELETED]));
+            if (!mapped) {
+              errorCount += 1;
+              recordImportError(db, runId, {
+                sourceTable: SOURCE_TABLE,
+                sourceFile: PATIENT_DBF,
+                errorCode: "INVALID_PATIENT_ID",
+                message: "row skipped: missing or invalid ID",
+                rowIndex,
+              });
+              continue;
+            }
+            batch.push(mapped);
+            if (batch.length >= BATCH_SIZE) flush();
           }
-          batch.push(mapped);
-          if (batch.length >= BATCH_SIZE) flush();
+          flush();
+        } catch {
+          errorCount += 1;
+          recordImportError(db, runId, {
+            sourceTable: SOURCE_TABLE,
+            sourceFile: PATIENT_DBF,
+            errorCode: "PATIENT_DBF_SCAN_FAILED",
+            message: "scan failed while reading PATIENT.DBF",
+          });
+          db.exec("ROLLBACK;");
+          finishImportRun(db, runId, {
+            status: "failed",
+            rowCounts: { patients: patientsImported },
+            notes: "scan failed",
+          });
+          return { runId, status: "failed", patientsImported, errorCount };
         }
-        flush();
-      } catch {
-        errorCount += 1;
+
+        const status = errorCount > 0 ? "partial" : "success";
+        finishImportRun(db, runId, {
+          status,
+          tablesSucceeded: [SOURCE_TABLE],
+          rowCounts: { patients: patientsImported },
+        });
+        db.exec("COMMIT;");
+
+        return {
+          runId,
+          status,
+          patientsImported,
+          errorCount,
+        };
+      } catch (error) {
+        db.exec("ROLLBACK;");
+        const subcode = deriveSafeSqliteSubcode(error);
         recordImportError(db, runId, {
           sourceTable: SOURCE_TABLE,
           sourceFile: PATIENT_DBF,
-          errorCode: "PATIENT_DBF_SCAN_FAILED",
-          message: "scan failed while reading PATIENT.DBF",
+          errorCode: "PATIENT_IMPORT_TRANSACTION_FAILED",
+          message: `sqlite transaction failed during patient import (${subcode})`,
         });
-        db.exec("ROLLBACK;");
         finishImportRun(db, runId, {
           status: "failed",
           rowCounts: { patients: patientsImported },
-          notes: "scan failed",
+          notes: "transaction failed",
         });
-        return { runId, status: "failed", patientsImported, errorCount };
+        return { runId, status: "failed", patientsImported, errorCount: errorCount + 1 };
       }
-
-      const status = errorCount > 0 ? "partial" : "success";
-      finishImportRun(db, runId, {
-        status,
-        tablesSucceeded: [SOURCE_TABLE],
-        rowCounts: { patients: patientsImported },
-      });
-      db.exec("COMMIT;");
-
-      return {
-        runId,
-        status,
-        patientsImported,
-        errorCount,
-      };
-    } catch {
-      db.exec("ROLLBACK;");
-      recordImportError(db, runId, {
-        sourceTable: SOURCE_TABLE,
-        sourceFile: PATIENT_DBF,
-        errorCode: "PATIENT_IMPORT_TRANSACTION_FAILED",
-        message: "sqlite transaction failed during patient import",
-      });
-      finishImportRun(db, runId, {
-        status: "failed",
-        rowCounts: { patients: patientsImported },
-        notes: "transaction failed",
-      });
-      return { runId, status: "failed", patientsImported, errorCount: errorCount + 1 };
+    } finally {
+      db.exec("PRAGMA foreign_keys = ON;");
     }
   } finally {
     db.close();

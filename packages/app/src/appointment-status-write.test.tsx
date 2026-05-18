@@ -146,7 +146,26 @@ describe("AppointmentStatusWriteAction", () => {
   }
 
   it("commits after confirm and refreshes parent", async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(committedPlan));
+    const auditBody = {
+      sqliteConfigured: true,
+      sqliteUsable: true,
+      entries: [
+        {
+          operationId: committedPlan.operationId,
+          workflow: committedPlan.workflow,
+          terminalStatus: "success",
+          requestedAt: "2026-05-15T12:00:00.000Z",
+          finishedAt: "2026-05-15T12:00:01.000Z",
+        },
+      ],
+    };
+    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
+      const u = String(input);
+      if (u.includes("/write-audit-recent")) {
+        return Promise.resolve(jsonResponse(auditBody));
+      }
+      return Promise.resolve(jsonResponse(committedPlan));
+    });
     const onCommitted = vi.fn();
 
     renderPilot({ fetchImpl, onCommitted });
@@ -161,10 +180,17 @@ describe("AppointmentStatusWriteAction", () => {
         headers: expect.objectContaining({ "X-Write-Intent": "commit" }),
       }),
     );
+    expect(fetchImpl).toHaveBeenCalledWith(
+      expect.stringContaining("/write-audit-recent"),
+      expect.anything(),
+    );
     expect(onCommitted).toHaveBeenCalledTimes(1);
     const text = container.textContent ?? "";
     expect(text).toContain("Committed: true");
     expect(text).toContain("status updated");
+    expect(text).toContain(committedPlan.operationId);
+    expect(text).toContain("Backup created");
+    expect(text).toContain("Audit: operation found");
     const result = container.querySelector(".app-appt-status-write__result");
     expect(result?.getAttribute("data-committed")).toBe("true");
     assertNoForbiddenDomTokens(text);

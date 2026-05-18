@@ -25,6 +25,9 @@ export const CLINIC_SERVICE_CHECKING = "Waiting for the clinic service…";
 
 export const CLINIC_SERVICE_CONNECT_SCHEDULE = "Connect the clinic service to load your schedule.";
 
+export const SCHEDULE_LOAD_ERROR =
+  "Could not load the schedule. Check the clinic service connection and tap Refresh.";
+
 export const CLINIC_SERVICE_CONNECT_TODAY =
   "Connect the clinic service to load today’s appointments from your copied data.";
 
@@ -88,3 +91,53 @@ export const MIRROR_STALE_BANNER_LABEL = "Local copy may be outdated";
 
 export const MIRROR_STALE_BANNER_BODY =
   "The SQLite mirror has not been refreshed recently. Search and schedule may show older data until your operator runs a safe mirror import.";
+
+export const MIRROR_ACTIVE_BANNER_LABEL = "SQLite mirror active";
+
+export const MIRROR_ACTIVE_BANNER_BODY =
+  "Search and schedule use your imported SQLite mirror. Run a safe mirror import when you need fresher copied data.";
+
+export const MIRROR_FALLBACK_BANNER_LABEL = "Using DBF fallback";
+
+export const MIRROR_FALLBACK_BANNER_BODY =
+  "The SQLite mirror is unavailable. Search and schedule read legacy DBF files directly until mirror import succeeds.";
+
+export const WRITE_MODE_DISABLED_BANNER_LABEL = "Writes disabled";
+
+export const WRITE_MODE_DISABLED_BANNER_BODY =
+  "The bridge will not apply changes. Dry-run and commit routes stay blocked until an operator enables write mode on the server.";
+
+export const WRITE_MODE_DRY_RUN_BANNER_LABEL = "Write mode: dry-run";
+
+export const WRITE_MODE_DRY_RUN_BANNER_BODY =
+  "The bridge validates write plans only. Nothing is saved until write mode is set to enabled on a disposable sandbox.";
+
+export const WRITE_MODE_ENABLED_BANNER_LABEL = "Write mode: enabled";
+
+export const WRITE_MODE_ENABLED_BANNER_BODY =
+  "The bridge may commit changes when routes and safety gates allow. Use only on disposable test data you can restore.";
+
+export const SANDBOX_WRITE_WARNING_BANNER_LABEL = "Disposable sandbox";
+
+export const SANDBOX_WRITE_WARNING_BANNER_BODY =
+  "Writable sandbox is active. Commits change disposable DATA only — never production legacy folders.";
+
+export const WRITE_MODE_CHIP_DISABLED = "Writes off";
+
+export const WRITE_MODE_CHIP_DRY_RUN = "Dry-run";
+
+export const WRITE_MODE_CHIP_ENABLED = "Writes on";
+
+export const WRITE_OPERATION_ID_PREFIX = "Operation";
+
+export const WRITE_BACKUP_CREATED_LINE = "Backup created for this change.";
+
+export const WRITE_BACKUP_NOT_CREATED_LINE = "No backup was recorded for this change.";
+
+export const WRITE_BACKUP_SKIPPED_LINE = "Backup not applicable (dry-run or uncommitted).";
+
+export const WRITE_AUDIT_NOT_CONFIGURED = "Audit log: not configured on this bridge.";
+
+export const WRITE_AUDIT_UNAVAILABLE = "Audit log: unavailable.";
+
+export const WRITE_AUDIT_EMPTY = "Audit log: no recent entries.";

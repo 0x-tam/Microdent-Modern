@@ -204,6 +204,18 @@ export function PatientSearchBar({
     setIsResultsPanelOpen(false);
   }, []);
 
+  const clearSearch = useCallback(() => {
+    requestSeq.current += 1;
+    setSearching(false);
+    setResults([]);
+    setSearchError(null);
+    setDevSchemaHint(false);
+    setLastFinishedQuery(null);
+    setQuery("");
+    setIsResultsPanelOpen(false);
+    onPatientSelectionClear?.();
+  }, [onPatientSelectionClear]);
+
   const selectPatientHit = useCallback(
     (hit: PatientSearchHit) => {
       onPatientRecordSelect?.(hit);
@@ -230,21 +242,30 @@ export function PatientSearchBar({
     void runSearch(trimmed);
   }, [canSearch, trimmed, runSearch]);
 
+  const canSelectFirstResult =
+    trimmed.length >= 2 &&
+    !searching &&
+    searchError === null &&
+    lastFinishedQuery === trimmed &&
+    results.length > 0;
+
   const onKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "Escape") {
-        if (isResultsPanelOpen) {
-          e.preventDefault();
-          dismissResultsPanel();
-        }
+        e.preventDefault();
+        clearSearch();
         return;
       }
       if (e.key === "Enter") {
         e.preventDefault();
+        if (canSelectFirstResult) {
+          selectPatientHit(results[0]);
+          return;
+        }
         flushAndSearch();
       }
     },
-    [dismissResultsPanel, flushAndSearch, isResultsPanelOpen],
+    [canSelectFirstResult, clearSearch, flushAndSearch, results, selectPatientHit],
   );
 
   const statusLine = useMemo(() => {
@@ -304,8 +325,10 @@ export function PatientSearchBar({
           placeholder="Find a patient by name or chart number"
           aria-describedby={`${domIds.hint} ${domIds.status}`}
           aria-expanded={showDropdown}
-          aria-controls={domIds.listbox}
+          aria-controls={showDropdown ? domIds.listbox : undefined}
           aria-autocomplete="list"
+          aria-haspopup="listbox"
+          aria-busy={searching}
           role="combobox"
           value={query}
           onChange={(e) => {
@@ -370,15 +393,19 @@ export function PatientSearchBar({
             <p className="app-patient-search__dropdown-muted">No matches.</p>
           ) : (
             <ul className="app-patient-search__hits">
-              {results.map((hit) => {
+              {results.map((hit, index) => {
                 const secondary = formatHitSecondary(hit);
                 const isSelected = selectedPatientId !== null && selectedPatientId === hit.patientId;
+                const optionId = `${domIds.listbox}-option-${hit.patientId}`;
                 return (
                   <li key={hit.patientId} className="app-patient-search__hit-wrap">
                     <button
+                      id={optionId}
                       type="button"
                       role="option"
                       aria-selected={isSelected}
+                      aria-posinset={index + 1}
+                      aria-setsize={results.length}
                       className={`app-patient-search__hit ui-focusable${isSelected ? " app-patient-search__hit--selected" : ""}`}
                       onClick={() => selectPatientHit(hit)}
                     >

@@ -1,5 +1,6 @@
 import { join } from "node:path";
-import { DBFFile } from "dbffile";
+import { DBFFile, type FieldDescriptor } from "dbffile";
+import { createTestDbf } from "./dbf-test-create.js";
 
 export const scheduleFields = [
   { name: "ID", type: "N" as const, size: 12, decimalPlaces: 0 },
@@ -19,6 +20,28 @@ export const scheduleFields = [
   { name: "RECALL", type: "N" as const, size: 2, decimalPlaces: 0 },
   { name: "UNREASON", type: "N" as const, size: 2, decimalPlaces: 0 },
   { name: "MISSED", type: "L" as const, size: 1 },
+];
+
+/** Production-like SCHEDULE layout: COMMENT is FoxPro memo (M), includes CASENUM. */
+export const scheduleFieldsMemoComment: FieldDescriptor[] = [
+  { name: "ID", type: "N", size: 12, decimalPlaces: 0 },
+  { name: "DATE", type: "D", size: 8 },
+  { name: "TIME", type: "C", size: 8 },
+  { name: "DURATION", type: "N", size: 3, decimalPlaces: 0 },
+  { name: "ROOM", type: "N", size: 2, decimalPlaces: 0 },
+  { name: "COMMENT", type: "M", size: 4 },
+  { name: "PROC_CLASS", type: "N", size: 2, decimalPlaces: 0 },
+  { name: "PAT_ID", type: "N", size: 10, decimalPlaces: 0 },
+  { name: "PAT_NAME", type: "C", size: 41 },
+  { name: "DOC_ID", type: "N", size: 5, decimalPlaces: 0 },
+  { name: "PERIOD", type: "N", size: 3, decimalPlaces: 0 },
+  { name: "TELEPHONE", type: "C", size: 20 },
+  { name: "STATUS", type: "N", size: 2, decimalPlaces: 0 },
+  { name: "CASENUM", type: "C", size: 12 },
+  { name: "VAC_ID", type: "N", size: 10, decimalPlaces: 0 },
+  { name: "RECALL", type: "N", size: 2, decimalPlaces: 0 },
+  { name: "UNREASON", type: "N", size: 2, decimalPlaces: 0 },
+  { name: "MISSED", type: "L", size: 1 },
 ];
 
 const patientScheduleFields = [
@@ -229,6 +252,43 @@ export async function writeScheduleFixtures(dir: string, opts?: { withPatientDbf
       MISSED: false,
     },
   ]);
+  if (opts?.withPatientDbf !== false) {
+    await writePatientDbfForSchedule(dir);
+  }
+}
+
+/** Schedule fixtures with COMMENT as memo (M) — matches clinic SCHEDULE.DBF shape for create writes. */
+export async function writeScheduleFixturesWithMemoComment(
+  dir: string,
+  opts?: { withPatientDbf?: boolean },
+): Promise<void> {
+  const dicPath = join(dir, "DICSCHED.DBF");
+  const dicRow: Record<string, string> = {};
+  for (let i = 1; i <= 25; i++) {
+    dicRow[`ROOM${i}`] = "";
+  }
+  dicRow.ROOM1 = "Synthetic operatory A";
+  const dic = await DBFFile.create(dicPath, dicFields(), {});
+  await dic.appendRecords([dicRow]);
+
+  const roomPath = join(dir, "SC_ROOM.DBF");
+  const rooms = await DBFFile.create(roomPath, scRoomFields, {});
+  await rooms.appendRecords([
+    {
+      ROOM: 1,
+      DAY1: true,
+      DAY2: true,
+      DAY3: true,
+      DAY4: true,
+      DAY5: true,
+      DAY6: false,
+      DAY7: false,
+      DOCT: 42,
+    },
+  ]);
+
+  await createTestDbf(join(dir, "SCHEDULE.DBF"), scheduleFieldsMemoComment);
+
   if (opts?.withPatientDbf !== false) {
     await writePatientDbfForSchedule(dir);
   }

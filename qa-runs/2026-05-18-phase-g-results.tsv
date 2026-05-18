@@ -1,0 +1,20 @@
+G1-dry-run|pass|200|hash unchanged
+G1-commit|pass|200|mirror status still 0 (stale until reimport)
+G1-restore|pass|0|hash reverted
+G1-blocked-COMMENT|pass|400|expected 400
+G2-dry-run|fail|409|hash
+G2-commit|fail|409|hash
+G2-restore|pass|0|hash
+G2-blocked-PAT_NAME|pass|400|expected 400
+G2-dry-run	fail	409	hash
+G2-commit	fail	409	hash
+G2-restore	pass	0	hash
+G2-blocked-PAT_NAME	pass	400	expected 400
+G3-dry-run	pass	200	hash
+G3-commit	fail	200	hash
+G3-restore	pass	0	hash
+G3-blocked-TELEPHONE	pass	400	expected 400
+G4-dry-run	pass	200	hash
+G4-commit	pass	200	hash
+G4-restore	pass	0	hash
+G4-blocked-HOME_PHONE	pass	400	expected 400
