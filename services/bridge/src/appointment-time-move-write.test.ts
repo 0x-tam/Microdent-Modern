@@ -205,6 +205,7 @@ describe("PATCH appointment time move — sandbox write band", () => {
       const row = await readScheduleRowInternal(dataRoot, "1001");
       expect(row.kind).toBe("ok");
       if (row.kind === "ok") {
+        expect(row.row.date).toBe("2026-05-20");
         expect(row.row.time).toBe("15:00");
         expect(row.row.room).toBe(2);
       }

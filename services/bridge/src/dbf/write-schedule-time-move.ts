@@ -4,7 +4,7 @@ import { DBFFile, DELETED } from "dbffile";
 import type { DataRootSet } from "../config.js";
 import {
   encodeCharField,
-  encodeFoxProDateField,
+  encodeDbf8CharDateField,
   encodeNumericField,
   fieldByteOffset,
   fieldSize,
@@ -105,7 +105,7 @@ export async function writeScheduleAppointmentTimeMove(
   const patches: { offset: number; buf: Buffer }[] = [
     {
       offset: targetRecordOffset + dateOffset,
-      buf: encodeFoxProDateField(input.date),
+      buf: encodeDbf8CharDateField(input.date, fieldSize(dbf, "DATE")),
     },
     {
       offset: targetRecordOffset + timeOffset,

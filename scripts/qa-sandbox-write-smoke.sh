@@ -3,8 +3,11 @@
 # Per workflow: dry-run → backup → commit → restore → hash revert.
 # Logs HTTP codes, workflows, operationId, hash prefixes, backup basenames only.
 #
+# Write confirmation reads SCHEDULE.DBF / PATIENT.DBF directly (qa-sandbox-readback CLI).
+# The SQLite mirror is NOT refreshed on commit — do not use mirror tables for post-write readback.
+#
 # Requires:
-#   SQLITE_PATH   — mirror sqlite (appointment/patient ids; optional audit SQL)
+#   SQLITE_PATH   — mirror sqlite (fixture ids, sparse dates, optional audit SQL)
 #   BRIDGE_URL    — e.g. http://127.0.0.1:17890
 #   DATA_ROOT     — must resolve under Microdent-Write-Sandbox/DATA
 #
@@ -19,6 +22,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 QA_REPO="${QA_REPO:-"$(cd "${SCRIPT_DIR}/.." && pwd)"}"
 BACKUP_DIR="${BACKUP_DIR:-"$(dirname "${DATA_ROOT}")/backups"}"
+BRIDGE_PKG="${QA_REPO}/services/bridge"
+READBACK_CLI="${BRIDGE_PKG}/dist/cli/qa-sandbox-readback.js"
 
 JQ_WRITE='{operationId, workflow, mode, committed, fieldsChanged, warnings: [.warnings[]? | {code, severity}]}'
 CURRENT_WORKFLOW=""
@@ -52,6 +57,10 @@ if [[ ! -f "${DATA_ROOT}/SCHEDULE.DBF" ]]; then
 fi
 if [[ ! -f "${DATA_ROOT}/PATIENT.DBF" ]]; then
   log "FAIL: PATIENT.DBF not found under DATA_ROOT"
+  exit 1
+fi
+if [[ ! -f "${READBACK_CLI}" ]]; then
+  log "FAIL: missing ${READBACK_CLI} (run bridge build)"
   exit 1
 fi
 
@@ -143,6 +152,90 @@ latest_backup_basename() {
   [[ -n "${path}" ]] && basename "${path}" || echo "none"
 }
 
+assert_backup_dir() {
+  local manifest_path="$1" workflow="$2"
+  if [[ -z "${manifest_path}" || ! -d "${manifest_path}" ]]; then
+    log "FAIL: backup directory missing workflow=${workflow}"
+    exit 1
+  fi
+  log "backup_dir workflow=${workflow} basename=$(basename "${manifest_path}")"
+}
+
+operation_id_from_raw() {
+  body_from_raw "$1" | jq -r '.operationId // empty' 2>/dev/null || true
+}
+
+dbf_readback() {
+  (cd "${BRIDGE_PKG}" && DATA_ROOT="${DATA_ROOT}" node dist/cli/qa-sandbox-readback.js "$@")
+}
+
+assert_dbf_schedule_status() {
+  local appt_id="$1" expected="$2" workflow="$3"
+  local actual
+  actual="$(dbf_readback schedule-status "${appt_id}" 2>/dev/null || true)"
+  if [[ "${actual}" != "${expected}" ]]; then
+    log "FAIL: dbf readback workflow=${workflow} expected_status=${expected} got=${actual:-none}"
+    exit 1
+  fi
+  log "readback workflow=${workflow} source=dbf appointment_id=${appt_id} status=${actual}"
+}
+
+assert_dbf_patient_chart() {
+  local patient_id="$1" expected="$2" workflow="$3"
+  local actual
+  actual="$(dbf_readback patient-chart "${patient_id}" 2>/dev/null || true)"
+  if [[ "${actual}" != "${expected}" ]]; then
+    log "FAIL: dbf readback workflow=${workflow} expected_chart_set=yes got=${actual:-none}"
+    exit 1
+  fi
+  log "readback workflow=${workflow} source=dbf patient_id=${patient_id} chart_number_set=yes"
+}
+
+assert_dbf_schedule_exists() {
+  local appt_id="$1" workflow="$2"
+  local actual
+  actual="$(dbf_readback schedule-exists "${appt_id}" 2>/dev/null || true)"
+  if [[ "${actual}" != "ok" ]]; then
+    log "FAIL: dbf readback workflow=${workflow} appointment_id=${appt_id} not_in_schedule_dbf"
+    exit 1
+  fi
+  log "readback workflow=${workflow} source=dbf appointment_id=${appt_id} schedule_row=present"
+}
+
+# Write audit rows are recorded today only for appointment.statusUpdate (see appointment-status-audit.ts).
+assert_audit_operation() {
+  local op_id="$1" workflow="$2"
+  if [[ "${workflow}" != "appointment.statusUpdate" ]]; then
+    log "audit workflow=${workflow} skipped (audit not implemented for this workflow)"
+    return 0
+  fi
+  [[ -n "${op_id}" ]] || {
+    log "FAIL: audit check workflow=${workflow} missing operationId"
+    exit 1
+  }
+  local audit_raw match
+  audit_raw="$(curl -sS "${BRIDGE_URL}/v1/meta/write-audit-recent" 2>/dev/null || true)"
+  if echo "${audit_raw}" | jq -e '.sqliteUsable == true' >/dev/null 2>&1; then
+    match="$(echo "${audit_raw}" | jq -r --arg op "${op_id}" --arg wf "${workflow}" \
+      '[.entries[] | select(.operationId == $op and .workflow == $wf and .terminalStatus == "success")] | length' \
+      2>/dev/null || echo "0")"
+    if [[ "${match}" -lt 1 ]]; then
+      log "FAIL: audit workflow=${workflow} operationId=${op_id} not success in recent"
+      exit 1
+    fi
+    log "audit workflow=${workflow} operationId=${op_id} terminalStatus=success"
+    return 0
+  fi
+  match="$(sqlite3 "${SQLITE_PATH}" \
+    "SELECT COUNT(*) FROM write_audit_log WHERE operation_id='${op_id}' AND workflow_type='${workflow}' AND terminal_status='success';" \
+    2>/dev/null || echo "0")"
+  if [[ "${match}" -lt 1 ]]; then
+    log "FAIL: sqlite audit workflow=${workflow} operationId=${op_id} not success"
+    exit 1
+  fi
+  log "audit workflow=${workflow} operationId=${op_id} terminalStatus=success"
+}
+
 # Call compiled CLIs directly — qa-sandbox-run.sh already built dist. Avoid pnpm legacy:* wrappers
 # here: they rebuild bridge mid-smoke and can kill the live node dist/server.js (curl exit 7).
 run_legacy_backup() {
@@ -159,8 +252,6 @@ run_legacy_restore() {
 
 APPT_ID="$(sqlite3 "${SQLITE_PATH}" "SELECT appointment_id FROM appointments LIMIT 1;")"
 PATIENT_ID="$(sqlite3 "${SQLITE_PATH}" "SELECT patient_id FROM patients LIMIT 1;")"
-STATUS_BEFORE="$(sqlite3 "${SQLITE_PATH}" "SELECT status_code FROM appointments WHERE appointment_id='${APPT_ID}' LIMIT 1;")"
-STATUS_AFTER=$(( (STATUS_BEFORE + 1) % 6 ))
 
 if [[ -z "${APPT_ID}" ]]; then
   log "FAIL: no appointment_id in mirror sqlite"
@@ -171,7 +262,14 @@ if [[ -z "${PATIENT_ID}" ]]; then
   exit 1
 fi
 
-log "appointment_id=${APPT_ID} patient_id_present=yes"
+STATUS_BEFORE="$(dbf_readback schedule-status "${APPT_ID}" 2>/dev/null || true)"
+if [[ -z "${STATUS_BEFORE}" || ! "${STATUS_BEFORE}" =~ ^[0-9]+$ ]]; then
+  log "FAIL: could not read baseline STATUS from SCHEDULE.DBF for appointment_id=${APPT_ID}"
+  exit 1
+fi
+STATUS_AFTER=$(( (STATUS_BEFORE + 1) % 6 ))
+
+log "appointment_id=${APPT_ID} patient_id_present=yes status_before=${STATUS_BEFORE}"
 
 # --- 1. appointment.statusUpdate ---
 CURRENT_WORKFLOW="appointment.statusUpdate"
@@ -191,20 +289,25 @@ fi
 run_legacy_backup "${CURRENT_WORKFLOW}"
 BACKUP_ST=$(ls -1dt "${BACKUP_DIR}"/*appointment.statusUpdate* 2>/dev/null | head -1 || true)
 log "backup workflow=${CURRENT_WORKFLOW} basename=$(latest_backup_basename '*appointment.statusUpdate')"
+assert_backup_dir "${BACKUP_ST}" "${CURRENT_WORKFLOW}"
 
 raw=$(curl_write PATCH "/v1/schedule/appointments/${APPT_ID}/status" commit "{\"status\":${STATUS_AFTER}}")
 http=$(http_from_raw "${raw}")
 committed=$(body_from_raw "${raw}" | jq -r '.committed // empty' 2>/dev/null || true)
+OP_ST=$(operation_id_from_raw "${raw}")
 H2=$(hash_schedule)
 log_write_response "${CURRENT_WORKFLOW}" commit "${http}" "${raw}"
 if [[ "${http}" != "200" || "${committed}" != "true" || "${H0}" == "${H2}" ]]; then
   log "${CURRENT_WORKFLOW} commit FAIL"
   exit 1
 fi
+assert_dbf_schedule_status "${APPT_ID}" "${STATUS_AFTER}" "${CURRENT_WORKFLOW}"
+assert_audit_operation "${OP_ST}" "${CURRENT_WORKFLOW}"
 
 [[ -n "${BACKUP_ST}" ]] && run_legacy_restore "${BACKUP_ST}"
 H3=$(hash_schedule)
 if [[ "${H0}" == "${H3}" ]]; then
+  assert_dbf_schedule_status "${APPT_ID}" "${STATUS_BEFORE}" "${CURRENT_WORKFLOW}"
   log "${CURRENT_WORKFLOW} restore PASS hash_prefix=$(hash_prefix "${H3}")"
 else
   log "${CURRENT_WORKFLOW} restore FAIL"
@@ -224,7 +327,7 @@ done < <(
     LIMIT 8;
   " 2>/dev/null || true
 )
-CANDIDATE_DATES=("${SPARSE_DATES[@]}" "2026-05-22" "2026-05-25" "2026-06-01")
+CANDIDATE_DATES=("2026-05-22" "2026-05-25" "2026-06-01" "${SPARSE_DATES[@]}")
 
 try_time_move_dry_run() {
   local date="$1" time="$2" room="$3"
@@ -235,16 +338,21 @@ try_time_move_dry_run() {
 }
 
 discover_free_slot() {
-  local date time room http
+  local current_slot="$1"
+  local date time room http candidate
   for date in "${CANDIDATE_DATES[@]}"; do
     [[ -n "${date}" ]] || continue
     for room in $(seq 1 25); do
       for hour in $(seq 8 17); do
         for min in 00 15 30 45; do
           time=$(printf "%02d:%02d" "${hour}" "${min}")
+          candidate="${date}|${time}|${room}"
+          if [[ -n "${current_slot}" && "${candidate}" == "${current_slot}" ]]; then
+            continue
+          fi
           http=$(try_time_move_dry_run "${date}" "${time}" "${room}")
           if [[ "${http}" == "200" ]]; then
-            echo "${date}|${time}|${room}"
+            echo "${candidate}"
             return 0
           fi
         done
@@ -255,7 +363,8 @@ discover_free_slot() {
 }
 
 log "=== ${CURRENT_WORKFLOW}: discovering conflict-free slot (dry-run) ==="
-SLOT="$(discover_free_slot || true)"
+CURRENT_SLOT="$(dbf_readback schedule-slot "${APPT_ID}" 2>/dev/null || true)"
+SLOT="$(discover_free_slot "${CURRENT_SLOT}" || true)"
 if [[ -z "${SLOT}" ]]; then
   log "FAIL: no dry-run 200 slot for time move"
   exit 1
@@ -279,17 +388,27 @@ fi
 run_legacy_backup "${CURRENT_WORKFLOW}"
 BACKUP_TM=$(ls -1dt "${BACKUP_DIR}"/*appointment.timeMove* 2>/dev/null | head -1 || true)
 log "backup workflow=${CURRENT_WORKFLOW} basename=$(latest_backup_basename '*appointment.timeMove')"
+assert_backup_dir "${BACKUP_TM}" "${CURRENT_WORKFLOW}"
 
 raw=$(curl_write PATCH "/v1/schedule/appointments/${APPT_ID}/time" commit \
   "{\"date\":\"${MOVE_DATE}\",\"time\":\"${MOVE_TIME}\",\"room\":${MOVE_ROOM}}")
 http=$(http_from_raw "${raw}")
 committed=$(body_from_raw "${raw}" | jq -r '.committed // empty' 2>/dev/null || true)
+OP_TM=$(operation_id_from_raw "${raw}")
 H2=$(hash_schedule)
 log_write_response "${CURRENT_WORKFLOW}" commit "${http}" "${raw}"
-if [[ "${http}" != "200" || "${committed}" != "true" || "${H0}" == "${H2}" ]]; then
+SLOT_AFTER="$(dbf_readback schedule-slot "${APPT_ID}" 2>/dev/null || true)"
+EXPECTED_SLOT="${MOVE_DATE}|${MOVE_TIME}|${MOVE_ROOM}"
+if [[ "${http}" != "200" || "${committed}" != "true" ]]; then
   log "${CURRENT_WORKFLOW} commit FAIL"
   exit 1
 fi
+if [[ "${SLOT_AFTER}" != "${EXPECTED_SLOT}" ]]; then
+  log "FAIL: dbf readback workflow=${CURRENT_WORKFLOW} expected_slot=${EXPECTED_SLOT} got=${SLOT_AFTER:-none}"
+  exit 1
+fi
+log "readback workflow=${CURRENT_WORKFLOW} source=dbf appointment_id=${APPT_ID} slot=${SLOT_AFTER}"
+assert_audit_operation "${OP_TM}" "${CURRENT_WORKFLOW}"
 
 [[ -n "${BACKUP_TM}" ]] && run_legacy_restore "${BACKUP_TM}"
 H3=$(hash_schedule)
@@ -330,16 +449,25 @@ fi
 run_legacy_backup "${CURRENT_WORKFLOW}"
 BACKUP_CR=$(ls -1dt "${BACKUP_DIR}"/*appointment.create* 2>/dev/null | head -1 || true)
 log "backup workflow=${CURRENT_WORKFLOW} basename=$(latest_backup_basename '*appointment.create')"
+assert_backup_dir "${BACKUP_CR}" "${CURRENT_WORKFLOW}"
 
 raw=$(curl_post "/v1/schedule/appointments" commit "${CREATE_BODY}")
 http=$(http_from_raw "${raw}")
 committed=$(body_from_raw "${raw}" | jq -r '.committed // empty' 2>/dev/null || true)
+OP_CR=$(operation_id_from_raw "${raw}")
+CREATE_ID="$(body_from_raw "${raw}" | jq -r '.recordIds[0] // empty' 2>/dev/null || true)"
 H2=$(hash_schedule)
 log_write_response "${CURRENT_WORKFLOW}" commit "${http}" "${raw}"
 if [[ "${http}" != "200" || "${committed}" != "true" || "${H0}" == "${H2}" ]]; then
   log "${CURRENT_WORKFLOW} commit FAIL"
   exit 1
 fi
+[[ -n "${CREATE_ID}" ]] || {
+  log "FAIL: ${CURRENT_WORKFLOW} commit missing recordIds[0]"
+  exit 1
+}
+assert_dbf_schedule_exists "${CREATE_ID}" "${CURRENT_WORKFLOW}"
+assert_audit_operation "${OP_CR}" "${CURRENT_WORKFLOW}"
 
 [[ -n "${BACKUP_CR}" ]] && run_legacy_restore "${BACKUP_CR}"
 H3=$(hash_schedule)
@@ -367,16 +495,20 @@ fi
 run_legacy_backup "${CURRENT_WORKFLOW}"
 BACKUP_DM=$(ls -1dt "${BACKUP_DIR}"/*patient.demographics.update* 2>/dev/null | head -1 || true)
 log "backup workflow=${CURRENT_WORKFLOW} basename=$(latest_backup_basename '*patient.demographics.update')"
+assert_backup_dir "${BACKUP_DM}" "${CURRENT_WORKFLOW}"
 
 raw=$(curl_write PATCH "/v1/patients/${PATIENT_ID}/demographics" commit '{"chartNumber":"QA-COMMIT-1"}')
 http=$(http_from_raw "${raw}")
 committed=$(body_from_raw "${raw}" | jq -r '.committed // empty' 2>/dev/null || true)
+OP_DM=$(operation_id_from_raw "${raw}")
 H2=$(hash_patient)
 log_write_response "${CURRENT_WORKFLOW}" commit "${http}" "${raw}"
 if [[ "${http}" != "200" || "${committed}" != "true" || "${H0}" == "${H2}" ]]; then
   log "${CURRENT_WORKFLOW} commit FAIL"
   exit 1
 fi
+assert_dbf_patient_chart "${PATIENT_ID}" "QA-COMMIT-1" "${CURRENT_WORKFLOW}"
+assert_audit_operation "${OP_DM}" "${CURRENT_WORKFLOW}"
 
 [[ -n "${BACKUP_DM}" ]] && run_legacy_restore "${BACKUP_DM}"
 H3=$(hash_patient)
