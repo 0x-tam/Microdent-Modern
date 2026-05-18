@@ -135,3 +135,22 @@ export function validateBackupDir(
   }
   return success(normalizedPath, warnings);
 }
+
+/** Operator-safe path snippet for logs and setup success (no full paths). */
+export function maskOperatorPath(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return "(not set)";
+  const parts = trimmed.split(/[/\\]/).filter(Boolean);
+  const leaf = parts[parts.length - 1] ?? "…";
+  if (parts.length <= 1) {
+    return leaf.length > 24 ? `${leaf.slice(0, 8)}…` : leaf;
+  }
+  const root = parts[0];
+  if (/^[A-Za-z]:$/.test(root)) {
+    return `${root}\\…/${leaf}`;
+  }
+  if (trimmed.startsWith("/") || UNC_PATH.test(trimmed)) {
+    return `/…/${leaf}`;
+  }
+  return `…/${leaf}`;
+}

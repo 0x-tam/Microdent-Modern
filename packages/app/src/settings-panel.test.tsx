@@ -135,9 +135,33 @@ describe("SettingsPanel", () => {
     expect(html).not.toContain("C:\\Microdent");
     expect(html).not.toContain("/Users/");
     expect(html).not.toContain("Write-Sandbox");
+    expect(html).not.toContain("Microdent-Write-Sandbox");
+    expect(html).not.toMatch(/DATA_ROOT\s*=/);
     expect(html).toContain("Backup not configured");
     expect(html).toContain("DATA_ROOT configured");
+    expect(html).toContain("Writes enabled outside sandbox");
     assertNoForbiddenDomTokens(html);
+  });
+
+  it("renders all operator status dimensions in the card grid", () => {
+    const html = renderToStaticMarkup(
+      <SettingsPanel
+        bridgePhase="connected"
+        writeCapability={writeCapBase}
+        mirrorStatus={mirrorWithRuns}
+        onMirrorStatusChange={() => {}}
+        sandboxWritePilot
+      />,
+    );
+    expect(html).toContain("Clinic service");
+    expect(html).toContain("Data paths");
+    expect(html).toContain("Writes");
+    expect(html).toContain("Sandbox");
+    expect(html).toContain("Backup");
+    expect(html).toContain("Sandbox pilot");
+    expect(html).toContain("Desktop app");
+    expect(html).toContain("SQLite mirror");
+    expect(html).toContain("Mirror import");
   });
 
   it("shows masked path hints when connection diagnostics are enabled", () => {
@@ -166,6 +190,41 @@ describe("SettingsPanel", () => {
     );
     expect(html).toContain("Refresh status");
     expect(html).not.toContain("import-safe");
+  });
+
+  it("forbids forbidden DOM tokens on production-like connected snapshots", () => {
+    const snapshots = [
+      renderToStaticMarkup(
+        <SettingsPanel
+          bridgePhase="offline"
+          writeCapability={null}
+          mirrorStatus={null}
+          onMirrorStatusChange={() => {}}
+        />,
+      ),
+      renderToStaticMarkup(
+        <SettingsPanel
+          bridgePhase="connected"
+          writeCapability={{ ...writeCapBase, writeMode: "enabled", writesPermitted: true, writableSandbox: true }}
+          mirrorStatus={mirrorWithRuns}
+          onMirrorStatusChange={() => {}}
+          showConnectionDiagnostics={false}
+        />,
+      ),
+      renderToStaticMarkup(
+        <SettingsPanel
+          bridgePhase="connected"
+          writeCapability={{ ...writeCapBase, writeMode: "dry-run", writableSandbox: true }}
+          mirrorStatus={mirrorEmpty}
+          onMirrorStatusChange={() => {}}
+          sandboxWritePilot
+          showConnectionDiagnostics={false}
+        />,
+      ),
+    ];
+    for (const html of snapshots) {
+      assertNoForbiddenDomTokens(html);
+    }
   });
 
   it("renders desktop mode card copy", () => {

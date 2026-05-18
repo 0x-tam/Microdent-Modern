@@ -9,7 +9,8 @@
 | Script | Role |
 | --- | --- |
 | [`scripts/qa-sandbox-run.sh`](../scripts/qa-sandbox-run.sh) | Build bridge, start `node services/bridge/dist/server.js`, poll readiness, invoke smoke, `trap` kill on exit |
-| [`scripts/qa-sandbox-write-smoke.sh`](../scripts/qa-sandbox-write-smoke.sh) | Four workflows: dry-run → `pnpm legacy:backup` → commit → `pnpm legacy:restore` → hash revert |
+| [`scripts/qa-sandbox-write-smoke.sh`](../scripts/qa-sandbox-write-smoke.sh) | Four workflows: dry-run → **`node dist/cli/legacy-backup.js`** → commit → **`node dist/cli/legacy-restore.js`** → hash revert (not `pnpm legacy:*` mid-run) |
+| [`scripts/qa-sandbox-preflight.sh`](../scripts/qa-sandbox-preflight.sh) | Env + marker + built `dist/` check (invoked by run script) |
 
 Vitest band (`pnpm sandbox:validate`) remains the fast, synthetic CI check; this runner is for **operator sandbox** sign-off after mirror import.
 

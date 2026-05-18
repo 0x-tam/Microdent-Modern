@@ -24,6 +24,7 @@ import {
   SCHEDULE_ROOM_ALL,
   SCHEDULE_ROOM_FILTER_LABEL,
   SCHEDULE_SANDBOX_WRITE_PILOT_BANNER,
+  READONLY_STATE_RETRY,
   SCHEDULE_VIEW_DAY,
   SCHEDULE_VIEW_LABEL,
   SCHEDULE_VIEW_WEEK,
@@ -587,17 +588,34 @@ export function SchedulePanel({
       </div>
 
       {!canLoad ? (
-        <p className="app-schedule__state app-schedule__state--muted" role="status">
+        <p
+          className={`app-readonly-state app-schedule__state app-schedule__state--muted${bridgePhase === "checking" ? " app-readonly-state--checking" : " app-readonly-state--offline"}`}
+          role="status"
+        >
           {offlineMessage}
         </p>
       ) : loading ? (
-        <p className="app-schedule__state app-schedule__state--muted" role="status" aria-busy="true">
+        <p
+          className="app-readonly-state app-readonly-state--loading app-schedule__state app-schedule__state--muted"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
           {SCHEDULE_LOADING}
         </p>
       ) : error ? (
-        <p className="app-schedule__state app-schedule__state--error" role="alert">
-          {error}
-        </p>
+        <div className="app-readonly-state app-readonly-state--error app-schedule__state app-schedule__state--error" role="alert">
+          <p>{error}</p>
+          <Button
+            type="button"
+            variant="secondary"
+            size="compact"
+            className="ui-focusable"
+            onClick={() => setRefreshTick((x) => x + 1)}
+          >
+            {READONLY_STATE_RETRY}
+          </Button>
+        </div>
       ) : appointments.length === 0 ? (
         <AppErrorBoundary>
           <EmptyState

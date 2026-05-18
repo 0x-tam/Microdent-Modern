@@ -37,6 +37,9 @@
         border-radius: 6px;
         font-size: 14px;
       }
+      input.invalid {
+        border-color: #b00020;
+      }
       .readonly {
         padding: 8px 10px;
         background: #e8eaed;
@@ -58,8 +61,24 @@
         opacity: 0.6;
         cursor: default;
       }
+      .field-error {
+        color: #b00020;
+        font-size: 13px;
+        margin: 4px 0 0;
+        min-height: 1.2em;
+      }
+      .field-hint {
+        color: #555;
+        font-size: 12px;
+        margin: 4px 0 0;
+      }
       #error {
         color: #b00020;
+        margin-top: 12px;
+        min-height: 1.2em;
+      }
+      #success {
+        color: #1b5e20;
         margin-top: 12px;
         min-height: 1.2em;
       }
@@ -85,7 +104,10 @@
         autocomplete="off"
         placeholder="C:\Microdent\Write-Sandbox\DATA"
         required
+        aria-describedby="dataRootError dataRootHint"
       />
+      <div id="dataRootError" class="field-error" role="alert"></div>
+      <div id="dataRootHint" class="field-hint"></div>
 
       <label for="sqlitePath">SQLITE_PATH (file)</label>
       <input
@@ -95,7 +117,10 @@
         autocomplete="off"
         placeholder="C:\Microdent\mirror.sqlite"
         required
+        aria-describedby="sqlitePathError sqlitePathHint"
       />
+      <div id="sqlitePathError" class="field-error" role="alert"></div>
+      <div id="sqlitePathHint" class="field-hint"></div>
 
       <label for="backupDir">BACKUP_DIR (folder, optional)</label>
       <input
@@ -104,22 +129,117 @@
         type="text"
         autocomplete="off"
         placeholder="C:\Microdent\backups"
+        aria-describedby="backupDirError backupDirHint"
       />
+      <div id="backupDirError" class="field-error" role="alert"></div>
+      <div id="backupDirHint" class="field-hint"></div>
 
       <label>Write mode</label>
       <p class="readonly" id="writeModeDisplay" aria-readonly="true">disabled (not changeable here)</p>
 
       <button type="submit" id="submit">Save and continue</button>
+      <div id="success" role="status"></div>
       <div id="error" role="alert"></div>
     </form>
     <script>
+      const WINDOWS_DRIVE = /^[A-Za-z]:[/\\]/;
+      const UNC_PATH = /^[/\\]{2}[^/\\]+[/\\]/;
+
+      function isOperatorAbsolutePath(value) {
+        const trimmed = value.trim();
+        if (trimmed.length === 0) return false;
+        if (trimmed.startsWith("/")) return true;
+        if (WINDOWS_DRIVE.test(trimmed)) return true;
+        if (UNC_PATH.test(trimmed)) return true;
+        return false;
+      }
+
+      const FIELD_RULES = {
+        dataRoot: { required: true, label: "DATA_ROOT" },
+        sqlitePath: { required: true, label: "SQLITE_PATH" },
+        backupDir: { required: false, label: "BACKUP_DIR" },
+      };
+
+      function spaceHint(value) {
+        return value.trim().includes(" ")
+          ? "This path contains spaces — quote it in PowerShell/CMD when running bridge CLIs manually."
+          : "";
+      }
+
+      function validateField(id) {
+        const input = document.getElementById(id);
+        const errorEl = document.getElementById(`${id}Error`);
+        const hintEl = document.getElementById(`${id}Hint`);
+        const rule = FIELD_RULES[id];
+        const value = input.value;
+
+        errorEl.textContent = "";
+        hintEl.textContent = spaceHint(value);
+        input.classList.remove("invalid");
+
+        if (!rule.required && value.trim().length === 0) {
+          return true;
+        }
+
+        if (value.trim().length === 0) {
+          errorEl.textContent = `${rule.label}: Path is required.`;
+          input.classList.add("invalid");
+          return false;
+        }
+
+        if (!isOperatorAbsolutePath(value)) {
+          errorEl.textContent = `${rule.label}: Use a full absolute path (e.g. C:\\Microdent\\… or \\\\server\\share\\…).`;
+          input.classList.add("invalid");
+          return false;
+        }
+
+        return true;
+      }
+
+      function validateAll() {
+        return (
+          validateField("dataRoot") &&
+          validateField("sqlitePath") &&
+          validateField("backupDir")
+        );
+      }
+
+      function updateSubmitState() {
+        const dataOk = validateField("dataRoot");
+        const sqliteOk = validateField("sqlitePath");
+        const backupOk = validateField("backupDir");
+        submitBtn.disabled = !(dataOk && sqliteOk && backupOk);
+      }
+
       const form = document.getElementById("form");
       const errorEl = document.getElementById("error");
+      const successEl = document.getElementById("success");
       const submitBtn = document.getElementById("submit");
+
+      for (const id of Object.keys(FIELD_RULES)) {
+        const input = document.getElementById(id);
+        input.addEventListener("blur", () => {
+          validateField(id);
+          updateSubmitState();
+        });
+        input.addEventListener("input", () => {
+          if (document.getElementById(`${id}Error`).textContent) {
+            validateField(id);
+          }
+          updateSubmitState();
+        });
+      }
+
+      updateSubmitState();
 
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
         errorEl.textContent = "";
+        successEl.textContent = "";
+        if (!validateAll()) {
+          errorEl.textContent = "Fix the highlighted paths before saving.";
+          return;
+        }
         submitBtn.disabled = true;
         try {
           const result = await window.setupApi.saveConfig({
@@ -130,10 +250,14 @@
           if (!result.ok) {
             errorEl.textContent = result.message;
             submitBtn.disabled = false;
+            updateSubmitState();
+          } else if (result.summary) {
+            successEl.textContent = result.summary;
           }
         } catch {
           errorEl.textContent = "Could not save configuration. Try again.";
           submitBtn.disabled = false;
+          updateSubmitState();
         }
       });
     </script>

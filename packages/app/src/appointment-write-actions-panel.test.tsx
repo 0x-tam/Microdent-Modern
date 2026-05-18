@@ -4,6 +4,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { AppointmentWriteActionsPanel } from "./AppointmentWriteActionsPanel.js";
 import { APPOINTMENT_STATUS_WRITE_CONFIRM } from "./appointment-status-write.js";
+import { SCHEDULE_CONFLICT_SAFE_MESSAGE } from "./appointment-time-move-write.js";
 import {
   APPOINTMENT_WRITE_ACTIONS_SUMMARY,
   APPOINTMENT_WRITE_TAB_MOVE,
@@ -196,6 +197,42 @@ describe("AppointmentWriteActionsPanel", () => {
     expect(text).toContain("Committed: true");
     assertNoForbiddenDomTokens(text);
     expect(containsForbiddenWriteResultToken(text)).toBe(false);
+  });
+
+  it("maps schedule conflict to safe copy on the move tab", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          error: { code: "SCHEDULE_CONFLICT", message: "overlap with PAT_NAME at 09:00 room 1" },
+        }),
+        { status: 409, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    renderPanel({ fetchImpl });
+
+    const details = container.querySelector('[data-testid="appt-write-actions-panel"]') as HTMLDetailsElement;
+    await act(async () => {
+      details.open = true;
+    });
+
+    const moveTab = [...container.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes(APPOINTMENT_WRITE_TAB_MOVE),
+    );
+    await act(async () => {
+      moveTab?.click();
+    });
+
+    const previewBtn = [...container.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("Preview move"),
+    );
+    await act(async () => {
+      previewBtn?.click();
+    });
+
+    const text = container.textContent ?? "";
+    expect(text).toContain(SCHEDULE_CONFLICT_SAFE_MESSAGE);
+    expect(text).not.toMatch(/PAT_NAME/i);
+    assertNoForbiddenDomTokens(text);
   });
 
   it("switches to move tab content", async () => {

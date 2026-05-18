@@ -16,7 +16,6 @@ import {
   SETTINGS_DESKTOP_FILE_PROTOCOL,
   SETTINGS_DESKTOP_SECTION,
   SETTINGS_MIRROR_DOC_LINK,
-  SETTINGS_MIRROR_FALLBACK,
   SETTINGS_MIRROR_IMPORTED_COUNT,
   SETTINGS_MIRROR_IMPORT_CLI,
   SETTINGS_MIRROR_NO_RUNS,
@@ -26,21 +25,20 @@ import {
   SETTINGS_MIRROR_RUN_STATUS_RUNNING,
   SETTINGS_MIRROR_RUN_STATUS_SUCCESS,
   SETTINGS_MIRROR_SECTION,
-  SETTINGS_MIRROR_SQLITE_CONFIGURED,
-  SETTINGS_MIRROR_SQLITE_MISSING,
   SETTINGS_MIRROR_STALE_CALLOUT,
-  SETTINGS_MIRROR_USABLE,
   SETTINGS_PILOT_SECTION,
   SETTINGS_PANEL_LEDE,
   SETTINGS_SANDBOX_PILOT_OFF,
   SETTINGS_SANDBOX_PILOT_ON,
   SETTINGS_SANDBOX_SECTION,
+  SETTINGS_SQLITE_MIRROR_SECTION,
   SETTINGS_WRITE_SECTION,
 } from "./read-only-ui-copy.js";
 import {
   resolveBackupConfiguredStatus,
   resolveDataRootConfiguredStatus,
   resolveSandboxValidityStatus,
+  resolveSqliteMirrorStatus,
 } from "./settings-status.js";
 import {
   resolveSettingsDangerBanners,
@@ -130,6 +128,7 @@ export function SettingsPanel({
   const dataRootStatus = resolveDataRootConfiguredStatus(writeCapability);
   const sandboxStatus = resolveSandboxValidityStatus(writeCapability);
   const backupStatus = resolveBackupConfiguredStatus(writeCapability);
+  const sqliteMirrorStatus = resolveSqliteMirrorStatus(bridgePhase, mirrorStatus, writeCapability);
   const dangerBanners = resolveSettingsDangerBanners(bridgePhase, mirrorStatus, writeCapability);
   const mirrorStale =
     bridgePhase === "connected" && mirrorStatus !== null && isMirrorImportStale(mirrorStatus, Date.now());
@@ -161,7 +160,6 @@ export function SettingsPanel({
 
   const importedCount = mirrorStatus?.importedTables.length ?? 0;
   const runs = mirrorStatus?.latestImportRuns ?? [];
-  const sqliteConfigured = mirrorStatus?.sqliteConfigured ?? writeCapability?.sqlitePathConfigured;
 
   return (
     <div className="app-settings" aria-labelledby="settings-panel-title">
@@ -276,6 +274,22 @@ export function SettingsPanel({
           </CardBody>
         </Card>
 
+        <Card className="app-settings__card">
+          <CardHeader>
+            <h3>{SETTINGS_SQLITE_MIRROR_SECTION}</h3>
+          </CardHeader>
+          <CardBody>
+            <p className={`app-settings__status app-settings__status--${sqliteMirrorStatus.tone}`}>
+              {sqliteMirrorStatus.label}
+            </p>
+            {devHints && writeCapability?.sqlitePathConfigured ? (
+              <p className="app-settings__path-hints" role="note">
+                SQLite: <code>{MASKED_PATH_HINT_EXAMPLES.sqlite}</code>
+              </p>
+            ) : null}
+          </CardBody>
+        </Card>
+
         <Card className="app-settings__card app-settings__card--mirror">
           <CardHeader className="app-settings__mirror-head">
             <h3>{SETTINGS_MIRROR_SECTION}</h3>
@@ -299,18 +313,9 @@ export function SettingsPanel({
               <>
                 <ul className="app-settings__facts">
                   <li>
-                    {sqliteConfigured ? SETTINGS_MIRROR_SQLITE_CONFIGURED : SETTINGS_MIRROR_SQLITE_MISSING}
-                  </li>
-                  <li>{mirrorStatus.sqliteUsable ? SETTINGS_MIRROR_USABLE : SETTINGS_MIRROR_FALLBACK}</li>
-                  <li>
                     {SETTINGS_MIRROR_IMPORTED_COUNT}: {importedCount}
                   </li>
                 </ul>
-                {devHints && writeCapability?.sqlitePathConfigured ? (
-                  <p className="app-settings__path-hints" role="note">
-                    SQLite: <code>{MASKED_PATH_HINT_EXAMPLES.sqlite}</code>
-                  </p>
-                ) : null}
                 {mirrorStale ? (
                   <p className="app-settings__stale" role="status">
                     {SETTINGS_MIRROR_STALE_CALLOUT}{" "}

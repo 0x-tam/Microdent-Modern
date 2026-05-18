@@ -20,10 +20,14 @@ import {
   TODAY_EMPTY_TITLE,
   TODAY_LOADING,
   TODAY_NEXT_LOADING,
+  TODAY_NEXT_NO_UPCOMING,
+  TODAY_NEXT_OFFLINE,
   TODAY_OPEN_SCHEDULE,
   TODAY_PRIVACY_LEDE,
   TODAY_QUICK_ACTIONS_LEDE,
+  TODAY_REMINDERS_EMPTY,
   TODAY_SEARCH_PATIENT,
+  READONLY_STATE_RETRY,
 } from "./read-only-ui-copy.js";
 
 function toLocalIsoDate(d: Date): string {
@@ -187,6 +191,9 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
       return;
     }
     void loadToday();
+    return () => {
+      requestSeq.current += 1;
+    };
   }, [canLoad, loadToday, retryTick]);
 
   const sorted = useMemo(() => [...appointments].sort(sortAppointments), [appointments]);
@@ -195,42 +202,62 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
   const primaryBody: ReactNode = (() => {
     if (!base || bridgePhase === "offline") {
       return (
-        <p className="app-dashboard-sched__offline" role="status">
+        <p className="app-readonly-state app-readonly-state--offline" role="status">
           {CLINIC_SERVICE_CONNECT_TODAY}
         </p>
       );
     }
     if (bridgePhase === "checking") {
       return (
-        <p className="app-dashboard-sched__waiting" role="status">
+        <p className="app-readonly-state app-readonly-state--checking" role="status">
           {CLINIC_SERVICE_CHECKING}
         </p>
       );
     }
     if (loading) {
       return (
-        <p className="app-dashboard-sched__loading" role="status" aria-live="polite" aria-busy="true">
+        <p className="app-readonly-state app-readonly-state--loading" role="status" aria-live="polite" aria-busy="true">
           {TODAY_LOADING}
         </p>
       );
     }
     if (error) {
       return (
-        <div className="app-dashboard-sched__error" role="alert">
+        <div className="app-readonly-state app-readonly-state--error" role="alert">
           <p>{error}</p>
           <Button type="button" variant="secondary" className="ui-focusable" onClick={() => setRetryTick((n) => n + 1)}>
-            Retry
+            {READONLY_STATE_RETRY}
           </Button>
         </div>
       );
     }
     if (sorted.length === 0) {
       return (
-        <EmptyState
-          className="ui-empty--start app-dashboard-sched__empty-state"
-          title={TODAY_EMPTY_TITLE}
-          description={TODAY_EMPTY_DESCRIPTION}
-        />
+        <div className="app-dashboard-sched__empty-wrap">
+          <EmptyState
+            className="ui-empty--start app-dashboard-sched__empty-state"
+            title={TODAY_EMPTY_TITLE}
+            description={TODAY_EMPTY_DESCRIPTION}
+          />
+          <div className="app-dashboard-cta-row app-dashboard-cta-row--empty">
+            <Button
+              type="button"
+              variant="primary"
+              className="ui-focusable app-dashboard-cta-row__primary"
+              onClick={() => onOpenModule("schedule")}
+            >
+              {TODAY_OPEN_SCHEDULE}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              className="ui-focusable app-dashboard-cta-row__secondary"
+              onClick={() => onOpenModule("patients")}
+            >
+              {TODAY_SEARCH_PATIENT}
+            </Button>
+          </div>
+        </div>
       );
     }
     return (
@@ -273,15 +300,15 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
   const nextCardBody: ReactNode = (() => {
     if (!base || bridgePhase === "offline") {
       return (
-        <p className="app-next-patient__hint" role="status">
-          Connect the clinic service to see the next appointment on today’s copy.
+        <p className="app-next-patient__hint app-readonly-state app-readonly-state--inline" role="status">
+          {TODAY_NEXT_OFFLINE}
         </p>
       );
     }
     if (bridgePhase === "checking") {
       return (
-        <p className="app-next-patient__hint" role="status">
-          Waiting for the clinic service…
+        <p className="app-next-patient__hint app-readonly-state app-readonly-state--inline" role="status">
+          {CLINIC_SERVICE_CHECKING}
         </p>
       );
     }
@@ -321,7 +348,7 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
       );
     }
     if (!nextUpcoming) {
-      return <p className="app-next-patient__hint">No upcoming appointments on the schedule for today.</p>;
+      return <p className="app-next-patient__hint">{TODAY_NEXT_NO_UPCOMING}</p>;
     }
     return (
       <>
@@ -376,24 +403,26 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
             <CardBody>
               <p className="app-dashboard-sched__privacy">{TODAY_PRIVACY_LEDE}</p>
               {primaryBody}
-              <div className="app-appt-list__footer app-dashboard-cta-row">
-                <Button
-                  type="button"
-                  variant="primary"
-                  className="ui-focusable app-dashboard-cta-row__primary"
-                  onClick={() => onOpenModule("schedule")}
-                >
-                  {TODAY_OPEN_SCHEDULE}
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="ui-focusable app-dashboard-cta-row__secondary"
-                  onClick={() => onOpenModule("patients")}
-                >
-                  {TODAY_SEARCH_PATIENT}
-                </Button>
-              </div>
+              {sorted.length > 0 ? (
+                <div className="app-appt-list__footer app-dashboard-cta-row">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    className="ui-focusable app-dashboard-cta-row__primary"
+                    onClick={() => onOpenModule("schedule")}
+                  >
+                    {TODAY_OPEN_SCHEDULE}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="ui-focusable app-dashboard-cta-row__secondary"
+                    onClick={() => onOpenModule("patients")}
+                  >
+                    {TODAY_SEARCH_PATIENT}
+                  </Button>
+                </div>
+              ) : null}
             </CardBody>
           </Card>
         </div>
@@ -417,6 +446,7 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
                   type="button"
                   variant="primary"
                   className="ui-focusable app-quick-actions__btn"
+                  disabled={!canLoad}
                   onClick={() => onOpenModule("schedule")}
                 >
                   {TODAY_OPEN_SCHEDULE}
@@ -425,6 +455,7 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
                   type="button"
                   variant="secondary"
                   className="ui-focusable app-quick-actions__btn"
+                  disabled={!canLoad}
                   onClick={() => onOpenModule("patients")}
                 >
                   {TODAY_SEARCH_PATIENT}
@@ -448,8 +479,7 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
             </CardHeader>
             <CardBody>
               <p className="app-reminder-list__empty" role="status">
-                No reminders in this read-only viewer. Connect the clinic service and use Schedule or Patients for live data
-                from your copy.
+                {TODAY_REMINDERS_EMPTY}
               </p>
             </CardBody>
           </Card>

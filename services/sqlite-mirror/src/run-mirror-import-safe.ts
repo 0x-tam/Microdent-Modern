@@ -8,6 +8,11 @@ import { importScheduleRooms } from "./import-schedule-rooms.js";
 import { importTreatments } from "./import-treatments.js";
 import type { ImportRunStatus } from "./import-run.js";
 
+/** Process exit code for `mirror:import-safe` — 0 only when overall is success. */
+export function mirrorImportSafeExitCode(overall: ImportRunStatus): number {
+  return overall === "success" ? 0 : 1;
+}
+
 export type MirrorImportStepStatus = "success" | "partial" | "failed" | "skipped";
 
 export type MirrorImportStepResult = {
@@ -111,15 +116,45 @@ export async function runMirrorImportSafe(
   };
 }
 
-/** Prints counts and status only — never row values or paths. */
-export function printMirrorImportSafeReport(result: RunMirrorImportSafeResult): void {
-  console.log(
+function padCell(value: string, width: number): string {
+  return value.length >= width ? value : value + " ".repeat(width - value.length);
+}
+
+/** PHI-safe stdout lines: table name, status, rowCount, errorCount only. */
+export function formatMirrorImportSafeSummaryLines(result: RunMirrorImportSafeResult): string[] {
+  const lines: string[] = [
     `migrations: applied=${result.migrations.applied} skipped=${result.migrations.skipped}`,
-  );
-  for (const step of result.steps) {
-    console.log(
-      `${step.table}: status=${step.status} rows=${step.rowCount} errors=${step.errorCount}`,
+  ];
+
+  const headers = ["table", "status", "rows", "errors"] as const;
+  const body = result.steps.map((step) => ({
+    table: step.table,
+    status: step.status,
+    rows: String(step.rowCount),
+    errors: String(step.errorCount),
+  }));
+
+  const widths = headers.map((header) => {
+    const values = body.map((row) => row[header].length);
+    return Math.max(header.length, ...values);
+  });
+
+  lines.push(headers.map((header, i) => padCell(header, widths[i]!)).join("  "));
+  lines.push(widths.map((w) => "-".repeat(w)).join("  "));
+  for (const row of body) {
+    lines.push(
+      [padCell(row.table, widths[0]!), padCell(row.status, widths[1]!), padCell(row.rows, widths[2]!), padCell(row.errors, widths[3]!)].join(
+        "  ",
+      ),
     );
   }
-  console.log(`overall: ${result.overall}`);
+  lines.push(`overall: ${result.overall}`);
+  return lines;
+}
+
+/** Prints counts and status only — never row values or paths. */
+export function printMirrorImportSafeReport(result: RunMirrorImportSafeResult): void {
+  for (const line of formatMirrorImportSafeSummaryLines(result)) {
+    console.log(line);
+  }
 }

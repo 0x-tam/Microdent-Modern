@@ -349,16 +349,26 @@ export function createReadOnlySmokeFetch(): (input: RequestInfo | URL) => Promis
   };
 }
 
+/** Legacy DBF field labels that must not appear as visible DOM tokens (excludes UI words like "before"). */
+const DOM_FORBIDDEN_FIELD_LABELS = [
+  "PAT_NAME",
+  "TELEPHONE",
+  "COMMENT",
+  "NOTE",
+  "DESCRIPT",
+  "DESC",
+  "AMOUNT",
+  "SAMOUNT",
+] as const;
+
 /** Asserts read-only UI never surfaces legacy field labels or leaked mock values. */
 export function assertNoForbiddenDomTokens(text: string): void {
-  expect(text).not.toMatch(/\bTELEPHONE\b/);
-  expect(text).not.toMatch(/\bCOMMENT\b/);
+  for (const label of DOM_FORBIDDEN_FIELD_LABELS) {
+    expect(text).not.toMatch(new RegExp(`\\b${label}\\b`));
+  }
   expect(text).not.toMatch(/\bNOTE body\b/i);
-  expect(text).not.toMatch(/\bDESCRIPT\b/);
-  expect(text).not.toMatch(/\bDESC\b/);
-  expect(text).not.toMatch(/\bAMOUNT\b/);
-  expect(text).not.toMatch(/\bSAMOUNT\b/);
   expect(text).not.toMatch(/\braw row\b/i);
+  expect(text).not.toContain("rawRow");
 
   expect(text).not.toContain(SMOKE_LEAKED_VALUES.telephone);
   expect(text).not.toContain(SMOKE_LEAKED_VALUES.comment);

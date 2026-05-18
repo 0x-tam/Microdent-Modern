@@ -43,6 +43,8 @@ require_cmd() {
 require_cmd curl
 require_cmd jq
 
+bash "${SCRIPT_DIR}/qa-sandbox-preflight.sh"
+
 if ! realpath "${DATA_ROOT}" 2>/dev/null | grep -q 'Microdent-Write-Sandbox'; then
   log "FAIL: DATA_ROOT must resolve under Microdent-Write-Sandbox"
   exit 1

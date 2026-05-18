@@ -1,4 +1,5 @@
-import type { BridgeDevStatusResponse } from "@microdent/contracts";
+import type { BridgeDevStatusResponse, MirrorStatusResponse } from "@microdent/contracts";
+import type { BridgeHealthPhase } from "./bridge-health.js";
 import {
   SETTINGS_BACKUP_CONFIGURED,
   SETTINGS_BACKUP_NOT_CONFIGURED,
@@ -7,9 +8,14 @@ import {
   SETTINGS_DATA_ROOT_CONFIGURED,
   SETTINGS_DATA_ROOT_MISSING,
   SETTINGS_DATA_ROOT_UNKNOWN,
+  SETTINGS_MIRROR_FALLBACK,
+  SETTINGS_MIRROR_SQLITE_CONFIGURED,
+  SETTINGS_MIRROR_SQLITE_MISSING,
+  SETTINGS_MIRROR_USABLE,
   SETTINGS_SANDBOX_INVALID,
   SETTINGS_SANDBOX_UNKNOWN,
   SETTINGS_SANDBOX_VALID,
+  SETTINGS_SQLITE_MIRROR_UNKNOWN,
 } from "./read-only-ui-copy.js";
 
 export type SettingsStatusTone = "neutral" | "ok" | "warn" | "danger";
@@ -46,6 +52,27 @@ export function resolveSandboxValidityStatus(
 /**
  * Backup readiness from write-capability metadata only (no paths).
  */
+export function resolveSqliteMirrorStatus(
+  bridgePhase: BridgeHealthPhase,
+  mirrorStatus: MirrorStatusResponse | null,
+  writeCapability: BridgeDevStatusResponse | null,
+): SettingsLabeledStatus {
+  if (bridgePhase !== "connected") {
+    return { label: SETTINGS_SQLITE_MIRROR_UNKNOWN, tone: "neutral" };
+  }
+  if (mirrorStatus === null) {
+    return { label: SETTINGS_SQLITE_MIRROR_UNKNOWN, tone: "neutral" };
+  }
+  const configured = mirrorStatus.sqliteConfigured ?? writeCapability?.sqlitePathConfigured ?? false;
+  if (!configured) {
+    return { label: SETTINGS_MIRROR_SQLITE_MISSING, tone: "warn" };
+  }
+  if (mirrorStatus.sqliteUsable) {
+    return { label: SETTINGS_MIRROR_USABLE, tone: "ok" };
+  }
+  return { label: SETTINGS_MIRROR_FALLBACK, tone: "warn" };
+}
+
 export function resolveBackupConfiguredStatus(
   writeCapability: BridgeDevStatusResponse | null,
 ): SettingsLabeledStatus {

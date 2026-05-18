@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  omitShellBannersDetailedInSettings,
   resolveBridgeOfflineBanner,
   resolveEnabledNonSandboxBanner,
   resolveMirrorConnectionBanner,
@@ -140,6 +141,37 @@ describe("resolveSettingsDangerBanners", () => {
   it("includes bridge offline when disconnected", () => {
     const keys = resolveSettingsDangerBanners("offline", null, null).map((b) => b.key);
     expect(keys).toContain("bridge-offline");
+  });
+
+  it("includes mirror fallback, enabled writes, and non-sandbox danger when applicable", () => {
+    const keys = resolveSettingsDangerBanners("connected", mirrorFallback, {
+      writeMode: "enabled",
+      writesPermitted: false,
+      writableSandbox: false,
+      dataRootConfigured: true,
+      backupDirConfigured: false,
+      sqlitePathConfigured: true,
+    }).map((b) => b.key);
+    expect(keys).toContain("mirror-fallback");
+    expect(keys).toContain("write-mode-enabled");
+    expect(keys).toContain("enabled-non-sandbox");
+  });
+});
+
+describe("omitShellBannersDetailedInSettings", () => {
+  it("removes shell banners that Settings danger callouts expand", () => {
+    const shell = resolveShellStatusBanners("connected", mirrorFallback, capSandbox);
+    const filtered = omitShellBannersDetailedInSettings(shell, "connected", mirrorFallback, capSandbox);
+    const keys = filtered.map((b) => b.key);
+    expect(keys).not.toContain("mirror-fallback");
+    expect(keys).not.toContain("write-mode-enabled");
+    expect(keys).not.toContain("sandbox-write-warning");
+  });
+
+  it("keeps informational shell banners when Settings duplicates warnings only", () => {
+    const shell = resolveShellStatusBanners("connected", mirrorActive, capOff);
+    const filtered = omitShellBannersDetailedInSettings(shell, "connected", mirrorActive, capOff);
+    expect(filtered.map((b) => b.key)).toEqual(["mirror-active", "write-mode-disabled"]);
   });
 });
 

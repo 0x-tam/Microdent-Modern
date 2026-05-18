@@ -3,7 +3,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { openDatabaseSync } from "./node-sqlite.js";
-import { runMirrorImportSafe } from "./run-mirror-import-safe.js";
+import {
+  formatMirrorImportSafeSummaryLines,
+  mirrorImportSafeExitCode,
+  runMirrorImportSafe,
+  type RunMirrorImportSafeResult,
+} from "./run-mirror-import-safe.js";
 import { writeSyntheticMirrorDataRoot } from "./test-fixtures/synthetic-mirror-data-root.js";
 
 const BLOCKED_TOKENS = [
@@ -42,6 +47,38 @@ function readSafeMirrorSnapshot(sqlitePath: string): {
     db.close();
   }
 }
+
+function syntheticResult(overall: RunMirrorImportSafeResult["overall"]): RunMirrorImportSafeResult {
+  return {
+    migrations: { applied: 2, skipped: 4 },
+    steps: [
+      { table: "doctors", status: "success", rowCount: 3, errorCount: 0 },
+      { table: "patients", status: overall === "success" ? "success" : "partial", rowCount: 10, errorCount: 1 },
+    ],
+    overall,
+  };
+}
+
+describe("mirrorImportSafeExitCode", () => {
+  it("returns 0 only for success", () => {
+    expect(mirrorImportSafeExitCode("success")).toBe(0);
+    expect(mirrorImportSafeExitCode("partial")).toBe(1);
+    expect(mirrorImportSafeExitCode("failed")).toBe(1);
+  });
+});
+
+describe("formatMirrorImportSafeSummaryLines", () => {
+  it("prints a PHI-safe table without paths or row payloads", () => {
+    const lines = formatMirrorImportSafeSummaryLines(syntheticResult("partial"));
+    const text = lines.join("\n");
+    expect(text).toContain("table");
+    expect(text).toContain("doctors");
+    expect(text).toContain("partial");
+    expect(text).toContain("overall: partial");
+    expect(text).not.toMatch(/\/Users\//);
+    expect(text).not.toMatch(/PAT_NAME|555-/);
+  });
+});
 
 describe("runMirrorImportSafe", () => {
   it("imports all safe mirror tables from a synthetic DATA_ROOT", async () => {

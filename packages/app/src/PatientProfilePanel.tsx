@@ -44,9 +44,20 @@ import {
 } from "./patient-ledger-display.js";
 import { PatientSearchBar, type PatientSearchHit } from "./PatientSearchBar.js";
 import {
+  CLINIC_SERVICE_CHECKING,
   CLINIC_SERVICE_OFFLINE_PANEL,
   CLINIC_SERVICE_OFFLINE_SECTION,
   CLINIC_SERVICE_OFFLINE_TITLE,
+  PATIENT_DEMOGRAPHICS_DOCTOR_ID_HINT,
+  PATIENT_PROFILE_LOADING,
+  PATIENT_PROFILE_WAITING_TITLE,
+  PATIENT_SANDBOX_DEMOGRAPHICS_TITLE,
+  PATIENT_TAB_LOADING_APPOINTMENTS,
+  PATIENT_TAB_LOADING_CHART,
+  PATIENT_TAB_LOADING_LEDGER,
+  PATIENT_TAB_LOADING_MEDICAL,
+  PATIENT_TAB_LOADING_TREATMENTS,
+  PATIENT_TAB_OFFLINE_TREATMENTS,
   PATIENT_CHANGE_PATIENT_LABEL,
   PATIENT_PAGE_SEARCH_LEDE,
   PATIENT_MODULE_TABS_HINT,
@@ -1059,12 +1070,12 @@ export function PatientProfilePanel({
         ) : state.phase === "offline" ? (
           <EmptyState
             className="ui-empty--start app-patient-profile__empty"
-            title={CLINIC_SERVICE_OFFLINE_TITLE}
-            description={CLINIC_SERVICE_OFFLINE_PANEL}
+            title={bridgePhase === "checking" ? PATIENT_PROFILE_WAITING_TITLE : CLINIC_SERVICE_OFFLINE_TITLE}
+            description={bridgePhase === "checking" ? CLINIC_SERVICE_CHECKING : CLINIC_SERVICE_OFFLINE_PANEL}
           />
         ) : state.phase === "loading" ? (
-          <p className="app-patient-profile__status" role="status" aria-live="polite">
-            Loading profile…
+          <p className="app-patient-profile__status app-readonly-state app-readonly-state--loading" role="status" aria-live="polite" aria-busy="true">
+            {PATIENT_PROFILE_LOADING}
           </p>
         ) : state.phase === "not_found" ? (
           <EmptyState
@@ -1142,7 +1153,7 @@ export function PatientProfilePanel({
                       id="patient-sandbox-demographics-heading"
                       className="app-patient-profile__sandbox-demographics-heading"
                     >
-                      Sandbox demographics (pilot)
+                      {PATIENT_SANDBOX_DEMOGRAPHICS_TITLE}
                     </h3>
                     <PatientDemographicsWritePanel
                       patientId={patientId}
@@ -1217,8 +1228,8 @@ export function PatientProfilePanel({
                     description={CLINIC_SERVICE_OFFLINE_SECTION}
                   />
                 ) : apptState.phase === "loading" ? (
-                  <p className="app-patient-profile__status" role="status" aria-live="polite">
-                    Loading appointments…
+                  <p className="app-patient-profile__status app-readonly-state app-readonly-state--loading" role="status" aria-live="polite" aria-busy="true">
+                    {PATIENT_TAB_LOADING_APPOINTMENTS}
                   </p>
                 ) : apptState.phase === "error" ? (
                   <div className="app-patient-profile__error" role="alert">
@@ -1307,8 +1318,8 @@ export function PatientProfilePanel({
                     description={CLINIC_SERVICE_OFFLINE_SECTION}
                   />
                 ) : medState.phase === "loading" ? (
-                  <p className="app-patient-profile__status" role="status" aria-live="polite">
-                    Loading medical summary…
+                  <p className="app-patient-profile__status app-readonly-state app-readonly-state--loading" role="status" aria-live="polite" aria-busy="true">
+                    {PATIENT_TAB_LOADING_MEDICAL}
                   </p>
                 ) : medState.phase === "error" ? (
                   <div className="app-patient-profile__error" role="alert">
@@ -1357,12 +1368,12 @@ export function PatientProfilePanel({
                 {txState.phase === "offline" ? (
                   <EmptyState
                     className="ui-empty--start app-patient-profile__empty"
-                    title="Clinic service offline"
-                    description="Connect the bridge to load treatment history."
+                    title={CLINIC_SERVICE_OFFLINE_TITLE}
+                    description={PATIENT_TAB_OFFLINE_TREATMENTS}
                   />
                 ) : txState.phase === "loading" ? (
-                  <p className="app-patient-profile__status" role="status" aria-live="polite">
-                    Loading treatments…
+                  <p className="app-patient-profile__status app-readonly-state app-readonly-state--loading" role="status" aria-live="polite" aria-busy="true">
+                    {PATIENT_TAB_LOADING_TREATMENTS}
                   </p>
                 ) : txState.phase === "error" ? (
                   <div className="app-patient-profile__error" role="alert">
@@ -1420,8 +1431,8 @@ export function PatientProfilePanel({
                     description={CLINIC_SERVICE_OFFLINE_SECTION}
                   />
                 ) : chartState.phase === "loading" ? (
-                  <p className="app-patient-profile__status" role="status" aria-live="polite">
-                    Loading chart…
+                  <p className="app-patient-profile__status app-readonly-state app-readonly-state--loading" role="status" aria-live="polite" aria-busy="true">
+                    {PATIENT_TAB_LOADING_CHART}
                   </p>
                 ) : chartState.phase === "error" ? (
                   <div className="app-patient-profile__error" role="alert">
@@ -1481,8 +1492,8 @@ export function PatientProfilePanel({
                     description={CLINIC_SERVICE_OFFLINE_SECTION}
                   />
                 ) : ledgerState.phase === "loading" ? (
-                  <p className="app-patient-profile__status" role="status" aria-live="polite">
-                    Loading ledger…
+                  <p className="app-patient-profile__status app-readonly-state app-readonly-state--loading" role="status" aria-live="polite" aria-busy="true">
+                    {PATIENT_TAB_LOADING_LEDGER}
                   </p>
                 ) : ledgerState.phase === "error" ? (
                   <div className="app-patient-profile__error" role="alert">

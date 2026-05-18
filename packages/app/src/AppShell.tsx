@@ -9,7 +9,7 @@ import {
   READ_ONLY_MODE_LABEL,
   READ_ONLY_VIEWER_LABEL,
 } from "./read-only-ui-copy.js";
-import { resolveShellStatusBanners } from "./shell-status-banners.js";
+import { omitShellBannersDetailedInSettings, resolveShellStatusBanners } from "./shell-status-banners.js";
 
 export function resolveMirrorDiagnosticLabel(
   enabled: boolean,
@@ -140,29 +140,34 @@ export function AppShell({
 
   const displayClinicLabel = resolveShellClinicLabel(bridgePhase, clinicLabel);
 
-  const runBridgeHealthCheck = useCallback(async () => {
-    if (!bridgeBaseUrl?.trim()) {
+  const runBridgeHealthCheck = useCallback(
+    async (isStale?: () => boolean) => {
+      if (!bridgeBaseUrl?.trim()) {
+        setBridgePhase("offline");
+        setLastHealthCheckAt(null);
+        setLastHealthOfflineReason(null);
+        return;
+      }
+      if (isStale?.()) return;
+      setBridgePhase("checking");
+      setLastHealthOfflineReason(null);
+      const client = createBridgeClient({ baseUrl: bridgeBaseUrl.trim(), fetch: fetchImpl });
+      const probe = await probeBridgeHealth(client);
+      if (isStale?.()) return;
+      setLastHealthCheckAt(Date.now());
+      if (probe.status === "connected") {
+        setBridgePhase("connected");
+        setLastHealthOfflineReason(null);
+        return;
+      }
       setBridgePhase("offline");
-      setLastHealthCheckAt(null);
-      setLastHealthOfflineReason(null);
-      return;
-    }
-    setBridgePhase("checking");
-    setLastHealthOfflineReason(null);
-    const client = createBridgeClient({ baseUrl: bridgeBaseUrl.trim(), fetch: fetchImpl });
-    const probe = await probeBridgeHealth(client);
-    setLastHealthCheckAt(Date.now());
-    if (probe.status === "connected") {
-      setBridgePhase("connected");
-      setLastHealthOfflineReason(null);
-      return;
-    }
-    setBridgePhase("offline");
-    setLastHealthOfflineReason(describeBridgeHealthProbeError(probe.error));
-    if (bridgeHealthLogDiagnostics && probe.error !== undefined) {
-      console.warn("[Microdent] Bridge health check did not succeed", probe.error);
-    }
-  }, [bridgeBaseUrl, bridgeHealthLogDiagnostics, fetchImpl]);
+      setLastHealthOfflineReason(describeBridgeHealthProbeError(probe.error));
+      if (bridgeHealthLogDiagnostics && probe.error !== undefined) {
+        console.warn("[Microdent] Bridge health check did not succeed", probe.error);
+      }
+    },
+    [bridgeBaseUrl, bridgeHealthLogDiagnostics, fetchImpl],
+  );
 
   useEffect(() => {
     if (!bridgeBaseUrl?.trim()) {
@@ -171,7 +176,11 @@ export function AppShell({
       setLastHealthOfflineReason(null);
       return;
     }
-    void runBridgeHealthCheck();
+    let cancelled = false;
+    void runBridgeHealthCheck(() => cancelled);
+    return () => {
+      cancelled = true;
+    };
   }, [bridgeBaseUrl, runBridgeHealthCheck]);
 
   useEffect(() => {
@@ -241,10 +250,11 @@ export function AppShell({
     };
   }, [bridgeBaseUrl, bridgePhase, fetchImpl]);
 
-  const shellStatusBanners = useMemo(
-    () => resolveShellStatusBanners(bridgePhase, mirrorStatus, writeCapability),
-    [bridgePhase, mirrorStatus, writeCapability],
-  );
+  const shellStatusBanners = useMemo(() => {
+    const banners = resolveShellStatusBanners(bridgePhase, mirrorStatus, writeCapability);
+    if (active !== "settings") return banners;
+    return omitShellBannersDetailedInSettings(banners, bridgePhase, mirrorStatus, writeCapability);
+  }, [active, bridgePhase, mirrorStatus, writeCapability]);
 
   const sidebar = useMemo(
     () => (

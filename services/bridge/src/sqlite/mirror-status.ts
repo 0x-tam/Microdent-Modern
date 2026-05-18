@@ -20,6 +20,7 @@ type ImportRunRow = {
   run_id: number;
   finished_at: string;
   status: MirrorImportRunSummary["status"];
+  tables_requested: string;
   row_counts: string | null;
   tables_succeeded: string | null;
 };
@@ -62,7 +63,8 @@ function parseJsonStringArray(raw: string | null): string[] {
 function tableNamesFromRun(run: ImportRunRow): string[] {
   const fromCounts = Object.keys(parseJsonObject(run.row_counts));
   const fromSucceeded = parseJsonStringArray(run.tables_succeeded);
-  const names = new Set<string>([...fromCounts, ...fromSucceeded]);
+  const fromRequested = parseJsonStringArray(run.tables_requested);
+  const names = new Set<string>([...fromCounts, ...fromSucceeded, ...fromRequested]);
   return [...names].filter((n) => DOMAIN_TABLE_SET.has(n));
 }
 
@@ -82,7 +84,7 @@ function readImportedTables(db: ReturnType<typeof openDatabaseSync>): string[] {
 function readLatestImportRuns(db: ReturnType<typeof openDatabaseSync>): MirrorImportRunSummary[] {
   const runs = db
     .prepare(
-      `SELECT run_id, finished_at, status, row_counts, tables_succeeded
+      `SELECT run_id, finished_at, status, tables_requested, row_counts, tables_succeeded
        FROM import_runs
        WHERE finished_at IS NOT NULL
        ORDER BY finished_at DESC

@@ -5,6 +5,7 @@ import { describe, expect, it, afterEach } from "vitest";
 import {
   getOperatorPathWarnings,
   isOperatorAbsolutePath,
+  maskOperatorPath,
   normalizeOperatorPath,
   validateBackupDir,
   validateDataRootDir,
@@ -27,7 +28,17 @@ describe("path-validation", () => {
     if (!empty.ok) {
       expect(empty.code).toBe("empty");
     }
-    expect(validateDataRootDir("relative/data").ok).toBe(false);
+    const relative = validateDataRootDir("relative/data");
+    expect(relative.ok).toBe(false);
+    if (!relative.ok) {
+      expect(relative.code).toBe("not_absolute");
+    }
+  });
+
+  it("masks operator paths without leaking full segments", () => {
+    expect(maskOperatorPath("C:\\Microdent\\Write-Sandbox\\DATA")).toBe("C:\\…/DATA");
+    expect(maskOperatorPath("/var/tmp/mirror.sqlite")).toBe("/…/mirror.sqlite");
+    expect(maskOperatorPath("")).toBe("(not set)");
   });
 
   it("accepts Windows drive-letter paths as absolute", () => {

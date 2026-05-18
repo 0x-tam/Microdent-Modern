@@ -132,6 +132,27 @@ describe("GET /v1/mirror/status", () => {
     }
   });
 
+  it("includes failed import runs in latestImportRuns via tables_requested", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "microdent-mirror-status-failed-"));
+    try {
+      const sqlitePath = join(dir, "mirror.sqlite");
+      const dataRoot = join(dir, "empty-data");
+      applyMigrations(sqlitePath);
+      await importDoctors({ dataRoot, sqlitePath, trigger: "manual" });
+
+      await withServer(sqlitePath, async (port) => {
+        const res = await fetch(`http://127.0.0.1:${port}/v1/mirror/status`);
+        const body = MirrorStatusResponseSchema.parse(JSON.parse(await res.text()));
+        const doctorsRun = body.latestImportRuns.find((r) => r.tableName === "doctors");
+        expect(doctorsRun?.status).toBe("failed");
+        expect(doctorsRun?.errorCount).toBeGreaterThan(0);
+        expect(doctorsRun?.finishedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("returns sqliteUsable false when configured path does not exist", async () => {
     const missing = join(tmpdir(), `microdent-missing-mirror-${Date.now()}.sqlite`);
     await withServer(missing, async (port) => {

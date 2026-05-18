@@ -72,7 +72,9 @@ describe("BridgeSupervisor spawn env", () => {
       string[],
       { env: NodeJS.ProcessEnv },
     ];
+    expect(args).toHaveLength(1);
     expect(args[0]).toMatch(/server\.js$/);
+    expect(args[0]).not.toMatch(/\.(exe|bat|cmd)$/i);
     const { env } = options;
     expect(env.WRITE_MODE).toBe("disabled");
     expect(env.BRIDGE_HOST).toBe("127.0.0.1");
@@ -80,6 +82,29 @@ describe("BridgeSupervisor spawn env", () => {
     expect(env.NODE_ENV).toBe("production");
     expect(env.DATA_ROOT).toBeUndefined();
     expect(env.SQLITE_PATH).toBeUndefined();
+    assertNoForbiddenPaths(env);
+  });
+
+  it("defaults WRITE_MODE to disabled when writeMode is omitted from config", async () => {
+    const supervisor = new BridgeSupervisor({
+      repoRoot: "/tmp/microdent-repo",
+      config: {
+        version: 1,
+        dataRoot: "/tmp/sandbox-data",
+        sqlitePath: "/tmp/sandbox.sqlite",
+      },
+      nodeBinary: "/usr/bin/node",
+    });
+
+    await supervisor.start();
+
+    const [, args, { env }] = spawnMock.mock.calls[0] as [
+      string,
+      string[],
+      { env: NodeJS.ProcessEnv },
+    ];
+    expect(args).toEqual([join("/tmp/microdent-repo", "services", "bridge", "dist", "server.js")]);
+    expect(env.WRITE_MODE).toBe("disabled");
     assertNoForbiddenPaths(env);
   });
 

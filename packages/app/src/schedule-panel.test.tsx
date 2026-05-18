@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { SchedulePanel } from "./SchedulePanel.js";
+import { assertNoForbiddenDomTokens } from "./read-only-smoke-fixtures.js";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -126,6 +127,23 @@ describe("SchedulePanel", () => {
     });
     container.remove();
     vi.restoreAllMocks();
+  });
+
+  it("shows checking copy without fetching schedule", async () => {
+    const fetchImpl = vi.fn();
+    await act(async () => {
+      root.render(
+        <SchedulePanel
+          isActive
+          bridgePhase="checking"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+        />,
+      );
+    });
+    expect(container.textContent).toMatch(/Waiting for the clinic service/i);
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 
   it("does not fetch when the bridge is offline", async () => {
@@ -414,9 +432,7 @@ describe("SchedulePanel", () => {
     });
 
     const t = container.textContent ?? "";
-    expect(t).not.toMatch(/\bPAT_NAME\b/i);
-    expect(t).not.toMatch(/\bTELEPHONE\b/i);
-    expect(t).not.toMatch(/\bCOMMENT\b/i);
+    assertNoForbiddenDomTokens(t);
     expect(t).toContain("Read-only schedule");
   });
 
@@ -543,6 +559,7 @@ describe("SchedulePanel", () => {
     expect(container.textContent).toMatch(/Could not load the schedule/i);
     expect(container.textContent).toMatch(/clinic service connection/i);
     expect(container.textContent).not.toMatch(/No appointments in this range/i);
+    expect(container.textContent).toMatch(/Retry/i);
   });
 
   it("shows reference doctor displayName on appointments", async () => {

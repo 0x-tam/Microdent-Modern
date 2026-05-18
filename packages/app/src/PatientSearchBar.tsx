@@ -3,11 +3,14 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent }
 import { Button } from "@microdent/ui";
 import type { BridgeHealthPhase } from "./bridge-health.js";
 import {
+  CLINIC_SERVICE_CHECKING,
   PATIENT_PAGE_SEARCH_PRIVACY,
   PATIENT_SEARCH_DROPDOWN_NO_MATCH,
   PATIENT_SEARCH_HINT_CONNECTED,
   PATIENT_SEARCH_HINT_OFFLINE,
   PATIENT_SEARCH_IDLE,
+  PATIENT_SEARCH_OFFLINE_BANNER,
+  PATIENT_SEARCH_OFFLINE_STATUS,
   PATIENT_SEARCH_NO_MATCH,
   PATIENT_SEARCH_SEARCHING,
   PATIENT_SEARCH_TOO_SHORT,
@@ -277,15 +280,17 @@ export function PatientSearchBar({
     [canSelectFirstResult, clearSearch, flushAndSearch, results, selectPatientHit],
   );
 
+  const showOfflineBanner = Boolean(base) && bridgePhase !== "connected";
+
   const statusLine = useMemo(() => {
     if (!base || bridgePhase === "offline") {
-      return "Connect the clinic service to search patients.";
+      return PATIENT_SEARCH_OFFLINE_STATUS;
     }
     if (bridgePhase === "checking") {
-      return "Waiting for the clinic service…";
+      return CLINIC_SERVICE_CHECKING;
     }
     if (!canSearch) {
-      return "Connect the clinic service to search patients.";
+      return PATIENT_SEARCH_OFFLINE_STATUS;
     }
     if (trimmed.length === 0) {
       return PATIENT_SEARCH_IDLE;
@@ -320,6 +325,11 @@ export function PatientSearchBar({
 
   return (
     <div ref={rootRef} className={rootClassName}>
+      {showOfflineBanner ? (
+        <p className="app-patient-search__offline-banner" role="status">
+          {PATIENT_SEARCH_OFFLINE_BANNER}
+        </p>
+      ) : null}
       <label className="app-sr-only" htmlFor={domIds.input}>
         Find a patient
       </label>

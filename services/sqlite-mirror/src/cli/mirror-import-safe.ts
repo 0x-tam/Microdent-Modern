@@ -1,5 +1,9 @@
 import { loadMirrorEnvFromProcess } from "../mirror-env.js";
-import { printMirrorImportSafeReport, runMirrorImportSafe } from "../run-mirror-import-safe.js";
+import {
+  mirrorImportSafeExitCode,
+  printMirrorImportSafeReport,
+  runMirrorImportSafe,
+} from "../run-mirror-import-safe.js";
 
 function printEnvHelp(missing: ("DATA_ROOT" | "SQLITE_PATH")[]): void {
   const vars = missing.join(" and ");
@@ -28,10 +32,7 @@ async function main(): Promise<void> {
 
   const result = await runMirrorImportSafe(loaded.env);
   printMirrorImportSafeReport(result);
-
-  if (result.overall === "failed") {
-    process.exit(1);
-  }
+  process.exit(mirrorImportSafeExitCode(result.overall));
 }
 
 main().catch(() => {

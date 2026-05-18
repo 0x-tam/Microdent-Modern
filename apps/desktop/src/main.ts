@@ -11,6 +11,7 @@ import {
   loadDesktopConfig,
   saveDesktopConfig,
 } from "./config.js";
+import { maskOperatorPath } from "./path-validation.js";
 import { showSetupWindow } from "./setup/setup-window.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -25,6 +26,12 @@ async function resolveDesktopConfig() {
   }
   config = await showSetupWindow(config);
   saveDesktopConfig(config);
+  console.log("Microdent desktop: config saved");
+  if (config.dataRoot && config.sqlitePath) {
+    console.log(
+      `Microdent desktop: data=${maskOperatorPath(config.dataRoot)} sqlite=${maskOperatorPath(config.sqlitePath)} writeMode=${config.writeMode ?? "disabled"}`,
+    );
+  }
   return config;
 }
 

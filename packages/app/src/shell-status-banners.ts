@@ -208,6 +208,23 @@ export function resolveShellStatusBanners(
   return banners;
 }
 
+/**
+ * Omits shell banners that are expanded in Settings danger callouts so operators do not see duplicates.
+ * Informational shell banners (e.g. mirror-active, writes off) remain visible globally.
+ */
+export function omitShellBannersDetailedInSettings(
+  shellBanners: ShellStatusBanner[],
+  phase: BridgeHealthPhase,
+  mirrorStatus: MirrorStatusResponse | null,
+  writeCapability: BridgeDevStatusResponse | null,
+  nowMs: number = Date.now(),
+): ShellStatusBanner[] {
+  const detailKeys = new Set(
+    resolveSettingsDangerBanners(phase, mirrorStatus, writeCapability, nowMs).map((b) => b.key),
+  );
+  return shellBanners.filter((banner) => !detailKeys.has(banner.key));
+}
+
 /** Compact schedule chip label; null when capability is unknown. */
 export function resolveWriteModeChip(
   writeCapability: BridgeDevStatusResponse | null,

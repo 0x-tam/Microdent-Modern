@@ -6,6 +6,7 @@ import {
   type DesktopConfig,
 } from "../config.js";
 import {
+  maskOperatorPath,
   validateBackupDir,
   validateDataRootDir,
   validateSqlitePathFile,
@@ -19,7 +20,9 @@ type SetupSavePayload = {
   backupDir?: string;
 };
 
-type SetupSaveResult = { ok: true } | { ok: false; message: string };
+type SetupSaveResult =
+  | { ok: true; summary?: string }
+  | { ok: false; message: string };
 
 const VALIDATION_MESSAGES: Record<string, string> = {
   empty: "Path is required.",
@@ -102,7 +105,10 @@ export function showSetupWindow(initial: DesktopConfig): Promise<DesktopConfig> 
       }
       finish(result);
       win.close();
-      return { ok: true as const };
+      return {
+        ok: true as const,
+        summary: `Saved: data=${maskOperatorPath(result.dataRoot ?? "")} sqlite=${maskOperatorPath(result.sqlitePath ?? "")} (write mode disabled)`,
+      };
     });
 
     win.setMenuBarVisibility(false);

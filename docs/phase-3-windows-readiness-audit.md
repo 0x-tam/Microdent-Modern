@@ -6,7 +6,7 @@
 
 This document classifies every operator-facing script so Windows deployers know what runs natively vs what needs Git Bash/WSL or manual Node steps.
 
-See also: [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md) (**operator QA index** — read-only, mirror, sandbox, restore, Windows manual), [phase-4-windows-operator-quickstart.md](./phase-4-windows-operator-quickstart.md) (one-page deploy flow), [apps/desktop/README.md](../apps/desktop/README.md) (Windows checklist), [scripts/README.md](../scripts/README.md) (script index).
+See also: [phase-6-windows-mvp-operator-guide.md](./phase-6-windows-mvp-operator-guide.md) (**Windows MVP — end-to-end**), [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md) (**operator QA index** — read-only, mirror, sandbox, restore, Windows manual), [phase-4-windows-operator-quickstart.md](./phase-4-windows-operator-quickstart.md) (one-page deploy flow), [apps/desktop/README.md](../apps/desktop/README.md) (Windows checklist), [scripts/README.md](../scripts/README.md) (script index).
 
 ---
 
@@ -17,7 +17,7 @@ See also: [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md) (**
 | **Bridge / mirror / legacy CLIs** | **Cross-platform Node** — production/QA legacy scripts use **`node dist/cli/*.js`** after `pnpm build` (not `tsx`; see [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md)) |
 | **Root `pnpm legacy:*` / `mirror:import-safe`** | Bash wrappers — use **WSL/Git Bash** or invoke the underlying workspace script directly |
 | **`pnpm dev:*` port helpers** | **macOS dev-only** (`lsof`, `ps`) |
-| **Sandbox QA bash** | **Implemented** (`pnpm qa:sandbox`) — **macOS-oriented**; legacy steps use **`node dist/cli/*.js`** (not tsx); on Windows use [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md) §5 or wait for Node orchestrator (deferred) |
+| **Sandbox QA bash** | **Implemented** (`pnpm qa:sandbox`) — **macOS-oriented**; smoke backup/restore use **direct** `node dist/cli/*.js` (not `pnpm legacy:*` mid-run); on Windows use [phase-6-windows-mvp-operator-guide.md](./phase-6-windows-mvp-operator-guide.md) or [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md) §5 until Node orchestrator (deferred) |
 | **Product UI batch** | Sandbox write pilot env, desktop first-run setup, Settings / mirror status — see table below |
 | **Desktop app** | Electron + `node dist/server.js`; config under `%AppData%\Microdent\config.json` on Windows |
 
@@ -27,6 +27,9 @@ See also: [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md) (**
 
 | `pnpm` script | Entry | Classification | Windows notes |
 | --- | --- | --- | --- |
+| `test` | npm workspaces test chain | **Cross-platform Node** | Primary read-only regression — run before MVP sign-off |
+| `build:web` | `@microdent/web` build | **Cross-platform Node** | Required for desktop `file://` UI and deploy |
+| `preview:web` | Vite dev | **Cross-platform Node** | Loopback dev; optional `VITE_SANDBOX_WRITE_PILOT` in `.env.local` |
 | `dev:ports` | `scripts/dev-ports.sh` | **macOS dev-only** | Requires `lsof` via `dev-common.sh` |
 | `dev:kill-ports` | `scripts/dev-kill-ports.sh` | **macOS dev-only** | `lsof` + `ps` + `kill` |
 | `dev:bridge` | `scripts/dev-bridge.sh` | **macOS dev-only wrapper** | Bash env checks; runs `pnpm --filter @microdent/bridge dev` (Node works on Windows if run directly) |
@@ -37,7 +40,18 @@ See also: [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md) (**
 | `legacy:restore` | `scripts/legacy-restore.sh` | **Bash wrapper → cross-platform Node** | `pnpm --filter @microdent/bridge run legacy-restore` |
 | `legacy:backup-verify` | `scripts/legacy-backup-verify.sh` | **Bash wrapper → cross-platform Node** | `pnpm --filter @microdent/bridge run legacy-backup-verify` |
 | `sandbox:validate` | Vitest in bridge | **Cross-platform Node** | No shell |
-| `qa:sandbox` | `scripts/qa-sandbox-run.sh` | **Implemented — macOS-oriented bash** | `curl`, `jq`, `sqlite3`, `realpath`, `bash`; smoke calls `pnpm legacy:*` → **`node dist/cli/*.js`**. Windows: [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md) §5 until `qa-sandbox-run.mjs` exists |
+| `qa:sandbox` | `scripts/qa-sandbox-run.sh` | **Implemented — macOS-oriented bash** | `curl`, `jq`, `sqlite3`, `realpath`, `bash`; smoke uses **direct** `node dist/cli/*.js` (not `pnpm legacy:*` mid-run). Windows: [phase-6-windows-mvp-operator-guide.md](./phase-6-windows-mvp-operator-guide.md) §7 or [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md) §5 until `qa-sandbox-run.mjs` exists |
+
+### Workspace commands (no root `pnpm` alias)
+
+| Command | Classification | Windows notes |
+| --- | --- | --- |
+| `pnpm --filter @microdent/desktop run build` | **Cross-platform Node** | Electron shell |
+| `pnpm --filter @microdent/desktop run start` | **Cross-platform Node** | First-run setup → `%AppData%\Microdent\config.json` |
+| `pnpm --filter @microdent/contracts run build` | **Cross-platform Node** | Prerequisite for bridge/mirror CLIs |
+| `pnpm --filter @microdent/bridge run build` | **Cross-platform Node** | Produces `dist/server.js` and `dist/cli/*.js` |
+| `pnpm --filter @microdent/bridge run dev` | **Cross-platform Node** | `tsx watch` — dev only, not QA |
+| `node services/bridge/dist/server.js` | **Windows production-ready** | Set `DATA_ROOT`, `SQLITE_PATH`, `WRITE_MODE` in PowerShell first |
 
 ---
 
@@ -55,8 +69,8 @@ See also: [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md) (**
 | `legacy-create-sandbox.sh` | `pnpm legacy:create-sandbox` | **Bash wrapper → cross-platform Node** | `SOURCE_DATA_ROOT`, `SANDBOX_ROOT` |
 | `legacy-restore.sh` | `pnpm legacy:restore` | **Bash wrapper → cross-platform Node** | `BACKUP_MANIFEST`, `DATA_ROOT` |
 | `legacy-backup-verify.sh` | `pnpm legacy:backup-verify` | **Bash wrapper → cross-platform Node** | `BACKUP_MANIFEST`; optional `DATA_ROOT` |
-| `qa-sandbox-write-smoke.sh` | Manual / orchestrator | **macOS-oriented bash** | `curl`, `jq`, `sqlite3`, `realpath`, grep sandbox path |
-| `qa-sandbox-run.sh` | `pnpm qa:sandbox` | **Implemented — macOS-oriented bash** | Orchestrates stable bridge + smoke; **Windows: run steps manually** (see phase-4 quickstart) |
+| `qa-sandbox-write-smoke.sh` | Manual / orchestrator | **macOS-oriented bash** | `curl`, `jq`, `sqlite3`, `realpath`; backup/restore via **direct** `node dist/cli/*.js` from `services/bridge` |
+| `qa-sandbox-run.sh` | `pnpm qa:sandbox` | **Implemented — macOS-oriented bash** | Builds bridge, `node services/bridge/dist/server.js`, then smoke; **Windows:** [phase-6-windows-mvp-operator-guide.md](./phase-6-windows-mvp-operator-guide.md) §7 |
 
 ---
 
@@ -120,9 +134,20 @@ No `lsof`/`rsync` rewrites in this batch.
 
 ---
 
+## Hard rules (operator)
+
+| Rule | Requirement |
+| --- | --- |
+| Never live legacy as `DATA_ROOT` | Not `C:\Microdent\Microdent-Legacy` — use **`C:\Microdent\Legacy-Copy\DATA`** for read-only mirror import |
+| Writes sandbox-only | `C:\Microdent\Write-Sandbox\DATA` + `.microdent-write-sandbox.json` |
+| No new write domains | Four sandbox workflows; no payments, memos, ledger writes in MVP |
+| QA bridge/CLI | `node dist/server.js` and `node dist/cli/*.js` — not `tsx` in smoke/orchestrator |
+
+---
+
 ## Windows operator quick start
 
-See **[phase-4-windows-operator-quickstart.md](./phase-4-windows-operator-quickstart.md)** for deploy (Node 22 → build → desktop config → mirror CLI → sandbox pilot env). For **full validation** (read-only tests, mirror QA, sandbox/restore, command table): **[phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md)**.
+See **[phase-6-windows-mvp-operator-guide.md](./phase-6-windows-mvp-operator-guide.md)** for the full Windows MVP path (Node 22 → build → desktop → mirror → read-only smoke → pilot → `pnpm qa:sandbox`). Compact deploy: **[phase-4-windows-operator-quickstart.md](./phase-4-windows-operator-quickstart.md)**. Detailed QA tracks: **[phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md)**.
 
 ---
 

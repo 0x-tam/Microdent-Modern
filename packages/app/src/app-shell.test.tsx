@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { AppShell, resolveMirrorDiagnosticLabel, resolveShellClinicLabel } from "./AppShell.js";
+import { assertNoForbiddenDomTokens } from "./read-only-smoke-fixtures.js";
 import { resolveShellStatusBanners } from "./shell-status-banners.js";
 
 describe("resolveMirrorDiagnosticLabel", () => {
@@ -97,10 +98,7 @@ describe("AppShell", () => {
     const html = renderToStaticMarkup(<AppShell bridgeBaseUrl="http://127.0.0.1:17890" />);
     expect(html).not.toMatch(/Sample patient/i);
     expect(html).not.toMatch(/sample data only/i);
-    expect(html).not.toContain("PAT_NAME");
-    expect(html).not.toContain("TELEPHONE");
-    expect(html).not.toContain("COMMENT");
-    expect(html).not.toMatch(/\braw row\b/i);
+    assertNoForbiddenDomTokens(html);
   });
 
   it("shows the global privacy note under the read-only banner", () => {

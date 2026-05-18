@@ -13,6 +13,7 @@ import {
   safePatientTreatmentsError,
 } from "./PatientProfilePanel.js";
 import { defaultPatientApptRange, inclusiveDayCount } from "./patient-appointments-range.js";
+import { assertNoForbiddenDomTokens } from "./read-only-smoke-fixtures.js";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -546,10 +547,7 @@ describe("PatientProfilePanel", () => {
 
     const text = container.textContent ?? "";
     expect(text).toContain("Synthetic Search Only");
-    expect(text).not.toContain("TELEPHONE");
-    expect(text).not.toContain("COMMENT");
-    expect(text).not.toContain("NOTE");
-    expect(text).not.toMatch(/\braw row\b/i);
+    assertNoForbiddenDomTokens(text);
     expect(text).not.toMatch(/555[- ]?\d{3}[- ]?\d{4}/);
   });
 
@@ -1404,8 +1402,8 @@ describe("PatientProfilePanel", () => {
     await flush();
 
     const t = container.textContent ?? "";
-    expect(t).not.toMatch(/\b(DESCRIPT|DESC|NOTE|FEE|CHARGE)\b/);
-    expect(t).not.toMatch(/\braw row\b/i);
+    assertNoForbiddenDomTokens(t);
+    expect(t).not.toMatch(/\b(FEE|CHARGE)\b/);
     expect(t).not.toContain("SYNTHETIC_TREATMENT_DESC_TOKEN");
     expect(t).not.toContain("SYNTHETIC_PATIENT_SPECIFIC_PROCEDURE_TEXT");
   });

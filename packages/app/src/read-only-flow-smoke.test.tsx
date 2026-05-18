@@ -142,6 +142,11 @@ describe("read-only app smoke", () => {
     expect(container.textContent).toMatch(/Ledger lines are read-only/i);
     expect(container.textContent).toContain("Charge type 2");
 
+    clickSidebarModule(container, "Settings");
+    await flush();
+    expect(container.querySelector("#app-main-heading")?.textContent).toBe("Settings");
+    assertNoForbiddenDomTokens(container.textContent ?? "");
+
     clickSidebarModule(container, "Schedule");
     await flush();
     await flush();

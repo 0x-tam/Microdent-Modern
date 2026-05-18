@@ -129,6 +129,13 @@ describe("PatientDemographicsWritePanel", () => {
     expect(previewBtn(container)).toBeNull();
   });
 
+  it("links doctor id field to helper hint via aria-describedby", () => {
+    renderPilot();
+    const doctorInput = container.querySelector<HTMLInputElement>('input[aria-label="Doctor id"]');
+    expect(doctorInput?.getAttribute("aria-describedby")).toBe("patient-demographics-doctor-hint");
+    expect(container.querySelector("#patient-demographics-doctor-hint")?.textContent).toMatch(/doctor id/i);
+  });
+
   it("does not expose phone or address fields", () => {
     renderPilot();
     expect(container.querySelector('input[type="tel"]')).toBeNull();

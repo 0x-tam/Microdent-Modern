@@ -89,6 +89,7 @@ describe("PatientSearchBar", () => {
     const input = container.querySelector("input#app-patient-search-input") as HTMLInputElement;
     expect(input.disabled).toBe(true);
     expect(container.textContent).toContain("Connect the clinic service");
+    expect(container.querySelector(".app-patient-search__offline-banner")).toBeTruthy();
   });
 
   it("disables search while the bridge is still checking", () => {

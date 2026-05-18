@@ -9,6 +9,7 @@ import {
   profileToDemographicsForm,
   type PatientDemographicsFormState,
 } from "./patient-demographics-write.js";
+import { PATIENT_DEMOGRAPHICS_DOCTOR_ID_HINT } from "./read-only-ui-copy.js";
 import { isSandboxWritePilotEnabled, isSandboxWriteReady } from "./sandbox-write-pilot.js";
 import {
   SafeWritePlanResult,
@@ -269,7 +270,9 @@ export function PatientDemographicsWritePanel({
         </fieldset>
         <fieldset className="app-sandbox-write__group" disabled={loading}>
           <legend className="app-sandbox-write__group-legend">Assignment</legend>
-          <p className="app-sandbox-write__group-hint">Primary doctor id from the profile; clear to unset.</p>
+          <p id="patient-demographics-doctor-hint" className="app-sandbox-write__group-hint">
+            {PATIENT_DEMOGRAPHICS_DOCTOR_ID_HINT}
+          </p>
           <div className="app-sandbox-write__fields">
             <label className="app-sandbox-write__label">
               <span>Doctor id</span>
@@ -281,6 +284,7 @@ export function PatientDemographicsWritePanel({
                 disabled={loading}
                 onChange={(e) => patchField("doctorId", e.target.value)}
                 aria-label="Doctor id"
+                aria-describedby="patient-demographics-doctor-hint"
               />
             </label>
           </div>

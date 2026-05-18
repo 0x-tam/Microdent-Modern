@@ -4,6 +4,24 @@ Minimal desktop shell per [docs/phase-3-desktop-packaging-plan.md](../../docs/ph
 
 Windows script and CLI posture: [docs/phase-3-windows-readiness-audit.md](../../docs/phase-3-windows-readiness-audit.md).
 
+## Windows MVP flow (operator)
+
+1. Install **Node 22** and clone Microdent-Modern.
+2. Build artifacts (once per machine):
+
+   ```powershell
+   pnpm --filter @microdent/bridge run build
+   pnpm build:web
+   pnpm --filter @microdent/desktop run build
+   ```
+
+3. Launch: `pnpm --filter @microdent/desktop run start`.
+4. **First-run setup** opens when `dataRoot` or `sqlitePath` is missing. Enter absolute sandbox paths; write mode stays **disabled** in the UI.
+5. Config is saved to **`%AppData%\Microdent\config.json`** (Run → `%AppData%\Microdent`).
+6. The shell spawns **only** `node services\bridge\dist\server.js` with `WRITE_MODE=disabled` until you change config manually for sandbox pilot work.
+
+**UNC paths** (`\\server\share\…`) are accepted in setup with an inline reminder to prefer local drive letters when possible. Network shares can be slow or unreliable for SQLite and DBF access.
+
 ## Safety defaults
 
 - **No FoxPro or legacy `.exe` launchers** — the shell only spawns the Node bridge (`services/bridge/dist/server.js`).
@@ -97,4 +115,4 @@ Not included: NSIS installer, code signing, auto-update.
 pnpm --filter @microdent/desktop run test
 ```
 
-Covers default `writeMode`, platform config dirs, path validation, setup payload, supervisor spawn env (`BACKUP_DIR` included when configured), and `uiUrl` resolution.
+Covers default `writeMode`, platform config dirs, path validation (including `not_absolute`), setup payload, supervisor spawn argv (`server.js` only; no EXE/BAT), env (`WRITE_MODE=disabled`, `BACKUP_DIR` when set), and `uiUrl` resolution.

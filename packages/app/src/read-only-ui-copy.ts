@@ -93,11 +93,24 @@ export const TODAY_OPEN_SCHEDULE = "Open schedule";
 
 export const TODAY_SEARCH_PATIENT = "Search patient";
 
+export const TODAY_NEXT_OFFLINE =
+  "Connect the clinic service to see the next appointment on today's copy.";
+
+export const TODAY_NEXT_NO_UPCOMING = "No upcoming appointments on the schedule for today.";
+
+export const TODAY_REMINDERS_EMPTY =
+  "No reminders in this read-only viewer. Connect the clinic service and use Schedule or Patients for live data from your copy.";
+
 export const TODAY_QUICK_ACTIONS_LEDE = "Front-desk shortcuts when the clinic service is connected.";
 
 export const PATIENT_SEARCH_HINT_CONNECTED = "Uses your copied clinic data. Names and safe hints only.";
 
 export const PATIENT_SEARCH_HINT_OFFLINE = "Search is off until the clinic service is connected.";
+
+export const PATIENT_SEARCH_OFFLINE_BANNER =
+  "Patient search needs the clinic service. Connect the bridge and wait until the top bar shows Connected.";
+
+export const PATIENT_SEARCH_OFFLINE_STATUS = "Connect the clinic service to search patients.";
 
 export const PATIENT_SEARCH_IDLE = "Type a name or chart number (at least 2 characters).";
 
@@ -125,6 +138,29 @@ export const SCHEDULE_NAV_NEXT_DAY = "Next day";
 export const SCHEDULE_NAV_NEXT_WEEK = "Next week";
 
 export const SCHEDULE_LOADING = "Loading schedule from your clinic copy…";
+
+export const READONLY_STATE_RETRY = "Retry";
+
+export const PATIENT_PROFILE_LOADING = "Loading profile…";
+
+export const PATIENT_PROFILE_WAITING_TITLE = "Waiting for the clinic service";
+
+export const PATIENT_TAB_LOADING_APPOINTMENTS = "Loading appointment history…";
+
+export const PATIENT_TAB_LOADING_MEDICAL = "Loading medical summary…";
+
+export const PATIENT_TAB_LOADING_TREATMENTS = "Loading treatments…";
+
+export const PATIENT_TAB_LOADING_CHART = "Loading dental chart…";
+
+export const PATIENT_TAB_LOADING_LEDGER = "Loading ledger preview…";
+
+export const PATIENT_TAB_OFFLINE_TREATMENTS = "Connect the bridge to load treatment history.";
+
+export const PATIENT_SANDBOX_DEMOGRAPHICS_TITLE = "Sandbox demographics (pilot)";
+
+export const PATIENT_DEMOGRAPHICS_DOCTOR_ID_HINT =
+  "Numeric doctor id from the profile only — no names from clinic data.";
 
 export const SCHEDULE_EMPTY_TITLE = "No appointments in this range";
 
@@ -230,6 +266,8 @@ export const SETTINGS_DATA_PATHS_SECTION = "Data paths";
 
 export const SETTINGS_MIRROR_SECTION = "Mirror import";
 
+export const SETTINGS_SQLITE_MIRROR_SECTION = "SQLite mirror";
+
 export const SETTINGS_WRITE_SECTION = "Writes";
 
 export const SETTINGS_SANDBOX_SECTION = "Sandbox";
@@ -264,6 +302,8 @@ export const SETTINGS_MIRROR_SQLITE_CONFIGURED = "SQLite path configured";
 
 export const SETTINGS_MIRROR_SQLITE_MISSING = "SQLite path not configured";
 
+export const SETTINGS_SQLITE_MIRROR_UNKNOWN = "SQLite mirror status unknown";
+
 export const SETTINGS_MIRROR_USABLE = "Mirror in use for search and schedule";
 
 export const SETTINGS_MIRROR_FALLBACK = "Using DBF fallback";
@@ -281,6 +321,22 @@ export const SETTINGS_MIRROR_DOC_LINK = "Mirror import operator guide";
 
 export const SETTINGS_MIRROR_STALE_CALLOUT =
   "Mirror metadata is older than 48 hours. Search and schedule may be stale until you import again.";
+
+/** Settings mirror table — partial import row (operator-facing). */
+export const SETTINGS_MIRROR_PARTIAL_CALLOUT =
+  "Some rows were skipped during import. Search and schedule may be incomplete for that table until you fix the source copy and re-import.";
+
+/** Settings mirror table — failed import row (operator-facing). */
+export const SETTINGS_MIRROR_FAILED_CALLOUT =
+  "Import did not finish for this table. Fix the source copy or paths, then run safe import again.";
+
+/** Operator hint when any latest import run is partial (Settings detail). */
+export const SETTINGS_MIRROR_PARTIAL_OPERATOR_HINT =
+  "Partial means row counts imported but some source rows were quarantined. Check import error counts, then re-run safe import after fixing the DATA copy.";
+
+/** Operator hint when any latest import run failed (Settings detail). */
+export const SETTINGS_MIRROR_FAILED_OPERATOR_HINT =
+  "Failed means the table did not import. Confirm DBF files exist under DATA_ROOT, then re-run safe import from PowerShell or bash.";
 
 export const SETTINGS_SANDBOX_PILOT_ON = "Sandbox write pilot enabled in this app build";
 

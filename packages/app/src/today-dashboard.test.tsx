@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { DashboardHome } from "./today-dashboard.js";
+import { assertNoForbiddenDomTokens } from "./read-only-smoke-fixtures.js";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -71,6 +72,22 @@ describe("DashboardHome (Today schedule)", () => {
     container.remove();
     vi.useRealTimers();
     vi.restoreAllMocks();
+  });
+
+  it("shows checking copy without fetching schedule", async () => {
+    const fetchImpl = vi.fn();
+    await act(async () => {
+      root.render(
+        <DashboardHome
+          onOpenModule={() => {}}
+          bridgePhase="checking"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+        />,
+      );
+    });
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(container.textContent).toMatch(/Waiting for the clinic service/i);
   });
 
   it("does not fetch when the bridge is offline", async () => {
@@ -147,7 +164,7 @@ describe("DashboardHome (Today schedule)", () => {
     expect(container.textContent).toContain("Missed");
     expect(container.textContent).toContain("14:00");
     expect(container.textContent).toContain("Synthetic Dashboard Two");
-    expect(container.textContent).not.toMatch(/\bPAT_NAME\b|\bTELEPHONE\b|\bCOMMENT\b/i);
+    assertNoForbiddenDomTokens(container.textContent ?? "");
     expect(container.textContent).not.toContain("555-");
     expect(container.textContent).toMatch(/Next appointment/i);
     expect(container.textContent).toContain("14:00");
@@ -305,9 +322,7 @@ describe("DashboardHome (Today schedule)", () => {
     expect(t).not.toContain("Leaked Schedule Name");
     expect(t).not.toContain("555-0100");
     expect(t).not.toContain("Secret note body");
-    expect(t).not.toMatch(/\bPAT_NAME\b/i);
-    expect(t).not.toMatch(/\bTELEPHONE\b/i);
-    expect(t).not.toMatch(/\bCOMMENT\b/i);
+    assertNoForbiddenDomTokens(t);
     expect(t).toContain("Patient ID 1");
   });
 

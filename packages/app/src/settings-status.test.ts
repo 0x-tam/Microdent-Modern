@@ -3,6 +3,7 @@ import {
   resolveBackupConfiguredStatus,
   resolveDataRootConfiguredStatus,
   resolveSandboxValidityStatus,
+  resolveSqliteMirrorStatus,
 } from "./settings-status.js";
 
 describe("settings-status", () => {
@@ -73,5 +74,25 @@ describe("settings-status", () => {
         sqlitePathConfigured: false,
       }).tone,
     ).toBe("ok");
+  });
+
+  it("maps sqlite mirror usability from mirror status", () => {
+    expect(
+      resolveSqliteMirrorStatus("connected", {
+        sqliteConfigured: true,
+        sqliteUsable: true,
+        importedTables: [],
+        latestImportRuns: [],
+      }, null).tone,
+    ).toBe("ok");
+    expect(
+      resolveSqliteMirrorStatus("connected", {
+        sqliteConfigured: true,
+        sqliteUsable: false,
+        importedTables: [],
+        latestImportRuns: [],
+      }, null).label,
+    ).toMatch(/DBF fallback/i);
+    expect(resolveSqliteMirrorStatus("offline", null, null).tone).toBe("neutral");
   });
 });

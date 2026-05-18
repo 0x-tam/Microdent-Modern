@@ -42,9 +42,12 @@ export {
   type SqlitePathConfig,
 } from "./mirror-env.js";
 export {
+  formatMirrorImportSafeSummaryLines,
+  mirrorImportSafeExitCode,
   printMirrorImportSafeReport,
   runMirrorImportSafe,
   type MirrorImportStepResult,
+  type MirrorImportStepStatus,
   type RunMirrorImportSafeOptions,
   type RunMirrorImportSafeResult,
 } from "./run-mirror-import-safe.js";
