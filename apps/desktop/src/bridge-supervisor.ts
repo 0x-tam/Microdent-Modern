@@ -1,4 +1,4 @@
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { DesktopConfig } from "./config.js";
@@ -10,7 +10,7 @@ export type BridgeSupervisorOptions = {
 };
 
 export class BridgeSupervisor {
-  private child: ChildProcessWithoutNullStreams | null = null;
+  private child: ChildProcess | null = null;
   private readonly bridgeEntry: string;
   private readonly webDistIndex: string;
 
@@ -44,6 +44,9 @@ export class BridgeSupervisor {
     }
     if (this.options.config.sqlitePath) {
       env.SQLITE_PATH = this.options.config.sqlitePath;
+    }
+    if (this.options.config.backupDir) {
+      env.BACKUP_DIR = this.options.config.backupDir;
     }
 
     const nodeBin = this.options.nodeBinary ?? process.execPath;

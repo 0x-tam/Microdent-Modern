@@ -6,7 +6,7 @@
 
 This document classifies every operator-facing script so Windows deployers know what runs natively vs what needs Git Bash/WSL or manual Node steps.
 
-See also: [apps/desktop/README.md](../apps/desktop/README.md) (Windows checklist), [scripts/README.md](../scripts/README.md) (script index).
+See also: [phase-4-windows-operator-quickstart.md](./phase-4-windows-operator-quickstart.md) (one-page operator flow), [apps/desktop/README.md](../apps/desktop/README.md) (Windows checklist), [scripts/README.md](../scripts/README.md) (script index).
 
 ---
 
@@ -17,7 +17,8 @@ See also: [apps/desktop/README.md](../apps/desktop/README.md) (Windows checklist
 | **Bridge / mirror / legacy CLIs** | **Cross-platform Node** (`tsx` or `node` after `pnpm build`) |
 | **Root `pnpm legacy:*` / `mirror:import-safe`** | Bash wrappers — use **WSL/Git Bash** or invoke the underlying workspace script directly |
 | **`pnpm dev:*` port helpers** | **macOS dev-only** (`lsof`, `ps`) |
-| **Sandbox QA bash** | **macOS-oriented** — on Windows run equivalent steps manually or wait for a Node orchestrator (next batch) |
+| **Sandbox QA bash** | **Implemented** (`pnpm qa:sandbox`) — **macOS-oriented**; on Windows run equivalent steps manually or wait for a Node orchestrator (deferred) |
+| **Product UI batch** | Sandbox write pilot env, desktop first-run setup, Settings / mirror status — see table below |
 | **Desktop app** | Electron + `node dist/server.js`; config under `%AppData%\Microdent\config.json` on Windows |
 
 ---
@@ -36,7 +37,7 @@ See also: [apps/desktop/README.md](../apps/desktop/README.md) (Windows checklist
 | `legacy:restore` | `scripts/legacy-restore.sh` | **Bash wrapper → cross-platform Node** | `pnpm --filter @microdent/bridge run legacy-restore` |
 | `legacy:backup-verify` | `scripts/legacy-backup-verify.sh` | **Bash wrapper → cross-platform Node** | `pnpm --filter @microdent/bridge run legacy-backup-verify` |
 | `sandbox:validate` | Vitest in bridge | **Cross-platform Node** | No shell |
-| `qa:sandbox` | *(planned)* `scripts/qa-sandbox-run.sh` | **macOS-oriented bash** | `curl`, `jq`, `sqlite3`, `realpath`, `bash` — document **manual steps on Windows** until `qa-sandbox-run.mjs` exists |
+| `qa:sandbox` | `scripts/qa-sandbox-run.sh` | **Implemented — macOS-oriented bash** | `curl`, `jq`, `sqlite3`, `realpath`, `bash` — on Windows use [phase-4-windows-operator-quickstart.md](./phase-4-windows-operator-quickstart.md) manual checklist until `qa-sandbox-run.mjs` exists |
 
 ---
 
@@ -55,7 +56,7 @@ See also: [apps/desktop/README.md](../apps/desktop/README.md) (Windows checklist
 | `legacy-restore.sh` | `pnpm legacy:restore` | **Bash wrapper → cross-platform Node** | `BACKUP_MANIFEST`, `DATA_ROOT` |
 | `legacy-backup-verify.sh` | `pnpm legacy:backup-verify` | **Bash wrapper → cross-platform Node** | `BACKUP_MANIFEST`; optional `DATA_ROOT` |
 | `qa-sandbox-write-smoke.sh` | Manual / orchestrator | **macOS-oriented bash** | `curl`, `jq`, `sqlite3`, `realpath`, grep sandbox path |
-| `qa-sandbox-run.sh` | `pnpm qa:sandbox` *(when added)* | **macOS-oriented bash** | Orchestrates stable bridge + smoke; **Windows: run steps manually** |
+| `qa-sandbox-run.sh` | `pnpm qa:sandbox` | **Implemented — macOS-oriented bash** | Orchestrates stable bridge + smoke; **Windows: run steps manually** (see phase-4 quickstart) |
 
 ---
 
@@ -91,6 +92,21 @@ Details: [apps/desktop/README.md](../apps/desktop/README.md).
 
 ---
 
+## Product UI batch (2026-05-18)
+
+Operator-facing UI and desktop flows added after sandbox hardening (`59bb02a`). No new write routes; four sandbox-gated workflows only.
+
+| Area | What shipped | Windows notes |
+| --- | --- | --- |
+| **Sandbox write pilot env** | `VITE_SANDBOX_WRITE_PILOT=true` (or legacy `VITE_APPOINTMENT_STATUS_WRITE_PILOT` for status-only) in web/desktop build env | Set in `apps/web/.env.local` for Vite dev/preview; production builds stay read-only unless operator opts in. Requires bridge `WRITE_MODE` + disposable sandbox marker. |
+| **Schedule / patient write UI** | Status, time move, create (Schedule); demographics (patient profile) under sandbox banners | Same bridge on loopback; no PHI in plan/feedback panels. |
+| **Desktop first-run setup** | Setup window when `dataRoot` / `sqlitePath` missing; saves `%AppData%\Microdent\config.json` | Use `C:\Microdent\Write-Sandbox\DATA` and `C:\Microdent\mirror\MICRODENT_MIRROR.sqlite` placeholders in docs only — operator supplies real paths. Optional `backupDir`. |
+| **Settings module** | Sidebar **Settings**: bridge health, mirror freshness, write mode, sandbox validity, backup configured | Mirror **Refresh status** re-fetches `GET /v1/mirror/status` only — CLI import per [phase-2-mirror-import-command.md](./phase-2-mirror-import-command.md). |
+
+Full Windows flow: [phase-4-windows-operator-quickstart.md](./phase-4-windows-operator-quickstart.md).
+
+---
+
 ## Production TypeScript path notes
 
 | Location | Finding | Action this batch |
@@ -106,19 +122,17 @@ No `lsof`/`rsync` rewrites in this batch.
 
 ## Windows operator quick start
 
-1. Install **Node 22 LTS** (64-bit).
-2. Clone repo; `pnpm install`; `pnpm --filter @microdent/bridge run build`; `pnpm build:web`.
-3. Point read-only legacy copy: set `DATA_ROOT` to a **local copy** of `DATA\` (not live FoxPro share while legacy writes).
-4. Optional mirror: `pnpm --filter @microdent/sqlite-mirror run import-safe` with `DATA_ROOT` and `SQLITE_PATH` under `%LocalAppData%\Microdent\mirror\`.
-5. Run bridge: `node services\bridge\dist\server.js` with `BRIDGE_HOST=127.0.0.1`, `WRITE_MODE=disabled` until sandbox pilot.
-6. Desktop: build `@microdent/desktop`, edit `%AppData%\Microdent\config.json`, then `pnpm --filter @microdent/desktop run start`.
-7. Sandbox writes: use disposable sandbox marker; enable writes only on sandbox copy with `ALLOW_LEGACY_WRITES_ACK` per bridge docs — never on production legacy tree.
+See **[phase-4-windows-operator-quickstart.md](./phase-4-windows-operator-quickstart.md)** for the full one-page flow (Node 22 → build → desktop config → mirror CLI → sandbox pilot env → `pnpm qa:sandbox` on macOS vs Windows manual QA).
 
 ---
 
-## Recommended next batch
+## Deferred (explicit non-goals)
 
-- `scripts/qa-sandbox-run.mjs` — cross-platform QA without bash/curl/jq
-- Windows port inspection/kill without `lsof`
-- NSIS / signed desktop installer
-- Env-driven `FORBIDDEN_LEGACY_*` overrides for non-macOS clinic paths
+| Item | Status |
+| --- | --- |
+| **Node QA orchestrator** (`scripts/qa-sandbox-run.mjs`) | Deferred — use bash `pnpm qa:sandbox` on macOS/Git Bash or manual checklist on Windows |
+| **`lsof` / port-kill replacement** | Deferred — `dev:ports` / `dev:kill-ports` remain macOS dev-only |
+| **NSIS / signed desktop installer** | Deferred — desktop MVP is unpackaged Electron + config file |
+| **Env-driven `FORBIDDEN_LEGACY_*` overrides** | Future — clinic-specific forbidden roots remain deployment-specific |
+
+Other follow-ups (non-blocking): env-driven forbidden-root overrides for non-macOS clinic paths.

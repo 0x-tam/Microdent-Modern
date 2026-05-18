@@ -1,5 +1,10 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
-import { defaultDesktopConfig, desktopConfigDir, configPath } from "./config.js";
+import {
+  defaultDesktopConfig,
+  desktopConfigDir,
+  desktopConfigNeedsSetup,
+  configPath,
+} from "./config.js";
 
 const homedirMock = vi.hoisted(() => vi.fn(() => "/home/operator"));
 const platformMock = vi.hoisted(() => vi.fn(() => "linux"));
@@ -29,6 +34,23 @@ describe("desktop config defaults", () => {
   it("only ships operator-controlled path fields when explicitly configured", () => {
     const keys = Object.keys(defaultDesktopConfig());
     expect(keys).toEqual(["version", "bridgePort", "writeMode"]);
+  });
+
+  it("does not include backupDir in defaults", () => {
+    expect(defaultDesktopConfig()).not.toHaveProperty("backupDir");
+  });
+});
+
+describe("desktopConfigNeedsSetup", () => {
+  it("requires dataRoot and sqlitePath", () => {
+    expect(desktopConfigNeedsSetup(defaultDesktopConfig())).toBe(true);
+    expect(
+      desktopConfigNeedsSetup({
+        version: 1,
+        dataRoot: "/tmp/data",
+        sqlitePath: "/tmp/mirror.sqlite",
+      }),
+    ).toBe(false);
   });
 });
 

@@ -7,11 +7,10 @@ import {
   APPOINTMENT_STATUS_WRITE_CONFIRM,
   appointmentStatusWriteUnavailableMessage,
   formatWriteOperationFeedbackLines,
-  isAppointmentStatusWritePilotEnabled,
-  isAppointmentStatusWriteReady,
 } from "./appointment-status-write.js";
+import { isSandboxWritePilotEnabled, isSandboxWriteReady } from "./sandbox-write-pilot.js";
+import { SandboxWriteBanner } from "./safe-write-plan-display.js";
 import { buildWriteOperationFeedback } from "./write-operation-feedback.js";
-import { summarizeWritePlan } from "./appointment-status-dry-run.js";
 
 export type AppointmentStatusWriteActionProps = {
   appointment: ScheduleAppointmentItem;
@@ -53,9 +52,8 @@ export function AppointmentStatusWriteAction({
     const client = createBridgeClient({ baseUrl: bridgeBaseUrl, fetch: fetchImpl });
     try {
       const plan = await client.applyAppointmentStatusInSandbox(appointment.id, { status: nextStatus });
-      const summary = summarizeWritePlan(plan);
       let audit = null;
-      if (summary.committed) {
+      if (plan.committed) {
         try {
           audit = await client.getWriteAuditRecent();
         } catch {
@@ -66,11 +64,11 @@ export function AppointmentStatusWriteAction({
       const feedbackLines = formatWriteOperationFeedbackLines(feedback, audit);
       setState({
         kind: "result",
-        committed: summary.committed,
-        mode: summary.mode,
+        committed: plan.committed,
+        mode: plan.mode,
         feedbackLines,
       });
-      if (summary.committed) {
+      if (plan.committed) {
         onCommitted?.();
       }
     } catch (err) {
@@ -85,20 +83,18 @@ export function AppointmentStatusWriteAction({
     }
   }, [appointment.id, appointment.status, bridgeBaseUrl, fetchImpl, nextStatus, onCommitted]);
 
-  if (!isAppointmentStatusWritePilotEnabled(writePilotEnabled)) {
+  if (!isSandboxWritePilotEnabled(writePilotEnabled)) {
     return null;
   }
-  if (!writeCapability || !isAppointmentStatusWriteReady(writeCapability)) {
+  if (!writeCapability || !isSandboxWriteReady(writeCapability)) {
     return null;
   }
 
   const loading = state.kind === "loading";
 
   return (
-    <div className="app-appt-status-write" data-testid="appt-status-write-pilot">
-      <p className="app-appt-status-write__banner" role="status">
-        Sandbox write mode — changes affect disposable data only.
-      </p>
+    <div className="app-sandbox-write app-appt-status-write" data-testid="appt-status-write-pilot">
+      <SandboxWriteBanner className="app-appt-status-write__banner" />
       <div className="app-appt-status-write__controls">
         <label className="app-appt-status-write__label">
           <span className="app-appt-status-write__label-text">New status</span>

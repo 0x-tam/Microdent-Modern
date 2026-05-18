@@ -6,7 +6,7 @@
   "main": "dist/main.js",
   "type": "module",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node --input-type=module -e \"import { mkdirSync, copyFileSync } from 'node:fs'; mkdirSync('dist/setup',{recursive:true}); copyFileSync('src/setup/setup.html','dist/setup/setup.html'); copyFileSync('src/setup/setup-preload.cjs','dist/setup/setup-preload.cjs');\"",
     "start": "electron .",
     "test": "vitest run"
   },

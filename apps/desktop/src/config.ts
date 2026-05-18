@@ -6,10 +6,17 @@ export type DesktopConfig = {
   version: 1;
   dataRoot?: string;
   sqlitePath?: string;
+  /** Optional legacy backup folder passed to bridge as `BACKUP_DIR`. */
+  backupDir?: string;
   bridgePort?: number;
   /** Packaged default: writes disabled until operator enables sandbox pilot. */
   writeMode?: "disabled" | "dry-run" | "enabled";
 };
+
+/** True when first-run setup must collect DATA_ROOT and SQLITE_PATH. */
+export function desktopConfigNeedsSetup(config: DesktopConfig): boolean {
+  return !config.dataRoot?.trim() || !config.sqlitePath?.trim();
+}
 
 /** Operator config directory (Windows %AppData%, macOS Application Support, Linux XDG). */
 export function desktopConfigDir(): string {

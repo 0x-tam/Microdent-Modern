@@ -3,6 +3,7 @@ export const APP_SIDEBAR_MODULES = [
   { id: "today", label: "Today" },
   { id: "patients", label: "Patients" },
   { id: "schedule", label: "Schedule" },
+  { id: "settings", label: "Settings" },
 ] as const;
 
 export type AppSidebarModuleId = (typeof APP_SIDEBAR_MODULES)[number]["id"];
@@ -26,5 +27,5 @@ export const APP_NAV_MODULES = [
 ] as const;
 
 export function isAppNavPlaceholder(id: AppNavModuleId): id is AppNavPlaceholderId {
-  return id !== "today" && id !== "patients" && id !== "schedule";
+  return id !== "today" && id !== "patients" && id !== "schedule" && id !== "settings";
 }

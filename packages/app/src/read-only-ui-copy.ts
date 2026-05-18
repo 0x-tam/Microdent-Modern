@@ -122,6 +122,10 @@ export const SANDBOX_WRITE_WARNING_BANNER_LABEL = "Disposable sandbox";
 export const SANDBOX_WRITE_WARNING_BANNER_BODY =
   "Writable sandbox is active. Commits change disposable DATA only — never production legacy folders.";
 
+/** Per-row / panel sandbox write pilot warning (schedule + patient). */
+export const SANDBOX_WRITE_PILOT_PANEL_BANNER =
+  "Sandbox write mode — changes affect disposable data only.";
+
 export const WRITE_MODE_CHIP_DISABLED = "Writes off";
 
 export const WRITE_MODE_CHIP_DRY_RUN = "Dry-run";
@@ -141,3 +145,62 @@ export const WRITE_AUDIT_NOT_CONFIGURED = "Audit log: not configured on this bri
 export const WRITE_AUDIT_UNAVAILABLE = "Audit log: unavailable.";
 
 export const WRITE_AUDIT_EMPTY = "Audit log: no recent entries.";
+
+export const SETTINGS_PANEL_LEDE =
+  "Bridge, mirror, write mode, and sandbox status for operators. No patient data is shown here.";
+
+export const SETTINGS_BRIDGE_SECTION = "Clinic service";
+
+export const SETTINGS_MIRROR_SECTION = "Mirror import";
+
+export const SETTINGS_WRITE_SECTION = "Write mode";
+
+export const SETTINGS_SANDBOX_SECTION = "Sandbox";
+
+export const SETTINGS_BACKUP_SECTION = "Backup";
+
+export const SETTINGS_BRIDGE_CONNECTED = "Connected";
+
+export const SETTINGS_BRIDGE_OFFLINE = "Offline";
+
+export const SETTINGS_BRIDGE_CHECKING = "Checking connection…";
+
+export const SETTINGS_SANDBOX_VALID = "Disposable sandbox valid";
+
+export const SETTINGS_SANDBOX_INVALID = "Sandbox not valid for writes";
+
+export const SETTINGS_SANDBOX_UNKNOWN = "Sandbox status unknown";
+
+export const SETTINGS_BACKUP_CONFIGURED = "Backup folder configured";
+
+export const SETTINGS_BACKUP_NOT_CONFIGURED = "Backup not configured";
+
+export const SETTINGS_BACKUP_NOT_REQUIRED = "Not required while writes are off";
+
+export const SETTINGS_BACKUP_UNKNOWN = "Backup status unknown";
+
+export const SETTINGS_MIRROR_SQLITE_CONFIGURED = "SQLite path configured";
+
+export const SETTINGS_MIRROR_SQLITE_MISSING = "SQLite path not configured";
+
+export const SETTINGS_MIRROR_USABLE = "Mirror in use for search and schedule";
+
+export const SETTINGS_MIRROR_FALLBACK = "Using DBF fallback";
+
+export const SETTINGS_MIRROR_IMPORTED_COUNT = "Imported tables";
+
+export const SETTINGS_MIRROR_REFRESH = "Refresh status";
+
+export const SETTINGS_MIRROR_NO_RUNS = "No import runs recorded.";
+
+export const SETTINGS_MIRROR_NO_RUNS_HINT =
+  "Run a safe mirror import from the command line, then refresh status here.";
+
+export const SETTINGS_MIRROR_DOC_LINK = "Mirror import operator guide";
+
+export const SETTINGS_MIRROR_STALE_CALLOUT =
+  "Mirror metadata is older than 48 hours. Search and schedule may be stale until you import again.";
+
+export const SETTINGS_SANDBOX_PILOT_ON = "Sandbox write pilot enabled in this app build";
+
+export const SETTINGS_SANDBOX_PILOT_OFF = "Sandbox write pilot not enabled in this app build";

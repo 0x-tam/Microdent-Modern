@@ -1,0 +1,244 @@
+import { createBridgeClient, BridgeClientError } from "@microdent/bridge-client";
+import type { AppointmentTimeMoveBody, BridgeDevStatusResponse, ScheduleAppointmentItem } from "@microdent/contracts";
+import { useCallback, useState } from "react";
+import { Button } from "@microdent/ui";
+import {
+  APPOINTMENT_TIME_MOVE_WRITE_CONFIRM,
+  appointmentTimeMoveWriteUnavailableMessage,
+} from "./appointment-time-move-write.js";
+import { isSandboxWritePilotEnabled, isSandboxWriteReady } from "./sandbox-write-pilot.js";
+import {
+  SafeWritePlanResult,
+  SandboxWriteBanner,
+  summarizeWritePlan,
+  type WritePlanResultSummary,
+} from "./safe-write-plan-display.js";
+import {
+  formatWriteOperationFeedbackLines,
+  buildWriteOperationFeedback,
+} from "./appointment-status-write.js";
+
+export type AppointmentTimeMoveWriteActionProps = {
+  appointment: ScheduleAppointmentItem;
+  bridgeBaseUrl: string;
+  fetchImpl?: typeof fetch;
+  writePilotEnabled: boolean;
+  writeCapability: BridgeDevStatusResponse | null;
+  onCommitted?: () => void;
+};
+
+type UiState =
+  | { kind: "idle" }
+  | { kind: "loading"; action: "preview" | "commit" }
+  | { kind: "preview"; summary: WritePlanResultSummary }
+  | { kind: "result"; committed: boolean; feedbackLines: string[] }
+  | { kind: "error"; message: string };
+
+function bodyFromAppointment(
+  appointment: ScheduleAppointmentItem,
+  date: string,
+  time: string,
+  room: number,
+  durationSlots: string,
+): AppointmentTimeMoveBody {
+  const body: AppointmentTimeMoveBody = { date, time, room };
+  const slots = Number(durationSlots);
+  if (Number.isFinite(slots) && slots >= 1) {
+    body.durationSlots = Math.trunc(slots);
+  }
+  return body;
+}
+
+export function AppointmentTimeMoveWriteAction({
+  appointment,
+  bridgeBaseUrl,
+  fetchImpl,
+  writePilotEnabled,
+  writeCapability,
+  onCommitted,
+}: AppointmentTimeMoveWriteActionProps) {
+  const [date, setDate] = useState(appointment.date);
+  const [time, setTime] = useState(appointment.time);
+  const [room, setRoom] = useState(String(appointment.room));
+  const [durationSlots, setDurationSlots] = useState(String(appointment.durationSlots));
+  const [state, setState] = useState<UiState>({ kind: "idle" });
+
+  const buildBody = useCallback(
+    () =>
+      bodyFromAppointment(
+        appointment,
+        date,
+        time,
+        Number(room),
+        durationSlots,
+      ),
+    [appointment, date, time, room, durationSlots],
+  );
+
+  const runPreview = useCallback(async () => {
+    const roomNum = Number(room);
+    if (!date || !time || !Number.isFinite(roomNum) || roomNum < 1) {
+      setState({ kind: "error", message: "Enter date, time, and room before preview." });
+      return;
+    }
+    setState({ kind: "loading", action: "preview" });
+    const client = createBridgeClient({ baseUrl: bridgeBaseUrl, fetch: fetchImpl });
+    try {
+      const plan = await client.patchAppointmentTimeMove(appointment.id, buildBody(), "dry-run");
+      setState({ kind: "preview", summary: summarizeWritePlan(plan) });
+    } catch (err) {
+      if (err instanceof BridgeClientError) {
+        setState({
+          kind: "error",
+          message: appointmentTimeMoveWriteUnavailableMessage(err.status, err.apiCode),
+        });
+        return;
+      }
+      setState({ kind: "error", message: appointmentTimeMoveWriteUnavailableMessage() });
+    }
+  }, [appointment.id, bridgeBaseUrl, buildBody, date, fetchImpl, room, time]);
+
+  const runCommit = useCallback(async () => {
+    if (state.kind !== "preview") {
+      setState({ kind: "error", message: "Preview the move before applying." });
+      return;
+    }
+    if (!window.confirm(APPOINTMENT_TIME_MOVE_WRITE_CONFIRM)) {
+      return;
+    }
+    setState({ kind: "loading", action: "commit" });
+    const client = createBridgeClient({ baseUrl: bridgeBaseUrl, fetch: fetchImpl });
+    try {
+      const plan = await client.patchAppointmentTimeMove(appointment.id, buildBody(), "commit");
+      let audit = null;
+      if (plan.committed) {
+        try {
+          audit = await client.getWriteAuditRecent();
+        } catch {
+          audit = null;
+        }
+      }
+      const feedback = buildWriteOperationFeedback(plan, audit);
+      const feedbackLines = formatWriteOperationFeedbackLines(feedback, audit);
+      setState({ kind: "result", committed: plan.committed, feedbackLines });
+      if (plan.committed) {
+        onCommitted?.();
+      }
+    } catch (err) {
+      if (err instanceof BridgeClientError) {
+        setState({
+          kind: "error",
+          message: appointmentTimeMoveWriteUnavailableMessage(err.status, err.apiCode),
+        });
+        return;
+      }
+      setState({ kind: "error", message: appointmentTimeMoveWriteUnavailableMessage() });
+    }
+  }, [appointment.id, bridgeBaseUrl, buildBody, fetchImpl, onCommitted, state.kind]);
+
+  if (!isSandboxWritePilotEnabled(writePilotEnabled)) {
+    return null;
+  }
+  if (!writeCapability || !isSandboxWriteReady(writeCapability)) {
+    return null;
+  }
+
+  const loading = state.kind === "loading";
+
+  return (
+    <details className="app-sandbox-write app-appt-time-move-write" data-testid="appt-time-move-write-pilot">
+      <summary className="app-sandbox-write__summary">Sandbox: move time</summary>
+      <SandboxWriteBanner />
+      <div className="app-sandbox-write__fields">
+        <label className="app-sandbox-write__label">
+          <span>Date</span>
+          <input
+            type="date"
+            className="ui-focusable"
+            value={date}
+            disabled={loading}
+            onChange={(e) => setDate(e.target.value)}
+          />
+        </label>
+        <label className="app-sandbox-write__label">
+          <span>Time</span>
+          <input
+            type="text"
+            className="ui-focusable"
+            value={time}
+            disabled={loading}
+            onChange={(e) => setTime(e.target.value)}
+            placeholder="9:00"
+            aria-label="Appointment time"
+          />
+        </label>
+        <label className="app-sandbox-write__label">
+          <span>Room</span>
+          <input
+            type="number"
+            min={1}
+            max={99}
+            className="ui-focusable"
+            value={room}
+            disabled={loading}
+            onChange={(e) => setRoom(e.target.value)}
+          />
+        </label>
+        <label className="app-sandbox-write__label">
+          <span>Duration slots</span>
+          <input
+            type="number"
+            min={1}
+            max={99}
+            className="ui-focusable"
+            value={durationSlots}
+            disabled={loading}
+            onChange={(e) => setDurationSlots(e.target.value)}
+          />
+        </label>
+      </div>
+      <div className="app-sandbox-write__actions">
+        <Button
+          type="button"
+          variant="secondary"
+          className="ui-focusable"
+          disabled={loading}
+          onClick={() => void runPreview()}
+        >
+          {state.kind === "loading" && state.action === "preview" ? "Previewing…" : "Preview move"}
+        </Button>
+        <Button
+          type="button"
+          variant="danger"
+          className="ui-focusable"
+          disabled={loading || state.kind !== "preview"}
+          onClick={() => void runCommit()}
+        >
+          {state.kind === "loading" && state.action === "commit" ? "Applying…" : "Apply move"}
+        </Button>
+      </div>
+      {state.kind === "preview" ? (
+        <SafeWritePlanResult summary={state.summary} testId="appt-time-move-plan" />
+      ) : null}
+      {state.kind === "result" ? (
+        <div className="app-sandbox-write__result" role="status" data-committed={String(state.committed)}>
+          <p>
+            {state.committed
+              ? "Committed: true — appointment time updated."
+              : "Committed: false — nothing was saved."}
+          </p>
+          <ul className="app-sandbox-write__feedback" aria-label="Write operation feedback">
+            {state.feedbackLines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {state.kind === "error" ? (
+        <p className="app-sandbox-write__error" role="alert">
+          {state.message}
+        </p>
+      ) : null}
+    </details>
+  );
+}

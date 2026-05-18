@@ -7,8 +7,8 @@ import {
   isAppointmentStatusWriteActionsVisible,
   proposedDryRunStatus,
   summarizeWritePlan,
-  type WritePlanResultSummary,
 } from "./appointment-status-dry-run.js";
+import { SafeWritePlanResult, type WritePlanResultSummary } from "./safe-write-plan-display.js";
 
 export type AppointmentStatusDryRunActionProps = {
   appointment: ScheduleAppointmentItem;
@@ -27,41 +27,6 @@ type WriteActionUiState =
   | { kind: "loading"; action: "dry-run" | "sandbox" }
   | { kind: "result"; summary: WritePlanResultSummary }
   | { kind: "error"; message: string };
-
-function WritePlanResultPanel({ summary }: { summary: WritePlanResultSummary }) {
-  return (
-    <dl className="app-appt-dry-run__summary" aria-label="Safe write plan summary">
-      <div className="app-appt-dry-run__row">
-        <dt>Workflow</dt>
-        <dd>{summary.workflow}</dd>
-      </div>
-      <div className="app-appt-dry-run__row">
-        <dt>Mode</dt>
-        <dd>{summary.mode}</dd>
-      </div>
-      <div className="app-appt-dry-run__row">
-        <dt>Committed</dt>
-        <dd>{String(summary.committed)}</dd>
-      </div>
-      <div className="app-appt-dry-run__row">
-        <dt>Table</dt>
-        <dd>{summary.table}</dd>
-      </div>
-      <div className="app-appt-dry-run__row">
-        <dt>Record id</dt>
-        <dd>{summary.recordId}</dd>
-      </div>
-      <div className="app-appt-dry-run__row">
-        <dt>Field changed</dt>
-        <dd>{summary.field}</dd>
-      </div>
-      <div className="app-appt-dry-run__row">
-        <dt>Warnings</dt>
-        <dd>{summary.warnings.length > 0 ? summary.warnings.join(", ") : "—"}</dd>
-      </div>
-    </dl>
-  );
-}
 
 export function AppointmentStatusDryRunAction({
   appointment,
@@ -136,7 +101,9 @@ export function AppointmentStatusDryRunAction({
           </Button>
         ) : null}
       </div>
-      {state.kind === "result" ? <WritePlanResultPanel summary={state.summary} /> : null}
+      {state.kind === "result" ? (
+        <SafeWritePlanResult summary={state.summary} className="app-appt-dry-run__summary" />
+      ) : null}
       {state.kind === "error" ? (
         <p className="app-appt-dry-run__error" role="status">
           {state.message}

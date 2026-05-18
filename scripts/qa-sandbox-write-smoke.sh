@@ -143,6 +143,7 @@ latest_backup_basename() {
   [[ -n "${path}" ]] && basename "${path}" || echo "none"
 }
 
+# Uses compiled bridge CLI (node dist/cli/*.js) via pnpm legacy:* wrappers — not tsx (IPC blocked in some sandboxes).
 run_legacy_backup() {
   local workflow="$1"
   export DATA_ROOT BACKUP_DIR WORKFLOW="${workflow}"

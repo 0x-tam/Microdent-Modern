@@ -31,6 +31,7 @@ export type { BridgeHealthPhase } from "./bridge-health.js";
 import { PatientProfilePanel } from "./PatientProfilePanel.js";
 import { PatientSearchBar } from "./PatientSearchBar.js";
 import { SchedulePanel } from "./SchedulePanel.js";
+import { SettingsPanel } from "./SettingsPanel.js";
 import { DashboardHome } from "./today-dashboard.js";
 import { APP_SIDEBAR_MODULES, type AppSidebarModuleId } from "./app-nav-modules.js";
 
@@ -80,6 +81,11 @@ export type AppShellProps = {
    * Default production builds should leave this false.
    */
   appointmentStatusWritePilot?: boolean;
+  /**
+   * When true, schedule/patient panels may show sandbox write pilot UI when the bridge permits writes.
+   * Hosts pass `VITE_SANDBOX_WRITE_PILOT` (or legacy appointment status pilot flag).
+   */
+  sandboxWritePilot?: boolean;
 };
 
 function moduleLabel(id: AppSidebarModuleId): string {
@@ -113,7 +119,9 @@ export function AppShell({
   writeDiagnosticsActions = false,
   appointmentStatusDryRunDev = false,
   appointmentStatusWritePilot = false,
+  sandboxWritePilot: sandboxWritePilotProp = false,
 }: AppShellProps) {
+  const sandboxWritePilot = sandboxWritePilotProp || appointmentStatusWritePilot;
   const devWriteActionsEnabled =
     import.meta.env.DEV && (writeDiagnosticsActions || appointmentStatusDryRunDev);
   const showBridgeConnectionDiagnostics = import.meta.env.DEV && bridgeConnectionDiagnostics;
@@ -382,6 +390,10 @@ export function AppShell({
                   Search by name or chart number to open a record — or use the top bar. Summary, visits, medical screening,
                   treatments, chart, and ledger preview are read-only tabs; sensitive fields stay hidden.
                 </p>
+              ) : active === "settings" ? (
+                <p className="app-main__lede">
+                  Bridge health, mirror import metadata, write mode, and sandbox status — operator-safe summaries only.
+                </p>
               ) : null}
             </div>
 
@@ -400,8 +412,19 @@ export function AppShell({
                   bridgeBaseUrl={bridgeBaseUrl}
                   fetchImpl={fetchImpl}
                   writeDiagnosticsActions={devWriteActionsEnabled}
-                  appointmentStatusWritePilot={appointmentStatusWritePilot}
+                  sandboxWritePilot={sandboxWritePilot}
                   onBackToday={() => setActive("today")}
+                />
+              ) : active === "settings" ? (
+                <SettingsPanel
+                  bridgePhase={bridgePhase}
+                  bridgeBaseUrl={bridgeBaseUrl}
+                  fetchImpl={fetchImpl}
+                  writeCapability={writeCapability}
+                  mirrorStatus={mirrorStatus}
+                  onMirrorStatusChange={setMirrorStatus}
+                  sandboxWritePilot={sandboxWritePilot}
+                  showConnectionDiagnostics={showBridgeConnectionDiagnostics}
                 />
               ) : (
                 <PatientProfilePanel
@@ -409,6 +432,8 @@ export function AppShell({
                   bridgePhase={bridgePhase}
                   bridgeBaseUrl={bridgeBaseUrl}
                   fetchImpl={fetchImpl}
+                  sandboxWritePilot={sandboxWritePilot}
+                  writeCapability={writeCapability}
                   onBackToday={() => setActive("today")}
                   onClearPatient={() => setSelectedPatientId(null)}
                   onPatientRecordSelect={(hit) => setSelectedPatientId(hit.patientId)}

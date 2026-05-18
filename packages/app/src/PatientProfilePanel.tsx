@@ -9,7 +9,9 @@ import type {
 } from "@microdent/contracts";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge, Button, Card, CardBody, CardHeader, EmptyState } from "@microdent/ui";
+import type { BridgeDevStatusResponse } from "@microdent/contracts";
 import type { BridgeHealthPhase } from "./bridge-health.js";
+import { PatientDemographicsWritePanel } from "./PatientDemographicsWritePanel.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
 import {
   patientApptFormatDuration,
@@ -74,6 +76,9 @@ export type PatientProfilePanelProps = {
   bridgePhase: BridgeHealthPhase;
   bridgeBaseUrl?: string;
   fetchImpl?: typeof fetch;
+  /** When true with enabled sandbox, summary tab may show demographics write pilot. */
+  sandboxWritePilot?: boolean;
+  writeCapability?: BridgeDevStatusResponse | null;
   onBackToday: () => void;
   onClearPatient: () => void;
   /** When the user picks a row from page search (or change-patient search). */
@@ -661,6 +666,8 @@ export function PatientProfilePanel({
   bridgePhase,
   bridgeBaseUrl,
   fetchImpl,
+  sandboxWritePilot = false,
+  writeCapability = null,
   onBackToday,
   onClearPatient,
   onPatientRecordSelect,
@@ -1125,6 +1132,17 @@ export function PatientProfilePanel({
               >
                 <p className="app-patient-profile__summary-lede">{PATIENT_TAB_SUMMARY_LEDE}</p>
                 <ProfileSummaryCard profile={state.profile} activeLabel={activeLabel} doctorLabels={doctorLabels} />
+                {base && patientId ? (
+                  <PatientDemographicsWritePanel
+                    patientId={patientId}
+                    profile={state.profile}
+                    bridgeBaseUrl={base}
+                    fetchImpl={fetchImpl}
+                    writePilotEnabled={sandboxWritePilot}
+                    writeCapability={writeCapability}
+                    onCommitted={() => setRetryNonce((n) => n + 1)}
+                  />
+                ) : null}
               </section>
             ) : null}
 

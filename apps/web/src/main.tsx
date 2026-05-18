@@ -12,6 +12,10 @@ if (!el) {
 
 const bridgeBaseUrl = import.meta.env.VITE_BRIDGE_BASE_URL?.trim() || "http://127.0.0.1:17890";
 
+const sandboxWritePilot =
+  import.meta.env.VITE_SANDBOX_WRITE_PILOT === "true" ||
+  import.meta.env.VITE_APPOINTMENT_STATUS_WRITE_PILOT === "true";
+
 createRoot(el).render(
   <StrictMode>
     <AppShell
@@ -20,9 +24,7 @@ createRoot(el).render(
       bridgeConnectionDiagnostics={import.meta.env.DEV}
       mirrorConnectionDiagnostics={import.meta.env.DEV}
       writeDiagnosticsActions={import.meta.env.DEV}
-      appointmentStatusWritePilot={
-        import.meta.env.VITE_APPOINTMENT_STATUS_WRITE_PILOT === "true"
-      }
+      sandboxWritePilot={sandboxWritePilot}
     />
   </StrictMode>,
 );

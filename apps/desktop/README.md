@@ -9,6 +9,15 @@ Windows script and CLI posture: [docs/phase-3-windows-readiness-audit.md](../../
 - **No FoxPro or legacy `.exe` launchers** — the shell only spawns the Node bridge (`services/bridge/dist/server.js`).
 - **`WRITE_MODE` is `disabled` by default** in operator config until sandbox pilot writes are enabled.
 - **`DATA_ROOT` and `SQLITE_PATH` are never hardcoded** — set them in config when pointing at a disposable sandbox copy you control.
+- **First-run setup** — if `dataRoot` or `sqlitePath` is missing, a setup window collects absolute paths (and optional `backupDir`) before the main UI opens. Write mode cannot be enabled from setup.
+
+## First-run flow
+
+1. Launch the desktop app with no path fields in config (or delete path keys from `config.json`).
+2. Enter absolute `DATA_ROOT` (existing folder), `SQLITE_PATH` (existing file), and optional `BACKUP_DIR` (created if missing).
+3. Setup saves `config.json` with `writeMode: "disabled"`, starts the bridge, and opens the web UI.
+
+macOS developers with a pre-filled `config.json` skip setup and behave as before.
 
 ## Config file locations
 
@@ -26,7 +35,8 @@ Example Windows `config.json`:
   "bridgePort": 17890,
   "writeMode": "disabled",
   "dataRoot": "D:\\MicrodentData\\Write-Sandbox\\DATA",
-  "sqlitePath": "%LOCALAPPDATA%\\Microdent\\mirror\\MICRODENT_MIRROR.sqlite"
+  "sqlitePath": "C:\\Users\\Operator\\AppData\\Local\\Microdent\\mirror\\MICRODENT_MIRROR.sqlite",
+  "backupDir": "D:\\MicrodentData\\Write-Sandbox\\backups"
 }
 ```
 
@@ -48,7 +58,7 @@ pnpm --filter @microdent/desktop run build
 pnpm --filter @microdent/desktop run start
 ```
 
-On startup: load config → spawn bridge with `WRITE_MODE` from config → poll `GET /health` → open window (`file://` web dist when built, else bridge URL).
+On startup: load config → optional setup window → spawn bridge with `WRITE_MODE`, `DATA_ROOT`, `SQLITE_PATH`, and `BACKUP_DIR` (when set) → poll `GET /health` → open window (`file://` web dist when built, else bridge URL).
 
 ## Windows packaging checklist
 
@@ -79,4 +89,4 @@ Not included: NSIS installer, code signing, auto-update.
 pnpm --filter @microdent/desktop run test
 ```
 
-Covers default `writeMode`, platform config dirs, supervisor spawn env, and `uiUrl` resolution.
+Covers default `writeMode`, platform config dirs, path validation, setup payload, supervisor spawn env (`BACKUP_DIR` included when configured), and `uiUrl` resolution.

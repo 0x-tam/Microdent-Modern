@@ -2,23 +2,18 @@ import type { BridgeDevStatusResponse } from "@microdent/contracts";
 import {
   containsForbiddenWriteResultToken,
   FORBIDDEN_WRITE_RESULT_TOKENS,
-} from "./appointment-status-dry-run.js";
+} from "./safe-write-plan-display.js";
+import { isSandboxWritePilotEnabled, isSandboxWriteReady } from "./sandbox-write-pilot.js";
 
 export { containsForbiddenWriteResultToken, FORBIDDEN_WRITE_RESULT_TOKENS };
 
-/** Pilot write UI is opt-in from the host (e.g. `VITE_APPOINTMENT_STATUS_WRITE_PILOT`). */
-export function isAppointmentStatusWritePilotEnabled(flag: boolean): boolean {
-  return flag === true;
-}
+/** @deprecated Use {@link isSandboxWritePilotEnabled}. */
+export const isAppointmentStatusWritePilotEnabled = isSandboxWritePilotEnabled;
 
-/** True when the bridge reports enabled sandbox writes are permitted. */
-export function isAppointmentStatusWriteReady(status: BridgeDevStatusResponse): boolean {
-  return (
-    status.writeMode === "enabled" &&
-    status.writesPermitted === true &&
-    status.writableSandbox === true
-  );
-}
+/** @deprecated Use {@link isSandboxWriteReady}. */
+export const isAppointmentStatusWriteReady = isSandboxWriteReady;
+
+export { isSandboxWritePilotEnabled, isSandboxWriteReady };
 
 export const APPOINTMENT_STATUS_OPTIONS: readonly { value: number; label: string }[] = [
   { value: 0, label: "Available" },

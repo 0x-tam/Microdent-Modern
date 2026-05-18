@@ -14,8 +14,11 @@ import {
   SCHEDULE_LOAD_ERROR,
   SCHEDULE_PRIVACY_LEDE,
 } from "./read-only-ui-copy.js";
+import { AppointmentCreateWriteAction } from "./AppointmentCreateWriteAction.js";
 import { AppointmentStatusDryRunAction } from "./AppointmentStatusDryRunAction.js";
 import { AppointmentStatusWriteAction } from "./AppointmentStatusWriteAction.js";
+import { AppointmentTimeMoveWriteAction } from "./AppointmentTimeMoveWriteAction.js";
+import { isSandboxWriteReady } from "./sandbox-write-pilot.js";
 import { resolveWriteModeChip } from "./shell-status-banners.js";
 
 export type SchedulePanelProps = {
@@ -31,8 +34,10 @@ export type SchedulePanelProps = {
   /** @deprecated Use {@link writeDiagnosticsActions}. */
   appointmentStatusDryRunDev?: boolean;
   /**
-   * When true, schedule rows may show the sandbox status write pilot (requires bridge enabled sandbox).
+   * When true, schedule rows may show sandbox write pilots (requires bridge enabled sandbox).
    */
+  sandboxWritePilot?: boolean;
+  /** @deprecated Use {@link sandboxWritePilot}. */
   appointmentStatusWritePilot?: boolean;
   onBackToday: () => void;
 };
@@ -204,9 +209,11 @@ export function SchedulePanel({
   fetchImpl,
   writeDiagnosticsActions = false,
   appointmentStatusDryRunDev = false,
+  sandboxWritePilot = false,
   appointmentStatusWritePilot = false,
   onBackToday,
 }: SchedulePanelProps) {
+  const sandboxPilotEnabled = sandboxWritePilot || appointmentStatusWritePilot;
   const devWriteActionsEnabled =
     import.meta.env.DEV && (writeDiagnosticsActions || appointmentStatusDryRunDev);
   const base = bridgeBaseUrl?.trim() ?? "";
@@ -231,6 +238,8 @@ export function SchedulePanel({
   const [refreshTick, setRefreshTick] = useState(0);
   const [sandboxApplyEnabled, setSandboxApplyEnabled] = useState(false);
   const [writeCapability, setWriteCapability] = useState<BridgeDevStatusResponse | null>(null);
+  const sandboxWritesReady =
+    writeCapability !== null && isSandboxWriteReady(writeCapability);
 
   const [rooms, setRooms] = useState<ScheduleRoomItem[]>([]);
   const [appointments, setAppointments] = useState<ScheduleAppointmentItem[]>([]);
@@ -633,15 +642,25 @@ export function SchedulePanel({
                                   </Badge>
                                 ) : null}
                               </div>
-                              {bridgeBaseUrl && appointmentStatusWritePilot ? (
-                                <AppointmentStatusWriteAction
-                                  appointment={appt}
-                                  bridgeBaseUrl={bridgeBaseUrl}
-                                  fetchImpl={fetchImpl}
-                                  writePilotEnabled={appointmentStatusWritePilot}
-                                  writeCapability={writeCapability}
-                                  onCommitted={() => setRefreshTick((x) => x + 1)}
-                                />
+                              {bridgeBaseUrl && sandboxPilotEnabled && sandboxWritesReady ? (
+                                <>
+                                  <AppointmentStatusWriteAction
+                                    appointment={appt}
+                                    bridgeBaseUrl={bridgeBaseUrl}
+                                    fetchImpl={fetchImpl}
+                                    writePilotEnabled={sandboxPilotEnabled}
+                                    writeCapability={writeCapability}
+                                    onCommitted={() => setRefreshTick((x) => x + 1)}
+                                  />
+                                  <AppointmentTimeMoveWriteAction
+                                    appointment={appt}
+                                    bridgeBaseUrl={bridgeBaseUrl}
+                                    fetchImpl={fetchImpl}
+                                    writePilotEnabled={sandboxPilotEnabled}
+                                    writeCapability={writeCapability}
+                                    onCommitted={() => setRefreshTick((x) => x + 1)}
+                                  />
+                                </>
                               ) : null}
                               {bridgeBaseUrl && devWriteActionsEnabled ? (
                                 <AppointmentStatusDryRunAction
@@ -666,6 +685,17 @@ export function SchedulePanel({
       )}
 
       <div className="app-schedule__footer">
+        {bridgeBaseUrl && sandboxPilotEnabled && sandboxWritesReady ? (
+          <AppointmentCreateWriteAction
+            bridgeBaseUrl={bridgeBaseUrl}
+            fetchImpl={fetchImpl}
+            writePilotEnabled={sandboxPilotEnabled}
+            writeCapability={writeCapability}
+            defaultDate={rangeFrom}
+            defaultRoom={roomFilter === "" ? 1 : roomFilter}
+            onCommitted={() => setRefreshTick((x) => x + 1)}
+          />
+        ) : null}
         <Button type="button" variant="secondary" className="ui-focusable" onClick={onBackToday}>
           Back to Today
         </Button>

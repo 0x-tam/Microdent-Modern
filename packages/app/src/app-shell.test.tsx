@@ -76,8 +76,8 @@ describe("AppShell", () => {
     expect(html).toContain("Today");
     expect(html).toContain("Patients");
     expect(html).toContain("Schedule");
+    expect(html).toContain("Settings");
     expect(html).not.toContain("Dental Chart");
-    expect(html).not.toContain("Settings");
     expect(html).toMatch(/Chart, Treatments, and Ledger preview are under Patients/i);
   });
 

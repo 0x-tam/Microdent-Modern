@@ -83,6 +83,26 @@ describe("BridgeSupervisor spawn env", () => {
     assertNoForbiddenPaths(env);
   });
 
+  it("sets BACKUP_DIR when backupDir is configured", async () => {
+    const supervisor = new BridgeSupervisor({
+      repoRoot: "/tmp/microdent-repo",
+      config: {
+        version: 1,
+        dataRoot: "/tmp/sandbox-data",
+        sqlitePath: "/tmp/sandbox.sqlite",
+        backupDir: "/tmp/sandbox-backups",
+        writeMode: "disabled",
+      },
+      nodeBinary: "/usr/bin/node",
+    });
+
+    await supervisor.start();
+
+    const { env } = spawnMock.mock.calls[0][2] as { env: NodeJS.ProcessEnv };
+    expect(env.BACKUP_DIR).toBe("/tmp/sandbox-backups");
+    assertNoForbiddenPaths(env);
+  });
+
   it("sets DATA_ROOT and SQLITE_PATH only from operator config", async () => {
     const supervisor = new BridgeSupervisor({
       repoRoot: "/tmp/microdent-repo",
@@ -129,10 +149,12 @@ describe("BridgeSupervisor spawn env", () => {
   });
 
   it("uiUrl prefers packaged file:// index when web dist exists", () => {
-    existsSyncMock.mockImplementation((path: string) =>
-      String(path).endsWith("apps\\web\\dist\\index.html") ||
-      String(path).endsWith("apps/web/dist/index.html"),
-    );
+    existsSyncMock.mockImplementation((...args: unknown[]) => {
+      const path = String(args[0]);
+      return (
+        path.endsWith("apps\\web\\dist\\index.html") || path.endsWith("apps/web/dist/index.html")
+      );
+    });
 
     const supervisor = new BridgeSupervisor({
       repoRoot: "/tmp/microdent-repo",

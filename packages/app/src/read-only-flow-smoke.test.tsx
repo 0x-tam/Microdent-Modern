@@ -165,7 +165,7 @@ describe("read-only app smoke", () => {
     assertNoForbiddenDomTokens(container.textContent ?? "");
   });
 
-  it("shows only Today, Patients, and Schedule in the sidebar", async () => {
+  it("shows Today, Patients, Schedule, and Settings in the sidebar", async () => {
     const fetchImpl = vi.fn(createReadOnlySmokeFetch());
 
     await act(async () => {
@@ -176,7 +176,7 @@ describe("read-only app smoke", () => {
     const labels = Array.from(container.querySelectorAll(".app-sidebar__btn")).map((b) =>
       b.textContent?.trim(),
     );
-    expect(labels).toEqual(["Today", "Patients", "Schedule"]);
+    expect(labels).toEqual(["Today", "Patients", "Schedule", "Settings"]);
     expect(container.textContent).toMatch(/Chart, Treatments, and Ledger preview are under Patients/i);
     assertNoForbiddenDomTokens(container.textContent ?? "");
   });

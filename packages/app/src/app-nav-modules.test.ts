@@ -7,7 +7,7 @@ import {
 
 describe("app-nav-modules", () => {
   it("lists three live sidebar modules", () => {
-    expect(APP_SIDEBAR_MODULES.map((m) => m.id)).toEqual(["today", "patients", "schedule"]);
+    expect(APP_SIDEBAR_MODULES.map((m) => m.id)).toEqual(["today", "patients", "schedule", "settings"]);
   });
 
   it("keeps placeholder ids in the full export for docs compatibility", () => {

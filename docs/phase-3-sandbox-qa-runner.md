@@ -67,6 +67,14 @@ pnpm qa:sandbox
 
 **Fail:** non-zero exit; check last `workflow=… phase=… http=…` line. HTTP **409** / **400** / **403** are **not** retried (only transient curl failures: empty reply, connection reset, exit 52).
 
+### Troubleshooting
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| `listen EPERM` under `tsx-*/` when smoke runs `pnpm legacy:backup` | **tsx** uses a Unix domain socket (IPC) for its runner; some CI/agent sandboxes block that | Legacy CLIs now run **`node dist/cli/*.js`** after `pnpm --filter @microdent/bridge run build`. Re-run `pnpm qa:sandbox` in a normal terminal (not a restricted sandbox). |
+| `Cannot find module` / missing `dist/cli` | Bridge not built | `pnpm --filter @microdent/bridge run build` then retry. `legacy-backup.sh` builds automatically; `qa-sandbox-run.sh` builds before starting the bridge. |
+| Cursor agent / sandbox QA fails on backup | Environment limitation, not write logic | Run the **local command block** above on your Mac with Node 22; requires writable `BACKUP_DIR` under `Microdent-Write-Sandbox`. |
+
 ---
 
 ## What each workflow does

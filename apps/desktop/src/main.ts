@@ -6,15 +6,30 @@ import { app, BrowserWindow } from "electron";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { BridgeSupervisor } from "./bridge-supervisor.js";
-import { loadDesktopConfig } from "./config.js";
+import {
+  desktopConfigNeedsSetup,
+  loadDesktopConfig,
+  saveDesktopConfig,
+} from "./config.js";
+import { showSetupWindow } from "./setup/setup-window.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, "..", "..", "..");
 
 let supervisor: BridgeSupervisor | null = null;
 
+async function resolveDesktopConfig() {
+  let config = loadDesktopConfig();
+  if (!desktopConfigNeedsSetup(config)) {
+    return config;
+  }
+  config = await showSetupWindow(config);
+  saveDesktopConfig(config);
+  return config;
+}
+
 async function createWindow(): Promise<void> {
-  const config = loadDesktopConfig();
+  const config = await resolveDesktopConfig();
   supervisor = new BridgeSupervisor({ repoRoot, config });
   await supervisor.start();
 
