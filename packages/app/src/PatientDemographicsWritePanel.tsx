@@ -142,105 +142,149 @@ export function PatientDemographicsWritePanel({
   if (!isSandboxWritePilotEnabled(writePilotEnabled)) {
     return null;
   }
-  if (!writeCapability || !isSandboxWriteReady(writeCapability)) {
-    return null;
+
+  const writeReady = writeCapability !== null && isSandboxWriteReady(writeCapability);
+  const loading = state.kind === "loading";
+  const previewOk = state.kind === "preview";
+  const applyDisabled = loading || !previewOk;
+
+  if (!writeReady) {
+    return (
+      <div
+        className="app-sandbox-write app-patient-demographics-write app-patient-demographics-write--unavailable"
+        data-testid="patient-demographics-write-unavailable"
+        role="status"
+      >
+        <SandboxWriteBanner />
+        <p className="app-sandbox-write__hint">
+          Sandbox writes are not ready on this bridge. Check Settings for write mode, sandbox path, and
+          backup configuration.
+        </p>
+      </div>
+    );
   }
 
-  const loading = state.kind === "loading";
-
   return (
-    <section
+    <div
       className="app-sandbox-write app-patient-demographics-write"
       data-testid="patient-demographics-write-pilot"
       aria-labelledby="patient-demographics-write-heading"
     >
-      <h3 id="patient-demographics-write-heading" className="app-sandbox-write__heading">
-        Sandbox: edit demographics
-      </h3>
+      <h4 id="patient-demographics-write-heading" className="app-sandbox-write__heading">
+        Edit allowlisted fields
+      </h4>
       <SandboxWriteBanner />
       <p className="app-sandbox-write__hint">
-        Allowlisted fields only — no phone, address, insurance, or notes.
+        Preview runs a dry-run backup plan first. Apply stays disabled until preview succeeds. Phone,
+        address, insurance, and notes are not editable here.
       </p>
-      <div className="app-sandbox-write__fields app-sandbox-write__fields--grid">
-        <label className="app-sandbox-write__label">
-          <span>First name</span>
-          <input
-            type="text"
-            className="ui-focusable"
-            value={form.firstName}
-            disabled={loading}
-            onChange={(e) => patchField("firstName", e.target.value)}
-            maxLength={25}
-          />
-        </label>
-        <label className="app-sandbox-write__label">
-          <span>Last name</span>
-          <input
-            type="text"
-            className="ui-focusable"
-            value={form.lastName}
-            disabled={loading}
-            onChange={(e) => patchField("lastName", e.target.value)}
-            maxLength={25}
-          />
-        </label>
-        <label className="app-sandbox-write__label">
-          <span>Display name</span>
-          <input
-            type="text"
-            className="ui-focusable"
-            value={form.displayName}
-            disabled={loading}
-            onChange={(e) => patchField("displayName", e.target.value)}
-            maxLength={51}
-          />
-        </label>
-        <label className="app-sandbox-write__label">
-          <span>Reverse name</span>
-          <input
-            type="text"
-            className="ui-focusable"
-            value={form.reverseName}
-            disabled={loading}
-            onChange={(e) => patchField("reverseName", e.target.value)}
-            maxLength={51}
-          />
-        </label>
-        <label className="app-sandbox-write__label">
-          <span>Chart number</span>
-          <input
-            type="text"
-            className="ui-focusable"
-            value={form.chartNumber}
-            disabled={loading}
-            onChange={(e) => patchField("chartNumber", e.target.value)}
-            maxLength={15}
-          />
-        </label>
-        <label className="app-sandbox-write__label">
-          <span>Active</span>
-          <select
-            className="ui-focusable"
-            value={form.active}
-            disabled={loading}
-            onChange={(e) => patchField("active", e.target.value as PatientDemographicsFormState["active"])}
-          >
-            <option value="">—</option>
-            <option value="true">Active</option>
-            <option value="false">Inactive</option>
-          </select>
-        </label>
-        <label className="app-sandbox-write__label">
-          <span>Doctor id</span>
-          <input
-            type="text"
-            className="ui-focusable"
-            value={form.doctorId}
-            disabled={loading}
-            onChange={(e) => patchField("doctorId", e.target.value)}
-            aria-label="Doctor id"
-          />
-        </label>
+      <div className="app-patient-demographics-write__groups">
+        <fieldset className="app-sandbox-write__group" disabled={loading}>
+          <legend className="app-sandbox-write__group-legend">Name</legend>
+          <p className="app-sandbox-write__group-hint">
+            First and last name are optional; leave blank to keep legacy DBF values.
+          </p>
+          <div className="app-sandbox-write__fields app-sandbox-write__fields--grid">
+            <label className="app-sandbox-write__label">
+              <span>First name</span>
+              <input
+                type="text"
+                className="ui-focusable"
+                value={form.firstName}
+                disabled={loading}
+                onChange={(e) => patchField("firstName", e.target.value)}
+                maxLength={25}
+                aria-label="First name"
+              />
+            </label>
+            <label className="app-sandbox-write__label">
+              <span>Last name</span>
+              <input
+                type="text"
+                className="ui-focusable"
+                value={form.lastName}
+                disabled={loading}
+                onChange={(e) => patchField("lastName", e.target.value)}
+                maxLength={25}
+                aria-label="Last name"
+              />
+            </label>
+            <label className="app-sandbox-write__label">
+              <span>Display name</span>
+              <input
+                type="text"
+                className="ui-focusable"
+                value={form.displayName}
+                disabled={loading}
+                onChange={(e) => patchField("displayName", e.target.value)}
+                maxLength={51}
+                aria-label="Display name"
+              />
+            </label>
+            <label className="app-sandbox-write__label">
+              <span>Reverse name</span>
+              <input
+                type="text"
+                className="ui-focusable"
+                value={form.reverseName}
+                disabled={loading}
+                onChange={(e) => patchField("reverseName", e.target.value)}
+                maxLength={51}
+                aria-label="Reverse name"
+              />
+            </label>
+          </div>
+        </fieldset>
+        <fieldset className="app-sandbox-write__group" disabled={loading}>
+          <legend className="app-sandbox-write__group-legend">Chart &amp; status</legend>
+          <p className="app-sandbox-write__group-hint">Chart number and active flag shown on the summary card.</p>
+          <div className="app-sandbox-write__fields app-sandbox-write__fields--grid">
+            <label className="app-sandbox-write__label">
+              <span>Chart number</span>
+              <input
+                type="text"
+                className="ui-focusable"
+                value={form.chartNumber}
+                disabled={loading}
+                onChange={(e) => patchField("chartNumber", e.target.value)}
+                maxLength={15}
+                aria-label="Chart number"
+              />
+            </label>
+            <label className="app-sandbox-write__label">
+              <span>Active</span>
+              <select
+                className="ui-focusable"
+                value={form.active}
+                disabled={loading}
+                onChange={(e) => patchField("active", e.target.value as PatientDemographicsFormState["active"])}
+                aria-label="Active status"
+              >
+                <option value="">—</option>
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
+              </select>
+            </label>
+          </div>
+        </fieldset>
+        <fieldset className="app-sandbox-write__group" disabled={loading}>
+          <legend className="app-sandbox-write__group-legend">Assignment</legend>
+          <p className="app-sandbox-write__group-hint">Primary doctor id from the profile; clear to unset.</p>
+          <div className="app-sandbox-write__fields">
+            <label className="app-sandbox-write__label">
+              <span>Doctor id</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                className="ui-focusable"
+                value={form.doctorId}
+                disabled={loading}
+                onChange={(e) => patchField("doctorId", e.target.value)}
+                aria-label="Doctor id"
+              />
+            </label>
+          </div>
+        </fieldset>
       </div>
       <div className="app-sandbox-write__actions">
         <Button
@@ -248,6 +292,7 @@ export function PatientDemographicsWritePanel({
           variant="secondary"
           className="ui-focusable"
           disabled={loading}
+          data-testid="patient-demographics-preview"
           onClick={() => void runPreview()}
         >
           {state.kind === "loading" && state.action === "preview" ? "Previewing…" : "Preview changes"}
@@ -256,13 +301,16 @@ export function PatientDemographicsWritePanel({
           type="button"
           variant="danger"
           className="ui-focusable"
-          disabled={loading || state.kind !== "preview"}
+          disabled={applyDisabled}
+          data-testid="patient-demographics-apply"
+          aria-disabled={applyDisabled}
+          title={previewOk ? undefined : "Preview changes before applying"}
           onClick={() => void runCommit()}
         >
           {state.kind === "loading" && state.action === "commit" ? "Applying…" : "Apply demographics"}
         </Button>
       </div>
-      {state.kind === "preview" ? (
+      {previewOk ? (
         <SafeWritePlanResult summary={state.summary} testId="patient-demographics-plan" />
       ) : null}
       {state.kind === "result" ? (
@@ -284,6 +332,6 @@ export function PatientDemographicsWritePanel({
           {state.message}
         </p>
       ) : null}
-    </section>
+    </div>
   );
 }

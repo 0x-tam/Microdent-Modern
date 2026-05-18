@@ -37,7 +37,14 @@ function withReferenceDoctors(
     const u = String(input);
     if (u.includes("/v1/meta/write-capability")) {
       return Promise.resolve(inner(input)).catch(() =>
-        jsonResponse({ writeMode: "disabled", writesPermitted: false, writableSandbox: false }),
+        jsonResponse({
+          writeMode: "disabled",
+          writesPermitted: false,
+          writableSandbox: false,
+          dataRootConfigured: false,
+          backupDirConfigured: false,
+          sqlitePathConfigured: false,
+        }),
       );
     }
     if (u.includes("/v1/reference/doctors")) {
@@ -888,6 +895,105 @@ describe("SchedulePanel", () => {
     }
   });
 
+  it("shows schedule-level sandbox banner once and collapsed write panel per row when pilot is on", async () => {
+    const fetchImpl = withReferenceDoctors((input) => {
+      const u = String(input);
+      if (u.includes("/v1/meta/write-capability")) {
+        return Promise.resolve(
+          jsonResponse({
+            writeMode: "enabled",
+            writesPermitted: true,
+            writableSandbox: true,
+            dataRootConfigured: true,
+            backupDirConfigured: true,
+            sqlitePathConfigured: true,
+          }),
+        );
+      }
+      if (u.includes("/v1/schedule/rooms")) {
+        return Promise.resolve(jsonResponse(sampleRooms));
+      }
+      if (u.includes("/v1/schedule/appointments")) {
+        const m = u.match(/from=([^&]+)/);
+        const fromQ = m ? decodeURIComponent(m[1]) : "";
+        return Promise.resolve(jsonResponse(sampleAppointments(fromQ)));
+      }
+      return Promise.reject(new Error(`unexpected fetch ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <SchedulePanel
+          isActive
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          sandboxWritePilot
+          onBackToday={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.querySelectorAll(".app-schedule__sandbox-write-banner")).toHaveLength(1);
+    expect(container.textContent).toMatch(/Sandbox write pilot/i);
+    const writePanels = container.querySelectorAll('[data-testid="appt-write-actions-panel"]');
+    expect(writePanels).toHaveLength(1);
+    expect((writePanels[0] as HTMLDetailsElement).open).toBe(false);
+  });
+
+  it("does not render write panels when sandbox pilot is off", async () => {
+    const fetchImpl = withReferenceDoctors((input) => {
+      const u = String(input);
+      if (u.includes("/v1/meta/write-capability")) {
+        return Promise.resolve(
+          jsonResponse({
+            writeMode: "enabled",
+            writesPermitted: true,
+            writableSandbox: true,
+            dataRootConfigured: true,
+            backupDirConfigured: true,
+            sqlitePathConfigured: true,
+          }),
+        );
+      }
+      if (u.includes("/v1/schedule/rooms")) {
+        return Promise.resolve(jsonResponse(sampleRooms));
+      }
+      if (u.includes("/v1/schedule/appointments")) {
+        const m = u.match(/from=([^&]+)/);
+        const fromQ = m ? decodeURIComponent(m[1]) : "";
+        return Promise.resolve(jsonResponse(sampleAppointments(fromQ)));
+      }
+      return Promise.reject(new Error(`unexpected fetch ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <SchedulePanel
+          isActive
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          sandboxWritePilot={false}
+          onBackToday={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector('[data-testid="appt-write-actions-panel"]')).toBeNull();
+    expect(container.querySelector(".app-schedule__sandbox-write-banner")).toBeNull();
+  });
+
   it("shows compact write-mode chip from write-capability", async () => {
     const fetchImpl = withReferenceDoctors((input) => {
       const u = String(input);
@@ -897,6 +1003,9 @@ describe("SchedulePanel", () => {
             writeMode: "dry-run",
             writesPermitted: false,
             writableSandbox: true,
+            dataRootConfigured: true,
+            backupDirConfigured: false,
+            sqlitePathConfigured: false,
           }),
         );
       }

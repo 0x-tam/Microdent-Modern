@@ -80,6 +80,63 @@ export const SCHEDULE_PRIVACY_LEDE =
 export const TODAY_PRIVACY_LEDE =
   "Read-only day list. Names and chart numbers use a safe patient summary; notes, phones, and payment fields stay hidden.";
 
+export const TODAY_LOADING = "Loading today's schedule from your clinic copy…";
+
+export const TODAY_NEXT_LOADING = "Loading next appointment…";
+
+export const TODAY_EMPTY_TITLE = "No appointments today";
+
+export const TODAY_EMPTY_DESCRIPTION =
+  "Today's list is clear. Open the full schedule to check other days, or search for a patient.";
+
+export const TODAY_OPEN_SCHEDULE = "Open schedule";
+
+export const TODAY_SEARCH_PATIENT = "Search patient";
+
+export const TODAY_QUICK_ACTIONS_LEDE = "Front-desk shortcuts when the clinic service is connected.";
+
+export const PATIENT_SEARCH_HINT_CONNECTED = "Uses your copied clinic data. Names and safe hints only.";
+
+export const PATIENT_SEARCH_HINT_OFFLINE = "Search is off until the clinic service is connected.";
+
+export const PATIENT_SEARCH_IDLE = "Type a name or chart number (at least 2 characters).";
+
+export const PATIENT_SEARCH_TOO_SHORT = "Enter at least 2 letters or numbers.";
+
+export const PATIENT_SEARCH_SEARCHING = "Searching…";
+
+export const PATIENT_SEARCH_NO_MATCH =
+  "No patients matched. Try a different spelling or chart number.";
+
+export const PATIENT_SEARCH_DROPDOWN_NO_MATCH = "No patients matched.";
+
+export const SCHEDULE_VIEW_LABEL = "Schedule view";
+
+export const SCHEDULE_VIEW_WEEK = "Week";
+
+export const SCHEDULE_VIEW_DAY = "Day";
+
+export const SCHEDULE_NAV_PREV_DAY = "Previous day";
+
+export const SCHEDULE_NAV_PREV_WEEK = "Previous week";
+
+export const SCHEDULE_NAV_NEXT_DAY = "Next day";
+
+export const SCHEDULE_NAV_NEXT_WEEK = "Next week";
+
+export const SCHEDULE_LOADING = "Loading schedule from your clinic copy…";
+
+export const SCHEDULE_EMPTY_TITLE = "No appointments in this range";
+
+export const SCHEDULE_EMPTY_DESCRIPTION =
+  "Try another day or week, change the room filter, or refresh after the clinic service loads data.";
+
+export const SCHEDULE_ROOM_FILTER_LABEL = "Room";
+
+export const SCHEDULE_ROOM_ALL = "All rooms";
+
+export const SCHEDULE_KEYBOARD_HINT = "Tip: ← → move the range; T jumps to today.";
+
 export const MODULE_PLACEHOLDER_TITLE = "Not available yet";
 
 export const MODULE_PLACEHOLDER_DESCRIPTION =
@@ -126,6 +183,24 @@ export const SANDBOX_WRITE_WARNING_BANNER_BODY =
 export const SANDBOX_WRITE_PILOT_PANEL_BANNER =
   "Sandbox write mode — changes affect disposable data only.";
 
+/** Once per schedule view when sandbox write pilots are active. */
+export const SCHEDULE_SANDBOX_WRITE_PILOT_BANNER =
+  "Sandbox write pilot — status and time changes affect disposable data only. Expand a row to preview before applying.";
+
+export const APPOINTMENT_WRITE_ACTIONS_SUMMARY = "Sandbox write";
+
+export const APPOINTMENT_WRITE_TAB_STATUS = "Change status";
+
+export const APPOINTMENT_WRITE_TAB_MOVE = "Move time/room";
+
+export const APPOINTMENT_STATUS_PREVIEW_LABEL = "Preview status change";
+
+export const APPOINTMENT_STATUS_APPLY_LABEL = "Apply status change";
+
+export const APPOINTMENT_TIME_MOVE_PREVIEW_LABEL = "Preview move";
+
+export const APPOINTMENT_TIME_MOVE_APPLY_LABEL = "Apply move";
+
 export const WRITE_MODE_CHIP_DISABLED = "Writes off";
 
 export const WRITE_MODE_CHIP_DRY_RUN = "Dry-run";
@@ -151,13 +226,19 @@ export const SETTINGS_PANEL_LEDE =
 
 export const SETTINGS_BRIDGE_SECTION = "Clinic service";
 
+export const SETTINGS_DATA_PATHS_SECTION = "Data paths";
+
 export const SETTINGS_MIRROR_SECTION = "Mirror import";
 
-export const SETTINGS_WRITE_SECTION = "Write mode";
+export const SETTINGS_WRITE_SECTION = "Writes";
 
 export const SETTINGS_SANDBOX_SECTION = "Sandbox";
 
 export const SETTINGS_BACKUP_SECTION = "Backup";
+
+export const SETTINGS_PILOT_SECTION = "Sandbox pilot";
+
+export const SETTINGS_DESKTOP_SECTION = "Desktop app";
 
 export const SETTINGS_BRIDGE_CONNECTED = "Connected";
 
@@ -204,3 +285,36 @@ export const SETTINGS_MIRROR_STALE_CALLOUT =
 export const SETTINGS_SANDBOX_PILOT_ON = "Sandbox write pilot enabled in this app build";
 
 export const SETTINGS_SANDBOX_PILOT_OFF = "Sandbox write pilot not enabled in this app build";
+
+export const SETTINGS_DATA_ROOT_CONFIGURED = "DATA_ROOT configured";
+
+export const SETTINGS_DATA_ROOT_MISSING = "DATA_ROOT not configured";
+
+export const SETTINGS_DATA_ROOT_UNKNOWN = "DATA_ROOT status unknown";
+
+export const SETTINGS_DESKTOP_FILE_PROTOCOL =
+  "Running as the packaged desktop app (local file protocol). Paths come from desktop setup config.";
+
+export const SETTINGS_DESKTOP_BROWSER =
+  "Running in the browser. Use the desktop installer for clinic file paths and bridge supervision.";
+
+export const SETTINGS_MIRROR_IMPORT_CLI =
+  "Run safe import from the command line, then refresh status here.";
+
+export const SETTINGS_ENABLED_NON_SANDBOX_BANNER_LABEL = "Writes enabled outside sandbox";
+
+export const SETTINGS_ENABLED_NON_SANDBOX_BANNER_BODY =
+  "Write mode is enabled but DATA_ROOT did not pass the disposable sandbox guard. Stop the bridge and fix paths before committing changes.";
+
+export const SETTINGS_BRIDGE_OFFLINE_BANNER_LABEL = "Clinic service offline";
+
+export const SETTINGS_BRIDGE_OFFLINE_BANNER_BODY =
+  "Settings cannot load bridge metadata until the clinic service is connected.";
+
+export const SETTINGS_MIRROR_RUN_STATUS_SUCCESS = "Success";
+
+export const SETTINGS_MIRROR_RUN_STATUS_PARTIAL = "Partial";
+
+export const SETTINGS_MIRROR_RUN_STATUS_FAILED = "Failed";
+
+export const SETTINGS_MIRROR_RUN_STATUS_RUNNING = "Running";

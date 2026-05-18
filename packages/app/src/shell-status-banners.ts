@@ -9,6 +9,10 @@ import {
   MIRROR_STALE_BANNER_LABEL,
   SANDBOX_WRITE_WARNING_BANNER_BODY,
   SANDBOX_WRITE_WARNING_BANNER_LABEL,
+  SETTINGS_BRIDGE_OFFLINE_BANNER_BODY,
+  SETTINGS_BRIDGE_OFFLINE_BANNER_LABEL,
+  SETTINGS_ENABLED_NON_SANDBOX_BANNER_BODY,
+  SETTINGS_ENABLED_NON_SANDBOX_BANNER_LABEL,
   WRITE_MODE_CHIP_DISABLED,
   WRITE_MODE_CHIP_DRY_RUN,
   WRITE_MODE_CHIP_ENABLED,
@@ -113,6 +117,59 @@ export function resolveWriteModeBanner(
     body: copy.body,
     tone: copy.tone,
   };
+}
+
+/**
+ * Danger when write mode is enabled but DATA_ROOT is not a validated disposable sandbox.
+ */
+export function resolveEnabledNonSandboxBanner(
+  phase: BridgeHealthPhase,
+  writeCapability: BridgeDevStatusResponse | null,
+): ShellStatusBanner | null {
+  if (phase !== "connected" || writeCapability === null) return null;
+  if (writeCapability.writeMode !== "enabled" || writeCapability.writableSandbox) {
+    return null;
+  }
+  return {
+    key: "enabled-non-sandbox",
+    label: SETTINGS_ENABLED_NON_SANDBOX_BANNER_LABEL,
+    body: SETTINGS_ENABLED_NON_SANDBOX_BANNER_BODY,
+    tone: "danger",
+  };
+}
+
+/** Settings-only callout when the clinic service is not connected. */
+export function resolveBridgeOfflineBanner(phase: BridgeHealthPhase): ShellStatusBanner | null {
+  if (phase === "connected") return null;
+  return {
+    key: "bridge-offline",
+    label: SETTINGS_BRIDGE_OFFLINE_BANNER_LABEL,
+    body: SETTINGS_BRIDGE_OFFLINE_BANNER_BODY,
+    tone: phase === "checking" ? "info" : "warning",
+  };
+}
+
+/**
+ * Danger and warning banners for the Settings dashboard (excludes informational mirror-active).
+ */
+export function resolveSettingsDangerBanners(
+  phase: BridgeHealthPhase,
+  mirrorStatus: MirrorStatusResponse | null,
+  writeCapability: BridgeDevStatusResponse | null,
+  nowMs: number = Date.now(),
+): ShellStatusBanner[] {
+  const banners: ShellStatusBanner[] = [];
+  const offline = resolveBridgeOfflineBanner(phase);
+  if (offline && offline.tone !== "info") banners.push(offline);
+  const mirror = resolveMirrorConnectionBanner(phase, mirrorStatus, nowMs);
+  if (mirror && mirror.tone !== "info") banners.push(mirror);
+  const writeMode = resolveWriteModeBanner(phase, writeCapability);
+  if (writeMode && writeMode.tone === "danger") banners.push(writeMode);
+  const nonSandbox = resolveEnabledNonSandboxBanner(phase, writeCapability);
+  if (nonSandbox) banners.push(nonSandbox);
+  const sandbox = resolveSandboxWriteWarningBanner(phase, writeCapability);
+  if (sandbox) banners.push(sandbox);
+  return banners;
 }
 
 /**

@@ -23,6 +23,9 @@ const readyCapability = {
   writeMode: "enabled" as const,
   writesPermitted: true,
   writableSandbox: true,
+  dataRootConfigured: true,
+  backupDirConfigured: true,
+  sqlitePathConfigured: true,
 };
 
 const dryRunPlan = {
@@ -43,11 +46,32 @@ const dryRunPlan = {
 
 const committedPlan = { ...dryRunPlan, committed: true, mode: "enabled" as const };
 
+const DISALLOWED_FIELD_LABELS = ["Phone", "Telephone", "Address", "Insurance", "Notes"];
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { "Content-Type": "application/json" },
   });
+}
+
+function applyBtn(container: ParentNode) {
+  return container.querySelector<HTMLButtonElement>('[data-testid="patient-demographics-apply"]');
+}
+
+function previewBtn(container: ParentNode) {
+  return container.querySelector<HTMLButtonElement>('[data-testid="patient-demographics-preview"]');
+}
+
+function setInputValue(input: HTMLInputElement, value: string) {
+  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+  setter?.call(input, value);
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+function displayNameInput(container: ParentNode) {
+  return container.querySelector<HTMLInputElement>('input[aria-label="Display name"]');
 }
 
 describe("PatientDemographicsWritePanel", () => {
@@ -89,6 +113,66 @@ describe("PatientDemographicsWritePanel", () => {
     expect(container.querySelector('[data-testid="patient-demographics-write-pilot"]')).toBeNull();
   });
 
+  it("shows unavailable copy when sandbox writes are not ready", () => {
+    renderPilot({
+      writeCapability: {
+        writeMode: "disabled",
+        writesPermitted: false,
+        writableSandbox: false,
+        dataRootConfigured: false,
+        backupDirConfigured: false,
+        sqlitePathConfigured: false,
+      },
+    });
+    expect(container.querySelector('[data-testid="patient-demographics-write-unavailable"]')).not.toBeNull();
+    expect(container.textContent).toContain("Sandbox writes are not ready");
+    expect(previewBtn(container)).toBeNull();
+  });
+
+  it("does not expose phone or address fields", () => {
+    renderPilot();
+    expect(container.querySelector('input[type="tel"]')).toBeNull();
+    expect(container.querySelector("textarea")).toBeNull();
+    const labels = [...container.querySelectorAll("label span")].map((el) => el.textContent ?? "");
+    for (const label of DISALLOWED_FIELD_LABELS) {
+      expect(labels).not.toContain(label);
+    }
+    const ariaLabels = [...container.querySelectorAll("input, select")].map(
+      (el) => el.getAttribute("aria-label") ?? "",
+    );
+    for (const label of DISALLOWED_FIELD_LABELS) {
+      expect(ariaLabels.some((a) => a.toLowerCase() === label.toLowerCase())).toBe(false);
+    }
+  });
+
+  it("keeps Apply disabled until preview succeeds", async () => {
+    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
+      const u = String(input);
+      if (u.includes("/demographics")) {
+        return Promise.resolve(jsonResponse(dryRunPlan));
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+    renderPilot({ fetchImpl });
+
+    const apply = applyBtn(container);
+    expect(apply).not.toBeNull();
+    expect(apply?.disabled).toBe(true);
+
+    const nameInput = displayNameInput(container);
+    expect(nameInput).not.toBeNull();
+    await act(async () => {
+      if (nameInput) setInputValue(nameInput, "Updated Sandbox Label");
+    });
+    expect(applyBtn(container)?.disabled).toBe(true);
+
+    await act(async () => {
+      previewBtn(container)?.click();
+    });
+    expect(applyBtn(container)?.disabled).toBe(false);
+    expect(container.textContent).toContain("patient.demographics.update");
+  });
+
   it("preview and commit invoke profile refresh", async () => {
     const fetchImpl = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const u = String(input);
@@ -107,43 +191,64 @@ describe("PatientDemographicsWritePanel", () => {
     const onCommitted = vi.fn();
     renderPilot({ fetchImpl, onCommitted });
 
-    const displayInput = container.querySelector(
-      'input[aria-label="Display name"], label span',
-    );
-    const nameInput = [...container.querySelectorAll("input")].find(
-      (el) => el.previousElementSibling?.textContent === "Display name",
-    );
+    const nameInput = displayNameInput(container);
     await act(async () => {
-      if (nameInput) {
-        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
-        setter?.call(nameInput, "Updated Sandbox Label");
-        nameInput.dispatchEvent(new Event("input", { bubbles: true }));
-        nameInput.dispatchEvent(new Event("change", { bubbles: true }));
-      }
+      if (nameInput) setInputValue(nameInput, "Updated Sandbox Label");
     });
 
-    const previewBtn = [...container.querySelectorAll("button")].find((b) =>
-      b.textContent?.includes("Preview changes"),
-    );
     await act(async () => {
-      previewBtn?.click();
+      previewBtn(container)?.click();
     });
 
-    expect(container.textContent).toContain("patient.demographics.update");
+    const apply = applyBtn(container);
+    expect(apply?.disabled).toBe(false);
 
-    const applyBtn = [...container.querySelectorAll("button")].find((b) =>
-      b.textContent?.includes("Apply demographics"),
-    );
     await act(async () => {
-      applyBtn?.click();
+      apply?.click();
     });
 
     expect(window.confirm).toHaveBeenCalledWith(PATIENT_DEMOGRAPHICS_WRITE_CONFIRM);
     expect(onCommitted).toHaveBeenCalledTimes(1);
+
+    const demographicsCalls = fetchImpl.mock.calls.filter(([input]) =>
+      String(input).includes("/demographics"),
+    );
+    expect(demographicsCalls.some(([, init]) => {
+      const headers = init?.headers as Record<string, string> | undefined;
+      return headers?.["X-Write-Intent"] === "dry-run";
+    })).toBe(true);
+    expect(demographicsCalls.some(([, init]) => {
+      const headers = init?.headers as Record<string, string> | undefined;
+      return headers?.["X-Write-Intent"] === "commit";
+    })).toBe(true);
+
     const text = container.textContent ?? "";
     assertNoForbiddenDomTokens(text);
     expect(containsForbiddenWriteResultToken(text)).toBe(false);
     expect(text).not.toContain("TELEPHONE");
-    expect(displayInput).toBeTruthy();
+  });
+
+  it("re-disables Apply after editing following a successful preview", async () => {
+    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
+      if (String(input).includes("/demographics")) {
+        return Promise.resolve(jsonResponse(dryRunPlan));
+      }
+      return Promise.reject(new Error("unexpected"));
+    });
+    renderPilot({ fetchImpl });
+
+    const nameInput = displayNameInput(container);
+    await act(async () => {
+      if (nameInput) setInputValue(nameInput, "Updated Sandbox Label");
+    });
+    await act(async () => {
+      previewBtn(container)?.click();
+    });
+    expect(applyBtn(container)?.disabled).toBe(false);
+
+    await act(async () => {
+      if (nameInput) setInputValue(nameInput, "Another label");
+    });
+    expect(applyBtn(container)?.disabled).toBe(true);
   });
 });

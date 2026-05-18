@@ -401,7 +401,6 @@ describe("PatientSearchBar", () => {
     await act(async () => {
       await Promise.resolve();
     });
-    expect(container.textContent).toContain("No matches");
     expect(container.textContent).toMatch(/No patients matched/i);
   });
 

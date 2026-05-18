@@ -67,6 +67,9 @@ export function createBridgeApp(version?: string, options?: CreateBridgeAppOptio
         writeMode: bridgeConfig.writeMode,
         writesPermitted: writesPermitted(bridgeConfig),
         writableSandbox: isWritableSandboxReady(bridgeConfig),
+        dataRootConfigured: bridgeConfig.dataRoot.configured,
+        backupDirConfigured: bridgeConfig.backupDir.configured,
+        sqlitePathConfigured: bridgeConfig.sqlitePath.configured,
       };
       BridgeDevStatusResponseSchema.parse(body);
       res.json(body);

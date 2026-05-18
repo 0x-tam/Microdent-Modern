@@ -11,13 +11,26 @@ import { useProcedureReference } from "./useProcedureReference.js";
 import {
   CLINIC_SERVICE_CHECKING,
   CLINIC_SERVICE_CONNECT_SCHEDULE,
+  SCHEDULE_EMPTY_DESCRIPTION,
+  SCHEDULE_EMPTY_TITLE,
+  SCHEDULE_KEYBOARD_HINT,
   SCHEDULE_LOAD_ERROR,
+  SCHEDULE_LOADING,
+  SCHEDULE_NAV_NEXT_DAY,
+  SCHEDULE_NAV_NEXT_WEEK,
+  SCHEDULE_NAV_PREV_DAY,
+  SCHEDULE_NAV_PREV_WEEK,
   SCHEDULE_PRIVACY_LEDE,
+  SCHEDULE_ROOM_ALL,
+  SCHEDULE_ROOM_FILTER_LABEL,
+  SCHEDULE_SANDBOX_WRITE_PILOT_BANNER,
+  SCHEDULE_VIEW_DAY,
+  SCHEDULE_VIEW_LABEL,
+  SCHEDULE_VIEW_WEEK,
 } from "./read-only-ui-copy.js";
 import { AppointmentCreateWriteAction } from "./AppointmentCreateWriteAction.js";
 import { AppointmentStatusDryRunAction } from "./AppointmentStatusDryRunAction.js";
-import { AppointmentStatusWriteAction } from "./AppointmentStatusWriteAction.js";
-import { AppointmentTimeMoveWriteAction } from "./AppointmentTimeMoveWriteAction.js";
+import { AppointmentWriteActionsPanel } from "./AppointmentWriteActionsPanel.js";
 import { isSandboxWriteReady } from "./sandbox-write-pilot.js";
 import { resolveWriteModeChip } from "./shell-status-banners.js";
 
@@ -455,16 +468,17 @@ export function SchedulePanel({
     <div className="app-schedule">
       <div className="app-schedule__toolbar">
         <div className="app-schedule__toolbar-row">
-          <div className="app-schedule__granularity" role="group" aria-label="Schedule view">
+          <div className="app-schedule__granularity" role="group" aria-label={SCHEDULE_VIEW_LABEL}>
             <Button
               type="button"
               variant={granularity === "week" ? "secondary" : "ghost"}
               size="compact"
               className="ui-focusable"
               disabled={!canLoad}
+              aria-pressed={granularity === "week"}
               onClick={() => onGranularityChange("week")}
             >
-              Week
+              {SCHEDULE_VIEW_WEEK}
             </Button>
             <Button
               type="button"
@@ -472,9 +486,10 @@ export function SchedulePanel({
               size="compact"
               className="ui-focusable"
               disabled={!canLoad}
+              aria-pressed={granularity === "day"}
               onClick={() => onGranularityChange("day")}
             >
-              Day
+              {SCHEDULE_VIEW_DAY}
             </Button>
           </div>
           <div className="app-schedule__nav" role="group" aria-label="Move schedule range">
@@ -485,9 +500,9 @@ export function SchedulePanel({
               className="ui-focusable"
               disabled={!canLoad || loading}
               onClick={goPrev}
-              aria-label={granularity === "day" ? "Previous day" : "Previous week"}
+              aria-label={granularity === "day" ? SCHEDULE_NAV_PREV_DAY : SCHEDULE_NAV_PREV_WEEK}
             >
-              ← {granularity === "day" ? "Day" : "Week"}
+              ← {granularity === "day" ? SCHEDULE_VIEW_DAY : SCHEDULE_VIEW_WEEK}
             </Button>
             <Button
               type="button"
@@ -506,9 +521,9 @@ export function SchedulePanel({
               className="ui-focusable"
               disabled={!canLoad || loading}
               onClick={goNext}
-              aria-label={granularity === "day" ? "Next day" : "Next week"}
+              aria-label={granularity === "day" ? SCHEDULE_NAV_NEXT_DAY : SCHEDULE_NAV_NEXT_WEEK}
             >
-              {granularity === "day" ? "Day" : "Week"} →
+              {granularity === "day" ? SCHEDULE_VIEW_DAY : SCHEDULE_VIEW_WEEK} →
             </Button>
           </div>
           <div className="app-schedule__toolbar-actions">
@@ -523,7 +538,7 @@ export function SchedulePanel({
             ) : null}
             {roomOptions.length > 0 ? (
               <label className="app-schedule__room-filter">
-                <span className="app-schedule__room-filter-label">Room</span>
+                <span className="app-schedule__room-filter-label">{SCHEDULE_ROOM_FILTER_LABEL}</span>
                 <select
                   className="app-schedule__select ui-focusable"
                   disabled={!canLoad || loading}
@@ -534,7 +549,7 @@ export function SchedulePanel({
                   }}
                   aria-label="Filter by room"
                 >
-                  <option value="">All rooms</option>
+                  <option value="">{SCHEDULE_ROOM_ALL}</option>
                   {roomOptions.map((n) => (
                     <option key={n} value={String(n)}>
                       {roomCopyLabel(rooms, n)}
@@ -563,6 +578,12 @@ export function SchedulePanel({
           <time dateTime={`${rangeFrom}/${rangeTo}`}>{rangeHeading}</time>
         </p>
         <p className="app-schedule__privacy">{SCHEDULE_PRIVACY_LEDE}</p>
+        {canLoad ? <p className="app-schedule__keyboard-hint">{SCHEDULE_KEYBOARD_HINT}</p> : null}
+        {sandboxPilotEnabled && sandboxWritesReady && canLoad ? (
+          <p className="app-schedule__sandbox-write-banner" role="status">
+            {SCHEDULE_SANDBOX_WRITE_PILOT_BANNER}
+          </p>
+        ) : null}
       </div>
 
       {!canLoad ? (
@@ -570,8 +591,8 @@ export function SchedulePanel({
           {offlineMessage}
         </p>
       ) : loading ? (
-        <p className="app-schedule__state" role="status">
-          Loading schedule…
+        <p className="app-schedule__state app-schedule__state--muted" role="status" aria-busy="true">
+          {SCHEDULE_LOADING}
         </p>
       ) : error ? (
         <p className="app-schedule__state app-schedule__state--error" role="alert">
@@ -581,8 +602,8 @@ export function SchedulePanel({
         <AppErrorBoundary>
           <EmptyState
             className="ui-empty--start"
-            title="No appointments in this range"
-            description="Try another day or week, change the room filter, or refresh after the bridge loads data."
+            title={SCHEDULE_EMPTY_TITLE}
+            description={SCHEDULE_EMPTY_DESCRIPTION}
           />
         </AppErrorBoundary>
       ) : (
@@ -643,24 +664,14 @@ export function SchedulePanel({
                                 ) : null}
                               </div>
                               {bridgeBaseUrl && sandboxPilotEnabled && sandboxWritesReady ? (
-                                <>
-                                  <AppointmentStatusWriteAction
-                                    appointment={appt}
-                                    bridgeBaseUrl={bridgeBaseUrl}
-                                    fetchImpl={fetchImpl}
-                                    writePilotEnabled={sandboxPilotEnabled}
-                                    writeCapability={writeCapability}
-                                    onCommitted={() => setRefreshTick((x) => x + 1)}
-                                  />
-                                  <AppointmentTimeMoveWriteAction
-                                    appointment={appt}
-                                    bridgeBaseUrl={bridgeBaseUrl}
-                                    fetchImpl={fetchImpl}
-                                    writePilotEnabled={sandboxPilotEnabled}
-                                    writeCapability={writeCapability}
-                                    onCommitted={() => setRefreshTick((x) => x + 1)}
-                                  />
-                                </>
+                                <AppointmentWriteActionsPanel
+                                  appointment={appt}
+                                  bridgeBaseUrl={bridgeBaseUrl}
+                                  fetchImpl={fetchImpl}
+                                  writePilotEnabled={sandboxPilotEnabled}
+                                  writeCapability={writeCapability}
+                                  onCommitted={() => setRefreshTick((x) => x + 1)}
+                                />
                               ) : null}
                               {bridgeBaseUrl && devWriteActionsEnabled ? (
                                 <AppointmentStatusDryRunAction

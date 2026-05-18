@@ -138,13 +138,18 @@ describe("BridgeSupervisor spawn env", () => {
     const [nodeBin, args, options] = spawnMock.mock.calls[0] as [
       string,
       string[],
-      { env: NodeJS.ProcessEnv; stdio: string[] },
+      { env: NodeJS.ProcessEnv; stdio: string[]; shell?: boolean },
     ];
     expect(nodeBin).toBe("C:\\Program Files\\nodejs\\node.exe");
-    expect(args[0]).toBe(
+    expect(args).toEqual([
       join("C:\\repos\\Microdent-Modern", "services", "bridge", "dist", "server.js"),
-    );
+    ]);
+    expect(options.shell).toBeFalsy();
     expect(options.stdio).toEqual(["ignore", "pipe", "pipe"]);
+    for (const arg of args) {
+      expect(arg).not.toMatch(/\.(bat|cmd)$/i);
+      expect(arg.toLowerCase()).not.toMatch(/foxpro|legacy-copy|microdent-legacy/);
+    }
     assertNoForbiddenPaths(options.env);
   });
 

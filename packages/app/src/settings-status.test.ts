@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { resolveBackupConfiguredStatus, resolveSandboxValidityStatus } from "./settings-status.js";
+import {
+  resolveBackupConfiguredStatus,
+  resolveDataRootConfiguredStatus,
+  resolveSandboxValidityStatus,
+} from "./settings-status.js";
 
 describe("settings-status", () => {
   it("maps sandbox validity from writableSandbox", () => {
@@ -8,6 +12,9 @@ describe("settings-status", () => {
         writeMode: "dry-run",
         writesPermitted: false,
         writableSandbox: true,
+        dataRootConfigured: true,
+        backupDirConfigured: false,
+        sqlitePathConfigured: true,
       }).tone,
     ).toBe("ok");
     expect(
@@ -15,16 +22,22 @@ describe("settings-status", () => {
         writeMode: "disabled",
         writesPermitted: false,
         writableSandbox: false,
+        dataRootConfigured: false,
+        backupDirConfigured: false,
+        sqlitePathConfigured: false,
       }).tone,
     ).toBe("warn");
   });
 
-  it("infers backup configured from writesPermitted when writes enabled", () => {
+  it("reads backup configured from backupDirConfigured when writes enabled", () => {
     expect(
       resolveBackupConfiguredStatus({
         writeMode: "enabled",
         writesPermitted: true,
         writableSandbox: true,
+        dataRootConfigured: true,
+        backupDirConfigured: true,
+        sqlitePathConfigured: true,
       }).label,
     ).toMatch(/configured/i);
     expect(
@@ -32,6 +45,9 @@ describe("settings-status", () => {
         writeMode: "enabled",
         writesPermitted: false,
         writableSandbox: false,
+        dataRootConfigured: true,
+        backupDirConfigured: false,
+        sqlitePathConfigured: false,
       }).label,
     ).toMatch(/not configured/i);
     expect(
@@ -39,7 +55,23 @@ describe("settings-status", () => {
         writeMode: "disabled",
         writesPermitted: false,
         writableSandbox: false,
+        dataRootConfigured: false,
+        backupDirConfigured: false,
+        sqlitePathConfigured: false,
       }).label,
     ).toMatch(/not required/i);
+  });
+
+  it("maps data root configured from write capability", () => {
+    expect(
+      resolveDataRootConfiguredStatus({
+        writeMode: "disabled",
+        writesPermitted: false,
+        writableSandbox: false,
+        dataRootConfigured: true,
+        backupDirConfigured: false,
+        sqlitePathConfigured: false,
+      }).tone,
+    ).toBe("ok");
   });
 });

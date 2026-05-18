@@ -13,11 +13,16 @@ Windows script and CLI posture: [docs/phase-3-windows-readiness-audit.md](../../
 
 ## First-run flow
 
-1. Launch the desktop app with no path fields in config (or delete path keys from `config.json`).
-2. Enter absolute `DATA_ROOT` (existing folder), `SQLITE_PATH` (existing file), and optional `BACKUP_DIR` (created if missing).
-3. Setup saves `config.json` with `writeMode: "disabled"`, starts the bridge, and opens the web UI.
+1. Build bridge and web dist (see Prerequisites).
+2. Launch the desktop app with no path fields in config (or delete `dataRoot` / `sqlitePath` from `config.json`).
+3. When the setup window opens, enter absolute paths:
+   - **DATA_ROOT** — existing sandbox folder (Windows example: `C:\Microdent\Write-Sandbox\DATA`).
+   - **SQLITE_PATH** — existing mirror SQLite file (example: `C:\Microdent\mirror.sqlite`).
+   - **BACKUP_DIR** (optional) — folder for backups (example: `C:\Microdent\backups`; created if missing).
+4. If any path contains spaces, quote it in manual CLI commands (PowerShell: `"C:\Microdent\My Sandbox\DATA"`).
+5. Setup saves config with `writeMode: "disabled"`, starts the Node bridge, and opens the web UI.
 
-macOS developers with a pre-filled `config.json` skip setup and behave as before.
+macOS developers with a pre-filled `config.json` skip setup and behave as before. No screenshots are required for first-run—only valid paths on disk.
 
 ## Config file locations
 
@@ -60,19 +65,22 @@ pnpm --filter @microdent/desktop run start
 
 On startup: load config → optional setup window → spawn bridge with `WRITE_MODE`, `DATA_ROOT`, `SQLITE_PATH`, and `BACKUP_DIR` (when set) → poll `GET /health` → open window (`file://` web dist when built, else bridge URL).
 
-## Windows packaging checklist
+## Windows operator checklist
 
 Use this before treating the desktop MVP as production-ready on Windows:
 
-- [ ] **Node 22** installed; `services/bridge/dist/server.js` exists (`pnpm --filter @microdent/bridge run build`).
-- [ ] **`apps/web/dist/index.html`** exists (`pnpm build:web`) for offline UI.
-- [ ] **Config** at `%AppData%\Microdent\config.json` with `writeMode: "disabled"` until sandbox pilot.
-- [ ] **`dataRoot` / `sqlitePath`** point at operator-controlled copies only (never production `Microdent-Legacy`).
-- [ ] **Bridge binds loopback** — default `127.0.0.1:17890` via supervisor env (`BRIDGE_HOST`, `BRIDGE_PORT`).
-- [ ] **No FoxPro** — confirm Task Manager shows only `node.exe` + Electron for this app (see tests in `bridge-supervisor.test.ts`).
-- [ ] **Write pilot** — enable `writeMode` only with disposable sandbox marker and bridge safety ack; follow [phase-3-write-safe-qa-checklist.md](../../docs/phase-3-write-safe-qa-checklist.md).
-- [ ] **Legacy CLI on Windows** — use `pnpm --filter @microdent/bridge run legacy-*` with env vars, not bash wrappers (see [Windows audit](../../docs/phase-3-windows-readiness-audit.md#cross-platform-node-clis-preferred-on-windows)).
-- [ ] **Not in MVP** — NSIS installer, code signing, auto-update (documented out of scope).
+- [ ] **Node 22** installed (`nvm` or official installer); `node -v` shows v22.x.
+- [ ] **Bridge built** — `services\bridge\dist\server.js` exists (`pnpm --filter @microdent/bridge run build`).
+- [ ] **Web UI built** — `apps\web\dist\index.html` exists (`pnpm build:web`) for offline `file://` loading.
+- [ ] **Config file** — `%AppData%\Microdent\config.json` (open via Run → `%AppData%\Microdent`) with `writeMode: "disabled"` until sandbox pilot.
+- [ ] **First-run paths** — `dataRoot` and `sqlitePath` aim at disposable copies under your control (e.g. `C:\Microdent\Write-Sandbox\DATA`); never point at production legacy trees.
+- [ ] **Spaces in paths** — quote paths in PowerShell/CMD when running bridge CLIs manually.
+- [ ] **UNC shares** — allowed by setup with a warning; prefer local drive letters when possible.
+- [ ] **Loopback only** — bridge listens on `127.0.0.1` (default port `17890` via `BRIDGE_HOST` / `BRIDGE_PORT`).
+- [ ] **No FoxPro / legacy EXE / BAT** — Task Manager should show only `node.exe` (bridge) and Electron; the supervisor spawns `node …\dist\server.js` only (see `bridge-supervisor.test.ts`).
+- [ ] **Write pilot** — change `writeMode` only with sandbox marker and bridge safety ack; follow [phase-3-write-safe-qa-checklist.md](../../docs/phase-3-write-safe-qa-checklist.md).
+- [ ] **Legacy CLI on Windows** — `pnpm --filter @microdent/bridge run legacy-*` with env vars set in PowerShell, not bash-only wrappers ([Windows audit](../../docs/phase-3-windows-readiness-audit.md#cross-platform-node-clis-preferred-on-windows)).
+- [ ] **Out of MVP scope** — NSIS installer, code signing, auto-update.
 
 ## Scope (MVP)
 

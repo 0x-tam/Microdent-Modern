@@ -14,8 +14,16 @@ import { useProcedureReference } from "./useProcedureReference.js";
 import {
   CLINIC_SERVICE_CHECKING,
   CLINIC_SERVICE_CONNECT_TODAY,
+  SCHEDULE_LOAD_ERROR,
   TAB_UNAVAILABLE_TITLE,
+  TODAY_EMPTY_DESCRIPTION,
+  TODAY_EMPTY_TITLE,
+  TODAY_LOADING,
+  TODAY_NEXT_LOADING,
+  TODAY_OPEN_SCHEDULE,
   TODAY_PRIVACY_LEDE,
+  TODAY_QUICK_ACTIONS_LEDE,
+  TODAY_SEARCH_PATIENT,
 } from "./read-only-ui-copy.js";
 
 function toLocalIsoDate(d: Date): string {
@@ -162,7 +170,7 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
     } catch {
       if (seq !== requestSeq.current) return;
       setAppointments([]);
-      setError("Today’s schedule could not be loaded. Try again in a moment.");
+      setError(SCHEDULE_LOAD_ERROR);
     } finally {
       if (seq === requestSeq.current) {
         setLoading(false);
@@ -201,8 +209,8 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
     }
     if (loading) {
       return (
-        <p className="app-dashboard-sched__loading" role="status" aria-live="polite">
-          Loading today’s schedule…
+        <p className="app-dashboard-sched__loading" role="status" aria-live="polite" aria-busy="true">
+          {TODAY_LOADING}
         </p>
       );
     }
@@ -217,7 +225,13 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
       );
     }
     if (sorted.length === 0) {
-      return <p className="app-dashboard-sched__empty">No appointments found for today.</p>;
+      return (
+        <EmptyState
+          className="ui-empty--start app-dashboard-sched__empty-state"
+          title={TODAY_EMPTY_TITLE}
+          description={TODAY_EMPTY_DESCRIPTION}
+        />
+      );
     }
     return (
       <ul className="app-appt-list" aria-label="Today’s appointments from the clinic copy">
@@ -273,8 +287,8 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
     }
     if (loading) {
       return (
-        <p className="app-next-patient__hint" role="status">
-          Loading…
+        <p className="app-next-patient__hint" role="status" aria-busy="true">
+          {TODAY_NEXT_LOADING}
         </p>
       );
     }
@@ -282,7 +296,29 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
       return <p className="app-next-patient__hint">{error}</p>;
     }
     if (sorted.length === 0) {
-      return <p className="app-next-patient__hint">No appointments found for today.</p>;
+      return (
+        <>
+          <p className="app-next-patient__hint">{TODAY_EMPTY_TITLE}</p>
+          <div className="app-dashboard-cta-row">
+            <Button
+              type="button"
+              variant="primary"
+              className="ui-focusable app-dashboard-cta-row__primary"
+              onClick={() => onOpenModule("schedule")}
+            >
+              {TODAY_OPEN_SCHEDULE}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              className="ui-focusable app-dashboard-cta-row__secondary"
+              onClick={() => onOpenModule("patients")}
+            >
+              {TODAY_SEARCH_PATIENT}
+            </Button>
+          </div>
+        </>
+      );
     }
     if (!nextUpcoming) {
       return <p className="app-next-patient__hint">No upcoming appointments on the schedule for today.</p>;
@@ -313,10 +349,9 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
             </Badge>
           ) : null}
         </div>
-        <Button type="button" variant="primary" className="ui-focusable app-next-patient__btn" onClick={() => onOpenModule("patients")}>
-          Open Patients
+        <Button type="button" variant="secondary" className="ui-focusable app-next-patient__btn" onClick={() => onOpenModule("patients")}>
+          {TODAY_SEARCH_PATIENT}
         </Button>
-        <p className="app-next-patient__hint">Use Find a patient in the top bar when the clinic service is connected.</p>
       </>
     );
   })();
@@ -341,9 +376,22 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
             <CardBody>
               <p className="app-dashboard-sched__privacy">{TODAY_PRIVACY_LEDE}</p>
               {primaryBody}
-              <div className="app-appt-list__footer">
-                <Button type="button" variant="secondary" className="ui-focusable" onClick={() => onOpenModule("schedule")}>
-                  Open schedule
+              <div className="app-appt-list__footer app-dashboard-cta-row">
+                <Button
+                  type="button"
+                  variant="primary"
+                  className="ui-focusable app-dashboard-cta-row__primary"
+                  onClick={() => onOpenModule("schedule")}
+                >
+                  {TODAY_OPEN_SCHEDULE}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="ui-focusable app-dashboard-cta-row__secondary"
+                  onClick={() => onOpenModule("patients")}
+                >
+                  {TODAY_SEARCH_PATIENT}
                 </Button>
               </div>
             </CardBody>
@@ -363,22 +411,15 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
               <p className="ui-card__title app-card-title-lg">Quick actions</p>
             </CardHeader>
             <CardBody>
+              <p className="app-quick-actions__lede">{TODAY_QUICK_ACTIONS_LEDE}</p>
               <div className="app-quick-actions">
                 <Button
                   type="button"
-                  variant="secondary"
-                  className="ui-focusable app-quick-actions__btn"
-                  onClick={() => onOpenModule("patients")}
-                >
-                  Find patient
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
+                  variant="primary"
                   className="ui-focusable app-quick-actions__btn"
                   onClick={() => onOpenModule("schedule")}
                 >
-                  Open schedule
+                  {TODAY_OPEN_SCHEDULE}
                 </Button>
                 <Button
                   type="button"
@@ -386,11 +427,11 @@ export function DashboardHome({ onOpenModule, bridgeBaseUrl, bridgePhase, fetchI
                   className="ui-focusable app-quick-actions__btn"
                   onClick={() => onOpenModule("patients")}
                 >
-                  Open patient
+                  {TODAY_SEARCH_PATIENT}
                 </Button>
                 <Button
                   type="button"
-                  variant="secondary"
+                  variant="ghost"
                   className="ui-focusable app-quick-actions__btn"
                   disabled
                   title={TAB_UNAVAILABLE_TITLE}

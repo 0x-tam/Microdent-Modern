@@ -1,6 +1,6 @@
 # Scripts index
 
-Shell helpers for local development and sandbox operations. Full Windows vs macOS classification: [docs/phase-3-windows-readiness-audit.md](../docs/phase-3-windows-readiness-audit.md).
+Shell helpers for local development and sandbox operations. Full Windows vs macOS classification: [docs/phase-3-windows-readiness-audit.md](../docs/phase-3-windows-readiness-audit.md). **Operator QA index (read-only, mirror, sandbox, restore, Windows):** [docs/phase-5-operator-qa-runbook.md](../docs/phase-5-operator-qa-runbook.md).
 
 ## macOS dev-only (`lsof`)
 
@@ -53,4 +53,6 @@ Operator flow: [docs/phase-4-windows-operator-quickstart.md](../docs/phase-4-win
 | Script | Notes |
 | --- | --- |
 | `qa-sandbox-write-smoke.sh` | PHI-safe write smoke; needs `curl`, `jq`, `sqlite3` |
-| `qa-sandbox-run.sh` | `pnpm qa:sandbox` — full orchestrator (implemented); bridge + legacy CLIs use **compiled `node dist/`**, not tsx (avoids IPC `EPERM` in restricted sandboxes); use manual steps on Windows until Node port exists |
+| `qa-sandbox-run.sh` | `pnpm qa:sandbox` — full orchestrator (implemented); bridge + legacy CLIs use **compiled `node dist/cli/*.js`**, not tsx (avoids IPC `EPERM` in restricted sandboxes); Windows manual steps: [phase-5-operator-qa-runbook.md](../docs/phase-5-operator-qa-runbook.md) §5 |
+
+**Sandbox QA env and pass criteria:** [docs/phase-5-operator-qa-runbook.md](../docs/phase-5-operator-qa-runbook.md) §3. Deep orchestrator notes: [docs/phase-3-sandbox-qa-runner.md](../docs/phase-3-sandbox-qa-runner.md).

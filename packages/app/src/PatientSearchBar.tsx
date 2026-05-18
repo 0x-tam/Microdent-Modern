@@ -2,7 +2,16 @@ import { BridgeClientError, createBridgeClient, isInvalidBodySchemaMismatch } fr
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Button } from "@microdent/ui";
 import type { BridgeHealthPhase } from "./bridge-health.js";
-import { PATIENT_PAGE_SEARCH_PRIVACY } from "./read-only-ui-copy.js";
+import {
+  PATIENT_PAGE_SEARCH_PRIVACY,
+  PATIENT_SEARCH_DROPDOWN_NO_MATCH,
+  PATIENT_SEARCH_HINT_CONNECTED,
+  PATIENT_SEARCH_HINT_OFFLINE,
+  PATIENT_SEARCH_IDLE,
+  PATIENT_SEARCH_NO_MATCH,
+  PATIENT_SEARCH_SEARCHING,
+  PATIENT_SEARCH_TOO_SHORT,
+} from "./read-only-ui-copy.js";
 
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -279,19 +288,19 @@ export function PatientSearchBar({
       return "Connect the clinic service to search patients.";
     }
     if (trimmed.length === 0) {
-      return "Type a name or chart number (at least 2 characters).";
+      return PATIENT_SEARCH_IDLE;
     }
     if (trimmed.length < 2) {
-      return "Enter at least 2 letters or numbers.";
+      return PATIENT_SEARCH_TOO_SHORT;
     }
     if (searching) {
-      return "Searching…";
+      return PATIENT_SEARCH_SEARCHING;
     }
     if (searchError) {
       return searchError;
     }
     if (lastFinishedQuery === trimmed && results.length === 0) {
-      return "No patients matched. Try a different spelling or chart number.";
+      return PATIENT_SEARCH_NO_MATCH;
     }
     return null;
   }, [base, bridgePhase, canSearch, trimmed, searching, searchError, lastFinishedQuery, results.length]);
@@ -361,8 +370,8 @@ export function PatientSearchBar({
         {canSearch
           ? instanceId === "page"
             ? PATIENT_PAGE_SEARCH_PRIVACY
-            : "Uses your copied clinic data. Names and safe hints only."
-          : "Search is off until the clinic service is connected."}
+            : PATIENT_SEARCH_HINT_CONNECTED
+          : PATIENT_SEARCH_HINT_OFFLINE}
       </p>
       {statusLine ? (
         <p id={domIds.status} className="app-patient-search__status" role="status" aria-live="polite">
@@ -390,7 +399,7 @@ export function PatientSearchBar({
               ) : null}
             </>
           ) : results.length === 0 ? (
-            <p className="app-patient-search__dropdown-muted">No matches.</p>
+            <p className="app-patient-search__dropdown-muted">{PATIENT_SEARCH_DROPDOWN_NO_MATCH}</p>
           ) : (
             <ul className="app-patient-search__hits">
               {results.map((hit, index) => {

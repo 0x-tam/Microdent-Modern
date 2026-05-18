@@ -8,8 +8,17 @@ import {
   appointmentStatusWriteUnavailableMessage,
   formatWriteOperationFeedbackLines,
 } from "./appointment-status-write.js";
+import {
+  APPOINTMENT_STATUS_APPLY_LABEL,
+  APPOINTMENT_STATUS_PREVIEW_LABEL,
+} from "./read-only-ui-copy.js";
 import { isSandboxWritePilotEnabled, isSandboxWriteReady } from "./sandbox-write-pilot.js";
-import { SandboxWriteBanner } from "./safe-write-plan-display.js";
+import {
+  SafeWritePlanResult,
+  SandboxWriteBanner,
+  summarizeWritePlan,
+  type WritePlanResultSummary,
+} from "./safe-write-plan-display.js";
 import { buildWriteOperationFeedback } from "./write-operation-feedback.js";
 
 export type AppointmentStatusWriteActionProps = {
@@ -19,12 +28,15 @@ export type AppointmentStatusWriteActionProps = {
   /** Host enables pilot write UI (production builds stay read-only unless set). */
   writePilotEnabled: boolean;
   writeCapability: BridgeDevStatusResponse | null;
+  /** When true, rendered inside {@link AppointmentWriteActionsPanel} (no outer chrome or banner). */
+  embedded?: boolean;
   onCommitted?: () => void;
 };
 
 type WriteUiState =
   | { kind: "idle" }
-  | { kind: "loading" }
+  | { kind: "loading"; action: "preview" | "commit" }
+  | { kind: "preview"; summary: WritePlanResultSummary }
   | { kind: "result"; committed: boolean; mode: string; feedbackLines: string[] }
   | { kind: "error"; message: string };
 
@@ -34,21 +46,44 @@ export function AppointmentStatusWriteAction({
   fetchImpl,
   writePilotEnabled,
   writeCapability,
+  embedded = false,
   onCommitted,
 }: AppointmentStatusWriteActionProps) {
   const [nextStatus, setNextStatus] = useState(() => appointment.status);
   const [state, setState] = useState<WriteUiState>({ kind: "idle" });
 
-  const runCommit = useCallback(async () => {
+  const runPreview = useCallback(async () => {
     if (nextStatus === appointment.status) {
-      setState({ kind: "error", message: "Choose a different status before applying." });
+      setState({ kind: "error", message: "Choose a different status before preview." });
+      return;
+    }
+    setState({ kind: "loading", action: "preview" });
+    const client = createBridgeClient({ baseUrl: bridgeBaseUrl, fetch: fetchImpl });
+    try {
+      const plan = await client.dryRunAppointmentStatusUpdate(appointment.id, { status: nextStatus });
+      setState({ kind: "preview", summary: summarizeWritePlan(plan) });
+    } catch (err) {
+      if (err instanceof BridgeClientError) {
+        setState({
+          kind: "error",
+          message: appointmentStatusWriteUnavailableMessage(err.status),
+        });
+        return;
+      }
+      setState({ kind: "error", message: appointmentStatusWriteUnavailableMessage() });
+    }
+  }, [appointment.id, appointment.status, bridgeBaseUrl, fetchImpl, nextStatus]);
+
+  const runCommit = useCallback(async () => {
+    if (state.kind !== "preview") {
+      setState({ kind: "error", message: "Preview the status change before applying." });
       return;
     }
     if (!window.confirm(APPOINTMENT_STATUS_WRITE_CONFIRM)) {
       return;
     }
 
-    setState({ kind: "loading" });
+    setState({ kind: "loading", action: "commit" });
     const client = createBridgeClient({ baseUrl: bridgeBaseUrl, fetch: fetchImpl });
     try {
       const plan = await client.applyAppointmentStatusInSandbox(appointment.id, { status: nextStatus });
@@ -81,20 +116,25 @@ export function AppointmentStatusWriteAction({
       }
       setState({ kind: "error", message: appointmentStatusWriteUnavailableMessage() });
     }
-  }, [appointment.id, appointment.status, bridgeBaseUrl, fetchImpl, nextStatus, onCommitted]);
+  }, [appointment.id, bridgeBaseUrl, fetchImpl, nextStatus, onCommitted, state.kind]);
 
-  if (!isSandboxWritePilotEnabled(writePilotEnabled)) {
-    return null;
-  }
-  if (!writeCapability || !isSandboxWriteReady(writeCapability)) {
-    return null;
+  if (!embedded) {
+    if (!isSandboxWritePilotEnabled(writePilotEnabled)) {
+      return null;
+    }
+    if (!writeCapability || !isSandboxWriteReady(writeCapability)) {
+      return null;
+    }
   }
 
   const loading = state.kind === "loading";
+  const rootClass = embedded
+    ? "app-appt-status-write app-appt-status-write--embedded"
+    : "app-sandbox-write app-appt-status-write";
 
   return (
-    <div className="app-sandbox-write app-appt-status-write" data-testid="appt-status-write-pilot">
-      <SandboxWriteBanner className="app-appt-status-write__banner" />
+    <div className={rootClass} data-testid="appt-status-write-pilot">
+      {!embedded ? <SandboxWriteBanner className="app-appt-status-write__banner" /> : null}
       <div className="app-appt-status-write__controls">
         <label className="app-appt-status-write__label">
           <span className="app-appt-status-write__label-text">New status</span>
@@ -114,14 +154,30 @@ export function AppointmentStatusWriteAction({
         </label>
         <Button
           type="button"
-          variant="danger"
+          variant="secondary"
           className="ui-focusable app-appt-status-write__btn"
           disabled={loading}
+          onClick={() => void runPreview()}
+        >
+          {state.kind === "loading" && state.action === "preview"
+            ? "Previewing…"
+            : APPOINTMENT_STATUS_PREVIEW_LABEL}
+        </Button>
+        <Button
+          type="button"
+          variant="danger"
+          className="ui-focusable app-appt-status-write__btn"
+          disabled={loading || state.kind !== "preview"}
           onClick={() => void runCommit()}
         >
-          {loading ? "Applying…" : "Apply status change"}
+          {state.kind === "loading" && state.action === "commit"
+            ? "Applying…"
+            : APPOINTMENT_STATUS_APPLY_LABEL}
         </Button>
       </div>
+      {state.kind === "preview" ? (
+        <SafeWritePlanResult summary={state.summary} testId="appt-status-write-plan" />
+      ) : null}
       {state.kind === "result" ? (
         <div className="app-appt-status-write__result" role="status" data-committed={String(state.committed)}>
           <p className="app-appt-status-write__result-summary">

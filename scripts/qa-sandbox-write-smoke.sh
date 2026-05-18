@@ -143,17 +143,18 @@ latest_backup_basename() {
   [[ -n "${path}" ]] && basename "${path}" || echo "none"
 }
 
-# Uses compiled bridge CLI (node dist/cli/*.js) via pnpm legacy:* wrappers — not tsx (IPC blocked in some sandboxes).
+# Call compiled CLIs directly — qa-sandbox-run.sh already built dist. Avoid pnpm legacy:* wrappers
+# here: they rebuild bridge mid-smoke and can kill the live node dist/server.js (curl exit 7).
 run_legacy_backup() {
   local workflow="$1"
   export DATA_ROOT BACKUP_DIR WORKFLOW="${workflow}"
-  (cd "${QA_REPO}" && pnpm legacy:backup) >/dev/null
+  (cd "${QA_REPO}/services/bridge" && node dist/cli/legacy-backup.js) >/dev/null
 }
 
 run_legacy_restore() {
   local manifest="$1"
   export BACKUP_MANIFEST="${manifest}" DATA_ROOT
-  (cd "${QA_REPO}" && pnpm legacy:restore) >/dev/null
+  (cd "${QA_REPO}/services/bridge" && node dist/cli/legacy-restore.js) >/dev/null
 }
 
 APPT_ID="$(sqlite3 "${SQLITE_PATH}" "SELECT appointment_id FROM appointments LIMIT 1;")"

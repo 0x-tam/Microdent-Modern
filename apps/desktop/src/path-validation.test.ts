@@ -3,6 +3,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, afterEach } from "vitest";
 import {
+  getOperatorPathWarnings,
+  isOperatorAbsolutePath,
+  normalizeOperatorPath,
   validateBackupDir,
   validateDataRootDir,
   validateSqlitePathFile,
@@ -25,6 +28,40 @@ describe("path-validation", () => {
       expect(empty.code).toBe("empty");
     }
     expect(validateDataRootDir("relative/data").ok).toBe(false);
+  });
+
+  it("accepts Windows drive-letter paths as absolute", () => {
+    expect(isOperatorAbsolutePath("C:\\Microdent\\Write-Sandbox\\DATA")).toBe(true);
+    expect(isOperatorAbsolutePath("D:/Microdent/mirror.sqlite")).toBe(true);
+    expect(validateDataRootDir("C:\\no-such-root-on-ci").ok).toBe(false);
+    const missing = validateDataRootDir("C:\\no-such-root-on-ci");
+    if (!missing.ok) {
+      expect(missing.code).toBe("missing");
+    }
+  });
+
+  it("normalizes mixed Windows separators", () => {
+    expect(normalizeOperatorPath("C:/Microdent\\Write-Sandbox/DATA")).toBe(
+      "C:/Microdent/Write-Sandbox/DATA",
+    );
+  });
+
+  it("warns on UNC paths without blocking validation shape", () => {
+    const unc = "\\\\fileserver\\clinic\\Write-Sandbox\\DATA";
+    expect(isOperatorAbsolutePath(unc)).toBe(true);
+    const warnings = getOperatorPathWarnings(unc);
+    expect(warnings.length).toBeGreaterThan(0);
+    expect(warnings[0]).toMatch(/UNC/i);
+  });
+
+  it("allows paths containing spaces when the target exists", () => {
+    const dir = mkdtempSync(join(tmpdir(), "microdent data root "));
+    cleanup.push(dir);
+    const result = validateDataRootDir(dir);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.normalizedPath).toContain(" ");
+    }
   });
 
   it("validates DATA_ROOT directory", () => {

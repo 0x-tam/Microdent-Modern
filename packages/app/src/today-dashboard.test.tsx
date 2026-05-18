@@ -176,7 +176,7 @@ describe("DashboardHome (Today schedule)", () => {
       await Promise.resolve();
       await Promise.resolve();
     });
-    expect(container.textContent).toMatch(/No appointments found for today/i);
+    expect(container.textContent).toMatch(/No appointments today/i);
   });
 
   it("picks the next upcoming appointment after now for the Next card", async () => {
@@ -267,7 +267,7 @@ describe("DashboardHome (Today schedule)", () => {
       await Promise.resolve();
       await Promise.resolve();
     });
-    expect(container.textContent).toMatch(/could not be loaded/i);
+    expect(container.textContent).toMatch(/Could not load the schedule/i);
     expect(container.textContent).toMatch(/Retry/i);
   });
 

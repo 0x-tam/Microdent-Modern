@@ -4,6 +4,9 @@ import {
   SETTINGS_BACKUP_NOT_CONFIGURED,
   SETTINGS_BACKUP_NOT_REQUIRED,
   SETTINGS_BACKUP_UNKNOWN,
+  SETTINGS_DATA_ROOT_CONFIGURED,
+  SETTINGS_DATA_ROOT_MISSING,
+  SETTINGS_DATA_ROOT_UNKNOWN,
   SETTINGS_SANDBOX_INVALID,
   SETTINGS_SANDBOX_UNKNOWN,
   SETTINGS_SANDBOX_VALID,
@@ -15,6 +18,18 @@ export type SettingsLabeledStatus = {
   label: string;
   tone: SettingsStatusTone;
 };
+
+export function resolveDataRootConfiguredStatus(
+  writeCapability: BridgeDevStatusResponse | null,
+): SettingsLabeledStatus {
+  if (!writeCapability) {
+    return { label: SETTINGS_DATA_ROOT_UNKNOWN, tone: "neutral" };
+  }
+  if (writeCapability.dataRootConfigured) {
+    return { label: SETTINGS_DATA_ROOT_CONFIGURED, tone: "ok" };
+  }
+  return { label: SETTINGS_DATA_ROOT_MISSING, tone: "warn" };
+}
 
 export function resolveSandboxValidityStatus(
   writeCapability: BridgeDevStatusResponse | null,
@@ -30,7 +45,6 @@ export function resolveSandboxValidityStatus(
 
 /**
  * Backup readiness from write-capability metadata only (no paths).
- * When writes are enabled, `writesPermitted` implies BACKUP_DIR is configured on the bridge.
  */
 export function resolveBackupConfiguredStatus(
   writeCapability: BridgeDevStatusResponse | null,
@@ -41,7 +55,7 @@ export function resolveBackupConfiguredStatus(
   if (writeCapability.writeMode !== "enabled") {
     return { label: SETTINGS_BACKUP_NOT_REQUIRED, tone: "neutral" };
   }
-  if (writeCapability.writesPermitted) {
+  if (writeCapability.backupDirConfigured) {
     return { label: SETTINGS_BACKUP_CONFIGURED, tone: "ok" };
   }
   return { label: SETTINGS_BACKUP_NOT_CONFIGURED, tone: "warn" };

@@ -1,6 +1,6 @@
 import { existsSync, realpathSync } from "node:fs";
 import { cp, mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
-import path from "node:path";
+import path, { basename } from "node:path";
 import {
   assertNotForbiddenLegacyCopyPath,
   assertNotForbiddenLegacyPath,
@@ -158,8 +158,8 @@ export async function createWriteSandbox(
 export function printCreateWriteSandboxReport(result: CreateWriteSandboxResult): void {
   console.log("create-sandbox: ok");
   console.log(`sourceEntries: ${result.counts.files} files, ${result.counts.directories} directories`);
-  console.log(`sandboxDataRoot: ${result.sandboxDataRootRealpath}`);
-  console.log(`backupsDir: ${result.backupsDir}`);
+  console.log(`sandboxDataRoot: ${basename(result.sandboxDataRootRealpath)}`);
+  console.log(`backupsDir: ${basename(result.backupsDir)}`);
   console.log(`marker: ${WRITE_SANDBOX_MARKER}`);
   console.log(`createdAt: ${result.createdAt}`);
 }

@@ -1,11 +1,32 @@
 import { describe, expect, it } from "vitest";
 import {
+  resolveBridgeOfflineBanner,
+  resolveEnabledNonSandboxBanner,
   resolveMirrorConnectionBanner,
   resolveSandboxWriteWarningBanner,
+  resolveSettingsDangerBanners,
   resolveShellStatusBanners,
   resolveWriteModeBanner,
   resolveWriteModeChip,
 } from "./shell-status-banners.js";
+
+const capOff = {
+  writeMode: "disabled" as const,
+  writesPermitted: false,
+  writableSandbox: false,
+  dataRootConfigured: false,
+  backupDirConfigured: false,
+  sqlitePathConfigured: false,
+};
+
+const capSandbox = {
+  writeMode: "enabled" as const,
+  writesPermitted: true,
+  writableSandbox: true,
+  dataRootConfigured: true,
+  backupDirConfigured: true,
+  sqlitePathConfigured: true,
+};
 
 const mirrorActive = {
   sqliteConfigured: true,
@@ -72,67 +93,59 @@ describe("resolveMirrorConnectionBanner", () => {
 
 describe("resolveWriteModeBanner", () => {
   it("returns null when not connected", () => {
-    expect(
-      resolveWriteModeBanner("offline", {
-        writeMode: "disabled",
-        writesPermitted: false,
-        writableSandbox: false,
-      }),
-    ).toBeNull();
+    expect(resolveWriteModeBanner("offline", capOff)).toBeNull();
   });
 
   it("maps disabled, dry-run, and enabled", () => {
+    expect(resolveWriteModeBanner("connected", capOff)?.key).toBe("write-mode-disabled");
     expect(
-      resolveWriteModeBanner("connected", {
-        writeMode: "disabled",
-        writesPermitted: false,
-        writableSandbox: false,
-      })?.key,
-    ).toBe("write-mode-disabled");
-    expect(
-      resolveWriteModeBanner("connected", {
-        writeMode: "dry-run",
-        writesPermitted: false,
-        writableSandbox: true,
-      })?.tone,
+      resolveWriteModeBanner("connected", { ...capOff, writeMode: "dry-run", writableSandbox: true })?.tone,
     ).toBe("warning");
-    expect(
-      resolveWriteModeBanner("connected", {
-        writeMode: "enabled",
-        writesPermitted: true,
-        writableSandbox: true,
-      })?.tone,
-    ).toBe("danger");
+    expect(resolveWriteModeBanner("connected", capSandbox)?.tone).toBe("danger");
   });
 });
 
 describe("resolveSandboxWriteWarningBanner", () => {
   it("shows only for enabled writable sandbox", () => {
+    expect(resolveSandboxWriteWarningBanner("connected", capSandbox)?.key).toBe("sandbox-write-warning");
     expect(
-      resolveSandboxWriteWarningBanner("connected", {
-        writeMode: "enabled",
-        writesPermitted: true,
-        writableSandbox: true,
-      })?.key,
-    ).toBe("sandbox-write-warning");
-    expect(
-      resolveSandboxWriteWarningBanner("connected", {
-        writeMode: "dry-run",
-        writesPermitted: false,
-        writableSandbox: true,
-      }),
+      resolveSandboxWriteWarningBanner("connected", { ...capOff, writeMode: "dry-run", writableSandbox: true }),
     ).toBeNull();
   });
 });
 
 describe("resolveShellStatusBanners", () => {
   it("orders mirror, write mode, then sandbox warning", () => {
-    const keys = resolveShellStatusBanners(
-      "connected",
-      mirrorActive,
-      { writeMode: "enabled", writesPermitted: true, writableSandbox: true },
-    ).map((b) => b.key);
+    const keys = resolveShellStatusBanners("connected", mirrorActive, capSandbox).map((b) => b.key);
     expect(keys).toEqual(["mirror-active", "write-mode-enabled", "sandbox-write-warning"]);
+  });
+});
+
+describe("resolveEnabledNonSandboxBanner", () => {
+  it("shows when writes are enabled without a valid sandbox", () => {
+    expect(
+      resolveEnabledNonSandboxBanner("connected", {
+        writeMode: "enabled",
+        writesPermitted: false,
+        writableSandbox: false,
+        dataRootConfigured: true,
+        backupDirConfigured: false,
+        sqlitePathConfigured: false,
+      })?.key,
+    ).toBe("enabled-non-sandbox");
+  });
+});
+
+describe("resolveSettingsDangerBanners", () => {
+  it("includes bridge offline when disconnected", () => {
+    const keys = resolveSettingsDangerBanners("offline", null, null).map((b) => b.key);
+    expect(keys).toContain("bridge-offline");
+  });
+});
+
+describe("resolveBridgeOfflineBanner", () => {
+  it("returns null when connected", () => {
+    expect(resolveBridgeOfflineBanner("connected")).toBeNull();
   });
 });
 
@@ -142,14 +155,8 @@ describe("resolveWriteModeChip", () => {
   });
 
   it("labels each write mode", () => {
-    expect(resolveWriteModeChip({ writeMode: "disabled", writesPermitted: false, writableSandbox: false })?.label).toBe(
-      "Writes off",
-    );
-    expect(resolveWriteModeChip({ writeMode: "dry-run", writesPermitted: false, writableSandbox: true })?.variant).toBe(
-      "warning",
-    );
-    expect(resolveWriteModeChip({ writeMode: "enabled", writesPermitted: true, writableSandbox: true })?.variant).toBe(
-      "danger",
-    );
+    expect(resolveWriteModeChip(capOff)?.label).toBe("Writes off");
+    expect(resolveWriteModeChip({ ...capOff, writeMode: "dry-run", writableSandbox: true })?.variant).toBe("warning");
+    expect(resolveWriteModeChip(capSandbox)?.variant).toBe("danger");
   });
 });

@@ -11,6 +11,9 @@ const readyCapability = {
   writeMode: "enabled" as const,
   writesPermitted: true,
   writableSandbox: true,
+  dataRootConfigured: true,
+  backupDirConfigured: true,
+  sqlitePathConfigured: true,
 };
 
 const dryRunPlan = {

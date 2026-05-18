@@ -71,15 +71,40 @@
       Point the app at your disposable sandbox copy. Use absolute paths only. Write mode stays disabled until you
       change config manually.
     </p>
+    <p>
+      <strong>Windows:</strong> use drive-letter paths such as <code>C:\Microdent\Write-Sandbox\DATA</code>. If a path
+      contains spaces, quote it in manual PowerShell or CMD commands (for example
+      <code>"C:\Microdent\My Sandbox\DATA"</code>).
+    </p>
     <form id="form">
       <label for="dataRoot">DATA_ROOT (folder)</label>
-      <input id="dataRoot" name="dataRoot" type="text" autocomplete="off" required />
+      <input
+        id="dataRoot"
+        name="dataRoot"
+        type="text"
+        autocomplete="off"
+        placeholder="C:\Microdent\Write-Sandbox\DATA"
+        required
+      />
 
       <label for="sqlitePath">SQLITE_PATH (file)</label>
-      <input id="sqlitePath" name="sqlitePath" type="text" autocomplete="off" required />
+      <input
+        id="sqlitePath"
+        name="sqlitePath"
+        type="text"
+        autocomplete="off"
+        placeholder="C:\Microdent\mirror.sqlite"
+        required
+      />
 
       <label for="backupDir">BACKUP_DIR (folder, optional)</label>
-      <input id="backupDir" name="backupDir" type="text" autocomplete="off" />
+      <input
+        id="backupDir"
+        name="backupDir"
+        type="text"
+        autocomplete="off"
+        placeholder="C:\Microdent\backups"
+      />
 
       <label>Write mode</label>
       <p class="readonly" id="writeModeDisplay" aria-readonly="true">disabled (not changeable here)</p>

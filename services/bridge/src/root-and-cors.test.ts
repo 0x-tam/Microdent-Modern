@@ -167,7 +167,12 @@ describe("GET /v1/meta/write-capability", () => {
       expect(res.status).toBe(200);
       const json = await res.json();
       expect(BridgeDevStatusResponseSchema.safeParse(json).success).toBe(true);
-      expect(json).toMatchObject({ writeMode: "enabled", writesPermitted: true });
+      expect(json).toMatchObject({
+        writeMode: "enabled",
+        writesPermitted: true,
+        dataRootConfigured: true,
+        backupDirConfigured: true,
+      });
     } finally {
       server.close();
       await once(server, "close");
@@ -185,7 +190,14 @@ describe("GET /debug/status (non-production only)", () => {
       expect(res.status).toBe(200);
       const json = await res.json();
       expect(BridgeDevStatusResponseSchema.safeParse(json).success).toBe(true);
-      expect(json).toEqual({ writeMode: "disabled", writesPermitted: false, writableSandbox: false });
+      expect(json).toEqual({
+        writeMode: "disabled",
+        writesPermitted: false,
+        writableSandbox: false,
+        dataRootConfigured: false,
+        backupDirConfigured: false,
+        sqlitePathConfigured: false,
+      });
     });
   });
 
@@ -218,6 +230,9 @@ describe("GET /debug/status (non-production only)", () => {
         writeMode: "enabled",
         writesPermitted: false,
         writableSandbox: false,
+        dataRootConfigured: true,
+        backupDirConfigured: false,
+        sqlitePathConfigured: false,
       });
     } finally {
       server.close();

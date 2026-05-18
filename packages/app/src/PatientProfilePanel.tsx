@@ -1132,16 +1132,28 @@ export function PatientProfilePanel({
               >
                 <p className="app-patient-profile__summary-lede">{PATIENT_TAB_SUMMARY_LEDE}</p>
                 <ProfileSummaryCard profile={state.profile} activeLabel={activeLabel} doctorLabels={doctorLabels} />
-                {base && patientId ? (
-                  <PatientDemographicsWritePanel
-                    patientId={patientId}
-                    profile={state.profile}
-                    bridgeBaseUrl={base}
-                    fetchImpl={fetchImpl}
-                    writePilotEnabled={sandboxWritePilot}
-                    writeCapability={writeCapability}
-                    onCommitted={() => setRetryNonce((n) => n + 1)}
-                  />
+                {base && patientId && sandboxWritePilot ? (
+                  <section
+                    className="app-patient-profile__sandbox-demographics"
+                    aria-labelledby="patient-sandbox-demographics-heading"
+                    data-testid="patient-sandbox-demographics-section"
+                  >
+                    <h3
+                      id="patient-sandbox-demographics-heading"
+                      className="app-patient-profile__sandbox-demographics-heading"
+                    >
+                      Sandbox demographics (pilot)
+                    </h3>
+                    <PatientDemographicsWritePanel
+                      patientId={patientId}
+                      profile={state.profile}
+                      bridgeBaseUrl={base}
+                      fetchImpl={fetchImpl}
+                      writePilotEnabled={sandboxWritePilot}
+                      writeCapability={writeCapability}
+                      onCommitted={() => setRetryNonce((n) => n + 1)}
+                    />
+                  </section>
                 ) : null}
               </section>
             ) : null}

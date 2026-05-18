@@ -15,6 +15,12 @@ export const BridgeDevStatusResponseSchema = z.object({
    * Used by dev-only UI to offer sandbox apply (still plan-only until commit ships).
    */
   writableSandbox: z.boolean(),
+  /** True when the bridge has an absolute `DATA_ROOT` configured (no path returned). */
+  dataRootConfigured: z.boolean(),
+  /** True when `BACKUP_DIR` is configured on the bridge (no path returned). */
+  backupDirConfigured: z.boolean(),
+  /** True when `SQLITE_PATH` is configured for mirror import (no path returned). */
+  sqlitePathConfigured: z.boolean(),
 });
 
 export type BridgeDevStatusResponse = z.infer<typeof BridgeDevStatusResponseSchema>;

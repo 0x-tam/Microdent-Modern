@@ -6,6 +6,10 @@ import {
   APPOINTMENT_TIME_MOVE_WRITE_CONFIRM,
   appointmentTimeMoveWriteUnavailableMessage,
 } from "./appointment-time-move-write.js";
+import {
+  APPOINTMENT_TIME_MOVE_APPLY_LABEL,
+  APPOINTMENT_TIME_MOVE_PREVIEW_LABEL,
+} from "./read-only-ui-copy.js";
 import { isSandboxWritePilotEnabled, isSandboxWriteReady } from "./sandbox-write-pilot.js";
 import {
   SafeWritePlanResult,
@@ -24,6 +28,7 @@ export type AppointmentTimeMoveWriteActionProps = {
   fetchImpl?: typeof fetch;
   writePilotEnabled: boolean;
   writeCapability: BridgeDevStatusResponse | null;
+  embedded?: boolean;
   onCommitted?: () => void;
 };
 
@@ -55,6 +60,7 @@ export function AppointmentTimeMoveWriteAction({
   fetchImpl,
   writePilotEnabled,
   writeCapability,
+  embedded = false,
   onCommitted,
 }: AppointmentTimeMoveWriteActionProps) {
   const [date, setDate] = useState(appointment.date);
@@ -136,19 +142,22 @@ export function AppointmentTimeMoveWriteAction({
     }
   }, [appointment.id, bridgeBaseUrl, buildBody, fetchImpl, onCommitted, state.kind]);
 
-  if (!isSandboxWritePilotEnabled(writePilotEnabled)) {
-    return null;
-  }
-  if (!writeCapability || !isSandboxWriteReady(writeCapability)) {
-    return null;
+  if (!embedded) {
+    if (!isSandboxWritePilotEnabled(writePilotEnabled)) {
+      return null;
+    }
+    if (!writeCapability || !isSandboxWriteReady(writeCapability)) {
+      return null;
+    }
   }
 
   const loading = state.kind === "loading";
+  const rootClass = embedded
+    ? "app-appt-time-move-write app-appt-time-move-write--embedded"
+    : "app-sandbox-write app-appt-time-move-write";
 
-  return (
-    <details className="app-sandbox-write app-appt-time-move-write" data-testid="appt-time-move-write-pilot">
-      <summary className="app-sandbox-write__summary">Sandbox: move time</summary>
-      <SandboxWriteBanner />
+  const fields = (
+    <>
       <div className="app-sandbox-write__fields">
         <label className="app-sandbox-write__label">
           <span>Date</span>
@@ -205,7 +214,9 @@ export function AppointmentTimeMoveWriteAction({
           disabled={loading}
           onClick={() => void runPreview()}
         >
-          {state.kind === "loading" && state.action === "preview" ? "Previewing…" : "Preview move"}
+          {state.kind === "loading" && state.action === "preview"
+            ? "Previewing…"
+            : APPOINTMENT_TIME_MOVE_PREVIEW_LABEL}
         </Button>
         <Button
           type="button"
@@ -214,7 +225,9 @@ export function AppointmentTimeMoveWriteAction({
           disabled={loading || state.kind !== "preview"}
           onClick={() => void runCommit()}
         >
-          {state.kind === "loading" && state.action === "commit" ? "Applying…" : "Apply move"}
+          {state.kind === "loading" && state.action === "commit"
+            ? "Applying…"
+            : APPOINTMENT_TIME_MOVE_APPLY_LABEL}
         </Button>
       </div>
       {state.kind === "preview" ? (
@@ -239,6 +252,22 @@ export function AppointmentTimeMoveWriteAction({
           {state.message}
         </p>
       ) : null}
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <div className={rootClass} data-testid="appt-time-move-write-pilot">
+        {fields}
+      </div>
+    );
+  }
+
+  return (
+    <details className={rootClass} data-testid="appt-time-move-write-pilot">
+      <summary className="app-sandbox-write__summary">Sandbox: move time</summary>
+      <SandboxWriteBanner />
+      {fields}
     </details>
   );
 }

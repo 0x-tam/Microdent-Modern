@@ -33,9 +33,16 @@ export const FORBIDDEN_WRITE_RESULT_TOKENS = [
   "PAT_NAME",
   "TELEPHONE",
   "COMMENT",
+  "NOTE",
+  "DESCRIPT",
+  "DESC",
+  "AMOUNT",
+  "SAMOUNT",
   "rawRow",
   '"before"',
   '"after"',
+  "before",
+  "after",
 ] as const;
 
 export function containsForbiddenWriteResultToken(text: string): boolean {

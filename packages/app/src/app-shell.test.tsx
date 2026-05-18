@@ -113,6 +113,9 @@ describe("AppShell", () => {
       writeMode: "dry-run",
       writesPermitted: false,
       writableSandbox: true,
+      dataRootConfigured: true,
+      backupDirConfigured: false,
+      sqlitePathConfigured: false,
     });
     expect(banners.some((b) => b.key === "write-mode-dry-run")).toBe(true);
   });

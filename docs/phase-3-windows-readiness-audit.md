@@ -6,7 +6,7 @@
 
 This document classifies every operator-facing script so Windows deployers know what runs natively vs what needs Git Bash/WSL or manual Node steps.
 
-See also: [phase-4-windows-operator-quickstart.md](./phase-4-windows-operator-quickstart.md) (one-page operator flow), [apps/desktop/README.md](../apps/desktop/README.md) (Windows checklist), [scripts/README.md](../scripts/README.md) (script index).
+See also: [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md) (**operator QA index** — read-only, mirror, sandbox, restore, Windows manual), [phase-4-windows-operator-quickstart.md](./phase-4-windows-operator-quickstart.md) (one-page deploy flow), [apps/desktop/README.md](../apps/desktop/README.md) (Windows checklist), [scripts/README.md](../scripts/README.md) (script index).
 
 ---
 
@@ -14,10 +14,10 @@ See also: [phase-4-windows-operator-quickstart.md](./phase-4-windows-operator-qu
 
 | Layer | Windows posture |
 | --- | --- |
-| **Bridge / mirror / legacy CLIs** | **Cross-platform Node** (`tsx` or `node` after `pnpm build`) |
+| **Bridge / mirror / legacy CLIs** | **Cross-platform Node** — production/QA legacy scripts use **`node dist/cli/*.js`** after `pnpm build` (not `tsx`; see [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md)) |
 | **Root `pnpm legacy:*` / `mirror:import-safe`** | Bash wrappers — use **WSL/Git Bash** or invoke the underlying workspace script directly |
 | **`pnpm dev:*` port helpers** | **macOS dev-only** (`lsof`, `ps`) |
-| **Sandbox QA bash** | **Implemented** (`pnpm qa:sandbox`) — **macOS-oriented**; on Windows run equivalent steps manually or wait for a Node orchestrator (deferred) |
+| **Sandbox QA bash** | **Implemented** (`pnpm qa:sandbox`) — **macOS-oriented**; legacy steps use **`node dist/cli/*.js`** (not tsx); on Windows use [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md) §5 or wait for Node orchestrator (deferred) |
 | **Product UI batch** | Sandbox write pilot env, desktop first-run setup, Settings / mirror status — see table below |
 | **Desktop app** | Electron + `node dist/server.js`; config under `%AppData%\Microdent\config.json` on Windows |
 
@@ -37,7 +37,7 @@ See also: [phase-4-windows-operator-quickstart.md](./phase-4-windows-operator-qu
 | `legacy:restore` | `scripts/legacy-restore.sh` | **Bash wrapper → cross-platform Node** | `pnpm --filter @microdent/bridge run legacy-restore` |
 | `legacy:backup-verify` | `scripts/legacy-backup-verify.sh` | **Bash wrapper → cross-platform Node** | `pnpm --filter @microdent/bridge run legacy-backup-verify` |
 | `sandbox:validate` | Vitest in bridge | **Cross-platform Node** | No shell |
-| `qa:sandbox` | `scripts/qa-sandbox-run.sh` | **Implemented — macOS-oriented bash** | `curl`, `jq`, `sqlite3`, `realpath`, `bash` — on Windows use [phase-4-windows-operator-quickstart.md](./phase-4-windows-operator-quickstart.md) manual checklist until `qa-sandbox-run.mjs` exists |
+| `qa:sandbox` | `scripts/qa-sandbox-run.sh` | **Implemented — macOS-oriented bash** | `curl`, `jq`, `sqlite3`, `realpath`, `bash`; smoke calls `pnpm legacy:*` → **`node dist/cli/*.js`**. Windows: [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md) §5 until `qa-sandbox-run.mjs` exists |
 
 ---
 
@@ -122,7 +122,7 @@ No `lsof`/`rsync` rewrites in this batch.
 
 ## Windows operator quick start
 
-See **[phase-4-windows-operator-quickstart.md](./phase-4-windows-operator-quickstart.md)** for the full one-page flow (Node 22 → build → desktop config → mirror CLI → sandbox pilot env → `pnpm qa:sandbox` on macOS vs Windows manual QA).
+See **[phase-4-windows-operator-quickstart.md](./phase-4-windows-operator-quickstart.md)** for deploy (Node 22 → build → desktop config → mirror CLI → sandbox pilot env). For **full validation** (read-only tests, mirror QA, sandbox/restore, command table): **[phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md)**.
 
 ---
 

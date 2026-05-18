@@ -34,12 +34,15 @@ const readyCapability = {
   writeMode: "enabled" as const,
   writesPermitted: true,
   writableSandbox: true,
+  dataRootConfigured: true,
+  backupDirConfigured: true,
+  sqlitePathConfigured: true,
 };
 
-const committedPlan = {
+const dryRunPlan = {
   operationId: "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   workflow: "appointment.statusUpdate",
-  mode: "enabled" as const,
+  mode: "dry-run" as const,
   tablesAffected: ["SCHEDULE"],
   recordIds: ["501"],
   fieldsChanged: [
@@ -48,9 +51,11 @@ const committedPlan = {
   backupRequired: true,
   backupWouldCreate: true,
   warnings: [],
-  committed: true,
+  committed: false,
   createdAt: "2026-05-15T12:00:00.000Z",
 };
+
+const committedPlan = { ...dryRunPlan, committed: true, mode: "enabled" as const };
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -116,18 +121,30 @@ describe("AppointmentStatusWriteAction", () => {
 
   it("renders nothing when bridge is not write-ready", () => {
     renderPilot({
-      writeCapability: { writeMode: "disabled", writesPermitted: false, writableSandbox: false },
+      writeCapability: {
+        writeMode: "disabled",
+        writesPermitted: false,
+        writableSandbox: false,
+        dataRootConfigured: false,
+        backupDirConfigured: false,
+        sqlitePathConfigured: false,
+      },
     });
     expect(container.querySelector('[data-testid="appt-status-write-pilot"]')).toBeNull();
   });
 
-  it("shows sandbox write banner when pilot is active", () => {
+  it("shows sandbox write banner when pilot is active and not embedded", () => {
     renderPilot();
     expect(container.textContent).toContain("Sandbox write mode");
     expect(container.textContent).toContain("disposable data only");
   });
 
-  async function applyStatusChange(fetchImpl: typeof fetch) {
+  it("hides sandbox write banner when embedded", () => {
+    renderPilot({ embedded: true });
+    expect(container.textContent).not.toContain("Sandbox write mode");
+  });
+
+  async function previewAndApplyStatusChange(fetchImpl: typeof fetch) {
     const select = container.querySelector("select");
     expect(select).toBeTruthy();
     await act(async () => {
@@ -137,15 +154,22 @@ describe("AppointmentStatusWriteAction", () => {
       select.dispatchEvent(new Event("change", { bubbles: true }));
     });
 
-    const btn = [...container.querySelectorAll("button")].find((b) =>
+    const previewBtn = [...container.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("Preview status change"),
+    );
+    await act(async () => {
+      previewBtn?.click();
+    });
+
+    const applyBtn = [...container.querySelectorAll("button")].find((b) =>
       b.textContent?.includes("Apply status change"),
     );
     await act(async () => {
-      btn?.click();
+      applyBtn?.click();
     });
   }
 
-  it("commits after confirm and refreshes parent", async () => {
+  it("commits after preview and confirm and refreshes parent", async () => {
     const auditBody = {
       sqliteConfigured: true,
       sqliteUsable: true,
@@ -159,18 +183,25 @@ describe("AppointmentStatusWriteAction", () => {
         },
       ],
     };
-    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
+    const fetchImpl = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const u = String(input);
+      const intent = (init?.headers as Record<string, string> | undefined)?.["X-Write-Intent"];
       if (u.includes("/write-audit-recent")) {
         return Promise.resolve(jsonResponse(auditBody));
       }
-      return Promise.resolve(jsonResponse(committedPlan));
+      if (u.includes("/status") && intent === "dry-run") {
+        return Promise.resolve(jsonResponse(dryRunPlan));
+      }
+      if (u.includes("/status") && intent === "commit") {
+        return Promise.resolve(jsonResponse(committedPlan));
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
     });
     const onCommitted = vi.fn();
 
     renderPilot({ fetchImpl, onCommitted });
 
-    await applyStatusChange(fetchImpl);
+    await previewAndApplyStatusChange(fetchImpl);
 
     expect(window.confirm).toHaveBeenCalledWith(APPOINTMENT_STATUS_WRITE_CONFIRM);
     expect(fetchImpl).toHaveBeenCalledWith(
@@ -201,12 +232,22 @@ describe("AppointmentStatusWriteAction", () => {
   });
 
   it("uncommitted plan does not refresh parent or imply a save", async () => {
-    const uncommittedPlan = { ...committedPlan, committed: false, mode: "dry-run" as const };
-    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(uncommittedPlan));
+    const uncommittedPlan = { ...dryRunPlan, committed: false, mode: "dry-run" as const };
+    const fetchImpl = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const u = String(input);
+      const intent = (init?.headers as Record<string, string> | undefined)?.["X-Write-Intent"];
+      if (u.includes("/status") && intent === "dry-run") {
+        return Promise.resolve(jsonResponse(uncommittedPlan));
+      }
+      if (u.includes("/status") && intent === "commit") {
+        return Promise.resolve(jsonResponse(uncommittedPlan));
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
     const onCommitted = vi.fn();
 
     renderPilot({ fetchImpl, onCommitted });
-    await applyStatusChange(fetchImpl);
+    await previewAndApplyStatusChange(fetchImpl);
 
     expect(onCommitted).not.toHaveBeenCalled();
     const text = container.textContent ?? "";
@@ -221,11 +262,31 @@ describe("AppointmentStatusWriteAction", () => {
 
   it("does not apply when confirm is dismissed", async () => {
     vi.mocked(window.confirm).mockReturnValue(false);
-    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(committedPlan));
+    const fetchImpl = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const u = String(input);
+      const intent = (init?.headers as Record<string, string> | undefined)?.["X-Write-Intent"];
+      if (u.includes("/status") && intent === "dry-run") {
+        return Promise.resolve(jsonResponse(dryRunPlan));
+      }
+      return Promise.resolve(jsonResponse(committedPlan));
+    });
 
     renderPilot({ fetchImpl });
-    await applyStatusChange(fetchImpl);
+    await previewAndApplyStatusChange(fetchImpl);
 
-    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(fetchImpl).not.toHaveBeenCalledWith(
+      expect.stringContaining("/status"),
+      expect.objectContaining({
+        headers: expect.objectContaining({ "X-Write-Intent": "commit" }),
+      }),
+    );
+  });
+
+  it("requires preview before apply", async () => {
+    renderPilot();
+    const applyBtn = [...container.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("Apply status change"),
+    );
+    expect(applyBtn?.disabled).toBe(true);
   });
 });
