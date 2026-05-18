@@ -1,16 +1,18 @@
 # Phase 1b — Calendar / schedule (backend only)
 
-Read-only **`GET /v1/schedule/rooms`** and **`GET /v1/schedule/appointments`** read **`SC_ROOM.DBF`**, optional **`DICSCHED.DBF`**, **`SCHEDULE.DBF`**, and (for appointments only) **`PATIENT.DBF`** under **`DATA_ROOT`**. This band is **API + contracts + bridge client + tests only** — no calendar UI.
+Read-only **`GET /v1/schedule/rooms`** and **`GET /v1/schedule/appointments`** prefer the **SQLite mirror** when **`SQLITE_PATH`** is configured and the relevant table is usable; otherwise they read **`SC_ROOM.DBF`**, optional **`DICSCHED.DBF`**, **`SCHEDULE.DBF`**, and (for appointments only) **`PATIENT.DBF`** under **`DATA_ROOT`**. This band is **API + contracts + bridge client + tests only** — no calendar UI.
 
 ## Routes
 
 ### `GET /v1/schedule/rooms`
 
 - **503** if `DATA_ROOT` is not configured.
-- **404** with `SC_ROOM_DBF_NOT_FOUND` if **`SC_ROOM.DBF`** is absent.
+- **404** with `SC_ROOM_DBF_NOT_FOUND` if **`SC_ROOM.DBF`** is absent **and** the mirror is not usable (missing/unreadable **`SQLITE_PATH`** or no **`schedule_rooms`** table per `isSqliteMirrorUsable`).
 - **500** with `SCHEDULE_ROOMS_ERROR` on unexpected read failures (no row payloads in the message).
 
-Reads **`DICSCHED.DBF`** when present: **first non-deleted row only**, fields **`ROOM1`–`ROOM25`** (trimmed strings) as display labels keyed by room index — no other DICSCHED columns are returned.
+When the mirror is usable, reads **`schedule_rooms`** (`room_id`, `label`) and maps to the same JSON shape. **`activeDays`** and **`doctorId`** are not stored in SQLite — mirror responses use **all-false** weekdays and **`doctorId: null`** (see `docs/phase-2-schedule-rooms-importer.md`). Invalid mirror reads fall back to DBF.
+
+DBF path reads **`DICSCHED.DBF`** when present: **first non-deleted row only**, fields **`ROOM1`–`ROOM25`** (trimmed strings) as display labels keyed by room index — no other DICSCHED columns are returned.
 
 ### `GET /v1/schedule/appointments?from=YYYY-MM-DD&to=YYYY-MM-DD&room=optional`
 

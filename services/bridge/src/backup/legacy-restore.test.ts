@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { mkdtemp, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   FORBIDDEN_LEGACY_COPY_ROOT,
@@ -243,7 +243,7 @@ describe("legacy restore", () => {
     ).rejects.toThrow(/manifest\.json not found/);
   });
 
-  it("does not print row payloads in CLI report output", async () => {
+  it("does not print row payloads or full backup paths in CLI report output", async () => {
     const backupFolder = await setupBackupSource();
     await setupSandbox();
 
@@ -268,6 +268,11 @@ describe("legacy restore", () => {
     expect(report).not.toContain(SECRET_NAME);
     expect(report).not.toMatch(/\bPAT_NAME\b/);
     expect(report).not.toMatch(/\bTELEPHONE\b/);
+    expect(report).not.toContain(result.backupFolder);
+    expect(report).not.toContain(result.dataRootRealpath);
+    expect(report).toContain(result.operationId);
+    expect(report).toContain(`backupFolder: ${basename(result.backupFolder)}`);
+    expect(report).toContain(`dataRoot: ${basename(result.dataRootRealpath)}`);
     expect(report).toContain("status=restored");
     expect(report).toContain("restore: complete");
   });

@@ -1,5 +1,5 @@
 import { createBridgeClient } from "@microdent/bridge-client";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Badge, Button, Card, CardBody, CardHeader } from "@microdent/ui";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
 
@@ -23,24 +23,37 @@ function LegacyCatalogPanelDev({ bridgeBaseUrl, bridgePhase }: LegacyCatalogPane
   const [tables, setTables] = useState<
     { tableId: string; displayName: string; fileName: string; present: boolean; recordCount: number | null; fieldCount: number | null }[] | null
   >(null);
+  const mountedRef = useRef(true);
 
   const base = bridgeBaseUrl?.trim() ?? "";
 
-  const load = useCallback(async () => {
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const load = useCallback(async (isActive: () => boolean = () => mountedRef.current) => {
+    if (!isActive()) return;
     if (!base) {
+      if (!isActive()) return;
       setTables(null);
       setErrorMessage(null);
       setPhase("idle");
       return;
     }
+    if (!isActive()) return;
     setPhase("loading");
     setErrorMessage(null);
     const client = createBridgeClient({ baseUrl: base });
     try {
       const res = await client.getLegacyCatalog();
+      if (!isActive()) return;
       setTables(res.tables);
       setPhase("ready");
     } catch (e: unknown) {
+      if (!isActive()) return;
       setTables(null);
       setPhase("ready");
       setErrorMessage(safeCatalogError(e));
@@ -59,7 +72,12 @@ function LegacyCatalogPanelDev({ bridgeBaseUrl, bridgePhase }: LegacyCatalogPane
     if (!base || bridgePhase !== "connected") {
       return;
     }
-    void load();
+    let cancelled = false;
+    const isActive = () => !cancelled && mountedRef.current;
+    void load(isActive);
+    return () => {
+      cancelled = true;
+    };
   }, [base, bridgePhase, load]);
 
   const waiting = Boolean(base) && bridgePhase !== "connected" && tables === null && errorMessage === null;
@@ -93,7 +111,7 @@ function LegacyCatalogPanelDev({ bridgeBaseUrl, bridgePhase }: LegacyCatalogPane
                 size="compact"
                 className="ui-focusable"
                 disabled={phase === "loading" || bridgePhase !== "connected"}
-                onClick={() => void load()}
+                onClick={() => void load(() => mountedRef.current)}
               >
                 {phase === "loading" ? "Loading…" : "Refresh catalog"}
               </Button>

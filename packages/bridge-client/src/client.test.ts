@@ -43,6 +43,26 @@ describe("BridgeClient", () => {
     expect(fetch).toHaveBeenCalledWith(`${baseUrl}/v1/mirror/status`, expect.anything());
   });
 
+  it("getWriteAuditRecent: success", async () => {
+    const body = {
+      sqliteConfigured: true,
+      sqliteUsable: true,
+      entries: [
+        {
+          operationId: "00000000-0000-4000-8000-000000000099",
+          workflow: "appointment.statusUpdate",
+          terminalStatus: "success",
+          requestedAt: "2026-05-01T12:00:00.000Z",
+          finishedAt: "2026-05-01T12:00:01.000Z",
+        },
+      ],
+    };
+    const fetch = vi.fn().mockResolvedValue(jsonResponse(body));
+    const client = createBridgeClient({ baseUrl, fetch });
+    await expect(client.getWriteAuditRecent()).resolves.toEqual(body);
+    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/v1/meta/write-audit-recent`, expect.anything());
+  });
+
   it("getMetaTables: success", async () => {
     const body = {
       tables: [{ id: "fixture_tiny", label: "Synthetic", fileName: "FAKE_TINY.dbf" }],

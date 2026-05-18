@@ -66,7 +66,7 @@ Blocked everywhere: full phone, address block, email, insurance, memos, raw DBF 
 
 | Route | Status | Source DBF | Read-only | Fields returned | Fields explicitly blocked | UI screen | Known limitations |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `GET /v1/schedule/rooms` | Stable | **`SC_ROOM.DBF`**, optional **`DICSCHED.DBF`** (first row `ROOM1`–`ROOM25`) | Yes | `rooms[]`: `room`, `displayName`, `activeDays` (Sun–Sat), `doctorId` | Other `DICSCHED` columns, patient content | **Schedule** panel (room filter) | `DAY1`–`DAY7` weekday order assumed per mapping doc |
+| `GET /v1/schedule/rooms` | Stable | **`schedule_rooms`** mirror when usable, else **`SC_ROOM.DBF`** + optional **`DICSCHED.DBF`** (first row `ROOM1`–`ROOM25`) | Yes | `rooms[]`: `room`, `displayName`, `activeDays` (Sun–Sat), `doctorId` | Other `DICSCHED` columns, patient content | **Schedule** panel (room filter) | Mirror: `activeDays` all false, `doctorId` null; DBF: `DAY1`–`DAY7` weekday order assumed per mapping doc |
 | `GET /v1/schedule/appointments?from&to&room?` | Stable | **`SCHEDULE.DBF`** + **`PATIENT.DBF`** lookup | Yes | `appointments[]`: `id`, `date`, `time`, `durationSlots`, `periodMinutes`, `room`, `status`, `docId`, `patId`, `patient` (`patientId`, `displayName`, `chartNumber` or null), `procClass`, `vacId`, `recall`, `unreason`, `missed`, `hasComment` | `PAT_NAME`, `TELEPHONE`, `COMMENT` text, `CASENUM`, raw row; no `phoneMask` on appointments | **Schedule** panel; **Today** dashboard (today’s range) | Inclusive range max **14** days; max **1000** appointments per response; `TIME` unparsed string; `periodMinutes` null → clients often assume 30 min |
 
 Appointment `patient.displayName` is **only** from `PATIENT.DBF`, never from `SCHEDULE.PAT_NAME`.

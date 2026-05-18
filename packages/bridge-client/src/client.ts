@@ -23,8 +23,10 @@ import {
   TablesListResponseSchema,
   TableSchemaResponseSchema,
   MirrorStatusResponseSchema,
+  WriteAuditRecentResponseSchema,
   type HealthResponse,
   type MirrorStatusResponse,
+  type WriteAuditRecentResponse,
   type LegacyCatalogResponse,
   type PatientProfileResponse,
   type PatientMedicalSummaryResponse,
@@ -93,6 +95,11 @@ export class BridgeClient {
   /** Safe SQLite mirror metadata (no paths or row payloads). */
   async getMirrorStatus(): Promise<MirrorStatusResponse> {
     return this.requestJson("/v1/mirror/status", MirrorStatusResponseSchema);
+  }
+
+  /** Recent write-audit metadata only — no paths, payloads, or PHI (`GET /v1/meta/write-audit-recent`). */
+  async getWriteAuditRecent(): Promise<WriteAuditRecentResponse> {
+    return this.requestJson("/v1/meta/write-audit-recent", WriteAuditRecentResponseSchema);
   }
 
   async getLegacyCatalog(): Promise<LegacyCatalogResponse> {

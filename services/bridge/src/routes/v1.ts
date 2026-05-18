@@ -26,6 +26,7 @@ import {
   ReferenceProceduresResponseSchema,
   ScheduleRoomsResponseSchema,
   MirrorStatusResponseSchema,
+  WriteAuditRecentResponseSchema,
   BridgeDevStatusResponseSchema,
   TableRowsResponseSchema,
   TablesListResponseSchema,
@@ -58,7 +59,7 @@ import { sendWriteModeDisabled } from "../write/write-route-guards.js";
 import { parseWriteIntentHeader } from "../write/parse-write-intent.js";
 import { readReferenceDoctorsFromDbf } from "../dbf/reference-doctors.js";
 import { readReferenceProcedures } from "../dbf/reference-procedures.js";
-import { readScheduleRooms } from "../dbf/schedule-rooms.js";
+import { readScheduleRoomsForApi } from "../schedule-rooms-read.js";
 import { isSqliteMirrorUsable } from "../sqlite/mirror-usable.js";
 import { readPatientProfileFromSqlite } from "../sqlite/patient-profile.js";
 import { readPatientMedicalSummaryFromSqlite } from "../sqlite/patient-medical-summary.js";
@@ -67,6 +68,7 @@ import { readPatientTreatmentsFromSqlite } from "../sqlite/patient-treatments.js
 import { readReferenceDoctorsFromSqlite } from "../sqlite/reference-doctors.js";
 import { readReferenceProceduresFromSqlite } from "../sqlite/reference-procedures.js";
 import { readMirrorStatus } from "../sqlite/mirror-status.js";
+import { readWriteAuditRecent } from "../sqlite/write-audit-recent.js";
 
 function sendError(res: Response, status: number, code: string, message: string): void {
   const body = { error: { code, message } };
@@ -111,6 +113,12 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
       writableSandbox: isWritableSandboxReady(bridgeConfig),
     };
     BridgeDevStatusResponseSchema.parse(body);
+    res.json(body);
+  });
+
+  router.get("/meta/write-audit-recent", (_req, res) => {
+    const body = readWriteAuditRecent(bridgeConfig.sqlitePath);
+    WriteAuditRecentResponseSchema.parse(body);
     res.json(body);
   });
 
@@ -436,8 +444,7 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
 
   router.get("/schedule/rooms", async (_req, res) => {
     if (!requireConfiguredDataRoot(res, bridgeConfig)) return;
-    const dr = bridgeConfig.dataRoot;
-    const outcome = await readScheduleRooms(dr);
+    const outcome = await readScheduleRoomsForApi(bridgeConfig);
     if (outcome.kind === "missing_sc_room") {
       sendError(res, 404, "SC_ROOM_DBF_NOT_FOUND", "SC_ROOM.DBF not found under DATA_ROOT");
       return;

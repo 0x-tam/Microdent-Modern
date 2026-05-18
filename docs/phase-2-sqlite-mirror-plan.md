@@ -368,6 +368,7 @@ Between steps, **contract tests** stay green: same JSON shapes whether backed by
 | --- | --- |
 | `GET /v1/patients/search` | Yes (priority) |
 | `GET /v1/patients/:id/profile` | Yes |
+| `GET /v1/schedule/rooms` | Yes (labels only; `activeDays` / `doctorId` DBF fallback defaults on mirror) |
 | `GET /v1/schedule/appointments` | Yes |
 | `GET /v1/reference/doctors` | Yes (after 2.2) |
 | `GET /v1/reference/procedures` | Yes (after 2.2) |

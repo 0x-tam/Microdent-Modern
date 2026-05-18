@@ -18,6 +18,8 @@
 | Write commit handlers | Error messages are generic codes only |
 | Backup manifest CLI | Filename/size/sha256 only; fixture tests assert no secret tokens in manifest |
 | Backup CLI report (`printLegacyBackupReport`) | Logs `operationId`, workflow, file count, timestamped folder **basename**, and member basenames — not parent `BACKUP_DIR` or `DATA_ROOT` paths |
+| Restore CLI report (`printLegacyRestoreReport`) | Same basename-only policy as backup — `backupFolder` and `dataRoot` basenames only |
+| Write audit meta (`GET /v1/meta/write-audit-recent`) | When `SQLITE_PATH` is set: `operationId`, `workflow`, `terminalStatus`, `requestedAt`, `finishedAt` only — no `target_record_ids`, actor fields, or step `detail_json` |
 | Mirror import CLI (`printMirrorImportSafeReport`) | Table names, row counts, and status only — no `import_errors.message` or filesystem paths |
 | Schedule write validation | Overlap/conflict paths do not log `TIME` raw values on failure |
 | Patient demographics write | Profile re-read uses safe DTO; phone columns never logged |
@@ -51,4 +53,3 @@ See [phase-3-sandbox-validation.md](./phase-3-sandbox-validation.md) for prerequ
 
 - Structured JSON logging with explicit allowlist fields
 - Periodic grep CI for forbidden tokens in `services/bridge/src` log strings
-- Align `printLegacyRestoreReport` with basename-only path logging (still logs full `backupFolder` / `dataRoot` today)

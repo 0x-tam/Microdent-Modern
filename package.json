@@ -20,7 +20,8 @@
     "legacy:create-sandbox": "bash scripts/legacy-create-sandbox.sh",
     "legacy:restore": "bash scripts/legacy-restore.sh",
     "legacy:backup-verify": "bash scripts/legacy-backup-verify.sh",
-    "sandbox:validate": "pnpm --filter @microdent/bridge exec vitest run src/sandbox/sandbox-validation-band.test.ts"
+    "sandbox:validate": "pnpm --filter @microdent/bridge exec vitest run src/sandbox/sandbox-validation-band.test.ts",
+    "sandbox:validate:real": "SANDBOX_VALIDATE_REAL=1 pnpm sandbox:validate"
   },
   "engines": {
     "node": ">=18"

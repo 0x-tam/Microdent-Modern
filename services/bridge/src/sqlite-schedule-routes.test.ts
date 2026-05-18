@@ -4,8 +4,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { once } from "node:events";
 import { describe, expect, it } from "vitest";
-import { ScheduleAppointmentsResponseSchema } from "@microdent/contracts";
-import { importAppointments, importPatients } from "@microdent/sqlite-mirror";
+import {
+  ScheduleAppointmentsResponseSchema,
+  ScheduleRoomsResponseSchema,
+} from "@microdent/contracts";
+import { importAppointments, importPatients, importScheduleRooms } from "@microdent/sqlite-mirror";
 import { createBridgeApp } from "./app.js";
 import { parseDataRootFromValue, parseSqlitePathFromValue } from "./config.js";
 import type { BridgeConfig } from "./config.js";
@@ -40,6 +43,8 @@ function bridgeConfig(dataRootPath: string, sqlitePath?: string): BridgeConfig {
 import { writeScheduleFixtures } from "./test-fixtures/schedule-fixtures.js";
 
 async function importScheduleMirror(dataRoot: string, sqlitePath: string): Promise<void> {
+  const rooms = await importScheduleRooms({ dataRoot, sqlitePath });
+  expect(rooms.status).toBe("success");
   const patients = await importPatients({ dataRoot, sqlitePath });
   expect(patients.status).toBe("success");
   const appointments = await importAppointments({ dataRoot, sqlitePath });
@@ -176,6 +181,75 @@ describe("SQLite schedule appointment routes (SQLITE_PATH configured)", () => {
       });
     } finally {
       rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("SQLite schedule rooms route (SQLITE_PATH configured)", () => {
+  it("GET /v1/schedule/rooms reads mirror labels", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "bridge-sqlite-schedule-rooms-"));
+    const sqlitePath = join(dir, "mirror.sqlite");
+    try {
+      await writeScheduleFixtures(dir);
+      const roomsImport = await importScheduleRooms({ dataRoot: dir, sqlitePath });
+      expect(roomsImport.status).toBe("success");
+      const app = createBridgeApp("v-test", { bridgeConfig: bridgeConfig(dir, sqlitePath) });
+      await withServer(app, async (port) => {
+        const res = await fetch(`http://127.0.0.1:${port}/v1/schedule/rooms`);
+        expect(res.status).toBe(200);
+        const parsed = ScheduleRoomsResponseSchema.parse(await res.json());
+        expect(parsed.rooms).toHaveLength(2);
+        const r1 = parsed.rooms.find((r) => r.room === 1);
+        expect(r1?.displayName).toBe("Synthetic operatory A");
+        expect(r1?.doctorId).toBe(null);
+        expect(r1?.activeDays.sunday).toBe(false);
+        const r2 = parsed.rooms.find((r) => r.room === 2);
+        expect(r2?.displayName).toBe("Synthetic chair B");
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("falls back to DBF when SQLITE_PATH file is missing", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "bridge-sqlite-rooms-fallback-"));
+    const missingSqlite = join(dir, "missing.sqlite");
+    try {
+      await writeScheduleFixtures(dir);
+      const app = createBridgeApp("v-test", {
+        bridgeConfig: bridgeConfig(dir, missingSqlite),
+      });
+      await withServer(app, async (port) => {
+        const res = await fetch(`http://127.0.0.1:${port}/v1/schedule/rooms`);
+        const parsed = ScheduleRoomsResponseSchema.parse(await res.json());
+        expect(parsed.rooms).toHaveLength(2);
+        expect(parsed.rooms.find((r) => r.room === 1)?.doctorId).toBe(42);
+        expect(parsed.rooms.find((r) => r.room === 1)?.activeDays.sunday).toBe(true);
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("serves from mirror when SC_ROOM.DBF is absent but SQLITE_PATH is valid", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "bridge-sqlite-rooms-no-dbf-"));
+    const sqlitePath = join(dir, "mirror.sqlite");
+    const dataOnly = mkdtempSync(join(tmpdir(), "bridge-sqlite-rooms-data-"));
+    try {
+      await writeScheduleFixtures(dataOnly);
+      const roomsImport = await importScheduleRooms({ dataRoot: dataOnly, sqlitePath });
+      expect(roomsImport.status).toBe("success");
+      const app = createBridgeApp("v-test", {
+        bridgeConfig: bridgeConfig(dir, sqlitePath),
+      });
+      await withServer(app, async (port) => {
+        const res = await fetch(`http://127.0.0.1:${port}/v1/schedule/rooms`);
+        expect(res.status).toBe(200);
+        expect(ScheduleRoomsResponseSchema.parse(await res.json()).rooms.length).toBeGreaterThan(0);
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+      rmSync(dataOnly, { recursive: true, force: true });
     }
   });
 });

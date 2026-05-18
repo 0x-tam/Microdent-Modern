@@ -35,9 +35,14 @@ Included in `runMirrorImportSafe` / `pnpm mirror:import-safe` after `procedures`
 
 ---
 
+## Bridge read path
+
+`GET /v1/schedule/rooms` uses `readScheduleRoomsForApi` in the bridge: when `isSqliteMirrorUsable(sqlitePath, "schedule_rooms")`, reads mirror labels via `readScheduleRoomsFromSqlite`; otherwise `readScheduleRooms` (DBF). Mirror responses keep the same contract; **`activeDays`** are all **false** and **`doctorId`** is **null** because those columns are not imported.
+
 ## Tests
 
 - `services/sqlite-mirror/src/import-schedule-rooms.test.ts` — synthetic `SC_ROOM.DBF` + `DICSCHED.DBF` only
 - `services/sqlite-mirror/src/run-mirror-import-safe.test.ts` — full safe import chain
+- `services/bridge/src/sqlite-schedule-routes.test.ts` — `GET /v1/schedule/rooms` mirror preference + DBF fallback
 
 Run on **Node ≥ 22.5**.

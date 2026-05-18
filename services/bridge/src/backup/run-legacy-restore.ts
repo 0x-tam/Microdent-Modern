@@ -5,7 +5,7 @@ import {
   readFile,
   stat,
 } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { parseDataRootFromValue, type DataRootSet } from "../config.js";
 import { resolvePathWithinDataRoot } from "../safety/path-sandbox.js";
 import { validateWritableSandbox } from "../write-safety/index.js";
@@ -208,12 +208,13 @@ export async function runLegacyRestore(options: RunLegacyRestoreOptions): Promis
   };
 }
 
+/** Prints operation metadata and file basenames only — never full backup/data paths or row payloads. */
 export function printLegacyRestoreReport(result: LegacyRestoreResult): void {
   console.log("restore: complete");
   console.log(`operationId: ${result.operationId}`);
   console.log(`workflow: ${result.workflow}`);
-  console.log(`backupFolder: ${result.backupFolder}`);
-  console.log(`dataRoot: ${result.dataRootRealpath}`);
+  console.log(`backupFolder: ${basename(result.backupFolder)}`);
+  console.log(`dataRoot: ${basename(result.dataRootRealpath)}`);
   console.log(`files: ${result.files.length}`);
   for (const file of result.files) {
     console.log(`  ${file.filename} status=${file.status} size=${file.size} sha256=${file.sha256}`);

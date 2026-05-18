@@ -13,6 +13,12 @@ export {
   type MirrorImportRunSummary,
   type MirrorStatusResponse,
 } from "./mirror-status.js";
+export {
+  WriteAuditRecentEntrySchema,
+  WriteAuditRecentResponseSchema,
+  type WriteAuditRecentEntry,
+  type WriteAuditRecentResponse,
+} from "./write-audit-recent.js";
 export { ApiErrorBodySchema, type ApiErrorBody } from "./api-error.js";
 export { TablesListResponseSchema, TableListItemSchema, type TablesListResponse } from "./meta-tables.js";
 export {
