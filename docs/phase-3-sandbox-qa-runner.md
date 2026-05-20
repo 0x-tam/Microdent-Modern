@@ -93,6 +93,17 @@ Per workflow:
 2. **`pnpm legacy:backup`** — `WORKFLOW` set; log backup folder **basename** only
 3. **Commit** — `X-Write-Intent: commit`; expect **200**, `committed: true`, hash changed
 4. **`pnpm legacy:restore`** — hash reverts to baseline
+5. **DBF readback** — `node dist/cli/qa-sandbox-readback.js` reads **`SCHEDULE.DBF` / `PATIENT.DBF`** under `DATA_ROOT` (source of truth for committed writes)
+
+### DBF readback vs SQLite mirror
+
+| Layer | Role in sandbox QA |
+| --- | --- |
+| **DBF under `DATA_ROOT`** | **Write proof** — post-commit fields are read directly from `SCHEDULE.DBF` / `PATIENT.DBF` via the readback CLI |
+| **`SQLITE_PATH` mirror** | Fixture ids, sparse dates, optional **audit** SQL (`write_audit_log`) — **not** refreshed on commit |
+| **Settings mirror card** | Search/schedule freshness — stale mirror does **not** mean DBF writes failed |
+
+Do **not** use mirror `appointments` / `patients` tables to verify sandbox commits; mirror import is a separate operator step (`pnpm mirror:import-safe`).
 
 Response bodies are filtered with:
 

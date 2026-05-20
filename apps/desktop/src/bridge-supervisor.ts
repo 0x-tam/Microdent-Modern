@@ -2,6 +2,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { DesktopConfig } from "./config.js";
+import { validateBridgeDistExists, validateDesktopStartupConfig } from "./startup-validation.js";
 
 export type BridgeSupervisorOptions = {
   repoRoot: string;
@@ -28,9 +29,8 @@ export class BridgeSupervisor {
   }
 
   async start(): Promise<void> {
-    if (!existsSync(this.bridgeEntry)) {
-      throw new Error("bridge dist missing; run pnpm build in services/bridge");
-    }
+    validateDesktopStartupConfig(this.options.config);
+    validateBridgeDistExists(this.bridgeEntry);
 
     const env: NodeJS.ProcessEnv = {
       ...process.env,

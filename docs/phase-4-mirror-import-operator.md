@@ -97,6 +97,16 @@ pnpm --filter @microdent/sqlite-mirror run import-safe
 
 Import order is fixed: doctors → procedures → schedule_rooms → **patients** → appointments → medical_summary → treatments. Re-importing patients updates mirror rows while preserving appointment foreign keys when ids still match. After exit code `0` or `partial`, restart the bridge and use Settings → **Refresh status** to confirm `latestImportRuns` for `patients` and `appointments`.
 
+## Writes and mirror freshness
+
+Sandbox **commits update DBF files** under `DATA_ROOT` only. They **do not** re-run mirror import or update SQLite domain tables automatically.
+
+| Operator question | Answer |
+| --- | --- |
+| Did my sandbox write land? | Check DBF (or bridge write response + restore smoke). Settings mirror timestamps will **not** move on commit alone. |
+| Why is search/schedule stale after writes? | Mirror reflects last **import-safe** run, not live DBF. Re-run import when you need SQLite-backed search to match DBF. |
+| What is source of truth? | **DBF** for writes and `pnpm qa:sandbox` readback; **mirror** for read-only search/schedule until re-imported. |
+
 ## After import
 
 1. Start or restart the bridge with the same `DATA_ROOT` and `SQLITE_PATH`.

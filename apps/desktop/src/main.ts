@@ -52,9 +52,16 @@ async function createWindow(): Promise<void> {
   await win.loadURL(supervisor.uiUrl);
 }
 
+function formatStartupFailure(err: unknown): string {
+  if (err instanceof Error && err.message.trim().length > 0) {
+    return err.message;
+  }
+  return "unknown startup error";
+}
+
 app.whenReady().then(() => {
   createWindow().catch((err) => {
-    console.error("desktop startup failed:", err instanceof Error ? err.message : "unknown");
+    console.error(`Microdent desktop startup failed: ${formatStartupFailure(err)}`);
     app.exit(1);
   });
 });

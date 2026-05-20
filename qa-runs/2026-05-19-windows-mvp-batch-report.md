@@ -2,82 +2,120 @@
 
 **Repo:** `/Users/Tamam/Desktop/Microdent/Microdent-Modern`  
 **Branch:** `main` (uncommitted working tree)  
-**Coordinator checkpoint:** 2026-05-18 (local)  
-**Commit policy:** Do not commit until `pnpm qa:sandbox` is green (this run failed).
+**Coordinator checkpoint:** 2026-05-18 (Wave 2/3 audit + full re-run)  
+**Commit policy:** Do not commit unless explicitly instructed.
 
-## Agents (7/7 delivered)
+## Wave summary
 
-| Agent | Scope (inferred) | Batch verdict |
+| Wave | Status | Outcome |
 | --- | --- | --- |
-| DesktopMVP | `apps/desktop` setup, path validation, bridge supervisor, main | Delivered — unit tests in `pnpm test` (desktop not in root test script; desktop tests run via workspace if invoked separately) |
-| SandboxQA | `scripts/qa-sandbox-*`, preflight, write smoke | Delivered — **integration FAIL** at sqlite readback (see checkpoint) |
-| MirrorOps | `services/sqlite-mirror`, bridge mirror status | Delivered — mirror/sqlite-mirror tests pass |
-| DocsRunbooks | `docs/phase-*`, operator guides | Delivered — doc-only changes, no legacy dirs |
-| ClinicProduct | schedule, patient flows, today dashboard, read-only copy | Delivered — app tests pass |
-| SettingsDash | `SettingsPanel`, settings status, shell banners | Delivered — settings/shell tests pass |
-| PrivacyStability | `mask-operator-path`, AppShell fetch cleanup, write safety band | Delivered — privacy/masking tests pass |
+| Wave 1 (A/C/D/F) | Done (prior run) | Desktop startup validation, sandbox docs, root `pnpm test` + desktop |
+| Wave 2 (G/H/I/E) | **Audit only** | All workstreams already on `main` (`8d1a9dc` / `9c901d4`); no `packages/app` diff this run |
+| Wave 3 (B+J) | **Audit only** | Clinic polish already on `main`; no diff this run |
+| Coordinator | **PASS** | `pnpm test`, `pnpm build:web`, `pnpm qa:sandbox` green on Node 22 |
+
+## Agents / workstreams (A–J + Coordinator)
+
+| Workstream | Agent | Verdict (this run) | vs `main` |
+| --- | --- | --- | --- |
+| A | DesktopMVP | **Gap-fill (uncommitted)** | `startup-validation.ts`, supervisor/main wiring, root test script |
+| B+J | ClinicProductPolish | **Already on main** | `today-dashboard`, `PatientSearchBar`, profile read tabs, schedule read-only, `read-only-ui-copy`, `app-shell.css` |
+| C | SandboxQA | **Already on main** | DBF readback; docs touched in uncommitted F slice |
+| D | MirrorOps | **Already on main** | Mirror status API + Settings mirror card |
+| E | PrivacyStability | **Already on main** | `AppShell` AbortController cleanup, `app-shell-fetch-cleanup.test.tsx`, forbidden tokens on settings/write/mirror/schedule |
+| F | DocsRunbooks | **Gap-fill (uncommitted)** | DBF vs mirror in phase-3/4 docs |
+| G | SettingsDash | **Already on main** | Cards (bridge, paths, mirror, write, sandbox, backup, pilot, desktop); danger banners; `omitShellBannersDetailedInSettings` when Settings active |
+| H | AppointmentWriteUX | **Already on main** | Status/time/create pilots; dry-run → confirm → commit; refresh; `appointment-*-write` + `appointment-write-actions-panel` tests |
+| I | PatientDemoUX | **Already on main** | `PatientDemographicsWritePanel`; allowlist; `patient-demographics-write.test.tsx` |
+| — | Coordinator | **PASS** | Checkpoint below; no commit |
+
+### Wave 2 audit notes (G/H/I/E)
+
+- **G:** `SettingsPanel.tsx`, `settings-status.ts`, `shell-status-banners.ts` — backup/sandbox warnings via status cards + `resolveSettingsDangerBanners` (non-sandbox, mirror stale, write enabled). Shell dedupe when `active === "settings"` in `AppShell.tsx`.
+- **H:** Write blocks in `SchedulePanel` owned by appointment write components; sandbox pilot gating via `sandbox-write-pilot.ts`.
+- **I:** Demographics section in `PatientProfilePanel`; no phone/address/medical fields in write panel.
+- **E:** No additional changes required; `act(...)` warnings remain in stderr (non-failing).
+
+### Wave 3 audit notes (B+J)
+
+- Read-only polish and offline/empty/loading copy present on touched surfaces.
+- **Minor follow-up (not blocking):** `patient-search-bar.test.tsx` does not call `assertNoForbiddenDomTokens` (other surfaces do). Safe to add in a future slice.
 
 ## Mandatory checkpoint
 
 | Step | Command / action | Result | Notes |
 | --- | --- | --- | --- |
 | Node | `nvm use 22` | **PASS** | v22.22.3 |
-| Unit/integration tests | `pnpm test` | **PASS** | contracts 3; sqlite-mirror 42; bridge 302 (+4 skipped); bridge-client 36; ui 10; app 261 |
+| Unit/integration tests | `pnpm test` | **PASS** | contracts 3; sqlite-mirror 42; bridge 302 (+4 skipped); bridge-client 36; ui 10; app **261**; desktop **28** |
 | Web build | `pnpm build:web` | **PASS** | Vite production build OK |
 | Sandbox env | `DATA_ROOT`, `SQLITE_PATH`, `BACKUP_DIR` | **SET** | Write-sandbox paths (not in git) |
-| Port cleanup | `lsof -ti :17890 \| xargs kill -9` | **OK** | |
-| Sandbox QA | `pnpm qa:sandbox` | **FAIL** | `appointment.statusUpdate` commit HTTP 200 but sqlite readback: expected `status_code=1`, got `0` |
-| Git snapshot | `git status` | **DIRTY** | 41 modified, 4 untracked; nothing staged |
+| Port cleanup | `lsof -ti :17890` kill | **OK** | Before `qa:sandbox` |
+| Sandbox QA | `pnpm qa:sandbox` | **PASS** | `qa:sandbox complete`; `qa-sandbox-write-smoke complete (4 workflows)`; **DBF readback** `source=dbf` on all workflows |
+| Git snapshot | `git status` | **DIRTY** | 7 modified, 2 untracked; nothing staged |
 
-### Sandbox failure excerpt
+### Sandbox success excerpt
 
 ```
-[qa-write-smoke] workflow=appointment.statusUpdate phase=commit http=200 ... committed=true
-[qa-write-smoke] FAIL: sqlite readback workflow=appointment.statusUpdate expected_status_code=1 got=0
+[qa-write-smoke] readback workflow=appointment.statusUpdate source=dbf appointment_id=100 status=2
+[qa-write-smoke] === qa-sandbox-write-smoke complete (4 workflows) ===
+[qa-sandbox-run] qa:sandbox complete
 ```
 
-## Merge sanity (coordinator)
+## Files changed (uncommitted — this batch)
+
+| Path | Workstream |
+| --- | --- |
+| `apps/desktop/src/startup-validation.ts` | A |
+| `apps/desktop/src/startup-validation.test.ts` | A |
+| `apps/desktop/src/bridge-supervisor.ts` | A |
+| `apps/desktop/src/bridge-supervisor.test.ts` | A |
+| `apps/desktop/src/main.ts` | A |
+| `package.json` (root `pnpm test` includes desktop) | A / Coordinator |
+| `docs/phase-3-sandbox-qa-runner.md` | C / F |
+| `docs/phase-4-mirror-import-operator.md` | D / F |
+| `qa-runs/2026-05-19-windows-mvp-batch-report.md` | Coordinator |
+
+**No Wave 2/3 `packages/app` files modified this run.**
+
+## Merge sanity
 
 | Area | Finding |
 | --- | --- |
-| `read-only-ui-copy.ts` | Single source in `packages/app` only; no desktop duplicate |
-| `AppShell.tsx` / `today-dashboard.tsx` | Single app package copies; coherent diffs (health-check stale guard, settings banner dedupe) |
-| `maskOperatorPath` | **Intentional duplication:** `packages/app/src/mask-operator-path.ts` vs `apps/desktop/src/path-validation.ts` — different masking rules and empty-path labels (`…` vs `(not set)`). Not a merge conflict; document as cross-surface consistency risk |
+| `read-only-ui-copy.ts` | Single source in `packages/app` only |
+| `AppShell.tsx` | Single copy; fetch cleanup + settings banner dedupe on main |
+| `SchedulePanel.tsx` | Write sections (H) vs read-only (B) — no conflict in working tree |
+| `maskOperatorPath` | Intentional duplication: `packages/app` vs `apps/desktop/path-validation.ts` |
 
-No conflict markers or duplicate filenames requiring resolution.
+No conflict markers.
 
 ## Git hygiene / legacy sentinels
 
 | Check | Status |
 | --- | --- |
 | `Legacy/` or `Legacy-Copy/` in diff or untracked | **PASS** — none |
-| `.sqlite`, Write-Sandbox `DATA`, or `backups` tracked/staged | **PASS** — none in `git status` / changed paths |
+| `.sqlite`, Write-Sandbox `DATA`, or `backups` tracked/staged | **PASS** — none |
 | Secrets in tree | Not scanned; env paths are local exports only |
-
-**Modified (41):** desktop (7), docs (4), app (27), scripts (3), bridge/sqlite-mirror (6)  
-**Untracked (4):** `docs/phase-6-windows-mvp-operator-guide.md`, `packages/app/src/app-shell-fetch-cleanup.test.tsx`, `scripts/qa-sandbox-preflight.sh`, `services/bridge/src/write-safety/write-route-safety-band.test.ts`
 
 ## Safe to commit?
 
-**No (recommended hold)** — `pnpm qa:sandbox` failed on post-commit sqlite readback for `appointment.statusUpdate`. Unit tests and web build are green; treat as **merge-ready for review** but **not release-ready** until sandbox smoke passes.
+**Yes (recommended for Wave 1 slice)** — checkpoint green. Uncommitted diff is desktop startup validation + docs + root test script + this report. Wave 2/3 UI already committed on `main`; nothing additional to stage for G–J/E/B.
 
-If committing doc/script-only slices before the fix, split PRs explicitly and do not claim sandbox-green.
+**Blockers:** None.
 
 ## Risks
 
-1. **Sandbox sqlite readback drift** — write commit succeeds but mirror/SQLite appointment status does not match DBF expectation; blocks operator confidence for status writes.
-2. **Dual `maskOperatorPath` implementations** — operators may see different masked strings in Electron logs vs web settings hints.
-3. **Large app surface diff** — many panels touched; regression risk outside vitest (manual schedule/settings/today flows).
-4. **Vitest `act(...)` warnings** — noisy stderr in app tests; not failing but may hide real async issues.
+1. **Dual `maskOperatorPath`** — Electron vs web may show different masked strings.
+2. **Desktop startup validation** — paths removed after setup fail at bridge start with masked errors (intended).
+3. **Vitest `act(...)` warnings** — noisy app stderr on write tests; not failing.
+4. **Patient search forbidden-token test** — optional gap; not a regression risk today.
 
 ## Next batch (suggested)
 
-1. **SandboxQA / MirrorOps:** Fix `appointment.statusUpdate` sqlite readback (status_code 0 vs 1); re-run full `pnpm qa:sandbox` until green.
-2. **PrivacyStability (optional):** Align desktop `maskOperatorPath` with app or extract shared `@microdent/operator-path` helper.
-3. **DesktopMVP:** Add desktop package to root `pnpm test` or document `pnpm --filter @microdent/desktop test` in runbook.
-4. **DocsRunbooks:** Link `phase-6-windows-mvp-operator-guide.md` from phase-5 runbook after sandbox is green.
-5. Re-run this coordinator checkpoint and update this report before any commit.
+1. Commit Wave 1 + docs when instructed (optional PR split: desktop vs docs).
+2. Add `assertNoForbiddenDomTokens` to `patient-search-bar.test.tsx` if tightening Wave 3 privacy regression.
+3. Extract shared `@microdent/operator-path` for desktop + web masking.
+4. Push remote + CI when `origin` is configured.
 
 ---
 
-*Generated by Windows MVP batch coordinator. No git commit performed.*
+*Generated by Windows MVP batch coordinator (Wave 2/3 audit + checkpoint). No git commit performed.*

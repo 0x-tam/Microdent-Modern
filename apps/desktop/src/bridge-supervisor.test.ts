@@ -8,9 +8,16 @@ vi.mock("node:child_process", () => ({
 }));
 
 const existsSyncMock = vi.hoisted(() => vi.fn(() => true));
+const statSyncMock = vi.hoisted(() =>
+  vi.fn(() => ({
+    isDirectory: () => true,
+    isFile: () => true,
+  })),
+);
 
 vi.mock("node:fs", () => ({
   existsSync: existsSyncMock,
+  statSync: statSyncMock,
 }));
 
 import { BridgeSupervisor } from "./bridge-supervisor.js";
@@ -41,7 +48,12 @@ describe("BridgeSupervisor spawn env", () => {
   beforeEach(() => {
     spawnMock.mockReset();
     existsSyncMock.mockReset();
+    statSyncMock.mockReset();
     existsSyncMock.mockReturnValue(true);
+    statSyncMock.mockImplementation(() => ({
+      isDirectory: () => true,
+      isFile: () => true,
+    }));
     spawnMock.mockReturnValue({
       kill: vi.fn(),
       once: vi.fn(),
