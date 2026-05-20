@@ -43,6 +43,8 @@ describe("write route inventory", () => {
     const postCount = (V1_SOURCE.match(/router\.post\(/g) ?? []).length;
     expect(patchCount).toBe(3);
     expect(postCount).toBe(1);
+    expect(V1_SOURCE).not.toMatch(/router\.delete\(/);
+    expect(V1_SOURCE).not.toMatch(/router\.put\(/);
     for (const route of ALLOWED_WRITE_ROUTES) {
       expect(V1_SOURCE).toContain(route);
     }

@@ -18,6 +18,7 @@ import {
   SETTINGS_MIRROR_DOC_LINK,
   SETTINGS_MIRROR_IMPORTED_COUNT,
   SETTINGS_MIRROR_IMPORT_CLI,
+  SETTINGS_MIRROR_IMPORT_COMMAND,
   SETTINGS_MIRROR_NO_RUNS,
   SETTINGS_MIRROR_REFRESH,
   SETTINGS_MIRROR_RUN_STATUS_FAILED,
@@ -27,6 +28,7 @@ import {
   SETTINGS_MIRROR_SECTION,
   SETTINGS_MIRROR_STALE_CALLOUT,
   SETTINGS_NEXT_STEP_LABEL,
+  SETTINGS_PILOT_READINESS_TITLE,
   SETTINGS_PILOT_SECTION,
   SETTINGS_PANEL_LEDE,
   SETTINGS_SANDBOX_PILOT_OFF,
@@ -38,6 +40,7 @@ import {
 import {
   resolveBackupConfiguredStatus,
   resolveDataRootConfiguredStatus,
+  resolvePilotReadinessSummary,
   resolveSandboxValidityStatus,
   resolveSqliteMirrorStatus,
 } from "./settings-status.js";
@@ -113,7 +116,7 @@ function isDesktopFileProtocol(): boolean {
 }
 
 function showDevPathHints(showConnectionDiagnostics: boolean): boolean {
-  return showConnectionDiagnostics;
+  return import.meta.env.DEV && showConnectionDiagnostics;
 }
 
 type SettingsNextStepProps = {
@@ -160,6 +163,7 @@ export function SettingsPanel({
   const sandboxStatus = resolveSandboxValidityStatus(writeCapability);
   const backupStatus = resolveBackupConfiguredStatus(writeCapability);
   const sqliteMirrorStatus = resolveSqliteMirrorStatus(bridgePhase, mirrorStatus, writeCapability);
+  const pilotReadiness = resolvePilotReadinessSummary(bridgePhase, writeCapability, mirrorStatus);
   const dangerBanners = resolveSettingsDangerBanners(bridgePhase, mirrorStatus, writeCapability);
   const mirrorStale =
     bridgePhase === "connected" && mirrorStatus !== null && isMirrorImportStale(mirrorStatus, Date.now());
@@ -207,6 +211,24 @@ export function SettingsPanel({
               <strong>{banner.label}</strong> — {banner.body}
             </p>
           ))}
+        </div>
+      ) : null}
+
+      {pilotReadiness.length > 0 ? (
+        <div className="app-settings__readiness" role="region" aria-labelledby="settings-readiness-title">
+          <h2 id="settings-readiness-title" className="app-settings__readiness-title">
+            {SETTINGS_PILOT_READINESS_TITLE}
+          </h2>
+          <ul className="app-settings__readiness-chips">
+            {pilotReadiness.map((chip) => (
+              <li
+                key={chip.key}
+                className={`app-settings__readiness-chip app-settings__readiness-chip--${chip.tone}`}
+              >
+                {chip.label}
+              </li>
+            ))}
+          </ul>
         </div>
       ) : null}
 
@@ -371,11 +393,16 @@ export function SettingsPanel({
                   </p>
                 ) : null}
                 {runs.length === 0 ? (
-                  <p className="app-settings__muted">
-                    {SETTINGS_MIRROR_NO_RUNS} {SETTINGS_MIRROR_IMPORT_CLI}{" "}
-                    <span className="app-settings__doc-ref">{SETTINGS_MIRROR_DOC_LINK}</span> (
-                    <code>{MIRROR_DOC_PATH}</code>)
-                  </p>
+                  <>
+                    <p className="app-settings__muted">
+                      {SETTINGS_MIRROR_NO_RUNS} {SETTINGS_MIRROR_IMPORT_CLI}{" "}
+                      <span className="app-settings__doc-ref">{SETTINGS_MIRROR_DOC_LINK}</span> (
+                      <code>{MIRROR_DOC_PATH}</code>)
+                    </p>
+                    <p className="app-settings__cli-hint" role="note">
+                      {SETTINGS_MIRROR_IMPORT_COMMAND}
+                    </p>
+                  </>
                 ) : (
                   <div className="app-settings__table-wrap">
                     <table className="app-settings__table">

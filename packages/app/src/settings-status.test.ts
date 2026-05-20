@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   resolveBackupConfiguredStatus,
   resolveDataRootConfiguredStatus,
+  resolvePilotReadinessSummary,
   resolveSandboxValidityStatus,
   resolveSqliteMirrorStatus,
 } from "./settings-status.js";
@@ -94,5 +95,39 @@ describe("settings-status", () => {
       }, null).label,
     ).toMatch(/DBF fallback/i);
     expect(resolveSqliteMirrorStatus("offline", null, null).tone).toBe("neutral");
+  });
+
+  it("summarizes pilot readiness without paths", () => {
+    const offline = resolvePilotReadinessSummary("offline", null, null);
+    expect(offline).toHaveLength(1);
+    expect(offline[0]?.label).toMatch(/offline/i);
+
+    const readOnly = resolvePilotReadinessSummary(
+      "connected",
+      {
+        writeMode: "disabled",
+        writesPermitted: false,
+        writableSandbox: false,
+        dataRootConfigured: true,
+        backupDirConfigured: false,
+        sqlitePathConfigured: true,
+      },
+      {
+        sqliteConfigured: true,
+        sqliteUsable: true,
+        importedTables: ["patients"],
+        latestImportRuns: [
+          {
+            tableName: "patients",
+            status: "success",
+            rowCount: 10,
+            errorCount: 0,
+            finishedAt: new Date().toISOString(),
+          },
+        ],
+      },
+    );
+    expect(readOnly.some((c) => c.label.match(/read-only/i))).toBe(true);
+    expect(readOnly.some((c) => c.label.match(/mirror active/i))).toBe(true);
   });
 });

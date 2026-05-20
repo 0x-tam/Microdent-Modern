@@ -4,6 +4,7 @@ import { resolveSettingsOperatorNextStep } from "./settings-operator-next-step.j
 import {
   SETTINGS_NEXT_STEP_BACKUP,
   SETTINGS_NEXT_STEP_BRIDGE,
+  SETTINGS_NEXT_STEP_DESKTOP_SETUP,
   SETTINGS_NEXT_STEP_MIRROR_IMPORT,
 } from "./read-only-ui-copy.js";
 
@@ -20,6 +21,12 @@ describe("resolveSettingsOperatorNextStep", () => {
   it("suggests connecting the clinic service when offline", () => {
     expect(
       resolveSettingsOperatorNextStep("bridge", "offline", null, null),
+    ).toBe(SETTINGS_NEXT_STEP_DESKTOP_SETUP);
+  });
+
+  it("suggests bridge start when checking", () => {
+    expect(
+      resolveSettingsOperatorNextStep("bridge", "checking", null, null),
     ).toBe(SETTINGS_NEXT_STEP_BRIDGE);
   });
 

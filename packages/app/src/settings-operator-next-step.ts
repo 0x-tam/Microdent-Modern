@@ -5,6 +5,7 @@ import {
   SETTINGS_NEXT_STEP_BACKUP,
   SETTINGS_NEXT_STEP_BRIDGE,
   SETTINGS_NEXT_STEP_DATA_ROOT,
+  SETTINGS_NEXT_STEP_DESKTOP_SETUP,
   SETTINGS_NEXT_STEP_MIRROR_IMPORT,
   SETTINGS_NEXT_STEP_MIRROR_REFRESH,
   SETTINGS_NEXT_STEP_MIRROR_STALE,
@@ -39,6 +40,12 @@ export function resolveSettingsOperatorNextStep(
   switch (card) {
     case "bridge":
       if (bridgePhase === "connected") return null;
+      if (
+        bridgePhase === "offline" &&
+        (!writeCapability || !writeCapability.dataRootConfigured || !writeCapability.sqlitePathConfigured)
+      ) {
+        return SETTINGS_NEXT_STEP_DESKTOP_SETUP;
+      }
       return SETTINGS_NEXT_STEP_BRIDGE;
     case "dataRoot":
       if (bridgePhase !== "connected" || !writeCapability) return null;

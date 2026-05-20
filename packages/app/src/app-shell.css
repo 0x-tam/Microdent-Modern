@@ -2458,6 +2458,64 @@
   color: var(--ui-status-danger, #b00020);
 }
 
+.app-settings__readiness {
+  margin-bottom: var(--ui-space-4);
+  padding: var(--ui-space-3) var(--ui-space-4);
+  border-radius: var(--ui-radius-sm, 6px);
+  background: var(--ui-bg-subtle, #f4f6f8);
+  border: 1px solid var(--ui-border-subtle, #dde1e6);
+}
+
+.app-settings__readiness-title {
+  margin: 0 0 var(--ui-space-2);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.app-settings__readiness-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app-settings__readiness-chip {
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.app-settings__readiness-chip--ok {
+  background: var(--ui-bg-success-subtle, #e8f5e9);
+  color: var(--ui-status-success, #1b5e20);
+}
+
+.app-settings__readiness-chip--warn {
+  background: var(--ui-bg-warning-subtle, #fff8e6);
+  color: var(--ui-status-warning, #9a6700);
+}
+
+.app-settings__readiness-chip--danger {
+  background: var(--ui-bg-danger-subtle, #fde8e8);
+  color: var(--ui-status-danger, #b00020);
+}
+
+.app-settings__readiness-chip--neutral {
+  background: var(--ui-bg-neutral-subtle, #eceff1);
+  color: var(--ui-text-secondary, #555);
+}
+
+.app-settings__cli-hint {
+  margin: var(--ui-space-2) 0 0;
+  font-size: 0.85rem;
+  color: var(--ui-text-secondary);
+  line-height: 1.45;
+}
+
 .app-settings__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));

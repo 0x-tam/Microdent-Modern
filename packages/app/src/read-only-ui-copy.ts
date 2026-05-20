@@ -357,6 +357,30 @@ export const SETTINGS_DESKTOP_BROWSER =
 export const SETTINGS_MIRROR_IMPORT_CLI =
   "Run safe import from the command line, then refresh status here.";
 
+/** Operator CLI block — placeholders only; no real paths. */
+export const SETTINGS_MIRROR_IMPORT_COMMAND =
+  "Set DATA_ROOT and SQLITE_PATH in PowerShell or bash, then run: pnpm mirror:import-safe (or pnpm --filter @microdent/sqlite-mirror run import-safe).";
+
+export const SETTINGS_PILOT_READINESS_TITLE = "Pilot readiness";
+
+export const SETTINGS_READINESS_READ_ONLY = "Read-only safe (writes off)";
+
+export const SETTINGS_READINESS_WRITES_ACTIVE = "Writes active — sandbox pilot only";
+
+export const SETTINGS_READINESS_MIRROR_ACTIVE = "Mirror active for search/schedule";
+
+export const SETTINGS_READINESS_MIRROR_STALE = "Mirror stale (>48h) — re-import recommended";
+
+export const SETTINGS_READINESS_MIRROR_FALLBACK = "Mirror unavailable — DBF fallback";
+
+export const SETTINGS_READINESS_MIRROR_UNKNOWN = "Mirror status unknown";
+
+export const SETTINGS_READINESS_SANDBOX_READY = "Sandbox pilot ready (marker + paths)";
+
+export const SETTINGS_READINESS_SANDBOX_NOT_READY = "Sandbox not ready for commits";
+
+export const SETTINGS_READINESS_BRIDGE_OFFLINE = "Clinic service offline — complete setup first";
+
 export const SETTINGS_ENABLED_NON_SANDBOX_BANNER_LABEL = "Writes enabled outside sandbox";
 
 export const SETTINGS_ENABLED_NON_SANDBOX_BANNER_BODY =
@@ -379,6 +403,9 @@ export const SETTINGS_NEXT_STEP_LABEL = "Next step";
 
 export const SETTINGS_NEXT_STEP_BRIDGE =
   "Start the clinic service (desktop app or bridge) and wait until Settings shows Connected.";
+
+export const SETTINGS_NEXT_STEP_DESKTOP_SETUP =
+  "Complete desktop first-run setup to configure DATA_ROOT and SQLITE_PATH before the clinic service can start.";
 
 export const SETTINGS_NEXT_STEP_DATA_ROOT =
   "Set DATA_ROOT in desktop setup or bridge env to your disposable Write-Sandbox DATA folder.";

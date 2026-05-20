@@ -55,6 +55,8 @@ describe("SettingsPanel", () => {
     expect(html).toContain("Offline");
     expect(html).toContain("Clinic service offline");
     expect(html).toContain("Connect the clinic service");
+    expect(html).toContain("Pilot readiness");
+    expect(html).toContain("Complete desktop first-run setup");
   });
 
   it("shows write mode chip and sandbox labels when connected", () => {
@@ -114,6 +116,7 @@ describe("SettingsPanel", () => {
     expect(html).toContain("No import runs recorded");
     expect(html).toContain("phase-4-mirror-import-operator.md");
     expect(html).toContain("Run safe import from the command line");
+    expect(html).toContain("pnpm mirror:import-safe");
   });
 
   it("does not render full DATA_ROOT paths in production markup", () => {
@@ -162,6 +165,19 @@ describe("SettingsPanel", () => {
     expect(html).toContain("Desktop app");
     expect(html).toContain("SQLite mirror");
     expect(html).toContain("Mirror import");
+  });
+
+  it("shows pilot readiness chips when connected", () => {
+    const html = renderToStaticMarkup(
+      <SettingsPanel
+        bridgePhase="connected"
+        writeCapability={writeCapBase}
+        mirrorStatus={mirrorWithRuns}
+        onMirrorStatusChange={() => {}}
+      />,
+    );
+    expect(html).toContain("Pilot readiness");
+    expect(html).toContain("Read-only safe");
   });
 
   it("shows masked path hints when connection diagnostics are enabled", () => {

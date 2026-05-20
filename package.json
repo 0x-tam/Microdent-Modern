@@ -22,7 +22,8 @@
     "legacy:backup-verify": "bash scripts/legacy-backup-verify.sh",
     "sandbox:validate": "pnpm --filter @microdent/bridge exec vitest run src/sandbox/sandbox-validation-band.test.ts",
     "sandbox:validate:real": "SANDBOX_VALIDATE_REAL=1 pnpm sandbox:validate",
-    "qa:sandbox": "bash scripts/qa-sandbox-run.sh"
+    "qa:sandbox": "bash scripts/qa-sandbox-run.sh",
+    "desktop:release-smoke": "pnpm --filter @microdent/desktop run release-smoke"
   },
   "engines": {
     "node": ">=18"

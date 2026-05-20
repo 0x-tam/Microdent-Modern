@@ -41,3 +41,19 @@
 
 - `pnpm qa:sandbox` proves writes via **DBF readback**, not mirror row queries.
 - Logs and docs: HTTP status, workflow, `operationId`, hash prefixes, backup basenames — no PHI or raw row bodies.
+
+## Pilot RC checklist (2026-05)
+
+Before treating a build as **Windows pilot RC**:
+
+- [ ] `pnpm --filter @microdent/desktop run release-smoke` passes
+- [ ] Desktop setup saves paths with `writeMode: disabled`; supervisor spawns Node `server.js` only
+- [ ] Settings **Pilot readiness** answers “safe to use?” without source access
+- [ ] Mirror import via CLI only — no in-app shell exec
+- [ ] `pnpm qa:sandbox` exit 0 with DBF readback for four workflows
+- [ ] Route inventory test: four PATCH/POST handlers; no DELETE/PUT write routes
+- [ ] Forbidden-token tests pass on touched UI (Settings, clinic read surfaces)
+- [ ] No `Microdent-Legacy` or production paths in `DATA_ROOT`
+- [ ] Docs: [windows-pilot-runbook.md](./windows-pilot-runbook.md), [phase-7-sandbox-pilot-qa-runbook.md](./phase-7-sandbox-pilot-qa-runbook.md)
+
+**Related pilot docs:** [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md), [phase-6-windows-mvp-operator-guide.md](./phase-6-windows-mvp-operator-guide.md), [windows-pilot-packaging-gap-report.md](./windows-pilot-packaging-gap-report.md).

@@ -82,6 +82,24 @@
         margin-top: 12px;
         min-height: 1.2em;
       }
+      .missing-checklist {
+        margin: 0 0 16px;
+        padding: 12px 14px;
+        background: #fff;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 13px;
+      }
+      .missing-checklist ul {
+        margin: 8px 0 0;
+        padding-left: 1.25rem;
+      }
+      .missing-checklist li.missing {
+        color: #b00020;
+      }
+      .missing-checklist li.ok {
+        color: #1b5e20;
+      }
     </style>
   </head>
   <body>
@@ -95,6 +113,10 @@
       contains spaces, quote it in manual PowerShell or CMD commands (for example
       <code>"C:\Microdent\My Sandbox\DATA"</code>).
     </p>
+    <div id="missingChecklist" class="missing-checklist" aria-live="polite" role="status">
+      <strong>Before you can save:</strong>
+      <ul id="missingList"></ul>
+    </div>
     <form id="form">
       <label for="dataRoot">DATA_ROOT (folder)</label>
       <input
@@ -213,6 +235,23 @@
         const sqliteOk = validateField("sqlitePath");
         const backupOk = validateField("backupDir");
         submitBtn.disabled = !(dataOk && sqliteOk && backupOk);
+        updateMissingChecklist(dataOk, sqliteOk, backupOk);
+      }
+
+      function updateMissingChecklist(dataOk, sqliteOk, backupOk) {
+        const list = document.getElementById("missingList");
+        list.innerHTML = "";
+        const items = [
+          { ok: dataOk, label: "DATA_ROOT — sandbox folder (required)" },
+          { ok: sqliteOk, label: "SQLITE_PATH — mirror SQLite file (required)" },
+          { ok: backupOk, label: "BACKUP_DIR — optional; required before sandbox commits" },
+        ];
+        for (const item of items) {
+          const li = document.createElement("li");
+          li.className = item.ok ? "ok" : "missing";
+          li.textContent = item.ok ? `✓ ${item.label}` : `✗ ${item.label}`;
+          list.appendChild(li);
+        }
       }
 
       const form = document.getElementById("form");

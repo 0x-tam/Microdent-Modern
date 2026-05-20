@@ -113,6 +113,9 @@ Not included: NSIS installer, code signing, auto-update.
 
 ```bash
 pnpm --filter @microdent/desktop run test
+pnpm --filter @microdent/desktop run release-smoke
 ```
+
+`release-smoke` builds dist, runs vitest, verifies dist artifacts, default `writeMode: disabled`, and that the supervisor targets `services/bridge/dist/server.js` only (no EXE/BAT).
 
 Covers default `writeMode`, platform config dirs, path validation (including `not_absolute`), setup payload, supervisor spawn argv (`server.js` only; no EXE/BAT), env (`WRITE_MODE=disabled`, `BACKUP_DIR` when set), and `uiUrl` resolution.

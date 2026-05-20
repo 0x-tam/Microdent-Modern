@@ -2,7 +2,7 @@
 
 Shell helpers for local development and sandbox operations.
 
-**Windows MVP (start here):** [docs/phase-6-windows-mvp-operator-guide.md](../docs/phase-6-windows-mvp-operator-guide.md). **Operator QA index:** [docs/phase-5-operator-qa-runbook.md](../docs/phase-5-operator-qa-runbook.md). **Script classification (full table):** [docs/phase-3-windows-readiness-audit.md](../docs/phase-3-windows-readiness-audit.md).
+**Windows MVP (start here):** [docs/phase-6-windows-mvp-operator-guide.md](../docs/phase-6-windows-mvp-operator-guide.md). **Pilot RC:** [docs/windows-pilot-runbook.md](../docs/windows-pilot-runbook.md). **Sandbox pilot QA:** [docs/phase-7-sandbox-pilot-qa-runbook.md](../docs/phase-7-sandbox-pilot-qa-runbook.md). **Operator QA index:** [docs/phase-5-operator-qa-runbook.md](../docs/phase-5-operator-qa-runbook.md). **Script classification (full table):** [docs/phase-3-windows-readiness-audit.md](../docs/phase-3-windows-readiness-audit.md).
 
 ## Hard rules
 
@@ -73,8 +73,9 @@ Operator flow: [docs/phase-6-windows-mvp-operator-guide.md](../docs/phase-6-wind
 | --- | --- | --- | --- |
 | `qa-sandbox-run.sh` | `qa:sandbox` | macOS-oriented bash (implemented) | Builds bridge; starts `node services/bridge/dist/server.js`; runs smoke |
 | `qa-sandbox-write-smoke.sh` | *(orchestrator / manual)* | macOS-oriented bash | Four workflows; backup/restore = **direct** `(cd services/bridge && node dist/cli/legacy-backup.js)` — **not** `pnpm legacy:backup` mid-smoke |
+| `qa-sandbox-pilot-checklist.sh` | *(print-only)* | Cross-platform bash | Ordered pilot steps — no execution; see [phase-7-sandbox-pilot-qa-runbook.md](../docs/phase-7-sandbox-pilot-qa-runbook.md) |
 
-**Pass criteria and env:** [docs/phase-5-operator-qa-runbook.md](../docs/phase-5-operator-qa-runbook.md) §3. Orchestrator detail: [docs/phase-3-sandbox-qa-runner.md](../docs/phase-3-sandbox-qa-runner.md). Windows without bash: [docs/phase-6-windows-mvp-operator-guide.md](../docs/phase-6-windows-mvp-operator-guide.md) §7.
+**Pass criteria and env:** [docs/phase-5-operator-qa-runbook.md](../docs/phase-5-operator-qa-runbook.md) §3. Orchestrator detail: [docs/phase-3-sandbox-qa-runner.md](../docs/phase-3-sandbox-qa-runner.md). Pilot sign-off: [docs/phase-7-sandbox-pilot-qa-runbook.md](../docs/phase-7-sandbox-pilot-qa-runbook.md). Windows without bash: [docs/phase-6-windows-mvp-operator-guide.md](../docs/phase-6-windows-mvp-operator-guide.md) §7.
 
 ---
 
@@ -97,6 +98,7 @@ Operator flow: [docs/phase-6-windows-mvp-operator-guide.md](../docs/phase-6-wind
 | `pnpm sandbox:validate` | Vitest band | Cross-platform Node | Fast sandbox rules |
 | `pnpm sandbox:validate:real` | Vitest + env | Cross-platform Node | Optional real-path band |
 | `pnpm qa:sandbox` | `scripts/qa-sandbox-run.sh` | macOS-oriented bash | Git Bash on Windows or manual §7 in phase-6 guide |
+| `pnpm desktop:release-smoke` | `@microdent/desktop` `release-smoke` | Cross-platform Node | Build + vitest + dist artifact checks |
 | `bash scripts/qa-sandbox-write-smoke.sh` | smoke only | macOS-oriented bash | Bridge must already be up |
 | `pnpm --filter @microdent/desktop run start` | Electron | Cross-platform Node | `%AppData%\Microdent\config.json` |
 | `node services/bridge/dist/server.js` | production bridge | Windows production-ready | Set env in PowerShell first |

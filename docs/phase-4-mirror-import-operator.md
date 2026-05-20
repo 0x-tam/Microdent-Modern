@@ -130,3 +130,18 @@ Example desktop paths (adjust for your clinic):
 - Do not trigger mirror import from the browser (no HTTP route).
 - Do not paste full error logs containing DBF row text into tickets.
 - Do not point `DATA_ROOT` at live production legacy trees.
+
+---
+
+## Windows pilot RC (Settings + CLI)
+
+For the release candidate pilot, operators use **CLI import only** — the app never runs shell commands.
+
+| Operator need | Where |
+| --- | --- |
+| Import command | Settings → Mirror import → CLI hint: `pnpm mirror:import-safe` after setting `DATA_ROOT` / `SQLITE_PATH` |
+| Refresh metadata | Settings → **Refresh status** (`GET /v1/mirror/status`) |
+| DBF vs mirror | Settings **Pilot readiness** + stale callout; [windows-pilot-runbook.md](./windows-pilot-runbook.md) |
+| Sandbox sign-off | [phase-7-sandbox-pilot-qa-runbook.md](./phase-7-sandbox-pilot-qa-runbook.md) |
+
+Re-import after sandbox writes is a **separate step** from restore/reset — see phase-7 runbook.
