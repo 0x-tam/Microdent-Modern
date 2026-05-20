@@ -154,4 +154,36 @@ Complete before IT receives a **release package** build with cryptographic manif
 | S11 | Scope doc reviewed with IT | This file + [pilot-acceptance-checklist.md](./pilot-acceptance-checklist.md) | ☐ |
 | S12 | Real Windows validation still required | [windows-pilot-real-machine-checklist.md](./windows-pilot-real-machine-checklist.md); dev dry-run is not clinic acceptance | ☐ |
 
-**Inventory body keys (never on pilot writes):** `rawRow`, `before`, `after`, plus payment/ledger/treatment/chart/medical/memo domain keys — enforced in `write-route-inventory.test.ts`.
+**Inventory body keys (never on pilot writes):** `rawRow`, `before`, `after`, plus payment/ledger/treatment/chart/medical/memo domain keys and camelCase PHI/payment keys (`address`, `email`, `insurance`, `medicalText`, `paymentAmount`) — enforced in `write-route-inventory.test.ts`.
+
+---
+
+## Artifact token-scan allowed examples
+
+`pnpm test:pilot-artifacts` and `pnpm pilot:verify-release` scan staged trees via [`scripts/pilot-release-artifact-rules.mjs`](../scripts/pilot-release-artifact-rules.mjs). **Docs and config-templates** may mention guardrail table names (`PAT_NAME`, `TELEPHONE`) and Windows **placeholder** paths. **Compiled trees** (`app/`, `bridge/`, `web/`) must not embed developer machine paths.
+
+| Context | Allowed | Forbidden in compiled output |
+| --- | --- | --- |
+| Desktop config convention | `%AppData%\Microdent\` | Concrete `C:\Users\…\AppData\…` paths |
+| Config templates (staged) | `C:\ClinicData\…`, `C:\Users\Public\MicrodentModern\…` | `/Users/…`, `/home/…`, repo checkout paths, `Microdent-Legacy`, `Microdent-Write-Sandbox` |
+| Temp / env | — | `~/`, `/tmp/`, `\Temp\`, `TMP=`, `TEMP=`, `process.env.TMP` / `TEMP` |
+| Logs placeholder | `logs/README.txt` only | Non-empty `logs/*.log` |
+
+Manifest JSON must not contain forbidden tokens listed in `FORBIDDEN_MANIFEST_STRINGS` (see artifact-rules module).
+
+---
+
+## Clinic pilot sign-off (portable handoff batch)
+
+Complete before clinic staff receive a **staged** `MicrodentModern/` folder. Developer initials each row after the gate passes; operator rows are for the field lead.
+
+| # | Gate | Artifact / command | Pass |
+| --- | --- | --- | --- |
+| C1 | First-click handoff | Staged package root **`PILOT-START-HERE.md`** (not only under `docs/`) points to [PILOT-HANDOFF-PACK.md](./PILOT-HANDOFF-PACK.md) | ☐ |
+| C2 | Manifest scope lock | `RELEASE-MANIFEST.json` includes **`unsupportedFeatures[]`** (payments, ledger writes, chart writes, in-app mirror import, installer) — no clinic PHI | ☐ |
+| C3 | Staged tree integrity | `pnpm pilot:verify-release` and `pnpm pilot:verify-manifest` exit 0 | ☐ |
+| C4 | Write route inventory | `pnpm --filter @microdent/bridge test src/write-safety/write-route-inventory.test.ts` — four routes; blocked body keys above | ☐ |
+| C5 | Strict release signoff | `pnpm pilot:release-signoff` prints **`PILOT RELEASE SIGNOFF: READY`** (not `BLOCKED`) with sandbox QA green | ☐ |
+| C6 | Real Windows field test | [windows-pilot-real-machine-checklist.md](./windows-pilot-real-machine-checklist.md) executed on a clinic PC — dev macOS checkpoint is not clinic acceptance | ☐ |
+
+**Clinic production readiness:** Portable sandbox handoff may be **READY** per C5; **clinic production** (live legacy writes, payments, chart edits) remains **out of scope** until C6 is complete.

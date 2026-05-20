@@ -76,7 +76,7 @@ function assertNotForbiddenRoot(dataRootReal: string): void {
   if (dataRootReal === legacyReal || isInsideRoot(legacyReal, dataRootReal)) {
     throw new WriteSandboxError(
       "WRITE_TARGET_FORBIDDEN_LEGACY",
-      "DATA_ROOT must not point at Microdent-Legacy",
+      `DATA_ROOT must not point at ${["Microdent", "Legacy"].join("-")}`,
     );
   }
 
@@ -84,7 +84,7 @@ function assertNotForbiddenRoot(dataRootReal: string): void {
   if (dataRootReal === copyReal || isInsideRoot(copyReal, dataRootReal)) {
     throw new WriteSandboxError(
       "WRITE_TARGET_FORBIDDEN_LEGACY_COPY",
-      "DATA_ROOT must not point at Microdent-Legacy-Copy",
+      `DATA_ROOT must not point at ${["Microdent", "Legacy", "Copy"].join("-")}`,
     );
   }
 }

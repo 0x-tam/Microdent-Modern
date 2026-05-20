@@ -22,7 +22,7 @@ if (!existsSync(stageRoot)) {
 try {
   const manifest = await verifyManifestHashes(stageRoot);
   console.log(
-    `[verify-pilot-manifest] OK — ${manifest.fileCount} files verified (app ${manifest.appVersion}, commit ${manifest.gitCommit})`,
+    `[verify-pilot-manifest] OK — ${manifest.fileCount} files verified (app ${manifest.appVersion}, package ${manifest.packageVersion}, channel ${manifest.releaseChannel}, commit ${manifest.gitCommit})`,
   );
 } catch (err) {
   fail(err instanceof Error ? err.message : String(err));

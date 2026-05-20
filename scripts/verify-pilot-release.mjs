@@ -8,9 +8,9 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   assertConfigTemplateSafe,
-  assertStagedTreeSafe,
   FORBIDDEN_SUPERVISOR_PATTERNS,
   REQUIRED_STAGED_LAYOUT,
+  scanStagedArtifacts,
 } from "./pilot-release-artifact-rules.mjs";
 import { verifyManifestHashes } from "./pilot-release-manifest.mjs";
 
@@ -33,7 +33,7 @@ for (const rel of REQUIRED_STAGED_LAYOUT) {
 }
 
 try {
-  assertStagedTreeSafe(stageRoot);
+  scanStagedArtifacts(stageRoot);
 } catch (err) {
   fail(err instanceof Error ? err.message : String(err));
 }

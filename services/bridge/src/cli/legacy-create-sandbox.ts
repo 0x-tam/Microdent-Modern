@@ -10,11 +10,11 @@ function printEnvHelp(missing: ("SOURCE_DATA_ROOT" | "SANDBOX_ROOT")[]): void {
   console.error("");
   console.error("Example:");
   console.error('  export SOURCE_DATA_ROOT="/absolute/path/to/read-only/DATA-copy"');
-  console.error('  export SANDBOX_ROOT="/absolute/path/to/Microdent-Write-Sandbox"');
+  console.error('  export SANDBOX_ROOT="/absolute/path/to/your-disposable-write-sandbox"');
   console.error("  pnpm legacy:create-sandbox");
   console.error("");
-  console.error("Never point SOURCE_DATA_ROOT at production Microdent-Legacy.");
-  console.error("Never place SANDBOX_ROOT inside Microdent-Legacy or Microdent-Legacy-Copy.");
+  console.error("Never point SOURCE_DATA_ROOT at the production legacy DATA tree.");
+  console.error("Never place SANDBOX_ROOT inside production legacy or legacy-copy folders.");
 }
 
 async function main(): Promise<void> {

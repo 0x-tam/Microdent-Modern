@@ -1,6 +1,6 @@
 import { createBridgeClient } from "@microdent/bridge-client";
 import type { BridgeDevStatusResponse, MirrorStatusResponse } from "@microdent/contracts";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Badge, Button, Card, CardBody, CardHeader } from "@microdent/ui";
 import type { BridgeHealthPhase } from "./bridge-health.js";
 import { isMirrorImportStale } from "./mirror-stale.js";
@@ -32,6 +32,14 @@ import {
   SETTINGS_PILOT_READINESS_TITLE,
   SETTINGS_PILOT_CHECKLIST_TITLE,
   SETTINGS_PILOT_SECTION,
+  SETTINGS_PILOT_BUILD_APP_VERSION,
+  SETTINGS_PILOT_BUILD_BUILT,
+  SETTINGS_PILOT_BUILD_CHANNEL,
+  SETTINGS_PILOT_BUILD_COMMIT,
+  SETTINGS_PILOT_BUILD_LOADING,
+  SETTINGS_PILOT_BUILD_PACKAGE_VERSION,
+  SETTINGS_PILOT_BUILD_SECTION,
+  SETTINGS_PILOT_BUILD_UNAVAILABLE,
   SETTINGS_PANEL_LEDE,
   SETTINGS_SANDBOX_PILOT_OFF,
   SETTINGS_SANDBOX_PILOT_ON,
@@ -39,6 +47,10 @@ import {
   SETTINGS_SQLITE_MIRROR_SECTION,
   SETTINGS_WRITE_SECTION,
 } from "./read-only-ui-copy.js";
+import {
+  resolvePilotBuildMetadata,
+  type PilotBuildMetadata,
+} from "./pilot-build-metadata.js";
 import {
   resolveBackupConfiguredStatus,
   resolveDataRootConfiguredStatus,
@@ -122,6 +134,18 @@ function showDevPathHints(showConnectionDiagnostics: boolean): boolean {
   return import.meta.env.DEV && showConnectionDiagnostics;
 }
 
+function formatBuildTimestamp(iso: string): string {
+  if (!iso.trim()) return "—";
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+
 type SettingsNextStepProps = {
   card: SettingsCardKey;
   bridgePhase: BridgeHealthPhase;
@@ -160,6 +184,17 @@ export function SettingsPanel({
 }: SettingsPanelProps) {
   const [mirrorRefreshing, setMirrorRefreshing] = useState(false);
   const [mirrorRefreshError, setMirrorRefreshError] = useState(false);
+  const [pilotBuild, setPilotBuild] = useState<PilotBuildMetadata | null | undefined>(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+    void resolvePilotBuildMetadata(fetchImpl).then((metadata) => {
+      if (!cancelled) setPilotBuild(metadata);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchImpl]);
 
   const writeChip = resolveWriteModeChip(writeCapability);
   const dataRootStatus = resolveDataRootConfiguredStatus(writeCapability);
@@ -348,6 +383,37 @@ export function SettingsPanel({
               {sandboxWritePilot ? SETTINGS_SANDBOX_PILOT_ON : SETTINGS_SANDBOX_PILOT_OFF}
             </p>
             <SettingsNextStep card="pilot" {...{ bridgePhase, writeCapability, mirrorStatus, sandboxWritePilot }} />
+          </CardBody>
+        </Card>
+
+        <Card className="app-settings__card">
+          <CardHeader>
+            <h3>{SETTINGS_PILOT_BUILD_SECTION}</h3>
+          </CardHeader>
+          <CardBody>
+            {pilotBuild === undefined ? (
+              <p className="app-settings__muted">{SETTINGS_PILOT_BUILD_LOADING}</p>
+            ) : pilotBuild === null ? (
+              <p className="app-settings__muted">{SETTINGS_PILOT_BUILD_UNAVAILABLE}</p>
+            ) : (
+              <ul className="app-settings__facts">
+                <li>
+                  {SETTINGS_PILOT_BUILD_PACKAGE_VERSION}: {pilotBuild.packageVersion}
+                </li>
+                <li>
+                  {SETTINGS_PILOT_BUILD_APP_VERSION}: {pilotBuild.appVersion}
+                </li>
+                <li>
+                  {SETTINGS_PILOT_BUILD_COMMIT}: {pilotBuild.gitCommit}
+                </li>
+                <li>
+                  {SETTINGS_PILOT_BUILD_CHANNEL}: {pilotBuild.releaseChannel}
+                </li>
+                <li>
+                  {SETTINGS_PILOT_BUILD_BUILT}: {formatBuildTimestamp(pilotBuild.buildTimestampUtc)}
+                </li>
+              </ul>
+            )}
           </CardBody>
         </Card>
 

@@ -106,5 +106,6 @@ describe("validateSetupPayload", () => {
     expect(summary).toMatch(/PILOT-HANDOFF-PACK/i);
     expect(summary).toMatch(/mirror import/i);
     expect(summary).toMatch(/legacy/i);
+    expect(summary).toMatch(/disabled/i);
   });
 });

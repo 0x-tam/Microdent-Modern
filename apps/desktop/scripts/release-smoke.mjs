@@ -143,6 +143,11 @@ if (process.env.PILOT_STAGED_RELEASE === "1") {
   if (!existsSync(join(STAGE_ROOT, "web/index.html"))) {
     fail("PILOT_STAGED_RELEASE=1 missing web/index.html at package root");
   }
+  for (const rel of ["app/dist/runtime-install-root.js", "app/dist/startup-failure.js"]) {
+    if (!existsSync(join(STAGE_ROOT, rel))) {
+      fail(`PILOT_STAGED_RELEASE=1 missing staged desktop artifact: ${rel}`);
+    }
+  }
   const stagedSupervisor = readFileSync(join(STAGE_ROOT, "app/dist/bridge-supervisor.js"), "utf8");
   assertSupervisorResolvesInstallRoot(stagedSupervisor, "staged bridge-supervisor", { packaged: true });
   assertSupervisorSpawnArgv(stagedSupervisor, "staged bridge-supervisor");

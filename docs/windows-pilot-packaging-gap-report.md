@@ -8,7 +8,11 @@
 
 **Field test matrix:** [windows-pilot-real-machine-checklist.md](./windows-pilot-real-machine-checklist.md) — each scenario marked **dev dry-run** vs **requires Windows PC** (synthetic paths only).
 
-**Related:** [phase-3-desktop-packaging-plan.md](./phase-3-desktop-packaging-plan.md), [windows-pilot-runbook.md](./windows-pilot-runbook.md), [PILOT-START-HERE.md](./PILOT-START-HERE.md), [apps/desktop/README.md](../apps/desktop/README.md).
+**Installer decision:** [windows-pilot-installer-decision-record.md](./windows-pilot-installer-decision-record.md) — portable zip for pilot RC; NSIS + signing as next phase (no installer dep in this batch).
+
+**Issue reporting:** [pilot-issue-template.md](./pilot-issue-template.md) — PHI-safe template with manifest `packageVersion`.
+
+**Related:** [phase-3-desktop-packaging-plan.md](./phase-3-desktop-packaging-plan.md), [windows-pilot-runbook.md](./windows-pilot-runbook.md), [PILOT-START-HERE.md](./PILOT-START-HERE.md), [PILOT-HANDOFF-PACK.md](./PILOT-HANDOFF-PACK.md), [apps/desktop/README.md](../apps/desktop/README.md).
 
 ---
 
@@ -45,11 +49,13 @@
 
 ## Installer / signing / auto-update gaps
 
+**Decision record:** [windows-pilot-installer-decision-record.md](./windows-pilot-installer-decision-record.md) — **recommendation: portable zip now**; NSIS via electron-builder spike after real-Windows field sign-off.
+
 From [phase-3-desktop-packaging-plan.md](./phase-3-desktop-packaging-plan.md) — **still planning only**:
 
 | Capability | Status |
 | --- | --- |
-| NSIS / MSI installer | **Not implemented** |
+| NSIS / MSI installer | **Not implemented** — see decision record D1–D4 |
 | Code signing (Authenticode) | **Not implemented** |
 | Auto-update feed | **Not implemented** |
 | Bundled Node 22 for bridge child | **Not implemented** — uses system `node.exe` |
@@ -76,10 +82,11 @@ Per-scenario **dev dry-run** vs **requires Windows PC** markers: [windows-pilot-
 
 ## Recommended next batch
 
-1. Configure `origin` + Windows CI running `pnpm test`, `build:web`, `qa:sandbox`.
-2. Electron-builder / NSIS spike (still no new write domains).
-3. Shared `@microdent/operator-path` for desktop + web path masking.
-4. Cross-platform `qa-sandbox-run.mjs` (replace bash-only orchestrator on Windows).
+1. Execute [windows-pilot-real-machine-checklist.md](./windows-pilot-real-machine-checklist.md) on a clinic PC; file issues with [pilot-issue-template.md](./pilot-issue-template.md).
+2. NSIS spike per [windows-pilot-installer-decision-record.md](./windows-pilot-installer-decision-record.md) (document before adding `electron-builder`).
+3. Configure `origin` + Windows CI running `pnpm test`, `build:web`, `qa:sandbox`.
+4. Shared `@microdent/operator-path` for desktop + web path masking.
+5. Cross-platform `qa-sandbox-run.mjs` (replace bash-only orchestrator on Windows).
 
 ---
 

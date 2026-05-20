@@ -295,6 +295,8 @@ for (const name of [
   "pilot-acceptance-checklist.md",
   "pilot-backup-restore-audit.md",
   "out-of-scope-guardrails.md",
+  "pilot-issue-template.md",
+  "windows-pilot-installer-decision-record.md",
   "windows-pilot-real-machine-checklist.md",
   "windows-pilot-data-locations.md",
   "windows-pilot-release-layout.md",
@@ -377,17 +379,38 @@ writePlaceholderDir("backups", [
 
 writeHandoffReadme();
 
-try {
-  assertStagedTreeSafe(stageRoot);
-} catch (err) {
-  fail(err instanceof Error ? err.message : String(err));
-}
+writeFileSync(
+  join(stageRoot, "PILOT-START-HERE.md"),
+  [
+    "# Microdent Modern — pilot start",
+    "",
+    "1. Open **docs/PILOT-HANDOFF-PACK.md** for the full tester walkthrough.",
+    "2. Verify package integrity on the build machine: `pnpm pilot:verify-manifest` (hash check on RELEASE-MANIFEST.json).",
+    "3. **Safety:** This folder has no clinic DBF, mirror SQLite, backups, or `.env` secrets. Sandbox writes require explicit operator setup.",
+    "",
+    "Full index: docs/PILOT-START-HERE.md",
+    "",
+  ].join("\n"),
+  "utf8",
+);
+
+writePlaceholderDir("qa-runs", [
+  "QA run reports (dev/CI only — not shipped with clinic data).",
+  "",
+  "Field logs and signoff reports belong in the repo checkout qa-runs/, not inside the IT handoff package.",
+]);
 
 const buildTimestampUtc = new Date().toISOString();
 try {
   await generateReleaseManifest(stageRoot, { repoRoot, buildTimestampUtc });
 } catch (err) {
   fail(`manifest generation failed: ${err instanceof Error ? err.message : String(err)}`);
+}
+
+try {
+  assertStagedTreeSafe(stageRoot);
+} catch (err) {
+  fail(err instanceof Error ? err.message : String(err));
 }
 
 const counts = countTree(stageRoot);

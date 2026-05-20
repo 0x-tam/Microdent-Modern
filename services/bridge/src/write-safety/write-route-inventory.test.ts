@@ -76,6 +76,15 @@ const FORBIDDEN_DOMAIN_BODY_KEYS = [
   "MEMO",
 ] as const;
 
+/** PHI / payment camelCase keys — never on any pilot write route (strict Zod). */
+const FORBIDDEN_PII_BODY_KEYS = [
+  "address",
+  "email",
+  "insurance",
+  "medicalText",
+  "paymentAmount",
+] as const;
+
 const ALLOWED_TIME_MOVE_BODY = {
   date: "2026-06-01",
   time: "10:00",
@@ -398,6 +407,73 @@ describe("write route inventory", () => {
     "rejects out-of-scope domain body key %s on patient demographics PATCH (strict schema)",
     async (field) => {
       const tmp = mkdtempSync(join(tmpdir(), `inventory-demo-domain-${field}-`));
+      try {
+        await writeScheduleFixtures(tmp);
+        writeSandboxMarker(tmp);
+        const app = createBridgeApp("v-inventory-demo", {
+          bridgeConfig: {
+            listen: { host: "127.0.0.1", port: 0 },
+            dataRoot: { configured: true, path: tmp },
+            writeMode: "enabled",
+            backupDir: { configured: true, path: join(tmp, "backups") },
+          },
+        });
+        await withHttpServer(app, async (port) => {
+          vi.stubEnv("ALLOW_LEGACY_WRITES", "I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY");
+          const res = await patchDemographics(port, "90001", { [field]: "blocked" });
+          expect(res.status).toBe(400);
+          const json = (await res.json()) as { error?: { code?: string } };
+          expect(json.error?.code).toBe("INVALID_REQUEST_BODY");
+        });
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.each(FORBIDDEN_PII_BODY_KEYS)(
+    "rejects PHI/payment body key %s on time-move PATCH (strict schema)",
+    async (field) => {
+      await withEnabledSandboxServer({ prefix: `inventory-pii-time-${field}-` }, async ({ port }) => {
+        vi.stubEnv("ALLOW_LEGACY_WRITES", "I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY");
+        const res = await patchTimeMove(port, "1001", { [field]: "blocked" });
+        expect(res.status).toBe(400);
+        const json = (await res.json()) as { error?: { code?: string } };
+        expect(json.error?.code).toBe("INVALID_REQUEST_BODY");
+      });
+    },
+  );
+
+  it.each(FORBIDDEN_PII_BODY_KEYS)(
+    "rejects PHI/payment body key %s on appointment create POST (strict schema)",
+    async (field) => {
+      await withEnabledSandboxServer({ prefix: `inventory-pii-create-${field}-` }, async ({ port }) => {
+        vi.stubEnv("ALLOW_LEGACY_WRITES", "I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY");
+        const res = await postCreate(port, { [field]: "blocked" });
+        expect(res.status).toBe(400);
+        const json = (await res.json()) as { error?: { code?: string } };
+        expect(json.error?.code).toBe("INVALID_REQUEST_BODY");
+      });
+    },
+  );
+
+  it.each(FORBIDDEN_PII_BODY_KEYS)(
+    "rejects PHI/payment body key %s on status PATCH (strict schema)",
+    async (field) => {
+      await withEnabledSandboxServer({ prefix: `inventory-pii-status-${field}-` }, async ({ port }) => {
+        vi.stubEnv("ALLOW_LEGACY_WRITES", "I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY");
+        const res = await patchStatus(port, "1001", { [field]: "blocked" });
+        expect(res.status).toBe(400);
+        const json = (await res.json()) as { error?: { code?: string } };
+        expect(json.error?.code).toBe("INVALID_REQUEST_BODY");
+      });
+    },
+  );
+
+  it.each(FORBIDDEN_PII_BODY_KEYS)(
+    "rejects PHI/payment body key %s on patient demographics PATCH (strict schema)",
+    async (field) => {
+      const tmp = mkdtempSync(join(tmpdir(), `inventory-demo-pii-${field}-`));
       try {
         await writeScheduleFixtures(tmp);
         writeSandboxMarker(tmp);

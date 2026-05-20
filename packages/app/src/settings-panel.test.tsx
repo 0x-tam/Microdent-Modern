@@ -182,4 +182,18 @@ describe("SettingsPanel", () => {
     expect(html).toContain("Desktop app");
     expect(html).toMatch(/browser|desktop/i);
   });
+
+  it("renders pilot build card section", () => {
+    const html = renderToStaticMarkup(
+      <SettingsPanel
+        bridgePhase="connected"
+        writeCapability={writeCapBase}
+        mirrorStatus={mirrorEmpty}
+        onMirrorStatusChange={() => {}}
+      />,
+    );
+    expect(html).toContain("Pilot build");
+    expect(html).toContain("Loading build metadata");
+    assertNoForbiddenDomTokens(html);
+  });
 });

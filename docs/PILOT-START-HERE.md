@@ -50,7 +50,8 @@ Open the app → **Settings** → **Pilot readiness** strip and checklist show w
 | `pnpm pilot-checkpoint` | Dev quick | `pnpm test` + `build:web` + desktop release-smoke — **no** stage/verify/sandbox |
 | `pnpm pilot:full-checkpoint` | Dev | Test + web + optional sandbox QA + desktop smoke — **no** stage/verify |
 | `pnpm pilot:distribution-checkpoint` | Dev distribution | Test, build, stage, verify, staged smoke — **warns** when sandbox skipped |
-| `pnpm pilot:release-signoff` | **Strict signoff** | Full test/build/stage/verify/manifest/smoke + **requires** sandbox env paths |
+| `pnpm pilot:release-check` | **Dev only** | Alias to distribution checkpoint with loud **not signoff** banner |
+| `pnpm pilot:release-signoff` | **Strict signoff** | Full test/build/stage/verify/manifest/smoke + **requires** sandbox env paths — prints `READY` or `BLOCKED` |
 | `pnpm test:pilot-artifacts` | Dev | Synthetic good/bad staged trees + manifest round-trip |
 | `pnpm pilot:verify-manifest` | Dev/build | Hash check on `RELEASE-MANIFEST.json` only |
 
@@ -106,7 +107,8 @@ pnpm --filter @microdent/desktop run release-smoke
 | `pnpm test:pilot-artifacts` | Artifact safety + manifest fixtures |
 | `pnpm qa:sandbox` | Four write workflows + DBF readback (needs env above) |
 | `pnpm pilot:distribution-checkpoint` | Distribution RC: test, build, stage, verify, staged smoke |
-| `pnpm pilot:release-signoff` | **Strict** — same as distribution + manifest + requires sandbox |
+| `pnpm pilot:release-check` | **Dev only** — same as distribution checkpoint (not strict signoff) |
+| `pnpm pilot:release-signoff` | **Strict** — same as distribution + manifest + requires sandbox; prints `READY` or `BLOCKED` |
 | `pnpm pilot:full-checkpoint` | Test + web + optional sandbox QA + desktop smoke (no stage) |
 
 Script index: [scripts/README.md](../scripts/README.md).

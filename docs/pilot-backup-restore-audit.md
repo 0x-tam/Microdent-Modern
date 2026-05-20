@@ -62,18 +62,42 @@ No paths, patient names, phones, or row bodies appear in these lines. **Status-u
 
 Configure **BACKUP_DIR** in desktop setup or bridge env before enabling commits.
 
+### Backup manifest (basename only)
+
+Backup verify lists **backup ids and table basenames only** — never full filesystem paths or row payloads.
+
+| Field in verify output | Safe to capture in tickets |
+| --- | --- |
+| Backup id / timestamp label | Yes |
+| Table basename (e.g. `SCHEDULE`) | Yes |
+| Full `BACKUP_DIR` path | No — use “configured” / “missing” only |
+| DBF row contents | Never |
+
+Command: `pnpm --filter @microdent/bridge run legacy-backup-verify` (or root `pnpm legacy:backup-verify` on bash hosts).
+
 ---
 
-## Restore (sandbox only)
+## Restore (sandbox pilot only)
 
 | Step | Command |
 | --- | --- |
-| List backups | `pnpm legacy:backup-verify` or bridge `legacy-backup-verify` |
-| Restore disposable copy | `pnpm legacy:restore` with backup id env |
+| List backups | `pnpm --filter @microdent/bridge run legacy-backup-verify` |
+| Restore disposable copy | `pnpm --filter @microdent/bridge run legacy-restore` |
 
-Restore targets **Write-Sandbox DATA only** — never production legacy trees.
+Restore targets **Write-Sandbox DATA only** — never production legacy trees. The in-app restore hint repeats this; UI never shows paths.
 
 After restore, re-run mirror import if search/schedule must match DBF again.
+
+---
+
+## Failed-write playbook (sandbox)
+
+| Symptom | Operator action |
+| --- | --- |
+| Commit failed / HTTP error | Keep **operation id** from write feedback; note audit terminal status |
+| Uncertain whether DBF changed | Run **legacy-restore** on sandbox DATA only, then re-import mirror |
+| Backup line said “not created” | Do not assume rollback — verify with backup-verify before restore |
+| Restore CLI unavailable | Stop writes; escalate with operation id — no DBF attachments |
 
 ---
 

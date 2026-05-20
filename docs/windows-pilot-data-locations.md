@@ -19,7 +19,7 @@ Canonical source: `apps/desktop/src/operator-data-locations.ts` (tests in `opera
 | DATA_ROOT | `C:\ClinicData\Microdent\DATA` | **Implemented** | Validated in setup; disposable sandbox only |
 | SQLITE_PATH | `C:\Users\Public\MicrodentModern\mirror\clinic.sqlite` | **Implemented** | Validated in setup; outside install |
 | BACKUP_DIR | `C:\Users\Public\MicrodentModern\backups` | **Implemented** | Optional at setup; required before commits |
-| Operator logs | `%AppData%\Microdent\logs\` | **Documented only** | Convention — desktop does not auto-create |
+| Operator logs | `%AppData%\Microdent\logs\` | **Documented only** | `logsDir()` helper — desktop does not auto-create |
 | QA reports (`qa-runs/`) | Repo dev folder | **Documented only** | Dev/CI only — not shipped to clinic PCs |
 
 ---
@@ -60,7 +60,7 @@ Staged layout: [windows-pilot-release-layout.md](./windows-pilot-release-layout.
 | Item | Path | Notes |
 | --- | --- | --- |
 | **Config file** | `%AppData%\Microdent\config.json` | Written by first-run setup; reopen via desktop **Re-open setup** |
-| **Logs (convention)** | `%AppData%\Microdent\logs\` | **Documented** for pilot RC — desktop does **not** auto-create this folder today |
+| **Logs (convention)** | `%AppData%\Microdent\logs\` | **Documented** — use `logsDir()` / `recommendedOperatorLogDir()` in desktop code; desktop does **not** auto-create this folder today |
 | **Bridge console** | Terminal that launched desktop | stdout/stderr only; no PHI in scripted logs |
 
 Config stores **absolute paths** to Layer 3 folders. It does not embed clinic file contents.

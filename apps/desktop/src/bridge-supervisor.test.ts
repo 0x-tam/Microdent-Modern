@@ -108,6 +108,7 @@ describe("BridgeSupervisor spawn env", () => {
     expect(args).toEqual([join("/tmp/microdent-repo", "services", "bridge", "dist", "server.js")]);
     expect(env.WRITE_MODE).toBe("disabled");
     expect(env.ALLOW_LEGACY_WRITES).toBeUndefined();
+    expect(Object.keys(env)).not.toContain("ALLOW_LEGACY_WRITES");
     assertNoForbiddenPaths(env);
     vi.unstubAllEnvs();
   });

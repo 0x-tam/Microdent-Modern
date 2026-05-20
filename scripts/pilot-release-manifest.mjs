@@ -16,8 +16,47 @@ import { spawnSync } from "node:child_process";
 import { FORBIDDEN_MANIFEST_STRINGS } from "./pilot-release-artifact-rules.mjs";
 
 const MANIFEST_NAME = "RELEASE-MANIFEST.json";
+const PILOT_BUILD_JSON = "web/pilot-build.json";
 const SCHEMA_VERSION = 1;
 const PACKAGE_NAME = "MicrodentModern";
+const RELEASE_CHANNEL = "pilot";
+
+/** Static scope lock — mirrored in handoff docs; no clinic PHI. */
+export const UNSUPPORTED_FEATURES = [
+  "payments",
+  "ledger writes",
+  "chart writes",
+  "in-app mirror import",
+  "installer",
+];
+
+export function resolvePackageVersion(buildTimestampUtc) {
+  const d = new Date(buildTimestampUtc ?? Date.now());
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  return `pilot-${yyyy}-${mm}-${dd}`;
+}
+
+export function buildPilotBuildMetadata(manifest) {
+  const commit = manifest.gitCommit ?? "unknown";
+  return {
+    appVersion: manifest.appVersion,
+    packageVersion: manifest.packageVersion,
+    gitCommit: commit.length > 7 ? commit.slice(0, 7) : commit,
+    buildTimestampUtc: manifest.buildTimestampUtc,
+    releaseChannel: manifest.releaseChannel,
+  };
+}
+
+export function writePilotBuildJson(stageRoot, manifest) {
+  const subset = buildPilotBuildMetadata(manifest);
+  const json = `${JSON.stringify(subset, null, 2)}\n`;
+  assertManifestJsonSafe(json);
+  const dest = join(stageRoot, PILOT_BUILD_JSON);
+  writeFileSync(dest, json, "utf8");
+  return dest;
+}
 
 export function resolveGitCommit(repoRoot) {
   const result = spawnSync("git", ["rev-parse", "HEAD"], {
@@ -87,20 +126,28 @@ export function assertManifestJsonSafe(manifestText) {
  * @param {{ repoRoot: string, buildTimestampUtc?: string }} options
  */
 export async function generateReleaseManifest(stageRoot, { repoRoot, buildTimestampUtc }) {
-  const files = await collectFiles(stageRoot);
-  const manifest = {
+  const buildTs = buildTimestampUtc ?? new Date().toISOString();
+  const manifestCore = {
     schemaVersion: SCHEMA_VERSION,
     packageName: PACKAGE_NAME,
     appVersion: readAppVersion(repoRoot),
-    buildTimestampUtc: buildTimestampUtc ?? new Date().toISOString(),
+    packageVersion: resolvePackageVersion(buildTs),
+    releaseChannel: RELEASE_CHANNEL,
+    unsupportedFeatures: [...UNSUPPORTED_FEATURES],
+    buildTimestampUtc: buildTs,
     gitCommit: resolveGitCommit(repoRoot),
-    fileCount: files.length,
-    files,
     safetyNotes: [
       "Hashes cover file bytes only; buildTimestampUtc is not part of hash verification.",
       "Package must not contain clinic DATA, sqlite mirrors, backups, logs, or .env secrets.",
       "Operator paths are configured outside this install tree.",
     ],
+  };
+  writePilotBuildJson(stageRoot, manifestCore);
+  const files = await collectFiles(stageRoot);
+  const manifest = {
+    ...manifestCore,
+    fileCount: files.length,
+    files,
   };
   const json = `${JSON.stringify(manifest, null, 2)}\n`;
   assertManifestJsonSafe(json);
@@ -122,6 +169,12 @@ export async function verifyManifestHashes(stageRoot) {
   }
   if (manifest.packageName !== PACKAGE_NAME) {
     throw new Error(`unexpected packageName: ${manifest.packageName}`);
+  }
+  if (manifest.releaseChannel !== RELEASE_CHANNEL) {
+    throw new Error(`unexpected releaseChannel: ${manifest.releaseChannel}`);
+  }
+  if (!Array.isArray(manifest.unsupportedFeatures) || manifest.unsupportedFeatures.length === 0) {
+    throw new Error("manifest unsupportedFeatures missing or empty");
   }
   const files = await collectFiles(stageRoot);
   const liveByPath = new Map(files.map((f) => [f.path, f]));

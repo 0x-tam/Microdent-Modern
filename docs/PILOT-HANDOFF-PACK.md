@@ -4,9 +4,46 @@
 
 **Audience:** IT, clinic operators, pilot testers.
 
-**Start here on clinic machines:** open this file in the staged `docs/` folder after extract.
+**Start here on clinic machines:** open **`PILOT-START-HERE.md`** at the package root, then this file in `docs/`.
 
-**Quick index:** [PILOT-START-HERE.md](./PILOT-START-HERE.md) · [windows-pilot-data-locations.md](./windows-pilot-data-locations.md) · [pilot-acceptance-checklist.md](./pilot-acceptance-checklist.md)
+**Quick index:** [PILOT-START-HERE.md](./PILOT-START-HERE.md) · [windows-pilot-data-locations.md](./windows-pilot-data-locations.md) · [pilot-acceptance-checklist.md](./pilot-acceptance-checklist.md) · [pilot-issue-template.md](./pilot-issue-template.md)
+
+---
+
+## What this package is / is not
+
+| This **is** | This **is not** |
+| --- | --- |
+| A portable Windows pilot handoff (compiled app, bridge, web UI) | An NSIS/MSI installer or signed auto-update product |
+| Read-only clinic viewer over a copied sandbox DATA + SQLite mirror | Production write access to live Microdent-Legacy |
+| Four sandbox write workflows when IT explicitly enables them | Payments, ledger, chart, medical summary, or memo writes |
+| CLI mirror import + desktop setup for paths | In-app mirror import or write-mode toggle |
+| Hash-verified `RELEASE-MANIFEST.json` for IT integrity checks | Clinic DBF, sqlite, backups, logs, or `.env` secrets in the zip |
+
+**Unsupported in this pilot RC** (also listed in `RELEASE-MANIFEST.json` → `unsupportedFeatures`): payments, ledger writes, chart writes, in-app mirror import, installer.
+
+Installer path forward: [windows-pilot-installer-decision-record.md](./windows-pilot-installer-decision-record.md).
+
+---
+
+## Launch flow (operator)
+
+```mermaid
+flowchart TD
+  unzip[Unzip MicrodentModern] --> start[PILOT-START-HERE.md]
+  start --> handoff[docs/PILOT-HANDOFF-PACK.md]
+  handoff --> node[Install Node 22]
+  node --> launch[Launch desktop from app/]
+  launch --> setup[First-run setup paths]
+  setup --> mirror[CLI mirror import]
+  mirror --> readonly[Read-only QA Today/Patients/Schedule]
+  readonly --> sandbox{Sandbox pilot approved?}
+  sandbox -->|yes| writes[Sandbox writes + backup/restore]
+  sandbox -->|no| done[Read-only pilot complete]
+  writes --> feedback[Issue template — no PHI]
+```
+
+**Safety warnings:** Never point DATA_ROOT at live legacy. Keep mirror, backups, and DATA outside the install folder. Do not attach patient data to support tickets — use [pilot-issue-template.md](./pilot-issue-template.md).
 
 ---
 
@@ -143,11 +180,11 @@ More: [PILOT-START-HERE.md § Troubleshooting](./PILOT-START-HERE.md#troubleshoo
 
 ## 10 — Feedback (no PHI)
 
-Use the issue template in [pilot-tester-guide.md](./pilot-tester-guide.md#issue-report-template).
+Use **[pilot-issue-template.md](./pilot-issue-template.md)** — copy fields into your internal tracker.
 
 | Include | Do not attach |
 | --- | --- |
-| Build/commit hash | DBF files or sqlite |
+| `packageVersion` from `RELEASE-MANIFEST.json` | DBF files or sqlite |
 | Checklist section / screen name | Patient names or phones |
 | `operationId` for write issues | Full config paths in public tickets |
 
@@ -162,5 +199,7 @@ IT sign-off: [pilot-acceptance-checklist.md](./pilot-acceptance-checklist.md).
 | [PILOT-START-HERE.md](./PILOT-START-HERE.md) | One-page index and validation commands |
 | [pilot-tester-guide.md](./pilot-tester-guide.md) | Guided day 1–3 script |
 | [windows-pilot-real-machine-checklist.md](./windows-pilot-real-machine-checklist.md) | Field test matrix (dev vs Windows PC) |
+| [pilot-issue-template.md](./pilot-issue-template.md) | Safe issue reporting (no PHI) |
+| [windows-pilot-installer-decision-record.md](./windows-pilot-installer-decision-record.md) | Portable vs installer next phase |
 | [pilot-backup-restore-audit.md](./pilot-backup-restore-audit.md) | Backup/restore + UI feedback |
 | [windows-pilot-data-locations.md](./windows-pilot-data-locations.md) | Install vs AppData vs clinic paths |

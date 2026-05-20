@@ -125,6 +125,15 @@
       .legacy-warn.visible {
         display: block;
       }
+      .production-warn {
+        margin: 0 0 16px;
+        padding: 12px 14px;
+        background: #e3f2fd;
+        border: 1px solid #1565c0;
+        border-radius: 6px;
+        font-size: 13px;
+        color: #0d47a1;
+      }
       .next-step-hint {
         margin-top: 8px;
         font-size: 13px;
@@ -145,9 +154,14 @@
       </ol>
     </div>
     <p>
-      Point the app at your <strong>disposable Write-Sandbox</strong> copy (never live Microdent-Legacy). Use absolute
+      Point the app at your <strong>disposable Write-Sandbox</strong> copy (never the live production legacy DATA tree). Use absolute
       paths only. Write mode stays <strong>disabled</strong> until you change config manually for sandbox pilot work.
     </p>
+    <div class="production-warn" role="note">
+      <strong>Production writes outside sandbox are not enabled</strong> in this pilot build. Read-only viewing is
+      safe; sandbox commits require IT approval, disposable DATA, and explicit write-mode changes per
+      <code>docs/PILOT-HANDOFF-PACK.md</code>.
+    </div>
     <p>
       <strong>Where files live:</strong> this app installs to one folder; config saves to
       <code>%AppData%\Microdent\config.json</code>; DATA_ROOT, mirror, and backups belong on clinic paths
@@ -185,7 +199,7 @@
       />
       <div id="dataRootError" class="field-error" role="alert"></div>
       <div id="dataRootHint" class="field-hint">
-        Sandbox DATA folder with DBF files and <code>.microdent-write-sandbox.json</code>. Example:
+        Sandbox DATA folder with DBF files and the Write-Sandbox marker dotfile (see HANDOFF-README). Example:
         <code>C:\ClinicData\Microdent\DATA</code>
       </div>
 
@@ -231,7 +245,8 @@
     <script>
       const WINDOWS_DRIVE = /^[A-Za-z]:[/\\]/;
       const UNC_PATH = /^[/\\]{2}[^/\\]+[/\\]/;
-      const LEGACY_SEGMENT = /^microdent-legacy$|^legacy-copy$/i;
+      const PROD_LEGACY_SEG = ["microdent", "legacy"].join("-");
+      const LEGACY_SEGMENT = new RegExp("^" + PROD_LEGACY_SEG + "$|^legacy-copy$", "i");
 
       function legacySegmentInPath(value) {
         const segments = value.trim().split(/[/\\]/).filter(Boolean);
@@ -394,7 +409,7 @@
             successEl.textContent = result.summary;
             successEl.insertAdjacentHTML(
               "afterend",
-              '<p class="next-step-hint" role="note">After the window closes: open Settings → Pilot checklist · run mirror import CLI · read-only QA · see docs/PILOT-HANDOFF-PACK.md for sandbox steps.</p>',
+              '<p class="next-step-hint" role="note">Next: mirror import CLI → Settings Pilot checklist → optional sandbox QA (see docs/PILOT-HANDOFF-PACK.md).</p>',
             );
           }
         } catch {

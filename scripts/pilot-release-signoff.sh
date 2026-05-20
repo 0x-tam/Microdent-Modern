@@ -2,6 +2,8 @@
 # Strict release signoff — fails when sandbox env or paths are missing.
 # PHI-safe: does not print DATA_ROOT paths or row payloads.
 #
+# Requires write access to BACKUP_DIR — EPERM on backup mkdir = not signoff-ready (not a product bug).
+#
 # Required sandbox env:
 #   export DATA_ROOT="/path/to/Microdent-Write-Sandbox/DATA"
 #   export SQLITE_PATH="/path/to/MICRODENT_MIRROR_SANDBOX.sqlite"
@@ -11,20 +13,35 @@
 #   bash scripts/pilot-release-signoff.sh
 #   pnpm pilot:release-signoff
 #
-# For dev iteration without sandbox: use pnpm pilot:distribution-checkpoint (warns when sandbox skipped).
+# For dev iteration without sandbox: use pnpm pilot:release-check (warns when sandbox skipped).
 
-set -euo pipefail
+set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
+TOTAL_SECTIONS=8
+SECTION=0
+BLOCKED_REASONS=()
+
 log() { echo "[pilot-release-signoff] $*"; }
-fail() { echo "[pilot-release-signoff] FAIL: $*" >&2; exit 1; }
+fail_env() { echo "[pilot-release-signoff] FAIL: $*" >&2; exit 1; }
+
+section() {
+  SECTION=$((SECTION + 1))
+  echo ""
+  echo "========== [${SECTION}/${TOTAL_SECTIONS}] $* =========="
+}
+
+block() {
+  BLOCKED_REASONS+=("$1")
+  echo "[pilot-release-signoff] BLOCKED: $1" >&2
+}
 
 require_env() {
   local name="$1"
   if [[ -z "${!name:-}" ]]; then
-    fail "${name} is unset — strict signoff requires sandbox env (see scripts/pilot-release-signoff.sh header)"
+    fail_env "${name} is unset — sandbox QA not signoff-ready (see scripts/pilot-release-signoff.sh header)"
   fi
 }
 
@@ -32,7 +49,7 @@ require_path() {
   local label="$1"
   local value="$2"
   if [[ ! -e "${value}" ]]; then
-    fail "${label} path missing on disk — strict signoff cannot run qa:sandbox"
+    fail_env "${label} path missing on disk — sandbox QA not signoff-ready"
   fi
 }
 
@@ -46,36 +63,66 @@ require_path DATA_ROOT "${DATA_ROOT}"
 require_path SQLITE_PATH "${SQLITE_PATH}"
 require_path BACKUP_DIR "${BACKUP_DIR}"
 
-log "pnpm test"
-pnpm test
+section "Tests (pnpm test)"
+if ! pnpm test; then
+  block "pnpm test failed"
+fi
 
-log "pnpm test:pilot-artifacts"
-pnpm test:pilot-artifacts
+section "Pilot artifact tests (pnpm test:pilot-artifacts)"
+if ! pnpm test:pilot-artifacts; then
+  block "pnpm test:pilot-artifacts failed"
+fi
 
-log "pnpm build:web"
-pnpm build:web
+section "Web build (pnpm build:web)"
+if ! pnpm build:web; then
+  block "pnpm build:web failed"
+fi
 
-log "bridge + desktop build"
-pnpm --filter @microdent/bridge run build
-pnpm --filter @microdent/desktop run build
+section "Bridge + desktop build"
+if ! pnpm --filter @microdent/bridge run build; then
+  block "bridge build failed"
+fi
+if ! pnpm --filter @microdent/desktop run build; then
+  block "desktop build failed"
+fi
 
-log "pnpm stage:pilot-release"
-pnpm stage:pilot-release
+section "Stage pilot release (pnpm stage:pilot-release)"
+if ! pnpm stage:pilot-release; then
+  block "pnpm stage:pilot-release failed"
+fi
 
-log "pnpm pilot:verify-release"
-pnpm pilot:verify-release
+section "Verify release + manifest"
+if ! pnpm pilot:verify-release; then
+  block "pnpm pilot:verify-release failed"
+fi
+if ! pnpm pilot:verify-manifest; then
+  block "pnpm pilot:verify-manifest failed"
+fi
 
-log "pnpm pilot:verify-manifest"
-pnpm pilot:verify-manifest
+section "Desktop test + release-smoke"
+if ! pnpm --filter @microdent/desktop run test; then
+  block "desktop tests failed"
+fi
+if ! pnpm --filter @microdent/desktop run release-smoke; then
+  block "desktop release-smoke failed"
+fi
+if ! PILOT_STAGED_RELEASE=1 pnpm --filter @microdent/desktop run release-smoke; then
+  block "staged release-smoke (PILOT_STAGED_RELEASE=1) failed"
+fi
 
-log "desktop test + release-smoke"
-pnpm --filter @microdent/desktop run test
-pnpm --filter @microdent/desktop run release-smoke
+section "Sandbox QA (pnpm qa:sandbox)"
+if ! pnpm qa:sandbox; then
+  block "pnpm qa:sandbox failed — check BACKUP_DIR is writable (EPERM = not signoff-ready)"
+fi
 
-log "staged release-smoke (PILOT_STAGED_RELEASE=1)"
-PILOT_STAGED_RELEASE=1 pnpm --filter @microdent/desktop run release-smoke
+echo ""
+if [[ ${#BLOCKED_REASONS[@]} -eq 0 ]]; then
+  echo "PILOT RELEASE SIGNOFF: READY"
+  exit 0
+fi
 
-log "pnpm qa:sandbox (strict — sandbox env verified)"
-pnpm qa:sandbox
-
-log "pilot-release-signoff complete — release signoff ready"
+echo "PILOT RELEASE SIGNOFF: BLOCKED"
+for reason in "${BLOCKED_REASONS[@]}"; do
+  echo "  - ${reason}"
+done
+exit 1

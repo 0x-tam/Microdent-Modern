@@ -6,7 +6,23 @@
 
 **Examples:** Synthetic paths and clinic names only — no real patient data, DBF contents, or production legacy trees.
 
-**Index:** [PILOT-START-HERE.md](./PILOT-START-HERE.md) · [windows-pilot-packaging-gap-report.md](./windows-pilot-packaging-gap-report.md) · [windows-dev-dry-run.md](./windows-dev-dry-run.md)
+**Index:** [PILOT-START-HERE.md](./PILOT-START-HERE.md) · [pilot-issue-template.md](./pilot-issue-template.md) · [windows-pilot-packaging-gap-report.md](./windows-pilot-packaging-gap-report.md) · [windows-dev-dry-run.md](./windows-dev-dry-run.md)
+
+---
+
+## Package unpack location (IT)
+
+Use **synthetic** examples only when recording field results.
+
+| Rule | Rationale |
+| --- | --- |
+| Extract to a **local fixed drive** | e.g. `C:\Microdent\MicrodentModern\` — survives reboot; IT can permission the folder |
+| **Avoid** temp-only extract (`%TEMP%`, Downloads cleanup) | Windows may purge or lock paths; upgrades are harder to find |
+| **Do not** put DATA_ROOT, mirror sqlite, backups, or logs inside the install folder | Reinstall/upgrade must not delete clinic sandbox data — see [windows-pilot-data-locations.md](./windows-pilot-data-locations.md) |
+| Confirm `RELEASE-MANIFEST.json` and `HANDOFF-README.txt` at package root after extract | Build machine should have run `pnpm pilot:verify-release` before zip handoff |
+| Read `packageVersion` from manifest for support tickets | PHI-safe build id — not patient data |
+
+**Staged copy:** `pnpm stage:pilot-release` already includes this checklist in `MicrodentModern/docs/`; add `pilot-issue-template.md` to the staging docs list per [PILOT-HANDOFF-PACK.md](./PILOT-HANDOFF-PACK.md) §10.
 
 ---
 
@@ -18,6 +34,8 @@
 | **Requires Windows PC** | Must be executed on a clinic Windows 10/11 machine with operator profile, AV, and real `%AppData%` behavior |
 
 Record pass/fail in the **Field execution log** at the bottom. Do not paste PHI, real DBF paths, or live `config.json` into shared tickets.
+
+For defects or blockers, copy [pilot-issue-template.md](./pilot-issue-template.md) — redaction rules and manifest `packageVersion` fields are defined there.
 
 ---
 
@@ -167,9 +185,23 @@ Runbook: [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md).
 
 ---
 
+## Issue reporting (field test)
+
+When a **Requires Windows PC** row fails:
+
+1. Note checklist **section #** and row (e.g. `2.3 Spaced path in DATA_ROOT`) — no patient context.
+2. Open [pilot-issue-template.md](./pilot-issue-template.md) and fill **Environment**, **Steps**, **Expected vs actual**, and **Diagnostics** using sandbox paths only.
+3. Set **Package version** from `RELEASE-MANIFEST.json` → `packageVersion` (and `releaseChannel` if present).
+4. File internally or in `qa-runs/` — filename example: `qa-runs/2026-05-24-windows-field-log-EXAMPLE.md` (fictional machine id).
+5. Do **not** attach DBF, sqlite, screenshots with patient names, or full `%AppData%\Microdent\config.json`.
+
+Escalation index: [PILOT-START-HERE.md § Issue report template](./PILOT-START-HERE.md#issue-report-template-no-phi).
+
+---
+
 ## Field execution log (synthetic template)
 
-Copy to `qa-runs/` after field testing. Use fictional machine and clinic identifiers only.
+Copy to `qa-runs/` after field testing. Use fictional machine and clinic identifiers only. For structured defects, prefer [pilot-issue-template.md](./pilot-issue-template.md).
 
 ```markdown
 # Windows pilot field log — EXAMPLE ONLY
@@ -209,8 +241,11 @@ Copy to `qa-runs/` after field testing. Use fictional machine and clinic identif
 
 | Doc | Use when |
 | --- | --- |
+| [pilot-issue-template.md](./pilot-issue-template.md) | PHI-safe defect report (manifest version, redaction rules) |
 | [windows-dev-dry-run.md](./windows-dev-dry-run.md) | Build-machine checkpoint before shipping zip |
 | [windows-pilot-data-locations.md](./windows-pilot-data-locations.md) | Layer 1/2/3 path rules |
 | [pilot-acceptance-checklist.md](./pilot-acceptance-checklist.md) | IT formal sign-off |
 | [windows-pilot-packaging-gap-report.md](./windows-pilot-packaging-gap-report.md) | Installer and automation gaps |
+| [windows-pilot-installer-decision-record.md](./windows-pilot-installer-decision-record.md) | Portable vs NSIS/MSI next phase |
 | [PILOT-START-HERE.md](./PILOT-START-HERE.md) | Operator numbered flow |
+| [PILOT-HANDOFF-PACK.md](./PILOT-HANDOFF-PACK.md) | Staged package operator journey |

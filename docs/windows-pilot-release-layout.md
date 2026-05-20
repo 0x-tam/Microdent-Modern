@@ -13,16 +13,18 @@ Node script [`scripts/stage-pilot-release.mjs`](../scripts/stage-pilot-release.m
 ```
 dist/pilot-release/
 └── MicrodentModern/
+    ├── PILOT-START-HERE.md     # First-click pointer → docs/PILOT-HANDOFF-PACK.md
     ├── HANDOFF-README.txt      # IT install + validation steps (PHI-safe)
     ├── HANDOFF-README.md       # Markdown handoff (same content, operator-friendly)
     ├── RELEASE-MANIFEST.json   # Content SHA-256 manifest (no paths/secrets in JSON)
     ├── app/                    # Electron desktop dist + minimal package.json
     │   └── dist/
     ├── bridge/                 # services/bridge/dist (compiled JS only)
-    ├── web/                    # apps/web/dist (static UI)
+    ├── web/                    # apps/web/dist (static UI) + pilot-build.json metadata
     ├── config-templates/       # placeholders only (no real clinic paths)
     ├── docs/                   # pilot index copies (no PHI)
     ├── scripts/                # operator pointers (README + mirror-import-pointer)
+    ├── qa-runs/                # README.txt placeholder — dev/CI reports only
     ├── logs/                   # README.txt placeholder — no runtime logs
     ├── mirror/                 # README.txt placeholder — no sqlite shipped
     └── backups/                # README.txt placeholder — no backup data
@@ -74,7 +76,9 @@ Shared rules live in [`scripts/pilot-release-artifact-rules.mjs`](../scripts/pil
 - **Filters** during copy: `.env`, `.log`, `.sqlite`, `.fpt`, `.cdx`, `.exe`, `.bat`, `.cmd`, real `.dbf` (except test `fake_tiny.dbf` in bridge source build)
 - **Fails** if a source path segment matches Legacy / Write-Sandbox / Legacy-Copy
 - **Post-scan** staged tree via shared artifact rules
-- Emits **`RELEASE-MANIFEST.json`** with per-file SHA-256 (timestamp is metadata only — not hashed)
+- Emits **`RELEASE-MANIFEST.json`** with per-file SHA-256 (`packageVersion`, `releaseChannel`, `unsupportedFeatures[]`; timestamp is metadata only — not hashed)
+- Writes **`web/pilot-build.json`** (safe build metadata subset for Settings — no paths)
+- Emits root **`PILOT-START-HERE.md`** and **`qa-runs/README.txt`** placeholder
 - Logs **counts only** (no paths, no PHI)
 
 **No new npm packaging dependencies** — Node stdlib `fs` / `path` / `crypto` only (root `vitest` is dev-only for artifact tests).
@@ -102,7 +106,7 @@ Supervisor invariant: staged `bridge-supervisor.js` must `spawn(node, [bridgeEnt
 | `pnpm desktop:release-smoke` | Dev tree dist + supervisor invariants |
 | `PILOT_STAGED_RELEASE=1 pnpm desktop:release-smoke` | Staged `MicrodentModern/` supervisor argv |
 | `pnpm stage:pilot-release` (alias `pnpm pilot:stage-release`) | Clean staged tree + manifest |
-| `pnpm pilot:verify-release` | Layout + artifact rules + manifest hashes |
+| `pnpm pilot:verify-release` | Layout + `scanStagedArtifacts` (compiled path leaks, logs/) + manifest hashes |
 | `pnpm pilot:verify-manifest` | Manifest hash check only |
 
 ---

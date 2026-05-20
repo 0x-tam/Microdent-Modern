@@ -124,9 +124,9 @@ Reference: [out-of-scope-guardrails.md](./out-of-scope-guardrails.md) · [phase-
 | # | Check | Pass |
 | --- | --- | --- |
 | 6.1 | Write feedback shows backup created (or dry-run shows N/A) — metadata only | ☐ |
-| 6.1a | Restore hint in write feedback understood — sandbox DATA only | ☐ |
-| 6.2 | Operator knows `pnpm legacy:restore` / phase-7 restore steps | ☐ |
-| 6.2a | Operator ran `legacy-backup-verify` at least once on sandbox copy | ☐ |
+| 6.1a | Restore hint + sandbox-only note in write feedback understood | ☐ |
+| 6.2 | Operator knows restore CLI (`legacy-restore`) on sandbox DATA only | ☐ |
+| 6.2a | Operator ran `legacy-backup-verify` at least once — backup ids basename-only | ☐ |
 | 6.3 | Test restore on **sandbox copy only** — not production legacy | ☐ |
 | 6.4 | After restore, mirror re-import if search/schedule must match DBF again | ☐ |
 | 6.5 | Audit line in write feedback understood (terminal status, operation id) | ☐ |

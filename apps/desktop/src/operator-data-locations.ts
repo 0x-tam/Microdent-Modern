@@ -66,7 +66,7 @@ export function resolveOperatorDataLocations(): OperatorDataLocationSpec[] {
       shippedInPackage: false,
       mustStayOutsideInstall: true,
       containsClinicData: true,
-      notes: "Disposable Write-Sandbox DBF tree. Never live Microdent-Legacy.",
+      notes: "Disposable Write-Sandbox DBF tree. Never the live production legacy DATA tree.",
     },
     {
       id: "sqlitePath",
@@ -124,6 +124,11 @@ export function resolveOperatorDataLocations(): OperatorDataLocationSpec[] {
 /** Documented log folder — convention only; no runtime mkdir in pilot RC. */
 export function recommendedOperatorLogDir(): string {
   return join(desktopConfigDir(), "logs");
+}
+
+/** Alias for logsDir convention (%AppData%\\Microdent\\logs\\ on Windows). */
+export function logsDir(): string {
+  return recommendedOperatorLogDir();
 }
 
 export function operatorConfigFilePath(): string {

@@ -11,8 +11,8 @@ function printEnvHelp(missing: ("BACKUP_MANIFEST" | "DATA_ROOT")[]): void {
   console.error('  export DATA_ROOT="/absolute/path/to/disposable/DATA"');
   console.error("  pnpm legacy:restore");
   console.error("");
-  console.error("DATA_ROOT must be a disposable write sandbox (.microdent-write-sandbox.json).");
-  console.error("Never point DATA_ROOT at Microdent-Legacy or Microdent-Legacy-Copy.");
+  console.error("DATA_ROOT must be a disposable write sandbox (the Write-Sandbox marker dotfile).");
+  console.error("Never point DATA_ROOT at production legacy or legacy-copy folders.");
 }
 
 function formatError(e: unknown): string {

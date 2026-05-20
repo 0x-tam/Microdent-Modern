@@ -102,7 +102,8 @@ Operator flow: [docs/phase-6-windows-mvp-operator-guide.md](../docs/phase-6-wind
 | `pnpm pilot-checkpoint` | test + `build:web` + `desktop:release-smoke` | Cross-platform Node | Quick handoff gate — **does not** run `qa:sandbox` |
 | `pnpm pilot:full-checkpoint` | `scripts/pilot-full-checkpoint.sh` | Cross-platform bash | Test + web + optional `qa:sandbox` + desktop smoke — **no** stage/verify |
 | `pnpm pilot:distribution-checkpoint` | `scripts/pilot-distribution-checkpoint.sh` | Cross-platform bash | Distribution RC: test, build, stage, verify, `PILOT_STAGED_RELEASE=1` smoke; **warns** when sandbox skipped |
-| `pnpm pilot:release-signoff` | `scripts/pilot-release-signoff.sh` | Cross-platform bash | **Strict** signoff: test, artifacts, build, stage, verify, manifest, smoke, **requires** sandbox env + paths |
+| `pnpm pilot:release-check` | `scripts/pilot-release-check.sh` | Cross-platform bash | **Dev only** — distribution checkpoint with loud not-signoff banner |
+| `pnpm pilot:release-signoff` | `scripts/pilot-release-signoff.sh` | Cross-platform bash | **Strict** signoff: 8 sections, sandbox required, prints `PILOT RELEASE SIGNOFF: READY` or `BLOCKED` |
 | `pnpm pilot:stage-release` | alias → `stage:pilot-release` | Cross-platform Node | Same as `pnpm stage:pilot-release` |
 | `pnpm stage:pilot-release` | `scripts/stage-pilot-release.mjs` | Cross-platform Node | Stage `dist/pilot-release/` from dist artifacts only |
 | `pnpm pilot:verify-release` | `scripts/verify-pilot-release.mjs` | Cross-platform Node | Validate staged layout + sensitive-file guards + manifest |

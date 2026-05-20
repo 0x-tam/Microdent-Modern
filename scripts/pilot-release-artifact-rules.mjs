@@ -2,7 +2,7 @@
  * Shared pilot release artifact safety rules (stage + verify).
  * PHI-safe: no file contents logged by callers.
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, join, relative } from "node:path";
 
 /** Path segment names that must never appear in staged or source trees. */
@@ -62,6 +62,28 @@ export const FORBIDDEN_MANIFEST_STRINGS = [
 
 const DOC_TOKEN_SCAN_REL_PREFIXES = ["docs/", "config-templates/"];
 
+const COMPILED_SCAN_PREFIXES = ["app/dist/", "bridge/", "web/"];
+
+/** Placeholder strings allowed in compiled setup HTML / dist (see out-of-scope-guardrails.md). */
+const ALLOWED_COMPILED_PATH_EXAMPLES = [
+  "%AppData%\\Microdent\\config.json",
+  "%AppData%\\Microdent\\logs\\",
+  "C:\\\\ClinicData\\\\Microdent\\\\DATA",
+  "C:\\\\Users\\\\Public\\\\MicrodentModern\\\\",
+];
+
+const FORBIDDEN_COMPILED_PATH_PATTERNS = [
+  { pattern: /\/Users\//, label: "/Users/" },
+  { pattern: /\/home\//i, label: "/home/" },
+  { pattern: /Microdent-Legacy/i, label: "Microdent-Legacy" },
+  { pattern: /Microdent-Write-Sandbox/i, label: "Microdent-Write-Sandbox" },
+  { pattern: /Microdent-Modern/i, label: "Microdent-Modern" },
+  { pattern: /\/tmp\//i, label: "/tmp/" },
+  { pattern: /\\Temp\\/i, label: "\\Temp\\" },
+  { pattern: /\bTMP=/i, label: "TMP=" },
+  { pattern: /\bTEMP=/i, label: "TEMP=" },
+];
+
 /** Sample-data patterns in docs/templates — not guardrail table mentions. */
 const FORBIDDEN_DOC_SAMPLE_PATTERNS = [
   /LEAKED\s+SCHEDULE\s+PAT_NAME/i,
@@ -95,6 +117,28 @@ export function assertConfigTemplateSafe(content, label) {
   for (const pattern of FORBIDDEN_CONFIG_PATH_PATTERNS) {
     if (pattern.test(content)) {
       throw new Error(`${label} contains forbidden path reference: ${pattern}`);
+    }
+  }
+}
+
+export function assertCompiledArtifactTextSafe(content, relPath) {
+  const normalized = relPath.replace(/\\/g, "/");
+  const inCompiledTree = COMPILED_SCAN_PREFIXES.some((prefix) =>
+    normalized.startsWith(prefix),
+  );
+  if (!inCompiledTree) {
+    return;
+  }
+  if (!/\.(js|mjs|cjs|html)$/i.test(normalized)) {
+    return;
+  }
+  let scrubbed = content;
+  for (const allowed of ALLOWED_COMPILED_PATH_EXAMPLES) {
+    scrubbed = scrubbed.split(allowed).join("");
+  }
+  for (const { pattern, label } of FORBIDDEN_COMPILED_PATH_PATTERNS) {
+    if (pattern.test(scrubbed)) {
+      throw new Error(`${relPath} contains forbidden compiled path literal: ${label}`);
     }
   }
 }
@@ -158,6 +202,16 @@ export function walkStagedArtifactRules(stageRoot, { onFail, readText = true }) 
         onFail(rel, "forbidden file name or extension");
         continue;
       }
+      if (rel.startsWith("logs/") && /\.log$/i.test(entry.name)) {
+        try {
+          if (statSync(abs).size > 0) {
+            onFail(rel, "non-empty log file under logs/");
+          }
+        } catch {
+          onFail(rel, "unreadable log file under logs/");
+        }
+        continue;
+      }
       if (readText && /\.(md|json|env|txt)$/i.test(entry.name)) {
         try {
           const content = readFileSync(abs, "utf8");
@@ -177,12 +231,28 @@ export function walkStagedArtifactRules(stageRoot, { onFail, readText = true }) 
           onFail(rel, "unreadable text file for safety scan");
         }
       }
+      if (readText && /\.(js|mjs|cjs|html)$/i.test(entry.name)) {
+        try {
+          const content = readFileSync(abs, "utf8");
+          try {
+            assertCompiledArtifactTextSafe(content, rel);
+          } catch (err) {
+            onFail(rel, err.message);
+          }
+        } catch {
+          onFail(rel, "unreadable compiled artifact for path scan");
+        }
+      }
     }
   }
   walk(stageRoot);
 }
 
-export function assertStagedTreeSafe(stageRoot) {
+/**
+ * Full staged-tree safety scan (layout walk + compiled path leaks + logs/).
+ * @param {string} stageRoot - MicrodentModern root
+ */
+export function scanStagedArtifacts(stageRoot) {
   const violations = [];
   walkStagedArtifactRules(stageRoot, {
     onFail: (rel, reason) => violations.push({ rel, reason }),
@@ -193,21 +263,30 @@ export function assertStagedTreeSafe(stageRoot) {
   }
 }
 
+export function assertStagedTreeSafe(stageRoot) {
+  scanStagedArtifacts(stageRoot);
+}
+
 export const REQUIRED_STAGED_LAYOUT = [
+  "PILOT-START-HERE.md",
   "HANDOFF-README.txt",
   "HANDOFF-README.md",
+  "qa-runs/README.txt",
   "app/dist/main.js",
   "app/dist/bridge-supervisor.js",
   "app/dist/setup/setup.html",
   "app/package.json",
   "bridge/server.js",
   "web/index.html",
+  "web/pilot-build.json",
   "config-templates/config.example.json",
   "config-templates/paths.example.env",
   "docs/PILOT-START-HERE.md",
   "docs/PILOT-HANDOFF-PACK.md",
   "docs/pilot-backup-restore-audit.md",
   "docs/out-of-scope-guardrails.md",
+  "docs/pilot-issue-template.md",
+  "docs/windows-pilot-installer-decision-record.md",
   "docs/windows-pilot-real-machine-checklist.md",
   "docs/phase-4-mirror-import-operator.md",
   "scripts/README.txt",

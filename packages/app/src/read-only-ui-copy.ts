@@ -50,23 +50,39 @@ export const PATIENT_CHANGE_PATIENT_LABEL = "Search another patient";
 export const PATIENT_NO_SELECTION_DESCRIPTION =
   "Search below or in the top bar, pick a row when the clinic service is connected, and this area will open their record.";
 
+export const PATIENT_PROFILE_LOADING = "Loading profile…";
+
+export const PATIENT_PROFILE_WAITING_TITLE = "Waiting for the clinic service";
+
 export const PATIENT_TAB_SUMMARY_LEDE =
   "Safe demographics from your copied patient file. Addresses, coverage details, and clinical notes stay hidden.";
 
 export const PATIENT_TAB_APPOINTMENTS_LEDE =
   "Appointment history is read-only. Schedule note text and unlisted patient fields stay hidden.";
 
+export const PATIENT_TAB_LOADING_APPOINTMENTS = "Loading appointment history…";
+
 export const PATIENT_TAB_MEDICAL_LEDE =
   "Medical summary is read-only. Detailed notes and allergy text stay hidden.";
+
+export const PATIENT_TAB_LOADING_MEDICAL = "Loading medical summary…";
 
 export const PATIENT_TAB_TREATMENTS_LEDE =
   "Procedure history is read-only. Memos, per-line descriptions, and fees stay hidden.";
 
+export const PATIENT_TAB_LOADING_TREATMENTS = "Loading treatments…";
+
+export const PATIENT_TAB_OFFLINE_TREATMENTS = "Connect the bridge to load treatment history.";
+
 export const PATIENT_TAB_CHART_LEDE =
   "Dental chart is read-only. Chart memos and clinical labels stay hidden.";
 
+export const PATIENT_TAB_LOADING_CHART = "Loading dental chart…";
+
 export const PATIENT_TAB_LEDGER_LEDE =
   "Ledger lines are read-only. Amounts, memo text, and insurance identifiers stay hidden.";
+
+export const PATIENT_TAB_LOADING_LEDGER = "Loading ledger preview…";
 
 export const SENSITIVE_MEDICAL_BANNER =
   "This patient has medical details on file in the legacy system. Sensitive fields are hidden in this read-only viewer.";
@@ -84,15 +100,6 @@ export const TODAY_LOADING = "Loading today's schedule from your clinic copy…"
 
 export const TODAY_NEXT_LOADING = "Loading next appointment…";
 
-export const TODAY_EMPTY_TITLE = "No appointments today";
-
-export const TODAY_EMPTY_DESCRIPTION =
-  "Today's list is clear. Open the full schedule to check other days, or search for a patient.";
-
-export const TODAY_OPEN_SCHEDULE = "Open schedule";
-
-export const TODAY_SEARCH_PATIENT = "Search patient";
-
 export const TODAY_NEXT_OFFLINE =
   "Connect the clinic service to see the next appointment on today's copy.";
 
@@ -101,6 +108,14 @@ export const TODAY_NEXT_NO_UPCOMING = "No upcoming appointments on the schedule 
 export const TODAY_REMINDERS_EMPTY =
   "No reminders in this read-only viewer. Connect the clinic service and use Schedule or Patients for live data from your copy.";
 
+export const TODAY_EMPTY_TITLE = "No appointments today";
+
+export const TODAY_EMPTY_DESCRIPTION =
+  "Today's list is clear. Open the full schedule to check other days, or search for a patient.";
+
+export const TODAY_OPEN_SCHEDULE = "Open schedule";
+
+export const TODAY_SEARCH_PATIENT = "Search patient";
 
 export const TODAY_QUICK_ACTIONS_LEDE = "Front-desk shortcuts when the clinic service is connected.";
 
@@ -112,7 +127,6 @@ export const PATIENT_SEARCH_OFFLINE_BANNER =
   "Patient search needs the clinic service. Connect the bridge and wait until the top bar shows Connected.";
 
 export const PATIENT_SEARCH_OFFLINE_STATUS = "Connect the clinic service to search patients.";
-
 
 export const PATIENT_SEARCH_IDLE = "Type a name or chart number (at least 2 characters).";
 
@@ -142,28 +156,6 @@ export const SCHEDULE_NAV_NEXT_WEEK = "Next week";
 export const SCHEDULE_LOADING = "Loading schedule from your clinic copy…";
 
 export const READONLY_STATE_RETRY = "Retry";
-
-export const PATIENT_PROFILE_LOADING = "Loading profile…";
-
-export const PATIENT_PROFILE_WAITING_TITLE = "Waiting for the clinic service";
-
-export const PATIENT_TAB_LOADING_APPOINTMENTS = "Loading appointment history…";
-
-export const PATIENT_TAB_LOADING_MEDICAL = "Loading medical summary…";
-
-export const PATIENT_TAB_LOADING_TREATMENTS = "Loading treatments…";
-
-export const PATIENT_TAB_LOADING_CHART = "Loading dental chart…";
-
-export const PATIENT_TAB_LOADING_LEDGER = "Loading ledger preview…";
-
-export const PATIENT_TAB_OFFLINE_TREATMENTS = "Connect the bridge to load treatment history.";
-
-export const PATIENT_SANDBOX_DEMOGRAPHICS_TITLE = "Sandbox demographics (pilot)";
-
-export const PATIENT_DEMOGRAPHICS_DOCTOR_ID_HINT =
-  "Numeric doctor id from the profile only — no names from clinic data.";
-
 
 export const SCHEDULE_EMPTY_TITLE = "No appointments in this range";
 
@@ -228,6 +220,11 @@ export const SCHEDULE_SANDBOX_WRITE_PILOT_BANNER =
 
 export const APPOINTMENT_WRITE_ACTIONS_SUMMARY = "Sandbox write";
 
+export const PATIENT_SANDBOX_DEMOGRAPHICS_TITLE = "Sandbox demographics (pilot)";
+
+export const PATIENT_DEMOGRAPHICS_DOCTOR_ID_HINT =
+  "Numeric doctor id from the profile only — no names from clinic data.";
+
 export const APPOINTMENT_WRITE_TAB_STATUS = "Change status";
 
 export const APPOINTMENT_WRITE_TAB_MOVE = "Move time/room";
@@ -261,7 +258,10 @@ export const WRITE_AUDIT_UNAVAILABLE = "Audit log: unavailable.";
 export const WRITE_AUDIT_EMPTY = "Audit log: no recent entries.";
 
 export const WRITE_RESTORE_CLI_HINT =
-  "Restore (sandbox only): use legacy-restore CLI on Write-Sandbox DATA — see docs/pilot-backup-restore-audit.md in your package.";
+  "Restore (sandbox pilot only): use legacy-restore CLI on Write-Sandbox DATA — see docs/pilot-backup-restore-audit.md in your package.";
+
+export const WRITE_RESTORE_SANDBOX_ONLY_NOTE =
+  "Restore is for disposable Write-Sandbox DATA only — never production legacy folders.";
 
 export const WRITE_FAILED_GUIDANCE =
   "If the commit failed: keep the operation id, check bridge status codes only, and restore from backup if DBF may have changed.";
@@ -270,7 +270,7 @@ export const WRITE_AUDIT_STATUS_UPDATE_NOTE =
   "Audit detail is fullest for status-update commits today; other workflows show operation id, backup, and restore hints.";
 
 export const SETTINGS_PANEL_LEDE =
-  "Pilot status for bridge, mirror, writes, and sandbox readiness. No patient data is shown here — see docs/PILOT-HANDOFF-PACK.md for the full operator flow.";
+  "Pilot status for bridge, mirror, writes, sandbox readiness, and build id. No patient data is shown here — follow docs/PILOT-HANDOFF-PACK.md for the operator walkthrough.";
 
 export const SETTINGS_BRIDGE_SECTION = "Clinic service";
 
@@ -283,6 +283,8 @@ export const SETTINGS_WRITE_SECTION = "Writes";
 export const SETTINGS_SANDBOX_SECTION = "Sandbox";
 
 export const SETTINGS_SQLITE_MIRROR_SECTION = "SQLite mirror";
+
+export const SETTINGS_SQLITE_MIRROR_UNKNOWN = "SQLite mirror status unknown";
 
 export const SETTINGS_BACKUP_SECTION = "Backup";
 
@@ -314,9 +316,6 @@ export const SETTINGS_MIRROR_SQLITE_CONFIGURED = "SQLite path configured";
 
 export const SETTINGS_MIRROR_SQLITE_MISSING = "SQLite path not configured";
 
-export const SETTINGS_SQLITE_MIRROR_UNKNOWN = "SQLite mirror status unknown";
-
-
 export const SETTINGS_MIRROR_USABLE = "Mirror in use for search and schedule";
 
 export const SETTINGS_MIRROR_FALLBACK = "Using DBF fallback";
@@ -333,7 +332,7 @@ export const SETTINGS_MIRROR_NO_RUNS_HINT =
 export const SETTINGS_MIRROR_DOC_LINK = "Mirror import operator guide";
 
 export const SETTINGS_MIRROR_STALE_CALLOUT =
-  "Mirror metadata is older than 48 hours. Search and schedule may be stale until you import again.";
+  "Mirror metadata is older than 48 hours — search and schedule may show stale data until you run safe mirror import again.";
 
 export const SETTINGS_MIRROR_DBF_SOURCE_TRUTH =
   "DBF files are the source of truth for writes. SQLite is a read snapshot — re-run safe mirror import after sandbox commits when search/schedule must match DBF.";
@@ -343,7 +342,8 @@ export const SETTINGS_READINESS_DISTRIBUTION_HINT =
 
 export const SETTINGS_SANDBOX_PILOT_ON = "Sandbox write pilot enabled in this app build";
 
-export const SETTINGS_SANDBOX_PILOT_OFF = "Sandbox write pilot not enabled in this app build";
+export const SETTINGS_SANDBOX_PILOT_OFF =
+  "Sandbox write pilot UI is off in this build — read-only Today, Patients, and Schedule remain available.";
 
 export const SETTINGS_DATA_ROOT_CONFIGURED = "DATA_ROOT configured";
 
@@ -468,7 +468,7 @@ export const SETTINGS_RECOVERY_BACKUP_MISSING =
   "Backup not configured: set BACKUP_DIR in desktop setup before enabling sandbox commits.";
 
 export const SETTINGS_RECOVERY_SANDBOX_INVALID =
-  "Sandbox not ready: DATA_ROOT must be a disposable Write-Sandbox with the marker — never live Microdent-Legacy.";
+  "Sandbox not ready: DATA_ROOT must be a disposable Write-Sandbox with the marker — never the live production legacy DATA tree.";
 
 export const SETTINGS_RECOVERY_WRITE_BLOCKED =
   "Writes blocked: keep read-only mode or follow phase-7 sandbox pilot steps before enabling commits.";
@@ -480,3 +480,20 @@ export const SETTINGS_BACKUP_NOT_CONFIGURED_BANNER_LABEL = "Backup required for 
 
 export const SETTINGS_BACKUP_NOT_CONFIGURED_BANNER_BODY =
   "Write mode is enabled but BACKUP_DIR is not configured. Set a backup folder before committing sandbox changes.";
+
+export const SETTINGS_PILOT_BUILD_SECTION = "Pilot build";
+
+export const SETTINGS_PILOT_BUILD_LOADING = "Loading build metadata…";
+
+export const SETTINGS_PILOT_BUILD_UNAVAILABLE =
+  "Build metadata unavailable — packaged builds include web/pilot-build.json after staging.";
+
+export const SETTINGS_PILOT_BUILD_PACKAGE_VERSION = "Package version";
+
+export const SETTINGS_PILOT_BUILD_APP_VERSION = "App version";
+
+export const SETTINGS_PILOT_BUILD_COMMIT = "Commit";
+
+export const SETTINGS_PILOT_BUILD_CHANNEL = "Channel";
+
+export const SETTINGS_PILOT_BUILD_BUILT = "Built";

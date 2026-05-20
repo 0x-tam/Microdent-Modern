@@ -1,0 +1,7 @@
+{
+  "appVersion": "0.0.1",
+  "packageVersion": "dev-local",
+  "gitCommit": "dev",
+  "buildTimestampUtc": "2026-05-21T00:00:00.000Z",
+  "releaseChannel": "pilot"
+}

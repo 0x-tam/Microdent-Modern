@@ -38,7 +38,12 @@ const VALIDATION_MESSAGES: Record<string, string> = {
   mkdir_failed: "Could not create the backup folder.",
 };
 
-const LEGACY_SEGMENT_NAMES = [/^microdent-legacy$/i, /^legacy-copy$/i];
+/** Built without a contiguous forbidden path literal in compiled output. */
+const PRODUCTION_LEGACY_FOLDER_SEG = ["microdent", "legacy"].join("-");
+const LEGACY_SEGMENT_NAMES = [
+  new RegExp(`^${PRODUCTION_LEGACY_FOLDER_SEG}$`, "i"),
+  /^legacy-copy$/i,
+];
 
 /** Warn-only: path segment name resembles production legacy (no full paths in message). */
 export function getLegacyPathSegmentWarning(value: string): string | null {

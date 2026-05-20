@@ -10,6 +10,7 @@ import {
   WRITE_FAILED_GUIDANCE,
   WRITE_OPERATION_ID_PREFIX,
   WRITE_RESTORE_CLI_HINT,
+  WRITE_RESTORE_SANDBOX_ONLY_NOTE,
 } from "./read-only-ui-copy.js";
 
 export type WriteOperationFeedback = {
@@ -113,6 +114,7 @@ export function formatWriteOperationFeedbackLines(
     lines.push(WRITE_FAILED_GUIDANCE);
   }
   lines.push(WRITE_RESTORE_CLI_HINT);
+  lines.push(WRITE_RESTORE_SANDBOX_ONLY_NOTE);
   lines.push(WRITE_AUDIT_STATUS_UPDATE_NOTE);
   return lines;
 }

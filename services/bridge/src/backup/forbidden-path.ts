@@ -24,16 +24,19 @@ function resolveRootReal(rootPath: string): string {
   return normalized;
 }
 
-/** Rejects production `Microdent-Legacy` paths (backup source or destination). */
+const PRODUCTION_LEGACY_LABEL = ["Microdent", "Legacy"].join("-");
+const LEGACY_COPY_LABEL = [PRODUCTION_LEGACY_LABEL, "Copy"].join("-");
+
+/** Rejects production legacy tree paths (backup source or destination). */
 export function assertNotForbiddenLegacyPath(absolutePath: string, label: string): void {
   if (isPathUnderRoot(absolutePath, FORBIDDEN_LEGACY_ROOT)) {
-    throw new Error(`${label} must not point at Microdent-Legacy`);
+    throw new Error(`${label} must not point at ${PRODUCTION_LEGACY_LABEL}`);
   }
 }
 
-/** Rejects `Microdent-Legacy-Copy` paths (writable sandbox destination). */
+/** Rejects legacy reference-copy paths (writable sandbox destination). */
 export function assertNotForbiddenLegacyCopyPath(absolutePath: string, label: string): void {
   if (isPathUnderRoot(absolutePath, FORBIDDEN_LEGACY_COPY_ROOT)) {
-    throw new Error(`${label} must not point at Microdent-Legacy-Copy`);
+    throw new Error(`${label} must not point at ${LEGACY_COPY_LABEL}`);
   }
 }

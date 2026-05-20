@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 import {
+  logsDir,
   operatorConfigFilePath,
   pathLooksInsideInstallDir,
   recommendedOperatorLogDir,
@@ -72,6 +73,7 @@ describe("recommendedOperatorLogDir", () => {
   it("resolves under AppData on Windows", () => {
     platformMock.mockReturnValue("win32");
     expect(recommendedOperatorLogDir()).toBe("/home/operator/AppData/Microdent/logs");
+    expect(logsDir()).toBe(recommendedOperatorLogDir());
     expect(operatorConfigFilePath()).toBe("/home/operator/AppData/Microdent/config.json");
   });
 });
