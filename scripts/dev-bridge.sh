@@ -25,7 +25,7 @@ EOF
 fi
 
 if [[ "${DATA_ROOT}" != /* ]]; then
-  echo "ERROR: DATA_ROOT must be an absolute path. Got: ${DATA_ROOT}" >&2
+  echo "ERROR: DATA_ROOT must be an absolute path." >&2
   exit 1
 fi
 

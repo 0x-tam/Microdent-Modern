@@ -85,7 +85,9 @@ describe("formatWriteOperationFeedbackLines", () => {
     const text = lines.join("\n");
     expect(text).toContain(operationId);
     expect(text).toContain("Backup created");
+    expect(text).toContain("legacy-restore");
     expect(text).not.toMatch(/DATA_ROOT|manifest|before|after|PAT_NAME/i);
+    expect(text).not.toMatch(/C:\\\\|\/Users\//);
   });
 
   it("formats audit match and miss", () => {

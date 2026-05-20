@@ -1,9 +1,14 @@
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi, afterEach } from "vitest";
 import {
   defaultDesktopConfig,
   desktopConfigDir,
   desktopConfigNeedsSetup,
   configPath,
+  loadDesktopConfig,
+  saveDesktopConfig,
 } from "./config.js";
 
 const homedirMock = vi.hoisted(() => vi.fn(() => "/home/operator"));
@@ -98,5 +103,42 @@ describe("desktopConfigDir", () => {
         sqlitePath: "C:\\Users\\Operator\\AppData\\Local\\Microdent\\mirror.sqlite",
       }),
     ).toBe(true);
+  });
+});
+
+describe("saveDesktopConfig round-trip", () => {
+  const cleanup: string[] = [];
+
+  afterEach(() => {
+    for (const dir of cleanup) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+    cleanup.length = 0;
+    homedirMock.mockReturnValue("/home/operator");
+    platformMock.mockReturnValue("linux");
+  });
+
+  it("persists spaced paths and keeps writeMode disabled after load", () => {
+    const home = mkdtempSync(join(tmpdir(), "microdent-home-"));
+    cleanup.push(home);
+    homedirMock.mockReturnValue(home);
+    platformMock.mockReturnValue("win32");
+
+    const spacedRoot = join(home, "My Sandbox", "DATA");
+    const spacedSqlite = join(home, "My Sandbox", "mirror.sqlite");
+    saveDesktopConfig({
+      ...defaultDesktopConfig(),
+      dataRoot: spacedRoot,
+      sqlitePath: spacedSqlite,
+      writeMode: "disabled",
+    });
+
+    const configFile = join(home, "AppData", "Microdent", "config.json");
+    expect(existsSync(configFile)).toBe(true);
+    const loaded = loadDesktopConfig();
+    expect(loaded.writeMode).toBe("disabled");
+    expect(loaded.dataRoot).toBe(spacedRoot);
+    expect(loaded.sqlitePath).toBe(spacedSqlite);
+    expect(readFileSync(configFile, "utf8")).toContain("My Sandbox");
   });
 });

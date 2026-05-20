@@ -21,9 +21,58 @@ const REQUIRED_DIST = [
   "dist/setup/setup-window.js",
 ];
 
+const STAGE_ROOT = join(repoRoot, "dist", "pilot-release", "MicrodentModern");
+
+const REQUIRED_STAGED = [
+  "HANDOFF-README.txt",
+  "app/dist/main.js",
+  "app/dist/bridge-supervisor.js",
+  "app/dist/setup/setup.html",
+  "app/package.json",
+  "bridge/server.js",
+  "web/index.html",
+  "config-templates/config.example.json",
+  "config-templates/paths.example.env",
+  "docs/PILOT-START-HERE.md",
+  "docs/phase-4-mirror-import-operator.md",
+  "scripts/README.txt",
+  "scripts/mirror-import-pointer.txt",
+  "logs/README.txt",
+  "mirror/README.txt",
+  "backups/README.txt",
+];
+
+const FORBIDDEN_CONFIG_PATHS = [
+  /Microdent-Legacy/i,
+  /\/Users\//,
+  /\/home\//i,
+  /Microdent-Modern/i,
+];
+
+const FORBIDDEN_SUPERVISOR = [/\.(bat|cmd)["']/i, /foxpro/i, /legacy-copy/i, /microdent-legacy/i];
+
 function fail(message) {
   console.error(`[release-smoke] FAIL: ${message}`);
   process.exit(1);
+}
+
+function assertSupervisorSpawnArgv(supervisorSrc, label) {
+  if (!/spawn\([^,]+,\s*\[this\.bridgeEntry\]/.test(supervisorSrc)) {
+    fail(`${label} must spawn with bridgeEntry argv only`);
+  }
+  for (const pattern of FORBIDDEN_SUPERVISOR) {
+    if (pattern.test(supervisorSrc)) {
+      fail(`${label} contains forbidden pattern: ${pattern}`);
+    }
+  }
+}
+
+function assertConfigTemplateSafe(content, label) {
+  for (const pattern of FORBIDDEN_CONFIG_PATHS) {
+    if (pattern.test(content)) {
+      fail(`${label} contains forbidden path reference: ${pattern}`);
+    }
+  }
 }
 
 for (const rel of REQUIRED_DIST) {
@@ -52,17 +101,10 @@ if (!/join\(options\.repoRoot,\s*"apps",\s*"web",\s*"dist",\s*"index\.html"\)/.t
 if (!supervisorDist.includes("server.js")) {
   fail("bridge-supervisor dist must reference services/bridge/dist/server.js");
 }
-if (!/spawn\([^,]+,\s*\[this\.bridgeEntry\]/.test(supervisorDist)) {
-  fail("bridge-supervisor must spawn with bridgeEntry argv only");
-}
-for (const forbidden of [/\.(bat|cmd)["']/i, /foxpro/i, /legacy-copy/i, /microdent-legacy/i]) {
-  if (forbidden.test(supervisorDist)) {
-    fail(`bridge-supervisor dist contains forbidden pattern: ${forbidden}`);
-  }
-}
+assertSupervisorSpawnArgv(supervisorDist, "bridge-supervisor dist");
 
 const { defaultDesktopConfig, desktopConfigNeedsSetup } = await import(
-  join(desktopRoot, "dist/config.js")
+  join(desktopRoot, "dist/config.js"),
 );
 
 const defaults = defaultDesktopConfig();
@@ -76,20 +118,21 @@ if ("dataRoot" in defaults || "sqlitePath" in defaults) {
   fail("defaults must not ship hardcoded path fields");
 }
 
-const stagedIndex = join(repoRoot, "dist", "pilot-release", "web", "index.html");
-const stagedBridge = join(repoRoot, "dist", "pilot-release", "bridge", "server.js");
-const stagedMain = join(repoRoot, "dist", "pilot-release", "app", "dist", "main.js");
 if (process.env.PILOT_STAGED_RELEASE === "1") {
-  if (!existsSync(stagedIndex) || !existsSync(stagedBridge) || !existsSync(stagedMain)) {
-    fail("PILOT_STAGED_RELEASE=1 but dist/pilot-release/ incomplete — run pnpm stage:pilot-release");
+  if (!existsSync(STAGE_ROOT)) {
+    fail("PILOT_STAGED_RELEASE=1 but dist/pilot-release/MicrodentModern/ missing — run pnpm stage:pilot-release");
   }
-  const stagedSupervisor = readFileSync(
-    join(repoRoot, "dist", "pilot-release", "app", "dist", "bridge-supervisor.js"),
-    "utf8",
-  );
-  if (!/spawn\([^,]+,\s*\[this\.bridgeEntry\]/.test(stagedSupervisor)) {
-    fail("staged bridge-supervisor must spawn with bridgeEntry argv only");
+  for (const rel of REQUIRED_STAGED) {
+    if (!existsSync(join(STAGE_ROOT, rel))) {
+      fail(`PILOT_STAGED_RELEASE=1 missing staged artifact: ${rel}`);
+    }
   }
+  const stagedSupervisor = readFileSync(join(STAGE_ROOT, "app/dist/bridge-supervisor.js"), "utf8");
+  assertSupervisorSpawnArgv(stagedSupervisor, "staged bridge-supervisor");
+  const exampleConfig = readFileSync(join(STAGE_ROOT, "config-templates/config.example.json"), "utf8");
+  assertConfigTemplateSafe(exampleConfig, "config-templates/config.example.json");
+  const pathsExample = readFileSync(join(STAGE_ROOT, "config-templates/paths.example.env"), "utf8");
+  assertConfigTemplateSafe(pathsExample, "config-templates/paths.example.env");
 }
 
 console.log(

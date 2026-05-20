@@ -131,6 +131,7 @@ describe("settings-status", () => {
     expect(readOnly.some((c) => c.label.match(/read-only/i))).toBe(true);
     expect(readOnly.some((c) => c.label.match(/mirror active/i))).toBe(true);
     expect(readOnly.some((c) => c.label.match(/read-only QA/i))).toBe(true);
+    expect(readOnly.some((c) => c.key === "distribution-hint")).toBe(true);
   });
 
   it("includes backup chip when backupDirConfigured", () => {

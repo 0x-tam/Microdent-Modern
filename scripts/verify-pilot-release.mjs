@@ -8,26 +8,36 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = join(fileURLToPath(new URL(".", import.meta.url)), "..");
-const stageRoot = join(repoRoot, "dist", "pilot-release");
+const releaseRoot = join(repoRoot, "dist", "pilot-release");
+const stageRoot = join(releaseRoot, "MicrodentModern");
 
 const REQUIRED = [
+  "HANDOFF-README.txt",
   "app/dist/main.js",
   "app/dist/bridge-supervisor.js",
   "app/dist/setup/setup.html",
   "app/package.json",
   "bridge/server.js",
   "web/index.html",
-  "config/config.example.json",
-  "config/paths.example.env",
+  "config-templates/config.example.json",
+  "config-templates/paths.example.env",
   "docs/PILOT-START-HERE.md",
-  "PLACEHOLDERS.md",
+  "docs/phase-4-mirror-import-operator.md",
+  "scripts/README.txt",
+  "scripts/mirror-import-pointer.txt",
+  "logs/README.txt",
+  "mirror/README.txt",
+  "backups/README.txt",
 ];
 
 const FORBIDDEN_NAMES = [
   /^schedule\.dbf$/i,
+  /^\.env$/i,
   /\.sqlite3?$/i,
   /\.dbf$/i,
+  /\.log$/i,
 ];
+
 function pathHasForbiddenSegment(relPath) {
   const segments = relPath.split(/[/\\]/);
   return segments.some(
@@ -38,15 +48,31 @@ function pathHasForbiddenSegment(relPath) {
       /^microdent-write-sandbox$/i.test(seg),
   );
 }
+
 const FORBIDDEN_SUPERVISOR = [/\.(bat|cmd)["']/i, /foxpro/i, /legacy-copy/i, /microdent-legacy/i];
+
+const FORBIDDEN_CONFIG_PATHS = [
+  /Microdent-Legacy/i,
+  /\/Users\//,
+  /\/home\//i,
+  /Microdent-Modern/i,
+];
 
 function fail(message) {
   console.error(`[verify-pilot-release] FAIL: ${message}`);
   process.exit(1);
 }
 
+function assertConfigTemplateSafe(content, label) {
+  for (const pattern of FORBIDDEN_CONFIG_PATHS) {
+    if (pattern.test(content)) {
+      fail(`${label} contains forbidden path reference: ${pattern}`);
+    }
+  }
+}
+
 if (!existsSync(stageRoot)) {
-  fail("dist/pilot-release/ missing — run pnpm stage:pilot-release first");
+  fail("dist/pilot-release/MicrodentModern/ missing — run pnpm stage:pilot-release first");
 }
 
 for (const rel of REQUIRED) {
@@ -88,9 +114,12 @@ for (const pattern of FORBIDDEN_SUPERVISOR) {
   }
 }
 
-const exampleConfig = readFileSync(join(stageRoot, "config/config.example.json"), "utf8");
-if (/Microdent-Legacy/i.test(exampleConfig)) {
-  fail("config template must not reference Microdent-Legacy");
-}
+const exampleConfig = readFileSync(join(stageRoot, "config-templates/config.example.json"), "utf8");
+assertConfigTemplateSafe(exampleConfig, "config-templates/config.example.json");
 
-console.log("[verify-pilot-release] staged layout, supervisor invariants, and sensitive-artifact guards OK");
+const pathsExample = readFileSync(join(stageRoot, "config-templates/paths.example.env"), "utf8");
+assertConfigTemplateSafe(pathsExample, "config-templates/paths.example.env");
+
+console.log(
+  "[verify-pilot-release] MicrodentModern layout, supervisor invariants, and sensitive-artifact guards OK",
+);

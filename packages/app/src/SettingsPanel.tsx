@@ -26,6 +26,7 @@ import {
   SETTINGS_MIRROR_RUN_STATUS_RUNNING,
   SETTINGS_MIRROR_RUN_STATUS_SUCCESS,
   SETTINGS_MIRROR_SECTION,
+  SETTINGS_MIRROR_DBF_SOURCE_TRUTH,
   SETTINGS_MIRROR_STALE_CALLOUT,
   SETTINGS_NEXT_STEP_LABEL,
   SETTINGS_PILOT_READINESS_TITLE,
@@ -402,6 +403,9 @@ export function SettingsPanel({
               <p className="app-settings__muted">Mirror status unavailable.</p>
             ) : (
               <>
+                <p className="app-settings__mirror-truth" role="note">
+                  {SETTINGS_MIRROR_DBF_SOURCE_TRUTH}
+                </p>
                 <SettingsNextStep card="mirror" {...{ bridgePhase, writeCapability, mirrorStatus, sandboxWritePilot }} />
                 <ul className="app-settings__facts">
                   <li>

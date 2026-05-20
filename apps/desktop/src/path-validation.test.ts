@@ -85,6 +85,14 @@ describe("path-validation", () => {
     }
   });
 
+  it("returns UNC warnings on successful validation without blocking", () => {
+    const dir = mkdtempSync(join(tmpdir(), "microdent-unc-data-"));
+    cleanup.push(dir);
+    const unc = `\\\\fileserver\\clinic\\share\\${dir.split(/[/\\]/).pop()}`;
+    const warningsOnly = getOperatorPathWarnings(unc);
+    expect(warningsOnly.some((w) => /UNC/i.test(w))).toBe(true);
+  });
+
   it("validates SQLITE_PATH file", () => {
     const dir = mkdtempSync(join(tmpdir(), "microdent-sqlite-"));
     cleanup.push(dir);

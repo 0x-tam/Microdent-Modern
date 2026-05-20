@@ -25,7 +25,8 @@ async function main(): Promise<void> {
 
 if (isMainModule()) {
   main().catch((err) => {
-    console.error(err);
+    const message = err instanceof Error ? err.message : "bridge startup failed";
+    console.error(`ERROR: ${message}`);
     process.exitCode = 1;
   });
 }

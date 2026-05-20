@@ -17,7 +17,7 @@ function printEnvHelp(missing: ("BACKUP_MANIFEST" | "DATA_ROOT")[]): void {
 
 function formatError(e: unknown): string {
   if (e instanceof WriteSandboxError) {
-    return e.message;
+    return e.code;
   }
   return e instanceof Error ? e.message : "restore failed";
 }

@@ -9,12 +9,8 @@ function printEnvHelp(missing: ("SOURCE_DATA_ROOT" | "SANDBOX_ROOT")[]): void {
   console.error(`ERROR: ${vars} must be set.`);
   console.error("");
   console.error("Example:");
-  console.error(
-    '  export SOURCE_DATA_ROOT="/Users/Tamam/Desktop/Microdent/Microdent-Legacy-Copy/DATA"',
-  );
-  console.error(
-    '  export SANDBOX_ROOT="/Users/Tamam/Desktop/Microdent/Microdent-Write-Sandbox"',
-  );
+  console.error('  export SOURCE_DATA_ROOT="/absolute/path/to/read-only/DATA-copy"');
+  console.error('  export SANDBOX_ROOT="/absolute/path/to/Microdent-Write-Sandbox"');
   console.error("  pnpm legacy:create-sandbox");
   console.error("");
   console.error("Never point SOURCE_DATA_ROOT at production Microdent-Legacy.");

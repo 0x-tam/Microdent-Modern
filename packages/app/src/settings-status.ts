@@ -18,6 +18,7 @@ import {
   SETTINGS_READINESS_MIRROR_FALLBACK,
   SETTINGS_READINESS_MIRROR_STALE,
   SETTINGS_READINESS_MIRROR_UNKNOWN,
+  SETTINGS_READINESS_DISTRIBUTION_HINT,
   SETTINGS_READINESS_READONLY_QA_HINT,
   SETTINGS_READINESS_READ_ONLY,
   SETTINGS_READINESS_SANDBOX_NOT_READY,
@@ -169,6 +170,11 @@ export function resolvePilotReadinessSummary(
   if (writeCapability?.writeMode === "disabled" && writeCapability.dataRootConfigured) {
     chips.push({ key: "readonly-qa-hint", label: SETTINGS_READINESS_READONLY_QA_HINT, tone: "neutral" });
     chips.push({ key: "sandbox-qa-hint", label: SETTINGS_READINESS_SANDBOX_QA_HINT, tone: "neutral" });
+    chips.push({
+      key: "distribution-hint",
+      label: SETTINGS_READINESS_DISTRIBUTION_HINT,
+      tone: "neutral",
+    });
   }
 
   return chips;

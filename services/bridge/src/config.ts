@@ -116,7 +116,7 @@ export function parseDataRootFromValue(value: string | undefined): DataRootConfi
     return { configured: false };
   }
   if (!path.isAbsolute(trimmed)) {
-    throw new Error(`DATA_ROOT must be an absolute path, got: ${JSON.stringify(trimmed)}`);
+    throw new Error("DATA_ROOT must be an absolute path");
   }
   const normalized = path.normalize(trimmed);
   let realPath: string;
@@ -155,7 +155,7 @@ export function parseSqlitePathFromValue(value: string | undefined): SqlitePathC
     return { configured: false };
   }
   if (!path.isAbsolute(trimmed)) {
-    throw new Error(`SQLITE_PATH must be an absolute path, got: ${JSON.stringify(trimmed)}`);
+    throw new Error("SQLITE_PATH must be an absolute path");
   }
   return { configured: true, path: path.normalize(trimmed) };
 }
@@ -177,7 +177,7 @@ export function parseBackupDirFromValue(value: string | undefined): BackupDirCon
     return { configured: false };
   }
   if (!path.isAbsolute(trimmed)) {
-    throw new Error(`BACKUP_DIR must be an absolute path, got: ${JSON.stringify(trimmed)}`);
+    throw new Error("BACKUP_DIR must be an absolute path");
   }
   return { configured: true, path: path.normalize(trimmed) };
 }

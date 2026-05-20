@@ -23,7 +23,7 @@ export function parseSqlitePathFromValue(value: string | undefined): SqlitePathC
     return { configured: false };
   }
   if (!path.isAbsolute(trimmed)) {
-    throw new Error(`SQLITE_PATH must be an absolute path, got: ${JSON.stringify(trimmed)}`);
+    throw new Error("SQLITE_PATH must be an absolute path");
   }
   return { configured: true, path: path.normalize(trimmed) };
 }

@@ -192,7 +192,7 @@ assert_dbf_patient_chart() {
   local actual
   actual="$(dbf_readback patient-chart "${patient_id}" 2>/dev/null || true)"
   if [[ "${actual}" != "${expected}" ]]; then
-    log "FAIL: dbf readback workflow=${workflow} expected_chart_set=yes got=${actual:-none}"
+    log "FAIL: dbf readback workflow=${workflow} chart_number_mismatch"
     exit 1
   fi
   log "readback workflow=${workflow} source=dbf patient_id=${patient_id} chart_number_set=yes"

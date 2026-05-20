@@ -42,6 +42,18 @@ Windows script and CLI posture: [docs/phase-3-windows-readiness-audit.md](../../
 
 macOS developers with a pre-filled `config.json` skip setup and behave as before. No screenshots are required for first-run—only valid paths on disk.
 
+## Data locations (Windows pilot)
+
+Three layers — **do not mix**:
+
+| Layer | Location | Notes |
+| --- | --- | --- |
+| **Install / staged package** | e.g. `C:\Microdent\MicrodentModern\` | Shipped app only — no clinic DATA, mirror, or backups |
+| **Desktop config** | `%AppData%\Microdent\config.json` | Path pointers; optional logs at `%AppData%\Microdent\logs\` (documented, not auto-created) |
+| **Clinic paths (setup)** | Operator-chosen absolute paths | DATA_ROOT, SQLITE_PATH, BACKUP_DIR — **must stay outside install** |
+
+Full operator guide: [docs/windows-pilot-data-locations.md](../../docs/windows-pilot-data-locations.md). Index: [docs/PILOT-START-HERE.md](../../docs/PILOT-START-HERE.md).
+
 ## Config file locations
 
 | OS | Path |
@@ -90,13 +102,22 @@ On startup: load config → optional setup window → validate required paths �
 | Build once | `pnpm --filter @microdent/bridge run build` · `pnpm build:web` · `pnpm --filter @microdent/desktop run build` |
 | Quick gate | `pnpm pilot-checkpoint` (test + web + release-smoke) |
 | Staged package | `pnpm stage:pilot-release` then `pnpm pilot:verify-release` — see [windows-pilot-release-layout.md](../../docs/windows-pilot-release-layout.md) |
-| Full gate | Set sandbox env, then `pnpm pilot:full-checkpoint` |
+| Distribution gate | `pnpm pilot:distribution-checkpoint` — test, build, stage, verify, staged smoke |
+| Full gate | Set sandbox env, then `pnpm pilot:full-checkpoint` (no stage/verify) |
 | Launch | `pnpm --filter @microdent/desktop run start` |
 | Verify | Settings → **Pilot checklist** after first-run setup |
 
-Optional staged check in release-smoke: `PILOT_STAGED_RELEASE=1 pnpm --filter @microdent/desktop run release-smoke` (after staging).
+**Staged release-smoke** (after `pnpm stage:pilot-release`):
 
-Logs: `%AppData%\Microdent\` config only — bridge stdout/stderr in the terminal that launched desktop (no PHI). Operator log folder: [windows-pilot-data-locations.md](../../docs/windows-pilot-data-locations.md).
+```powershell
+pnpm pilot:verify-release
+$env:PILOT_STAGED_RELEASE = "1"
+pnpm --filter @microdent/desktop run release-smoke
+```
+
+Checks `dist/pilot-release/MicrodentModern/` layout, `config-templates/`, and supervisor spawn argv (`node` + `bridgeEntry` only).
+
+Logs: config in `%AppData%\Microdent\`; optional file logs at `%AppData%\Microdent\logs\` (documented convention). Bridge stdout/stderr in the launch terminal (no PHI). Details: [windows-pilot-data-locations.md](../../docs/windows-pilot-data-locations.md).
 
 ## Windows operator checklist
 

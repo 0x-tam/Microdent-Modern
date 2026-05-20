@@ -100,7 +100,8 @@ Operator flow: [docs/phase-6-windows-mvp-operator-guide.md](../docs/phase-6-wind
 | `pnpm qa:sandbox` | `scripts/qa-sandbox-run.sh` | macOS-oriented bash | Git Bash on Windows or manual §7 in phase-6 guide |
 | `pnpm desktop:release-smoke` | `@microdent/desktop` `release-smoke` | Cross-platform Node | Build + vitest + desktop/web/bridge dist checks |
 | `pnpm pilot-checkpoint` | test + `build:web` + `desktop:release-smoke` | Cross-platform Node | Quick handoff gate — **does not** run `qa:sandbox` |
-| `pnpm pilot:full-checkpoint` | `scripts/pilot-full-checkpoint.sh` | Cross-platform bash | Full RC gate when `DATA_ROOT` + `SQLITE_PATH` set; skips `qa:sandbox` otherwise |
+| `pnpm pilot:full-checkpoint` | `scripts/pilot-full-checkpoint.sh` | Cross-platform bash | Test + web + optional `qa:sandbox` + desktop smoke — **no** stage/verify |
+| `pnpm pilot:distribution-checkpoint` | `scripts/pilot-distribution-checkpoint.sh` | Cross-platform bash | Distribution RC: test, build, stage, verify, `PILOT_STAGED_RELEASE=1` smoke; optional `qa:sandbox` |
 | `pnpm stage:pilot-release` | `scripts/stage-pilot-release.mjs` | Cross-platform Node | Stage `dist/pilot-release/` from dist artifacts only |
 | `pnpm pilot:verify-release` | `scripts/verify-pilot-release.mjs` | Cross-platform Node | Validate staged layout + sensitive-file guards |
 | `bash scripts/dev-windows-dry-run.sh` | *(manual)* | Cross-platform bash | Desktop test + release-smoke + stage + verify; optional `qa:sandbox` if env set |

@@ -34,7 +34,8 @@
 ## API guardrails
 
 - `services/bridge/src/routes/v1.ts` exposes **exactly four** `router.patch` / `router.post` write handlers (inventory test).
-- Request bodies with forbidden keys (`COMMENT`, `NOTE`, `AMOUNT`, etc.) return `WRITE_BODY_FORBIDDEN_KEYS`.
+- Schedule time-move and create routes call `findBlockedScheduleBodyKeys` — `COMMENT`, `PAT_NAME`, `TELEPHONE`, `CASENUM` return `BLOCKED_SCHEDULE_FIELD`.
+- Other out-of-scope keys (`NOTE`, `DESCRIPT`, `DESC`, `AMOUNT`, `SAMOUNT`, etc.) are rejected by **strict** Zod bodies as `INVALID_REQUEST_BODY`.
 - Mirror SQLite is a **snapshot** — commits do not refresh mirror tables; DBF readback is the write proof.
 
 ## QA guardrails
@@ -110,3 +111,24 @@ Complete when handing a **staged** `dist/pilot-release/` folder (not raw git clo
 | P4 | Staged tree scan: no `SCHEDULE.DBF`, `.sqlite`, `Microdent-Legacy`, or `Write-Sandbox` paths | ☐ |
 | P5 | [pilot-acceptance-checklist.md](./pilot-acceptance-checklist.md) for operator IT sign-off | ☐ |
 | P6 | Real Windows machine test still required — [windows-dev-dry-run.md](./windows-dev-dry-run.md) is dev-only | ☐ |
+
+---
+
+## Distribution RC sign-off (Windows pilot handoff)
+
+Complete before IT receives a **distribution RC** build (staged tree + docs, not raw git clone). Developer initials each row after the matching command passes.
+
+| # | Gate | Command / artifact | Pass |
+| --- | --- | --- | --- |
+| R1 | Full test suite green | `pnpm test` (or `pnpm pilot:full-checkpoint` when sandbox env is available) | ☐ |
+| R2 | Web + bridge + desktop builds | `pnpm build:web`; bridge `pnpm build`; desktop build per [PILOT-START-HERE.md](./PILOT-START-HERE.md) | ☐ |
+| R3 | Staged pilot tree | `pnpm stage:pilot-release` → `dist/pilot-release/MicrodentModern/` | ☐ |
+| R4 | Staged tree verification | `pnpm pilot:verify-release` — layout, supervisor argv, no runtime data | ☐ |
+| R5 | Release smoke (staged) | `PILOT_STAGED_RELEASE=1 pnpm --filter @microdent/desktop run release-smoke` | ☐ |
+| R6 | Write route inventory | `pnpm --filter @microdent/bridge test src/write-safety/write-route-inventory.test.ts` | ☐ |
+| R7 | Write-safety band | `pnpm --filter @microdent/bridge test src/write-safety/` | ☐ |
+| R8 | Forbidden UI tokens | App vitest on Settings + read surfaces (`assertNoForbiddenDomTokens`) | ☐ |
+| R9 | Scope doc reviewed with IT | This file + [pilot-acceptance-checklist.md](./pilot-acceptance-checklist.md) | ☐ |
+| R10 | Real Windows validation still required | [windows-dev-dry-run.md](./windows-dev-dry-run.md) is dev-only; clinic machine for acceptance | ☐ |
+
+**Blocked body keys (inventory + UI tests):** `COMMENT`, `NOTE`, `DESCRIPT`, `DESC`, `AMOUNT`, `SAMOUNT`, `TELEPHONE`, `PAT_NAME` — never accepted on pilot write routes or rendered in operator UI.

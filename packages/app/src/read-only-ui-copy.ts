@@ -19,8 +19,7 @@ export const CLINIC_SERVICE_OFFLINE_TITLE = "Clinic service offline";
 export const CLINIC_SERVICE_OFFLINE_PANEL =
   "Connect the bridge and wait until the top bar shows Connected, then try again.";
 
-export const CLINIC_SERVICE_OFFLINE_SECTION =
-  "Connect the clinic service to load this section. Check Settings for bridge status and next steps.";
+export const CLINIC_SERVICE_OFFLINE_SECTION = "Connect the bridge to load this section.";
 
 export const CLINIC_SERVICE_CHECKING = "Waiting for the clinic service…";
 
@@ -33,15 +32,15 @@ export const CLINIC_SERVICE_CONNECT_TODAY =
   "Connect the clinic service to load today’s appointments from your copied data.";
 
 export const PATIENT_PROFILE_READONLY_NOTE =
-  "Read-only patient record from your copied clinic data. Safe fields only — write pilots appear only when IT enables them.";
+  "Read-only patient record — safe fields from your copied data only. Nothing here can be edited.";
 
 export const PATIENT_PAGE_SEARCH_TITLE = "Find a patient";
 
 export const PATIENT_PAGE_SEARCH_LEDE =
-  "Search by name or chart number when the clinic service is connected. This read-only viewer shows matches only — there is no full patient directory.";
+  "Search by name or chart number when the clinic service is connected. There is no full patient directory in this read-only viewer — only matches for your query are shown.";
 
 export const PATIENT_PAGE_SEARCH_PRIVACY =
-  "Uses your copied clinic data. Names, chart numbers, and record ids only — no notes, addresses, or payment fields.";
+  "Uses your copied clinic data. Names, chart numbers, record ids, and masked phone hints only — no notes, addresses, or payment fields.";
 
 export const PATIENT_MODULE_TABS_HINT =
   "After you open a patient, use the Chart, Treatments, and Ledger preview tabs for dental chart, procedure history, and ledger metadata (read-only; sensitive fields stay hidden).";
@@ -52,7 +51,7 @@ export const PATIENT_NO_SELECTION_DESCRIPTION =
   "Search below or in the top bar, pick a row when the clinic service is connected, and this area will open their record.";
 
 export const PATIENT_TAB_SUMMARY_LEDE =
-  "Safe demographics from your copied patient file. Addresses, coverage details, and clinical notes stay hidden in this read-only viewer.";
+  "Safe demographics from your copied patient file. Addresses, coverage details, and clinical notes stay hidden.";
 
 export const PATIENT_TAB_APPOINTMENTS_LEDE =
   "Appointment history is read-only. Schedule note text and unlisted patient fields stay hidden.";
@@ -76,10 +75,10 @@ export const TRUNCATED_LIST_BANNER =
   "Showing a capped list only. Additional lines are omitted in this read-only viewer.";
 
 export const SCHEDULE_PRIVACY_LEDE =
-  "Read-only schedule from your copied clinic data. Patient names use a safe summary; notes and phone numbers stay hidden.";
+  "Read-only schedule. Names and chart numbers use a safe patient summary; notes and phone numbers stay hidden.";
 
 export const TODAY_PRIVACY_LEDE =
-  "Read-only day list from your copied clinic data. Names and chart numbers use a safe summary; notes, phones, and payment fields stay hidden.";
+  "Read-only day list. Names and chart numbers use a safe patient summary; notes, phones, and payment fields stay hidden.";
 
 export const TODAY_LOADING = "Loading today's schedule from your clinic copy…";
 
@@ -88,7 +87,7 @@ export const TODAY_NEXT_LOADING = "Loading next appointment…";
 export const TODAY_EMPTY_TITLE = "No appointments today";
 
 export const TODAY_EMPTY_DESCRIPTION =
-  "No appointments on today's list. Open Schedule for other days or search for a patient.";
+  "Today's list is clear. Open the full schedule to check other days, or search for a patient.";
 
 export const TODAY_OPEN_SCHEDULE = "Open schedule";
 
@@ -218,7 +217,7 @@ export const SANDBOX_WRITE_WARNING_BANNER_BODY =
 
 /** Per-row / panel sandbox write pilot warning (schedule + patient). */
 export const SANDBOX_WRITE_PILOT_PANEL_BANNER =
-  "Sandbox write pilot — dry-run first, then confirm apply. Changes affect disposable DATA only.";
+  "Sandbox write mode — changes affect disposable data only.";
 
 /** Once per schedule view when sandbox write pilots are active. */
 export const SCHEDULE_SANDBOX_WRITE_PILOT_BANNER =
@@ -258,6 +257,15 @@ export const WRITE_AUDIT_UNAVAILABLE = "Audit log: unavailable.";
 
 export const WRITE_AUDIT_EMPTY = "Audit log: no recent entries.";
 
+export const WRITE_RESTORE_CLI_HINT =
+  "Restore (sandbox only): use legacy-restore CLI on Write-Sandbox DATA — see pilot-backup-restore-audit.md.";
+
+export const WRITE_FAILED_GUIDANCE =
+  "If the commit failed: keep the operation id, check bridge status codes only, and restore from backup if DBF may have changed.";
+
+export const WRITE_AUDIT_STATUS_UPDATE_NOTE =
+  "Full audit detail is available today for status-update commits; other workflows show operation id and backup lines only.";
+
 export const SETTINGS_PANEL_LEDE =
   "Bridge, mirror, write mode, and sandbox status for operators. No patient data is shown here.";
 
@@ -267,11 +275,11 @@ export const SETTINGS_DATA_PATHS_SECTION = "Data paths";
 
 export const SETTINGS_MIRROR_SECTION = "Mirror import";
 
-export const SETTINGS_SQLITE_MIRROR_SECTION = "SQLite mirror";
-
 export const SETTINGS_WRITE_SECTION = "Writes";
 
 export const SETTINGS_SANDBOX_SECTION = "Sandbox";
+
+export const SETTINGS_SQLITE_MIRROR_SECTION = "SQLite mirror";
 
 export const SETTINGS_BACKUP_SECTION = "Backup";
 
@@ -339,6 +347,12 @@ export const SETTINGS_MIRROR_PARTIAL_OPERATOR_HINT =
 export const SETTINGS_MIRROR_FAILED_OPERATOR_HINT =
   "Failed means the table did not import. Confirm DBF files exist under DATA_ROOT, then re-run safe import from PowerShell or bash.";
 
+export const SETTINGS_MIRROR_DBF_SOURCE_TRUTH =
+  "DBF files are the source of truth for writes. SQLite is a read snapshot — re-run safe mirror import after sandbox commits when search/schedule must match DBF.";
+
+export const SETTINGS_READINESS_DISTRIBUTION_HINT =
+  "Distribution RC: run pnpm pilot:distribution-checkpoint on the build machine before IT handoff.";
+
 export const SETTINGS_SANDBOX_PILOT_ON = "Sandbox write pilot enabled in this app build";
 
 export const SETTINGS_SANDBOX_PILOT_OFF = "Sandbox write pilot not enabled in this app build";
@@ -358,7 +372,24 @@ export const SETTINGS_DESKTOP_BROWSER =
 export const SETTINGS_MIRROR_IMPORT_CLI =
   "Run safe import from the command line, then refresh status here.";
 
-/** Operator CLI block — placeholders only; no real paths. */
+export const SETTINGS_ENABLED_NON_SANDBOX_BANNER_LABEL = "Writes enabled outside sandbox";
+
+export const SETTINGS_ENABLED_NON_SANDBOX_BANNER_BODY =
+  "Write mode is enabled but DATA_ROOT did not pass the disposable sandbox guard. Stop the bridge and fix paths before committing changes.";
+
+export const SETTINGS_BRIDGE_OFFLINE_BANNER_LABEL = "Clinic service offline";
+
+export const SETTINGS_BRIDGE_OFFLINE_BANNER_BODY =
+  "Settings cannot load bridge metadata until the clinic service is connected.";
+
+export const SETTINGS_MIRROR_RUN_STATUS_SUCCESS = "Success";
+
+export const SETTINGS_MIRROR_RUN_STATUS_PARTIAL = "Partial";
+
+export const SETTINGS_MIRROR_RUN_STATUS_FAILED = "Failed";
+
+export const SETTINGS_MIRROR_RUN_STATUS_RUNNING = "Running";
+
 export const SETTINGS_MIRROR_IMPORT_COMMAND =
   "Set DATA_ROOT and SQLITE_PATH in PowerShell or bash, then run: pnpm mirror:import-safe (or pnpm --filter @microdent/sqlite-mirror run import-safe).";
 
@@ -395,24 +426,6 @@ export const SETTINGS_PILOT_CHECKLIST_TITLE = "Pilot checklist";
 export const SETTINGS_CHECKLIST_DATA_ROOT_SAFE = "DATA_ROOT safe (not production legacy)";
 
 export const SETTINGS_CHECKLIST_MIRROR_IMPORT = "Latest mirror import healthy";
-
-export const SETTINGS_ENABLED_NON_SANDBOX_BANNER_LABEL = "Writes enabled outside sandbox";
-
-export const SETTINGS_ENABLED_NON_SANDBOX_BANNER_BODY =
-  "Write mode is enabled but DATA_ROOT did not pass the disposable sandbox guard. Stop the bridge and fix paths before committing changes.";
-
-export const SETTINGS_BRIDGE_OFFLINE_BANNER_LABEL = "Clinic service offline";
-
-export const SETTINGS_BRIDGE_OFFLINE_BANNER_BODY =
-  "Settings cannot load bridge metadata until the clinic service is connected.";
-
-export const SETTINGS_MIRROR_RUN_STATUS_SUCCESS = "Success";
-
-export const SETTINGS_MIRROR_RUN_STATUS_PARTIAL = "Partial";
-
-export const SETTINGS_MIRROR_RUN_STATUS_FAILED = "Failed";
-
-export const SETTINGS_MIRROR_RUN_STATUS_RUNNING = "Running";
 
 export const SETTINGS_NEXT_STEP_LABEL = "Next step";
 

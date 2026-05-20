@@ -2,6 +2,17 @@
 
 Safe mirror import runs **outside** the web UI. Use the CLI on a machine that can reach your disposable `DATA_ROOT` copy. The app **Settings** screen only refreshes `GET /v1/mirror/status` metadata.
 
+## DBF vs SQLite (source of truth)
+
+| Layer | Role |
+| --- | --- |
+| **DBF (`DATA_ROOT`)** | Source of truth for sandbox **writes** and bridge readback proof |
+| **SQLite (`SQLITE_PATH`)** | Read snapshot for search, schedule, and audit metadata in the UI |
+
+After sandbox commits, search/schedule stay on the old mirror until you **re-run safe import**. Settings shows mirror freshness; it does not auto-sync DBF into SQLite on commit.
+
+Cross-links: [phase-3-sandbox-qa-runner.md](./phase-3-sandbox-qa-runner.md) (DBF readback proof), [pilot-backup-restore-audit.md](./pilot-backup-restore-audit.md) (restore then re-import).
+
 ## Prerequisites
 
 - Node 22+

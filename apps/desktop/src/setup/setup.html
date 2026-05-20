@@ -100,13 +100,58 @@
       .missing-checklist li.ok {
         color: #1b5e20;
       }
+      .setup-steps {
+        margin: 0 0 16px;
+        padding: 12px 14px;
+        background: #fff;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 13px;
+      }
+      .setup-steps ol {
+        margin: 8px 0 0;
+        padding-left: 1.25rem;
+      }
+      .legacy-warn {
+        display: none;
+        margin: 0 0 16px;
+        padding: 12px 14px;
+        background: #fff3e0;
+        border: 1px solid #e65100;
+        border-radius: 6px;
+        font-size: 13px;
+        color: #5d4037;
+      }
+      .legacy-warn.visible {
+        display: block;
+      }
+      .next-step-hint {
+        margin-top: 8px;
+        font-size: 13px;
+        color: #1a5fb4;
+      }
     </style>
   </head>
   <body>
     <h1>Microdent desktop setup</h1>
+    <div class="setup-steps" role="doc-subtitle">
+      <strong>Steps:</strong>
+      <ol>
+        <li>DATA_ROOT — disposable sandbox folder with DBF files</li>
+        <li>SQLITE_PATH — mirror SQLite file (outside install folder)</li>
+        <li>BACKUP_DIR — optional now; required before sandbox commits</li>
+        <li>Save — then run mirror import (CLI), open Settings to verify read-only</li>
+      </ol>
+    </div>
     <p>
       Point the app at your <strong>disposable Write-Sandbox</strong> copy (never live Microdent-Legacy). Use absolute
       paths only. Write mode stays <strong>disabled</strong> until you change config manually for sandbox pilot work.
+    </p>
+    <p>
+      <strong>Where files live:</strong> this app installs to one folder; config saves to
+      <code>%AppData%\Microdent\config.json</code>; DATA_ROOT, mirror, and backups belong on clinic paths
+      <strong>outside</strong> the install folder. See <code>docs/windows-pilot-data-locations.md</code> (or staged
+      <code>docs/</code> copy) and <code>docs/PILOT-START-HERE.md</code>.
     </p>
     <p>
       <strong>Windows:</strong> use drive-letter paths only in examples below — not hardcoded by the app. If a path
@@ -117,6 +162,10 @@
       <strong>UNC shares</strong> (<code>\\server\share\…</code>) are accepted but can be slow or unreliable for SQLite
       and DBF. Prefer a local drive letter when IT allows.
     </p>
+    <div id="legacyWarn" class="legacy-warn" role="status" aria-live="polite">
+      <strong>Check path:</strong> a folder name looks like production legacy. Use a disposable Write-Sandbox copy only
+      (warn-only — you can still save if paths exist on disk).
+    </div>
     <div id="missingChecklist" class="missing-checklist" aria-live="polite" role="status">
       <strong>Before you can save:</strong>
       <ul id="missingList"></ul>
@@ -151,7 +200,7 @@
       <div id="sqlitePathError" class="field-error" role="alert"></div>
       <div id="sqlitePathHint" class="field-hint">
         SQLite mirror file for search and schedule. Example:
-        <code>C:\Users\Public\MicrodentModern\mirror\clinic.sqlite</code>
+        <code>C:\Users\Public\MicrodentModern\mirror\clinic.sqlite</code> — outside the app install folder.
       </div>
 
       <label for="backupDir">BACKUP_DIR (folder, optional)</label>
@@ -166,7 +215,8 @@
       <div id="backupDirError" class="field-error" role="alert"></div>
       <div id="backupDirHint" class="field-hint">
         Optional. Required before enabling sandbox writes on the bridge. Example:
-        <code>C:\Users\Public\MicrodentModern\backups</code> on a local drive (not inside the app install folder).
+        <code>C:\Users\Public\MicrodentModern\backups</code> on a local drive — mirror and backups must not live inside
+        the app install folder (see windows-pilot-data-locations.md).
       </div>
 
       <label>Write mode</label>
@@ -179,6 +229,21 @@
     <script>
       const WINDOWS_DRIVE = /^[A-Za-z]:[/\\]/;
       const UNC_PATH = /^[/\\]{2}[^/\\]+[/\\]/;
+      const LEGACY_SEGMENT = /^microdent-legacy$|^legacy-copy$/i;
+
+      function legacySegmentInPath(value) {
+        const segments = value.trim().split(/[/\\]/).filter(Boolean);
+        return segments.some((seg) => LEGACY_SEGMENT.test(seg));
+      }
+
+      function updateLegacyWarning() {
+        const legacyEl = document.getElementById("legacyWarn");
+        const show =
+          legacySegmentInPath(document.getElementById("dataRoot").value) ||
+          legacySegmentInPath(document.getElementById("sqlitePath").value) ||
+          legacySegmentInPath(document.getElementById("backupDir").value);
+        legacyEl.classList.toggle("visible", show);
+      }
 
       function isOperatorAbsolutePath(value) {
         const trimmed = value.trim();
@@ -241,6 +306,12 @@
           return false;
         }
 
+        if (UNC_PATH.test(value.trim()) && !hintEl.textContent.includes("UNC")) {
+          hintEl.textContent =
+            "UNC network path — can be slow or unreliable; prefer a local drive letter when possible.";
+        }
+
+        updateLegacyWarning();
         return true;
       }
 
@@ -296,6 +367,7 @@
       }
 
       updateSubmitState();
+      updateLegacyWarning();
 
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
@@ -318,6 +390,10 @@
             updateSubmitState();
           } else if (result.summary) {
             successEl.textContent = result.summary;
+            successEl.insertAdjacentHTML(
+              "afterend",
+              '<p class="next-step-hint" role="note">After the window closes: Settings → Pilot checklist · mirror import CLI · read-only Today/Patients/Schedule.</p>',
+            );
           }
         } catch {
           errorEl.textContent = "Could not save configuration. Try again.";

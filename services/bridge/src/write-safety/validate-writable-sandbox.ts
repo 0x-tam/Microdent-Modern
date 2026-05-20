@@ -65,7 +65,7 @@ function assertAbsoluteDataRoot(dataRoot: string): string {
   if (!path.isAbsolute(trimmed)) {
     throw new WriteSandboxError(
       "WRITE_DATA_ROOT_NOT_ABSOLUTE",
-      `DATA_ROOT must be an absolute path, got: ${JSON.stringify(dataRoot)}`,
+      "DATA_ROOT must be an absolute path",
     );
   }
   return trimmed;

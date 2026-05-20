@@ -8,17 +8,21 @@
 
 ---
 
-## Folder layout (placeholders — use your paths)
+## Data locations (three layers)
 
-| Role | Example (Windows) | Notes |
+Full reference: **[windows-pilot-data-locations.md](./windows-pilot-data-locations.md)** — install vs `%AppData%` vs clinic paths, logs, QA reports, mirror/backups outside install.
+
+| Layer | Example (Windows) | Notes |
 | --- | --- | --- |
-| **DATA_ROOT** | `C:\Microdent\Write-Sandbox\DATA` | Disposable sandbox only — never live legacy |
-| **SQLITE_PATH** | `C:\Microdent\mirror\MICRODENT_MIRROR.sqlite` | Mirror for search/schedule |
-| **BACKUP_DIR** | `C:\Microdent\Write-Sandbox\backups` | Required before sandbox commits |
+| **Install / staged package** | `C:\Microdent\MicrodentModern\` | IT extract — no clinic DBF/sqlite/backups |
 | **Desktop config** | `%AppData%\Microdent\config.json` | Run → `%AppData%\Microdent` |
-| **Repo** | `C:\Microdent\Microdent-Modern` | Clone + build location |
+| **DATA_ROOT** | `C:\ClinicData\Microdent\DATA` | Disposable sandbox — never live legacy |
+| **SQLITE_PATH** | `C:\Users\Public\MicrodentModern\mirror\clinic.sqlite` | Mirror — **not** inside install folder |
+| **BACKUP_DIR** | `C:\Users\Public\MicrodentModern\backups` | Required before sandbox commits — outside install |
+| **Logs (optional)** | `%AppData%\Microdent\logs\` | Documented convention; not auto-created in pilot RC |
+| **Repo (dev/build)** | `C:\Microdent\Microdent-Modern` | Clone + build; `qa-runs/` is dev-only |
 
-Quote paths with spaces in PowerShell (e.g. `"C:\Microdent\My Sandbox\DATA"`). Prefer drive letters over UNC shares.
+Quote paths with spaces in PowerShell (e.g. `"C:\ClinicData\My Sandbox\DATA"`). Prefer drive letters over UNC shares.
 
 ---
 
@@ -41,13 +45,23 @@ Open the app → **Settings** → **Pilot readiness** strip and checklist show w
 
 ## Validation commands
 
+### Distribution RC checkpoint (build machine — recommended before IT handoff)
+
+```bash
+pnpm pilot:distribution-checkpoint
+```
+
+Runs `pnpm test`, `pnpm build:web`, bridge + desktop build, `pnpm stage:pilot-release`, `pnpm pilot:verify-release`, and `PILOT_STAGED_RELEASE=1` desktop release-smoke against `dist/pilot-release/MicrodentModern/`. Optionally runs `pnpm qa:sandbox` when `DATA_ROOT` and `SQLITE_PATH` are set.
+
+**Script class:** bash orchestrator (macOS/Linux/Git Bash). Underlying stage/verify/smoke are **Node** — runnable on Windows in PowerShell after builds.
+
 ### Quick checkpoint (no sandbox env)
 
 ```powershell
 pnpm pilot-checkpoint
 ```
 
-Runs `pnpm test`, `pnpm build:web`, and `pnpm desktop:release-smoke`. Does **not** run sandbox QA (needs disposable paths).
+Runs `pnpm test`, `pnpm build:web`, and `pnpm desktop:release-smoke`. Does **not** stage, verify, or run sandbox QA.
 
 ### Full pilot checkpoint (with sandbox env)
 
@@ -75,12 +89,42 @@ pnpm --filter @microdent/desktop run release-smoke
 | `pnpm test` | All workspace regression tests |
 | `pnpm build:web` | `apps/web/dist/index.html` for desktop `file://` UI |
 | `pnpm desktop:release-smoke` | Desktop dist, bridge dist reference, config defaults |
-| `pnpm stage:pilot-release` | Stage `dist/pilot-release/` (dist only, no clinic data) |
-| `pnpm pilot:verify-release` | Validate staged layout and guardrails |
+| `pnpm stage:pilot-release` | Stage `dist/pilot-release/MicrodentModern/` (dist only, no clinic data) |
+| `pnpm pilot:verify-release` | Validate `MicrodentModern/` layout and guardrails |
 | `pnpm qa:sandbox` | Four write workflows + DBF readback (needs env above) |
-| `pnpm pilot:full-checkpoint` | Above chain when sandbox env is set |
+| `pnpm pilot:distribution-checkpoint` | Distribution RC: test, build, stage, verify, staged smoke |
+| `pnpm pilot:full-checkpoint` | Test + web + optional sandbox QA + desktop smoke (no stage) |
 
 Script index: [scripts/README.md](../scripts/README.md).
+
+---
+
+## IT handoff package (staged distribution)
+
+For clinic deployment without a full git checkout, build and stage on a build machine:
+
+```powershell
+pnpm build:web
+pnpm --filter @microdent/bridge run build
+pnpm --filter @microdent/desktop run build
+pnpm stage:pilot-release
+pnpm pilot:verify-release
+```
+
+Deliver **`dist/pilot-release/MicrodentModern/`** to IT. That folder includes:
+
+| Path | Purpose |
+| --- | --- |
+| `HANDOFF-README.txt` | Install steps, Node 22 requirement, config location, validation commands |
+| `app/`, `bridge/`, `web/` | Compiled runtime artifacts |
+| `config-templates/` | Example config only — operators save real config to `%AppData%\Microdent\config.json` |
+| `docs/` | Pilot runbooks (including acceptance checklist) |
+| `scripts/` | Safe operator pointers (mirror import — see `mirror-import-pointer.txt`) |
+| `logs/`, `mirror/`, `backups/` | Placeholder READMEs — create real folders outside the install dir |
+
+Before sign-off, IT runs through [pilot-acceptance-checklist.md](./pilot-acceptance-checklist.md) and confirms `pnpm pilot:verify-release` passed on the build machine.
+
+Layout detail: [windows-pilot-release-layout.md](./windows-pilot-release-layout.md).
 
 ---
 
@@ -140,3 +184,4 @@ Full guardrails: [out-of-scope-guardrails.md](./out-of-scope-guardrails.md).
 | [windows-dev-dry-run.md](./windows-dev-dry-run.md) | Dev-machine packaging dry-run |
 | [pilot-acceptance-checklist.md](./pilot-acceptance-checklist.md) | IT pass/fail sign-off |
 | [apps/desktop/README.md](../apps/desktop/README.md) | Desktop shell and config paths |
+| [windows-pilot-data-locations.md](./windows-pilot-data-locations.md) | Install vs AppData vs clinic paths |

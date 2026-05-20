@@ -27,6 +27,19 @@ Or step by step:
 | 5 | `pnpm --filter @microdent/desktop run release-smoke` | Supervisor + defaults |
 | 6 | `pnpm stage:pilot-release` | Staged tree |
 | 7 | `pnpm pilot:verify-release` | Layout guards |
+| 8 | `PILOT_STAGED_RELEASE=1 pnpm --filter @microdent/desktop run release-smoke` | Staged `MicrodentModern/` smoke |
+
+**One command:** `pnpm pilot:distribution-checkpoint` runs steps 1–8 (plus root `pnpm test` and optional `qa:sandbox` when env is set). Bash orchestrator; Node steps work on Windows without bash.
+
+---
+
+## Script classification (this dry-run)
+
+| Kind | Examples | Windows without Git Bash |
+| --- | --- | --- |
+| **Node (Windows-ready)** | `stage:pilot-release`, `pilot:verify-release`, `release-smoke`, desktop/bridge `build` | Run directly in PowerShell |
+| **Bash orchestrator** | `pilot:distribution-checkpoint`, `pilot:full-checkpoint`, `qa:sandbox` | Use Git Bash/WSL or run underlying Node/`pnpm` steps manually |
+| **macOS dev-only** | `dev:ports`, `dev:kill-ports` | Not applicable |
 
 ---
 

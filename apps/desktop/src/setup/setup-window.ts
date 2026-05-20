@@ -6,6 +6,7 @@ import {
   type DesktopConfig,
 } from "../config.js";
 import {
+  getOperatorPathWarnings,
   maskOperatorPath,
   validateBackupDir,
   validateDataRootDir,
@@ -24,6 +25,10 @@ type SetupSaveResult =
   | { ok: true; summary?: string }
   | { ok: false; message: string };
 
+export type ValidateSetupOutcome =
+  | { ok: false; message: string }
+  | { ok: true; config: DesktopConfig; warnings: string[] };
+
 const VALIDATION_MESSAGES: Record<string, string> = {
   empty: "Path is required.",
   not_absolute: "Use a full absolute path.",
@@ -33,12 +38,63 @@ const VALIDATION_MESSAGES: Record<string, string> = {
   mkdir_failed: "Could not create the backup folder.",
 };
 
+const LEGACY_SEGMENT_NAMES = [/^microdent-legacy$/i, /^legacy-copy$/i];
+
+/** Warn-only: path segment name resembles production legacy (no full paths in message). */
+export function getLegacyPathSegmentWarning(value: string): string | null {
+  const segments = value.trim().split(/[/\\]/).filter(Boolean);
+  for (const seg of segments) {
+    if (LEGACY_SEGMENT_NAMES.some((pattern) => pattern.test(seg))) {
+      return "A folder name looks like production legacy — use a disposable Write-Sandbox copy only.";
+    }
+  }
+  return null;
+}
+
 function validationMessage(code: string, field: string): string {
   const base = VALIDATION_MESSAGES[code] ?? "Invalid path.";
   return `${field}: ${base}`;
 }
 
-export function validateSetupPayload(payload: SetupSavePayload): SetupSaveResult | DesktopConfig {
+function mergeValidationWarnings(
+  results: Array<{ ok: true; warnings?: string[] } | { ok: false }>,
+): string[] {
+  const merged: string[] = [];
+  for (const result of results) {
+    if (result.ok && result.warnings?.length) {
+      merged.push(...result.warnings);
+    }
+  }
+  return merged;
+}
+
+/** UNC + legacy segment hints for setup save (warn-only; does not block). */
+export function collectSetupPathWarnings(payload: SetupSavePayload): string[] {
+  const warnings = new Set<string>();
+  for (const value of [payload.dataRoot, payload.sqlitePath, payload.backupDir ?? ""]) {
+    const trimmed = value.trim();
+    if (trimmed.length === 0) continue;
+    for (const hint of getOperatorPathWarnings(trimmed)) {
+      warnings.add(hint);
+    }
+    const legacy = getLegacyPathSegmentWarning(trimmed);
+    if (legacy) warnings.add(legacy);
+  }
+  return [...warnings];
+}
+
+export function formatSetupSaveSummary(warnings: string[]): string {
+  const lines = [
+    "Saved. Next: run mirror import from the command line (see phase-4 operator guide), then open Settings → Pilot checklist.",
+    "Write mode stays disabled until you change config manually for sandbox pilot work.",
+  ];
+  if (warnings.length > 0) {
+    lines.push(`Note: ${warnings.join(" ")}`);
+  }
+  return lines.join(" ");
+}
+
+export function validateSetupPayload(payload: SetupSavePayload): ValidateSetupOutcome {
   const dataRoot = validateDataRootDir(payload.dataRoot);
   if (!dataRoot.ok) {
     return { ok: false, message: validationMessage(dataRoot.code, "DATA_ROOT") };
@@ -51,20 +107,37 @@ export function validateSetupPayload(payload: SetupSavePayload): SetupSaveResult
 
   let backupDir: string | undefined;
   const backupRaw = payload.backupDir?.trim() ?? "";
+  let backupResult: { ok: true; warnings?: string[] } | undefined;
   if (backupRaw.length > 0) {
     const backup = validateBackupDir(backupRaw, { createIfMissing: true });
     if (!backup.ok) {
       return { ok: false, message: validationMessage(backup.code, "BACKUP_DIR") };
     }
     backupDir = backup.normalizedPath;
+    backupResult = backup;
   }
 
+  const warnings = [
+    ...new Set([
+      ...mergeValidationWarnings([
+        dataRoot,
+        sqlitePath,
+        ...(backupResult ? [backupResult] : []),
+      ]),
+      ...collectSetupPathWarnings(payload),
+    ]),
+  ];
+
   return {
-    ...defaultDesktopConfig(),
-    dataRoot: dataRoot.normalizedPath,
-    sqlitePath: sqlitePath.normalizedPath,
-    backupDir,
-    writeMode: "disabled",
+    ok: true,
+    warnings,
+    config: {
+      ...defaultDesktopConfig(),
+      dataRoot: dataRoot.normalizedPath,
+      sqlitePath: sqlitePath.normalizedPath,
+      backupDir,
+      writeMode: "disabled",
+    },
   };
 }
 
@@ -88,8 +161,8 @@ export function showSetupWindow(initial: DesktopConfig): Promise<DesktopConfig> 
     };
 
     const win = new BrowserWindow({
-      width: 620,
-      height: 520,
+      width: 640,
+      height: 580,
       resizable: false,
       webPreferences: {
         contextIsolation: true,
@@ -99,15 +172,18 @@ export function showSetupWindow(initial: DesktopConfig): Promise<DesktopConfig> 
     });
 
     ipcMain.handle("setup:save", (_event, payload: SetupSavePayload) => {
-      const result = validateSetupPayload(payload);
-      if ("ok" in result) {
-        return result;
+      const outcome = validateSetupPayload(payload);
+      if (!outcome.ok) {
+        return { ok: false as const, message: outcome.message };
       }
-      finish(result);
+      finish(outcome.config);
       win.close();
+      console.log(
+        `Microdent setup: saved data=${maskOperatorPath(outcome.config.dataRoot ?? "")} sqlite=${maskOperatorPath(outcome.config.sqlitePath ?? "")}`,
+      );
       return {
         ok: true as const,
-        summary: `Saved. Open Settings → Pilot checklist to verify paths. Write mode stays disabled until you change config manually.`,
+        summary: formatSetupSaveSummary(outcome.warnings),
       };
     });
 

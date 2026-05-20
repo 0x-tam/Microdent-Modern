@@ -54,6 +54,9 @@ export class BridgeSupervisor {
       env,
       stdio: ["ignore", "pipe", "pipe"],
     });
+    // Discard bridge stdout/stderr — health is polled via HTTP; never forward to operator logs.
+    this.child.stdout?.on("data", () => {});
+    this.child.stderr?.on("data", () => {});
 
     await this.waitForHealth();
   }

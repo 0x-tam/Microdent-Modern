@@ -10,6 +10,8 @@
 # Usage:
 #   bash scripts/pilot-full-checkpoint.sh
 #   pnpm pilot:full-checkpoint
+#
+# Distribution RC (stage + verify + staged smoke): pnpm pilot:distribution-checkpoint
 
 set -euo pipefail
 
