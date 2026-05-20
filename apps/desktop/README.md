@@ -89,11 +89,14 @@ On startup: load config → optional setup window → validate required paths �
 | --- | --- |
 | Build once | `pnpm --filter @microdent/bridge run build` · `pnpm build:web` · `pnpm --filter @microdent/desktop run build` |
 | Quick gate | `pnpm pilot-checkpoint` (test + web + release-smoke) |
+| Staged package | `pnpm stage:pilot-release` then `pnpm pilot:verify-release` — see [windows-pilot-release-layout.md](../../docs/windows-pilot-release-layout.md) |
 | Full gate | Set sandbox env, then `pnpm pilot:full-checkpoint` |
 | Launch | `pnpm --filter @microdent/desktop run start` |
 | Verify | Settings → **Pilot checklist** after first-run setup |
 
-Logs: `%AppData%\Microdent\` config only — bridge stdout/stderr in the terminal that launched desktop (no PHI).
+Optional staged check in release-smoke: `PILOT_STAGED_RELEASE=1 pnpm --filter @microdent/desktop run release-smoke` (after staging).
+
+Logs: `%AppData%\Microdent\` config only — bridge stdout/stderr in the terminal that launched desktop (no PHI). Operator log folder: [windows-pilot-data-locations.md](../../docs/windows-pilot-data-locations.md).
 
 ## Windows operator checklist
 

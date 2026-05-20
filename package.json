@@ -25,7 +25,9 @@
     "qa:sandbox": "bash scripts/qa-sandbox-run.sh",
     "desktop:release-smoke": "pnpm --filter @microdent/desktop run release-smoke",
     "pilot-checkpoint": "pnpm test && pnpm build:web && pnpm desktop:release-smoke",
-    "pilot:full-checkpoint": "bash scripts/pilot-full-checkpoint.sh"
+    "pilot:full-checkpoint": "bash scripts/pilot-full-checkpoint.sh",
+    "stage:pilot-release": "node scripts/stage-pilot-release.mjs",
+    "pilot:verify-release": "node scripts/verify-pilot-release.mjs"
   },
   "engines": {
     "node": ">=18"

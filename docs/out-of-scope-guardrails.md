@@ -94,3 +94,19 @@ Complete before handing a build to clinic staff. Both parties initial the printe
 | D5 | No `Microdent-Legacy`, `.sqlite`, or sandbox DATA committed to git | ☐ |
 | D6 | [windows-pilot-pre-installer-checklist.md](./windows-pilot-pre-installer-checklist.md) shared with IT | ☐ |
 | D7 | Packaging gaps documented — no false promise of installer/signing | ☐ |
+| D8 | `pnpm stage:pilot-release` + `pnpm pilot:verify-release` pass — no `.dbf`/`.sqlite`/Legacy in staged tree | ☐ |
+
+---
+
+## Pilot package sign-off (staged release)
+
+Complete when handing a **staged** `dist/pilot-release/` folder (not raw git clone) to IT.
+
+| # | Item | Pass |
+| --- | --- | --- |
+| P1 | [windows-pilot-release-layout.md](./windows-pilot-release-layout.md) reviewed — shipped vs operator DATA | ☐ |
+| P2 | `pnpm stage:pilot-release` after full build chain | ☐ |
+| P3 | `pnpm pilot:verify-release` — layout + supervisor guards | ☐ |
+| P4 | Staged tree scan: no `SCHEDULE.DBF`, `.sqlite`, `Microdent-Legacy`, or `Write-Sandbox` paths | ☐ |
+| P5 | [pilot-acceptance-checklist.md](./pilot-acceptance-checklist.md) for operator IT sign-off | ☐ |
+| P6 | Real Windows machine test still required — [windows-dev-dry-run.md](./windows-dev-dry-run.md) is dev-only | ☐ |

@@ -454,6 +454,27 @@ export const SETTINGS_NEXT_STEP_MIRROR_REFRESH = "Tap Refresh status after the c
 export const SETTINGS_NEXT_STEP_MIRROR_STALE =
   "Mirror metadata is stale. Re-run safe import; DBF remains the source of truth for writes.";
 
+/** Recovery pointers — link to repo docs/PILOT-START-HERE.md (no URL with PHI). */
+export const PILOT_TROUBLESHOOTING_DOC = "PILOT-START-HERE.md";
+
+export const SETTINGS_RECOVERY_BRIDGE_OFFLINE =
+  "Clinic service offline: complete desktop setup, confirm bridge dist is built, and ensure port 17890 is free. See PILOT-START-HERE.md § Troubleshooting.";
+
+export const SETTINGS_RECOVERY_MIRROR_STALE =
+  "Mirror stale: run safe mirror import from the operator guide, then Refresh status in Settings. DBF stays the write source of truth.";
+
+export const SETTINGS_RECOVERY_BACKUP_MISSING =
+  "Backup not configured: set BACKUP_DIR in desktop setup before enabling sandbox commits.";
+
+export const SETTINGS_RECOVERY_SANDBOX_INVALID =
+  "Sandbox not ready: DATA_ROOT must be a disposable Write-Sandbox with the marker — never live Microdent-Legacy.";
+
+export const SETTINGS_RECOVERY_WRITE_BLOCKED =
+  "Writes blocked: keep read-only mode or follow phase-7 sandbox pilot steps before enabling commits.";
+
+export const SETTINGS_RECOVERY_DATA_ROOT_INVALID =
+  "Invalid DATA_ROOT: re-open desktop setup and use an absolute sandbox folder that exists on disk.";
+
 export const SETTINGS_BACKUP_NOT_CONFIGURED_BANNER_LABEL = "Backup required for commits";
 
 export const SETTINGS_BACKUP_NOT_CONFIGURED_BANNER_BODY =

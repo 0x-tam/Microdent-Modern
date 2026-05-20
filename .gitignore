@@ -3,6 +3,8 @@ node_modules/
 
 # Build outputs
 dist/
+# Staged Windows pilot package (scripts/stage-pilot-release.mjs)
+dist/pilot-release/
 *.tsbuildinfo
 
 # Logs and local env

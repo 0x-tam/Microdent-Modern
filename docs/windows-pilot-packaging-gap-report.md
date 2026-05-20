@@ -1,7 +1,7 @@
 # Windows pilot packaging gap report
 
 **Date:** 2026-05-20  
-**Baseline:** Microdent-Modern `main` @ `678585f`  
+**Baseline:** Microdent-Modern `main` @ `1b67d2b`  
 **Scope:** Honest assessment of what works in the pilot RC vs what remains manual or unimplemented.
 
 **Actionable checklist:** [windows-pilot-pre-installer-checklist.md](./windows-pilot-pre-installer-checklist.md) — installer, signing, shortcuts, `%AppData%`, logs, backups, SmartScreen.
@@ -22,6 +22,7 @@
 | Mirror import CLI | **Works** | `pnpm mirror:import-safe` / sqlite-mirror `import-safe` |
 | Sandbox QA | **Works** | `pnpm qa:sandbox` — 5 sections, DBF readback, 4 workflows |
 | Desktop release smoke | **Works** | `pnpm --filter @microdent/desktop run release-smoke` |
+| Pilot release staging | **Works** | `pnpm stage:pilot-release` + `pnpm pilot:verify-release` → `dist/pilot-release/` |
 | Write safety inventory | **Works** | Four PATCH/POST routes; forbidden body keys tested |
 
 ---
@@ -32,7 +33,7 @@
 | --- | --- | --- |
 | Node 22 install | Operator or IT installs Node | No bundled runtime in desktop package |
 | Repo clone + `pnpm install` | Developer-style setup | No single-click installer |
-| Build chain | `bridge` + `build:web` + `desktop` build | No pre-built release artifact channel |
+| Build chain | `bridge` + `build:web` + `desktop` build | Staged tree via `stage:pilot-release` — no signed installer channel yet |
 | Env vars for mirror/QA | PowerShell / Git Bash | No wizard for import (by design — security) |
 | `writeMode` changes | Edit `%AppData%\Microdent\config.json` | No in-app write-mode toggle (intentional) |
 | Sandbox pilot UI | `VITE_SANDBOX_WRITE_PILOT=true` web rebuild | Not default production build |

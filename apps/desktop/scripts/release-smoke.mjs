@@ -43,6 +43,12 @@ if (!existsSync(bridgeServerDist)) {
 }
 
 const supervisorDist = readFileSync(join(desktopRoot, "dist/bridge-supervisor.js"), "utf8");
+if (!/join\(options\.repoRoot,\s*"services",\s*"bridge",\s*"dist",\s*"server\.js"\)/.test(supervisorDist)) {
+  fail("bridge-supervisor dist must resolve bridgeEntry from options.repoRoot");
+}
+if (!/join\(options\.repoRoot,\s*"apps",\s*"web",\s*"dist",\s*"index\.html"\)/.test(supervisorDist)) {
+  fail("bridge-supervisor dist must resolve web dist from options.repoRoot");
+}
 if (!supervisorDist.includes("server.js")) {
   fail("bridge-supervisor dist must reference services/bridge/dist/server.js");
 }
@@ -68,6 +74,22 @@ if (!desktopConfigNeedsSetup(defaults)) {
 }
 if ("dataRoot" in defaults || "sqlitePath" in defaults) {
   fail("defaults must not ship hardcoded path fields");
+}
+
+const stagedIndex = join(repoRoot, "dist", "pilot-release", "web", "index.html");
+const stagedBridge = join(repoRoot, "dist", "pilot-release", "bridge", "server.js");
+const stagedMain = join(repoRoot, "dist", "pilot-release", "app", "dist", "main.js");
+if (process.env.PILOT_STAGED_RELEASE === "1") {
+  if (!existsSync(stagedIndex) || !existsSync(stagedBridge) || !existsSync(stagedMain)) {
+    fail("PILOT_STAGED_RELEASE=1 but dist/pilot-release/ incomplete — run pnpm stage:pilot-release");
+  }
+  const stagedSupervisor = readFileSync(
+    join(repoRoot, "dist", "pilot-release", "app", "dist", "bridge-supervisor.js"),
+    "utf8",
+  );
+  if (!/spawn\([^,]+,\s*\[this\.bridgeEntry\]/.test(stagedSupervisor)) {
+    fail("staged bridge-supervisor must spawn with bridgeEntry argv only");
+  }
 }
 
 console.log(

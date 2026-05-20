@@ -109,9 +109,13 @@
       paths only. Write mode stays <strong>disabled</strong> until you change config manually for sandbox pilot work.
     </p>
     <p>
-      <strong>Windows:</strong> use drive-letter paths such as <code>C:\Microdent\Write-Sandbox\DATA</code>. If a path
+      <strong>Windows:</strong> use drive-letter paths only in examples below — not hardcoded by the app. If a path
       contains spaces, quote it in manual PowerShell or CMD commands (for example
-      <code>"C:\Microdent\My Sandbox\DATA"</code>).
+      <code>"C:\ClinicData\My Sandbox\DATA"</code>).
+    </p>
+    <p>
+      <strong>UNC shares</strong> (<code>\\server\share\…</code>) are accepted but can be slow or unreliable for SQLite
+      and DBF. Prefer a local drive letter when IT allows.
     </p>
     <div id="missingChecklist" class="missing-checklist" aria-live="polite" role="status">
       <strong>Before you can save:</strong>
@@ -124,14 +128,14 @@
         name="dataRoot"
         type="text"
         autocomplete="off"
-        placeholder="C:\Microdent\Write-Sandbox\DATA"
+        placeholder="C:\ClinicData\Microdent\DATA"
         required
         aria-describedby="dataRootError dataRootHint"
       />
       <div id="dataRootError" class="field-error" role="alert"></div>
       <div id="dataRootHint" class="field-hint">
         Sandbox DATA folder with DBF files and <code>.microdent-write-sandbox.json</code>. Example:
-        <code>C:\Microdent\Write-Sandbox\DATA</code>
+        <code>C:\ClinicData\Microdent\DATA</code>
       </div>
 
       <label for="sqlitePath">SQLITE_PATH (file)</label>
@@ -140,13 +144,14 @@
         name="sqlitePath"
         type="text"
         autocomplete="off"
-        placeholder="C:\Microdent\mirror.sqlite"
+        placeholder="C:\Users\Public\MicrodentModern\mirror\clinic.sqlite"
         required
         aria-describedby="sqlitePathError sqlitePathHint"
       />
       <div id="sqlitePathError" class="field-error" role="alert"></div>
       <div id="sqlitePathHint" class="field-hint">
-        SQLite mirror file for search and schedule. Example: <code>C:\Microdent\mirror\MICRODENT_MIRROR.sqlite</code>
+        SQLite mirror file for search and schedule. Example:
+        <code>C:\Users\Public\MicrodentModern\mirror\clinic.sqlite</code>
       </div>
 
       <label for="backupDir">BACKUP_DIR (folder, optional)</label>
@@ -155,14 +160,13 @@
         name="backupDir"
         type="text"
         autocomplete="off"
-        placeholder="C:\Microdent\backups"
+        placeholder="C:\Users\Public\MicrodentModern\backups"
         aria-describedby="backupDirError backupDirHint"
       />
       <div id="backupDirError" class="field-error" role="alert"></div>
       <div id="backupDirHint" class="field-hint">
-        Optional. Required before enabling sandbox writes on the bridge. Prefer
-        <code>C:\Microdent\Write-Sandbox\backups</code> on a local drive — UNC shares
-        (<code>\\server\share\…</code>) may be slow or unreliable.
+        Optional. Required before enabling sandbox writes on the bridge. Example:
+        <code>C:\Users\Public\MicrodentModern\backups</code> on a local drive (not inside the app install folder).
       </div>
 
       <label>Write mode</label>
@@ -199,13 +203,13 @@
 
       function defaultHint(id) {
         if (id === "dataRoot") {
-          return "Sandbox DATA folder with DBF files and write-sandbox marker. Example: C:\\Microdent\\Write-Sandbox\\DATA";
+          return "Sandbox DATA folder with DBF files and write-sandbox marker. Example: C:\\ClinicData\\Microdent\\DATA";
         }
         if (id === "sqlitePath") {
-          return "SQLite mirror file for search and schedule. Example: C:\\Microdent\\mirror\\MICRODENT_MIRROR.sqlite";
+          return "SQLite mirror file for search and schedule. Example: C:\\Users\\Public\\MicrodentModern\\mirror\\clinic.sqlite";
         }
         if (id === "backupDir") {
-          return "Optional. Required before enabling sandbox writes. Example: C:\\Microdent\\Write-Sandbox\\backups";
+          return "Optional. Required before enabling sandbox writes. Example: C:\\Users\\Public\\MicrodentModern\\backups";
         }
         return "";
       }

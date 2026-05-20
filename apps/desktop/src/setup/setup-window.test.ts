@@ -46,6 +46,17 @@ describe("validateSetupPayload", () => {
     }
   });
 
+  it("rejects relative paths with not_absolute", () => {
+    const result = validateSetupPayload({
+      dataRoot: "sandbox/DATA",
+      sqlitePath: "mirror/clinic.sqlite",
+    });
+    expect("ok" in result && result.ok === false).toBe(true);
+    if ("ok" in result && !result.ok) {
+      expect(result.message).toMatch(/not_absolute|absolute/i);
+    }
+  });
+
   it("accepts paths with spaces when directories exist", () => {
     const dataRoot = mkdtempSync(join(tmpdir(), "microdent setup data "));
     const sqliteDir = mkdtempSync(join(tmpdir(), "microdent setup sql "));

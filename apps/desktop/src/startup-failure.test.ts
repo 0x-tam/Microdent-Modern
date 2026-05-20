@@ -26,9 +26,19 @@ describe("formatStartupFailure", () => {
     expect(formatStartupFailure(new Error("Bridge health check timed out"))).toMatch(/loopback/i);
   });
 
-  it("passes through unknown messages", () => {
-    expect(formatStartupFailure(new Error("Custom operator-safe message"))).toBe(
-      "Custom operator-safe message",
+  it("maps sandbox guard failures", () => {
+    expect(formatStartupFailure(new Error("DATA_ROOT failed write-sandbox guard"))).toMatch(
+      /disposable sandbox/i,
+    );
+  });
+
+  it("maps backup failures", () => {
+    expect(formatStartupFailure(new Error("BACKUP_DIR missing"))).toMatch(/BACKUP_DIR/i);
+  });
+
+  it("uses generic recovery for unknown messages", () => {
+    expect(formatStartupFailure(new Error("Custom operator-safe message"))).toMatch(
+      /PILOT-START-HERE/i,
     );
   });
 

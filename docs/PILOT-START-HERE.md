@@ -2,9 +2,9 @@
 
 **Purpose:** One-page index for operators and IT. Follow the numbered flow below; use linked runbooks for detail.
 
-**Baseline:** Microdent-Modern `main` @ `678585f` (pilot RC batch A–L).
+**Baseline:** Microdent-Modern `main` @ `1b67d2b` (Windows pilot package batch).
 
-**Tester script:** [pilot-tester-guide.md](./pilot-tester-guide.md)
+**Tester script:** [pilot-tester-guide.md](./pilot-tester-guide.md) · **IT sign-off:** [pilot-acceptance-checklist.md](./pilot-acceptance-checklist.md) · **Data locations:** [windows-pilot-data-locations.md](./windows-pilot-data-locations.md)
 
 ---
 
@@ -75,6 +75,8 @@ pnpm --filter @microdent/desktop run release-smoke
 | `pnpm test` | All workspace regression tests |
 | `pnpm build:web` | `apps/web/dist/index.html` for desktop `file://` UI |
 | `pnpm desktop:release-smoke` | Desktop dist, bridge dist reference, config defaults |
+| `pnpm stage:pilot-release` | Stage `dist/pilot-release/` (dist only, no clinic data) |
+| `pnpm pilot:verify-release` | Validate staged layout and guardrails |
 | `pnpm qa:sandbox` | Four write workflows + DBF readback (needs env above) |
 | `pnpm pilot:full-checkpoint` | Above chain when sandbox env is set |
 
@@ -88,7 +90,7 @@ Use when filing pilot feedback:
 
 | Field | What to include |
 | --- | --- |
-| Build | `main` @ `678585f` (or current commit) |
+| Build | `main` @ `1b67d2b` (or current commit) |
 | Checkpoint | `pilot-checkpoint` / `pilot:full-checkpoint` pass or fail |
 | Settings checklist | Which rows are warn (screenshot OK — no patient names) |
 | Mirror | Stale / partial / failed / OK from Settings refresh |
@@ -134,4 +136,7 @@ Full guardrails: [out-of-scope-guardrails.md](./out-of-scope-guardrails.md).
 | [phase-6-windows-mvp-operator-guide.md](./phase-6-windows-mvp-operator-guide.md) | Detailed Windows CLI |
 | [phase-7-sandbox-pilot-qa-runbook.md](./phase-7-sandbox-pilot-qa-runbook.md) | Sandbox sign-off |
 | [windows-pilot-packaging-gap-report.md](./windows-pilot-packaging-gap-report.md) | What installer work remains |
+| [windows-pilot-release-layout.md](./windows-pilot-release-layout.md) | Staged pilot package layout |
+| [windows-dev-dry-run.md](./windows-dev-dry-run.md) | Dev-machine packaging dry-run |
+| [pilot-acceptance-checklist.md](./pilot-acceptance-checklist.md) | IT pass/fail sign-off |
 | [apps/desktop/README.md](../apps/desktop/README.md) | Desktop shell and config paths |
