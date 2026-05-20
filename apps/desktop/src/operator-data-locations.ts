@@ -10,11 +10,14 @@ export const WINDOWS_SANDBOX_EXAMPLES = {
 
 export type DataLocationLayer = "install" | "appData" | "clinic";
 
+export type DataLocationImplementationStatus = "implemented" | "documented-only";
+
 export type OperatorDataLocationSpec = {
   id: string;
   layer: DataLocationLayer;
   label: string;
   windowsPathHint: string;
+  implementationStatus: DataLocationImplementationStatus;
   createdBy: "it" | "desktop-first-save" | "operator-setup";
   shippedInPackage: boolean;
   mustStayOutsideInstall: boolean;
@@ -33,6 +36,7 @@ export function resolveOperatorDataLocations(): OperatorDataLocationSpec[] {
       layer: "install",
       label: "App install / staged package",
       windowsPathHint: "C:\\Microdent\\MicrodentModern\\",
+      implementationStatus: "implemented",
       createdBy: "it",
       shippedInPackage: true,
       mustStayOutsideInstall: false,
@@ -45,6 +49,7 @@ export function resolveOperatorDataLocations(): OperatorDataLocationSpec[] {
       layer: "appData",
       label: "Desktop config",
       windowsPathHint: "%AppData%\\Microdent\\config.json",
+      implementationStatus: "implemented",
       createdBy: "desktop-first-save",
       shippedInPackage: false,
       mustStayOutsideInstall: true,
@@ -56,6 +61,7 @@ export function resolveOperatorDataLocations(): OperatorDataLocationSpec[] {
       layer: "clinic",
       label: "DATA_ROOT",
       windowsPathHint: WINDOWS_SANDBOX_EXAMPLES.dataRoot,
+      implementationStatus: "implemented",
       createdBy: "operator-setup",
       shippedInPackage: false,
       mustStayOutsideInstall: true,
@@ -67,6 +73,7 @@ export function resolveOperatorDataLocations(): OperatorDataLocationSpec[] {
       layer: "clinic",
       label: "SQLITE_PATH",
       windowsPathHint: WINDOWS_SANDBOX_EXAMPLES.sqlitePath,
+      implementationStatus: "implemented",
       createdBy: "operator-setup",
       shippedInPackage: false,
       mustStayOutsideInstall: true,
@@ -78,6 +85,7 @@ export function resolveOperatorDataLocations(): OperatorDataLocationSpec[] {
       layer: "clinic",
       label: "BACKUP_DIR",
       windowsPathHint: WINDOWS_SANDBOX_EXAMPLES.backupDir,
+      implementationStatus: "implemented",
       createdBy: "operator-setup",
       shippedInPackage: false,
       mustStayOutsideInstall: true,
@@ -89,6 +97,7 @@ export function resolveOperatorDataLocations(): OperatorDataLocationSpec[] {
       layer: "appData",
       label: "Operator logs (documented convention)",
       windowsPathHint: "%AppData%\\Microdent\\logs\\",
+      implementationStatus: "documented-only",
       createdBy: "operator-setup",
       shippedInPackage: false,
       mustStayOutsideInstall: true,
@@ -101,6 +110,7 @@ export function resolveOperatorDataLocations(): OperatorDataLocationSpec[] {
       layer: "install",
       label: "QA reports (developers only)",
       windowsPathHint: "repo qa-runs/ (not on clinic machines)",
+      implementationStatus: "documented-only",
       createdBy: "it",
       shippedInPackage: false,
       mustStayOutsideInstall: true,

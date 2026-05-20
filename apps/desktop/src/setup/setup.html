@@ -135,12 +135,13 @@
   <body>
     <h1>Microdent desktop setup</h1>
     <div class="setup-steps" role="doc-subtitle">
-      <strong>Steps:</strong>
+      <strong>First-run flow:</strong>
       <ol>
-        <li>DATA_ROOT — disposable sandbox folder with DBF files</li>
-        <li>SQLITE_PATH — mirror SQLite file (outside install folder)</li>
-        <li>BACKUP_DIR — optional now; required before sandbox commits</li>
-        <li>Save — then run mirror import (CLI), open Settings to verify read-only</li>
+        <li>Enter DATA_ROOT, SQLITE_PATH, and optional BACKUP_DIR (Windows examples below)</li>
+        <li>Save — config writes to <code>%AppData%\Microdent\config.json</code></li>
+        <li>Run mirror import from the command line (CLI only — see package <code>docs/</code>)</li>
+        <li>Open the app → Settings → confirm read-only Today / Patients / Schedule</li>
+        <li>Sandbox write pilot (optional) — follow <code>docs/PILOT-HANDOFF-PACK.md</code> when IT approves</li>
       </ol>
     </div>
     <p>
@@ -150,8 +151,9 @@
     <p>
       <strong>Where files live:</strong> this app installs to one folder; config saves to
       <code>%AppData%\Microdent\config.json</code>; DATA_ROOT, mirror, and backups belong on clinic paths
-      <strong>outside</strong> the install folder. See <code>docs/windows-pilot-data-locations.md</code> (or staged
-      <code>docs/</code> copy) and <code>docs/PILOT-START-HERE.md</code>.
+      <strong>outside</strong> the install folder. In the staged package, start with
+      <code>docs/PILOT-HANDOFF-PACK.md</code> (full tester index) or <code>docs/PILOT-START-HERE.md</code>.
+      Location details: <code>docs/windows-pilot-data-locations.md</code>.
     </p>
     <p>
       <strong>Windows:</strong> use drive-letter paths only in examples below — not hardcoded by the app. If a path
@@ -392,7 +394,7 @@
             successEl.textContent = result.summary;
             successEl.insertAdjacentHTML(
               "afterend",
-              '<p class="next-step-hint" role="note">After the window closes: Settings → Pilot checklist · mirror import CLI · read-only Today/Patients/Schedule.</p>',
+              '<p class="next-step-hint" role="note">After the window closes: open Settings → Pilot checklist · run mirror import CLI · read-only QA · see docs/PILOT-HANDOFF-PACK.md for sandbox steps.</p>',
             );
           }
         } catch {

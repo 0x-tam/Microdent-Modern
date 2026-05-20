@@ -28,7 +28,11 @@
     "pilot:full-checkpoint": "bash scripts/pilot-full-checkpoint.sh",
     "pilot:distribution-checkpoint": "bash scripts/pilot-distribution-checkpoint.sh",
     "stage:pilot-release": "node scripts/stage-pilot-release.mjs",
-    "pilot:verify-release": "node scripts/verify-pilot-release.mjs"
+    "pilot:stage-release": "pnpm stage:pilot-release",
+    "pilot:verify-release": "node scripts/verify-pilot-release.mjs",
+    "pilot:verify-manifest": "node scripts/verify-pilot-manifest.mjs",
+    "pilot:release-signoff": "bash scripts/pilot-release-signoff.sh",
+    "test:pilot-artifacts": "vitest run scripts/pilot-release-artifacts.test.mjs"
   },
   "engines": {
     "node": ">=18"

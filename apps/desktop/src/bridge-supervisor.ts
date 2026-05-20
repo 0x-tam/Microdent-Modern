@@ -1,10 +1,14 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
-import { join } from "node:path";
 import type { DesktopConfig } from "./config.js";
-import { validateBridgeDistExists, validateDesktopStartupConfig } from "./startup-validation.js";
+import { resolveBridgeEntry, resolveWebDistIndex } from "./runtime-install-root.js";
+import {
+  validateBridgeDistExists,
+  validateDesktopStartupConfig,
+} from "./startup-validation.js";
 
 export type BridgeSupervisorOptions = {
+  /** Install root — repo checkout or staged MicrodentModern/ package. */
   repoRoot: string;
   config: DesktopConfig;
   nodeBinary?: string;
@@ -16,8 +20,8 @@ export class BridgeSupervisor {
   private readonly webDistIndex: string;
 
   constructor(private readonly options: BridgeSupervisorOptions) {
-    this.bridgeEntry = join(options.repoRoot, "services", "bridge", "dist", "server.js");
-    this.webDistIndex = join(options.repoRoot, "apps", "web", "dist", "index.html");
+    this.bridgeEntry = resolveBridgeEntry(options.repoRoot);
+    this.webDistIndex = resolveWebDistIndex(options.repoRoot);
   }
 
   get uiUrl(): string {
@@ -32,8 +36,9 @@ export class BridgeSupervisor {
     validateDesktopStartupConfig(this.options.config);
     validateBridgeDistExists(this.bridgeEntry);
 
+    const { ALLOW_LEGACY_WRITES: _omitLegacyAck, ...safeProcessEnv } = process.env;
     const env: NodeJS.ProcessEnv = {
-      ...process.env,
+      ...safeProcessEnv,
       NODE_ENV: "production",
       BRIDGE_HOST: "127.0.0.1",
       BRIDGE_PORT: String(this.options.config.bridgePort ?? 17890),
@@ -48,15 +53,13 @@ export class BridgeSupervisor {
     if (this.options.config.backupDir) {
       env.BACKUP_DIR = this.options.config.backupDir;
     }
+    delete env.ALLOW_LEGACY_WRITES;
 
     const nodeBin = this.options.nodeBinary ?? process.execPath;
     this.child = spawn(nodeBin, [this.bridgeEntry], {
       env,
       stdio: ["ignore", "pipe", "pipe"],
     });
-    // Discard bridge stdout/stderr — health is polled via HTTP; never forward to operator logs.
-    this.child.stdout?.on("data", () => {});
-    this.child.stderr?.on("data", () => {});
 
     await this.waitForHealth();
   }
@@ -91,8 +94,6 @@ export class BridgeSupervisor {
       }
       await new Promise((r) => setTimeout(r, 400));
     }
-    throw new Error(
-      "bridge health check timed out (confirm bridge dist is built and the configured port is free)",
-    );
+    throw new Error("bridge health check timed out");
   }
 }

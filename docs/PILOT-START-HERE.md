@@ -1,10 +1,10 @@
 # Windows clinic pilot — start here
 
-**Purpose:** One-page index for operators and IT. Follow the numbered flow below; use linked runbooks for detail.
+**Purpose:** One-page index for operators and IT. For the full staged-package walkthrough, open **[PILOT-HANDOFF-PACK.md](./PILOT-HANDOFF-PACK.md)** first.
 
-**Baseline:** Microdent-Modern `main` @ `1b67d2b` (Windows pilot package batch).
+**Baseline:** Microdent-Modern Windows pilot release package batch.
 
-**Tester script:** [pilot-tester-guide.md](./pilot-tester-guide.md) · **IT sign-off:** [pilot-acceptance-checklist.md](./pilot-acceptance-checklist.md) · **Data locations:** [windows-pilot-data-locations.md](./windows-pilot-data-locations.md)
+**Tester script:** [pilot-tester-guide.md](./pilot-tester-guide.md) · **IT sign-off:** [pilot-acceptance-checklist.md](./pilot-acceptance-checklist.md) · **Data locations:** [windows-pilot-data-locations.md](./windows-pilot-data-locations.md) · **Field matrix:** [windows-pilot-real-machine-checklist.md](./windows-pilot-real-machine-checklist.md)
 
 ---
 
@@ -45,6 +45,15 @@ Open the app → **Settings** → **Pilot readiness** strip and checklist show w
 
 ## Validation commands
 
+| Command | Class | Proves |
+| --- | --- | --- |
+| `pnpm pilot-checkpoint` | Dev quick | `pnpm test` + `build:web` + desktop release-smoke — **no** stage/verify/sandbox |
+| `pnpm pilot:full-checkpoint` | Dev | Test + web + optional sandbox QA + desktop smoke — **no** stage/verify |
+| `pnpm pilot:distribution-checkpoint` | Dev distribution | Test, build, stage, verify, staged smoke — **warns** when sandbox skipped |
+| `pnpm pilot:release-signoff` | **Strict signoff** | Full test/build/stage/verify/manifest/smoke + **requires** sandbox env paths |
+| `pnpm test:pilot-artifacts` | Dev | Synthetic good/bad staged trees + manifest round-trip |
+| `pnpm pilot:verify-manifest` | Dev/build | Hash check on `RELEASE-MANIFEST.json` only |
+
 ### Distribution RC checkpoint (build machine — recommended before IT handoff)
 
 ```bash
@@ -52,6 +61,8 @@ pnpm pilot:distribution-checkpoint
 ```
 
 Runs `pnpm test`, `pnpm build:web`, bridge + desktop build, `pnpm stage:pilot-release`, `pnpm pilot:verify-release`, and `PILOT_STAGED_RELEASE=1` desktop release-smoke against `dist/pilot-release/MicrodentModern/`. Optionally runs `pnpm qa:sandbox` when `DATA_ROOT` and `SQLITE_PATH` are set.
+
+**Not release signoff** when sandbox env is missing — use `pnpm pilot:release-signoff` for strict gate.
 
 **Script class:** bash orchestrator (macOS/Linux/Git Bash). Underlying stage/verify/smoke are **Node** — runnable on Windows in PowerShell after builds.
 
@@ -91,8 +102,11 @@ pnpm --filter @microdent/desktop run release-smoke
 | `pnpm desktop:release-smoke` | Desktop dist, bridge dist reference, config defaults |
 | `pnpm stage:pilot-release` | Stage `dist/pilot-release/MicrodentModern/` (dist only, no clinic data) |
 | `pnpm pilot:verify-release` | Validate `MicrodentModern/` layout and guardrails |
+| `pnpm pilot:verify-manifest` | Manifest hash verification |
+| `pnpm test:pilot-artifacts` | Artifact safety + manifest fixtures |
 | `pnpm qa:sandbox` | Four write workflows + DBF readback (needs env above) |
 | `pnpm pilot:distribution-checkpoint` | Distribution RC: test, build, stage, verify, staged smoke |
+| `pnpm pilot:release-signoff` | **Strict** — same as distribution + manifest + requires sandbox |
 | `pnpm pilot:full-checkpoint` | Test + web + optional sandbox QA + desktop smoke (no stage) |
 
 Script index: [scripts/README.md](../scripts/README.md).
@@ -115,10 +129,11 @@ Deliver **`dist/pilot-release/MicrodentModern/`** to IT. That folder includes:
 
 | Path | Purpose |
 | --- | --- |
-| `HANDOFF-README.txt` | Install steps, Node 22 requirement, config location, validation commands |
+| `HANDOFF-README.txt` / `HANDOFF-README.md` | Install steps, Node 22 requirement — **start at** `docs/PILOT-HANDOFF-PACK.md` |
+| `RELEASE-MANIFEST.json` | Content hash manifest for IT verification |
 | `app/`, `bridge/`, `web/` | Compiled runtime artifacts |
 | `config-templates/` | Example config only — operators save real config to `%AppData%\Microdent\config.json` |
-| `docs/` | Pilot runbooks (including acceptance checklist) |
+| `docs/` | Pilot handoff pack, acceptance checklist, backup/restore, guardrails, real-Windows matrix |
 | `scripts/` | Safe operator pointers (mirror import — see `mirror-import-pointer.txt`) |
 | `logs/`, `mirror/`, `backups/` | Placeholder READMEs — create real folders outside the install dir |
 
@@ -174,6 +189,7 @@ Full guardrails: [out-of-scope-guardrails.md](./out-of-scope-guardrails.md).
 
 | Doc | Use when |
 | --- | --- |
+| [PILOT-HANDOFF-PACK.md](./PILOT-HANDOFF-PACK.md) | Master staged-package operator index |
 | [windows-pilot-runbook.md](./windows-pilot-runbook.md) | Full Windows operator steps |
 | [pilot-tester-guide.md](./pilot-tester-guide.md) | Guided day 1–3 test script |
 | [pilot-backup-restore-audit.md](./pilot-backup-restore-audit.md) | Backup/restore + UI feedback |

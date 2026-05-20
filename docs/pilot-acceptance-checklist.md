@@ -16,7 +16,8 @@ Complete on the **build or IT machine** before copying `MicrodentModern/` to cli
 | --- | --- | --- |
 | 0.1 | `pnpm stage:pilot-release` completed after web + bridge + desktop builds | ☐ |
 | 0.2 | `pnpm pilot:verify-release` exit 0 — layout + sensitive-artifact guards | ☐ |
-| 0.3 | `MicrodentModern/HANDOFF-README.txt` read — Node 22, install steps, validation commands | ☐ |
+| 0.2a | `pnpm pilot:verify-manifest` exit 0 — `RELEASE-MANIFEST.json` hashes match | ☐ |
+| 0.3 | `MicrodentModern/HANDOFF-README.txt` read — start at `docs/PILOT-HANDOFF-PACK.md` | ☐ |
 | 0.4 | Staged tree has `app/`, `bridge/`, `web/`, `config-templates/`, `docs/` — placeholders only in `logs/`, `mirror/`, `backups/` | ☐ |
 | 0.5 | No `.sqlite`, `.dbf`, `.env`, `.log`, or live Legacy trees in staged package | ☐ |
 | 0.6 | `config-templates/` uses placeholders only (e.g. `C:\ClinicData\Microdent\DATA`) — no real local paths | ☐ |
@@ -123,10 +124,13 @@ Reference: [out-of-scope-guardrails.md](./out-of-scope-guardrails.md) · [phase-
 | # | Check | Pass |
 | --- | --- | --- |
 | 6.1 | Write feedback shows backup created (or dry-run shows N/A) — metadata only | ☐ |
+| 6.1a | Restore hint in write feedback understood — sandbox DATA only | ☐ |
 | 6.2 | Operator knows `pnpm legacy:restore` / phase-7 restore steps | ☐ |
+| 6.2a | Operator ran `legacy-backup-verify` at least once on sandbox copy | ☐ |
 | 6.3 | Test restore on **sandbox copy only** — not production legacy | ☐ |
 | 6.4 | After restore, mirror re-import if search/schedule must match DBF again | ☐ |
 | 6.5 | Audit line in write feedback understood (terminal status, operation id) | ☐ |
+| 6.6 | Status-update workflow audit detail reviewed — other workflows show operation id + backup only | ☐ |
 
 Reference: [pilot-backup-restore-audit.md](./pilot-backup-restore-audit.md)
 
@@ -164,4 +168,4 @@ Template: [pilot-tester-guide.md](./pilot-tester-guide.md#issue-report-template)
 | IT / operator lead | | | |
 | Developer handoff | | | |
 
-**Guided testing:** [pilot-tester-guide.md](./pilot-tester-guide.md) · **Start here:** [PILOT-START-HERE.md](./PILOT-START-HERE.md) · **Handoff:** `MicrodentModern/HANDOFF-README.txt`
+**Guided testing:** [pilot-tester-guide.md](./pilot-tester-guide.md) · **Handoff pack:** [PILOT-HANDOFF-PACK.md](./PILOT-HANDOFF-PACK.md) · **Start here:** [PILOT-START-HERE.md](./PILOT-START-HERE.md) · **Package root:** `MicrodentModern/HANDOFF-README.txt`

@@ -132,3 +132,26 @@ Complete before IT receives a **distribution RC** build (staged tree + docs, not
 | R10 | Real Windows validation still required | [windows-dev-dry-run.md](./windows-dev-dry-run.md) is dev-only; clinic machine for acceptance | ☐ |
 
 **Blocked body keys (inventory + UI tests):** `COMMENT`, `NOTE`, `DESCRIPT`, `DESC`, `AMOUNT`, `SAMOUNT`, `TELEPHONE`, `PAT_NAME` — never accepted on pilot write routes or rendered in operator UI.
+
+---
+
+## Release package sign-off (manifest + artifact gates)
+
+Complete before IT receives a **release package** build with cryptographic manifest verification (staged `dist/pilot-release/MicrodentModern/` + `RELEASE-MANIFEST.json`, not raw git clone). Developer initials each row after the matching command passes.
+
+| # | Gate | Command / artifact | Pass |
+| --- | --- | --- | --- |
+| S1 | Full test suite green | `pnpm test` | ☐ |
+| S2 | Web + bridge + desktop builds | `pnpm build:web`; bridge `pnpm build`; desktop build per [PILOT-START-HERE.md](./PILOT-START-HERE.md) | ☐ |
+| S3 | Staged pilot tree | `pnpm stage:pilot-release` → `dist/pilot-release/MicrodentModern/` | ☐ |
+| S4 | Staged layout verification | `pnpm pilot:verify-release` — layout, supervisor argv, no runtime data | ☐ |
+| S5 | Manifest hash verification | `pnpm pilot:verify-manifest` — every staged file matches `RELEASE-MANIFEST.json` | ☐ |
+| S6 | Artifact safety tests | `pnpm test:pilot-artifacts` — forbidden extensions, tokens, tamper fixtures | ☐ |
+| S7 | Release smoke (staged) | `PILOT_STAGED_RELEASE=1 pnpm --filter @microdent/desktop run release-smoke` | ☐ |
+| S8 | Write route inventory | `pnpm --filter @microdent/bridge test src/write-safety/write-route-inventory.test.ts` | ☐ |
+| S9 | Write-safety band | `pnpm --filter @microdent/bridge test src/write-safety/` | ☐ |
+| S10 | Strict release signoff (sandbox required) | `pnpm pilot:release-signoff` — fails if `DATA_ROOT`/`SQLITE_PATH` missing or sandbox QA not green | ☐ |
+| S11 | Scope doc reviewed with IT | This file + [pilot-acceptance-checklist.md](./pilot-acceptance-checklist.md) | ☐ |
+| S12 | Real Windows validation still required | [windows-pilot-real-machine-checklist.md](./windows-pilot-real-machine-checklist.md); dev dry-run is not clinic acceptance | ☐ |
+
+**Inventory body keys (never on pilot writes):** `rawRow`, `before`, `after`, plus payment/ledger/treatment/chart/medical/memo domain keys — enforced in `write-route-inventory.test.ts`.

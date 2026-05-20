@@ -45,7 +45,8 @@ if [[ -n "${DATA_ROOT:-}" && -n "${SQLITE_PATH:-}" ]]; then
   log "pnpm qa:sandbox (sandbox env detected)"
   pnpm qa:sandbox
 else
-  log "SKIP pnpm qa:sandbox — set DATA_ROOT and SQLITE_PATH for optional sandbox proof"
+  log "WARNING: SKIP pnpm qa:sandbox — dev checkpoint only; NOT release signoff-ready"
+  log "WARNING: set DATA_ROOT, SQLITE_PATH, and BACKUP_DIR then run pnpm pilot:release-signoff for strict gate"
 fi
 
 log "pilot-distribution-checkpoint complete"

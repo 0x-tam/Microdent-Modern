@@ -11,7 +11,8 @@
 #   bash scripts/pilot-full-checkpoint.sh
 #   pnpm pilot:full-checkpoint
 #
-# Distribution RC (stage + verify + staged smoke): pnpm pilot:distribution-checkpoint
+# Does NOT stage or verify the pilot package. For distribution RC use pnpm pilot:distribution-checkpoint.
+# For strict release signoff (sandbox required): pnpm pilot:release-signoff
 
 set -euo pipefail
 
@@ -38,5 +39,7 @@ fi
 log "desktop test + release-smoke"
 pnpm --filter @microdent/desktop run test
 pnpm --filter @microdent/desktop run release-smoke
+
+log "NOTE: pilot:full-checkpoint does not run stage/verify — use pilot:distribution-checkpoint or pilot:release-signoff before IT handoff"
 
 log "pilot-full-checkpoint complete"

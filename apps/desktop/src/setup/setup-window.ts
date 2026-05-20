@@ -85,7 +85,8 @@ export function collectSetupPathWarnings(payload: SetupSavePayload): string[] {
 
 export function formatSetupSaveSummary(warnings: string[]): string {
   const lines = [
-    "Saved. Next: run mirror import from the command line (see phase-4 operator guide), then open Settings → Pilot checklist.",
+    "Saved. Next: run mirror import from the command line (see docs/phase-4-mirror-import-operator.md in your package).",
+    "Then open Settings → Pilot checklist for read-only QA, and follow docs/PILOT-HANDOFF-PACK.md for sandbox QA when approved.",
     "Write mode stays disabled until you change config manually for sandbox pilot work.",
   ];
   if (warnings.length > 0) {

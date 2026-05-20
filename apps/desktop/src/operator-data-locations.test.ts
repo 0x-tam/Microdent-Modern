@@ -91,4 +91,25 @@ describe("pathLooksInsideInstallDir", () => {
       ),
     ).toBe(false);
   });
+
+  it("marks qaReports as dev-only documented-only", () => {
+    const qa = resolveOperatorDataLocations().find((spec) => spec.id === "qaReports");
+    expect(qa?.implementationStatus).toBe("documented-only");
+    expect(qa?.windowsPathHint).toMatch(/qa-runs/);
+    expect(qa?.shippedInPackage).toBe(false);
+  });
+
+  it("marks logs as documented-only without auto-create", () => {
+    const logs = resolveOperatorDataLocations().find((spec) => spec.id === "logs");
+    expect(logs?.implementationStatus).toBe("documented-only");
+    expect(logs?.windowsPathHint).toContain("%AppData%");
+  });
+
+  it("marks clinic path categories as implemented", () => {
+    for (const id of ["dataRoot", "sqlitePath", "backupDir", "desktopConfig"]) {
+      expect(resolveOperatorDataLocations().find((spec) => spec.id === id)?.implementationStatus).toBe(
+        "implemented",
+      );
+    }
+  });
 });

@@ -49,7 +49,13 @@ describe("BridgeSupervisor spawn env", () => {
     spawnMock.mockReset();
     existsSyncMock.mockReset();
     statSyncMock.mockReset();
-    existsSyncMock.mockReturnValue(true);
+    existsSyncMock.mockImplementation((path: unknown) => {
+      const value = String(path);
+      if (value.endsWith("bridge/server.js") || value.endsWith("bridge\\server.js")) {
+        return false;
+      }
+      return true;
+    });
     statSyncMock.mockImplementation(() => ({
       isDirectory: () => true,
       isFile: () => true,
@@ -81,6 +87,7 @@ describe("BridgeSupervisor spawn env", () => {
   });
 
   it("defaults WRITE_MODE to disabled when writeMode is omitted from config", async () => {
+    vi.stubEnv("ALLOW_LEGACY_WRITES", "I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY");
     const supervisor = new BridgeSupervisor({
       repoRoot: "/tmp/microdent-repo",
       config: {
@@ -100,7 +107,9 @@ describe("BridgeSupervisor spawn env", () => {
     ];
     expect(args).toEqual([join("/tmp/microdent-repo", "services", "bridge", "dist", "server.js")]);
     expect(env.WRITE_MODE).toBe("disabled");
+    expect(env.ALLOW_LEGACY_WRITES).toBeUndefined();
     assertNoForbiddenPaths(env);
+    vi.unstubAllEnvs();
   });
 
   it("sets BACKUP_DIR when backupDir is configured", async () => {

@@ -103,7 +103,7 @@ describe("AppShell", () => {
 
   it("shows the global privacy note under the read-only banner", () => {
     const html = renderToStaticMarkup(<AppShell />);
-    expect(html).toContain("stay hidden in this read-only viewer");
+    expect(html).toContain("payment amounts stay hidden");
   });
 
   it("resolveShellStatusBanners includes write mode when connected", () => {

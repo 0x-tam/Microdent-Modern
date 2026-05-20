@@ -2,7 +2,7 @@
 
 **Purpose:** Define what ships in a staged pilot package vs what operators create on disk. No clinic DATA, mirror SQLite, or Legacy trees are bundled.
 
-**Build:** `pnpm build:web` → bridge build → desktop build → `pnpm stage:pilot-release` → `pnpm pilot:verify-release`
+**Build:** `pnpm build:web` → bridge build → desktop build → `pnpm stage:pilot-release` → `pnpm pilot:verify-release` → `pnpm pilot:verify-manifest`
 
 ---
 
@@ -14,6 +14,8 @@ Node script [`scripts/stage-pilot-release.mjs`](../scripts/stage-pilot-release.m
 dist/pilot-release/
 └── MicrodentModern/
     ├── HANDOFF-README.txt      # IT install + validation steps (PHI-safe)
+    ├── HANDOFF-README.md       # Markdown handoff (same content, operator-friendly)
+    ├── RELEASE-MANIFEST.json   # Content SHA-256 manifest (no paths/secrets in JSON)
     ├── app/                    # Electron desktop dist + minimal package.json
     │   └── dist/
     ├── bridge/                 # services/bridge/dist (compiled JS only)
@@ -64,25 +66,27 @@ dist/pilot-release/
 
 ## Staging script safety
 
-The staging script:
+Shared rules live in [`scripts/pilot-release-artifact-rules.mjs`](../scripts/pilot-release-artifact-rules.mjs). The staging script:
 
 - Copies **only** from `apps/desktop/dist`, `services/bridge/dist`, and `apps/web/dist`
 - Writes **templates** under `config-templates/` (`config.example.json`, `paths.example.env`) with generic Windows placeholders
 - Rejects templates containing developer home paths, repo checkout paths, or `Microdent-Legacy`
-- **Filters** during copy: `.env`, `.log`, `.sqlite`, real `.dbf` (except test `fake_tiny.dbf` in bridge source build)
+- **Filters** during copy: `.env`, `.log`, `.sqlite`, `.fpt`, `.cdx`, `.exe`, `.bat`, `.cmd`, real `.dbf` (except test `fake_tiny.dbf` in bridge source build)
 - **Fails** if a source path segment matches Legacy / Write-Sandbox / Legacy-Copy
-- **Post-scan** staged tree for forbidden files, segments, and sensitive extensions
+- **Post-scan** staged tree via shared artifact rules
+- Emits **`RELEASE-MANIFEST.json`** with per-file SHA-256 (timestamp is metadata only — not hashed)
 - Logs **counts only** (no paths, no PHI)
 
-**No new npm packaging dependencies** — Node stdlib `fs` / `path` only.
+**No new npm packaging dependencies** — Node stdlib `fs` / `path` / `crypto` only (root `vitest` is dev-only for artifact tests).
 
 ### Forbidden in staged tree (verify mirrors stage)
 
 | Category | Examples |
 | --- | --- |
-| Clinic data | `SCHEDULE.DBF`, live `.dbf` trees |
+| Clinic data | `SCHEDULE.DBF`, live `.dbf` / `.fpt` / `.cdx` trees |
 | Mirror / backups | `.sqlite`, `.sqlite3`, populated `backups/` |
 | Secrets / runtime | `.env`, `.log` |
+| Installers / scripts | `.exe`, `.bat`, `.cmd` |
 | Legacy segments | `Microdent-Legacy`, `Write-Sandbox`, `Microdent-Write-Sandbox`, `Legacy-Copy` |
 | Real local paths in templates | `/Users/…`, `/home/…`, `Microdent-Modern` checkout paths |
 
@@ -94,10 +98,12 @@ Supervisor invariant: staged `bridge-supervisor.js` must `spawn(node, [bridgeEnt
 
 | Command | Proves |
 | --- | --- |
+| `pnpm test:pilot-artifacts` | Synthetic good/bad trees + manifest round-trip (vitest) |
 | `pnpm desktop:release-smoke` | Dev tree dist + supervisor invariants |
 | `PILOT_STAGED_RELEASE=1 pnpm desktop:release-smoke` | Staged `MicrodentModern/` supervisor argv |
-| `pnpm stage:pilot-release` | Clean staged tree |
-| `pnpm pilot:verify-release` | Layout + sensitive-artifact guards |
+| `pnpm stage:pilot-release` (alias `pnpm pilot:stage-release`) | Clean staged tree + manifest |
+| `pnpm pilot:verify-release` | Layout + artifact rules + manifest hashes |
+| `pnpm pilot:verify-manifest` | Manifest hash check only |
 
 ---
 

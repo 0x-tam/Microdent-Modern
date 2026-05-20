@@ -5,7 +5,11 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  FORBIDDEN_SUPERVISOR_PATTERNS,
+  REQUIRED_STAGED_LAYOUT,
+} from "../../../scripts/pilot-release-artifact-rules.mjs";
 
 const desktopRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = join(desktopRoot, "..", "..");
@@ -19,28 +23,10 @@ const REQUIRED_DIST = [
   "dist/setup/setup.html",
   "dist/setup/setup-preload.cjs",
   "dist/setup/setup-window.js",
+  "dist/runtime-install-root.js",
 ];
 
 const STAGE_ROOT = join(repoRoot, "dist", "pilot-release", "MicrodentModern");
-
-const REQUIRED_STAGED = [
-  "HANDOFF-README.txt",
-  "app/dist/main.js",
-  "app/dist/bridge-supervisor.js",
-  "app/dist/setup/setup.html",
-  "app/package.json",
-  "bridge/server.js",
-  "web/index.html",
-  "config-templates/config.example.json",
-  "config-templates/paths.example.env",
-  "docs/PILOT-START-HERE.md",
-  "docs/phase-4-mirror-import-operator.md",
-  "scripts/README.txt",
-  "scripts/mirror-import-pointer.txt",
-  "logs/README.txt",
-  "mirror/README.txt",
-  "backups/README.txt",
-];
 
 const FORBIDDEN_CONFIG_PATHS = [
   /Microdent-Legacy/i,
@@ -49,7 +35,14 @@ const FORBIDDEN_CONFIG_PATHS = [
   /Microdent-Modern/i,
 ];
 
-const FORBIDDEN_SUPERVISOR = [/\.(bat|cmd)["']/i, /foxpro/i, /legacy-copy/i, /microdent-legacy/i];
+const DEV_BRIDGE_ENTRY_PATTERN =
+  /resolveBridgeEntry\(options\.repoRoot\)|join\(options\.repoRoot,\s*"services",\s*"bridge",\s*"dist",\s*"server\.js"\)/;
+const DEV_WEB_DIST_PATTERN =
+  /resolveWebDistIndex\(options\.repoRoot\)|join\(options\.repoRoot,\s*"apps",\s*"web",\s*"dist",\s*"index\.html"\)/;
+const PACKAGED_BRIDGE_ENTRY_PATTERN =
+  /resolveBridgeEntry\(options\.repoRoot\)|join\(options\.repoRoot,\s*"bridge",\s*"server\.js"\)/;
+const PACKAGED_WEB_DIST_PATTERN =
+  /resolveWebDistIndex\(options\.repoRoot\)|join\(options\.repoRoot,\s*"web",\s*"index\.html"\)/;
 
 function fail(message) {
   console.error(`[release-smoke] FAIL: ${message}`);
@@ -60,10 +53,25 @@ function assertSupervisorSpawnArgv(supervisorSrc, label) {
   if (!/spawn\([^,]+,\s*\[this\.bridgeEntry\]/.test(supervisorSrc)) {
     fail(`${label} must spawn with bridgeEntry argv only`);
   }
-  for (const pattern of FORBIDDEN_SUPERVISOR) {
+  for (const pattern of FORBIDDEN_SUPERVISOR_PATTERNS) {
     if (pattern.test(supervisorSrc)) {
       fail(`${label} contains forbidden pattern: ${pattern}`);
     }
+  }
+}
+
+function assertSupervisorResolvesInstallRoot(supervisorSrc, label, { packaged }) {
+  if (packaged) {
+    if (!PACKAGED_BRIDGE_ENTRY_PATTERN.test(supervisorSrc)) {
+      fail(`${label} must resolve bridge entry from package root (bridge/server.js)`);
+    }
+    if (!PACKAGED_WEB_DIST_PATTERN.test(supervisorSrc)) {
+      fail(`${label} must resolve web dist from package root (web/index.html)`);
+    }
+  } else if (!DEV_BRIDGE_ENTRY_PATTERN.test(supervisorSrc)) {
+    fail(`${label} must resolve bridge entry from install root`);
+  } else if (!DEV_WEB_DIST_PATTERN.test(supervisorSrc)) {
+    fail(`${label} must resolve web dist from install root`);
   }
 }
 
@@ -72,6 +80,15 @@ function assertConfigTemplateSafe(content, label) {
     if (pattern.test(content)) {
       fail(`${label} contains forbidden path reference: ${pattern}`);
     }
+  }
+}
+
+function assertSpawnEnvNoLegacyAck(supervisorSrc, label) {
+  if (/env\.ALLOW_LEGACY_WRITES\s*=/.test(supervisorSrc)) {
+    fail(`${label} must not set ALLOW_LEGACY_WRITES in spawn env`);
+  }
+  if (!/delete env\.ALLOW_LEGACY_WRITES/.test(supervisorSrc)) {
+    fail(`${label} must delete ALLOW_LEGACY_WRITES from bridge spawn env`);
   }
 }
 
@@ -92,19 +109,12 @@ if (!existsSync(bridgeServerDist)) {
 }
 
 const supervisorDist = readFileSync(join(desktopRoot, "dist/bridge-supervisor.js"), "utf8");
-if (!/join\(options\.repoRoot,\s*"services",\s*"bridge",\s*"dist",\s*"server\.js"\)/.test(supervisorDist)) {
-  fail("bridge-supervisor dist must resolve bridgeEntry from options.repoRoot");
-}
-if (!/join\(options\.repoRoot,\s*"apps",\s*"web",\s*"dist",\s*"index\.html"\)/.test(supervisorDist)) {
-  fail("bridge-supervisor dist must resolve web dist from options.repoRoot");
-}
-if (!supervisorDist.includes("server.js")) {
-  fail("bridge-supervisor dist must reference services/bridge/dist/server.js");
-}
+assertSupervisorResolvesInstallRoot(supervisorDist, "bridge-supervisor dist", { packaged: false });
 assertSupervisorSpawnArgv(supervisorDist, "bridge-supervisor dist");
+assertSpawnEnvNoLegacyAck(supervisorDist, "bridge-supervisor dist");
 
 const { defaultDesktopConfig, desktopConfigNeedsSetup } = await import(
-  join(desktopRoot, "dist/config.js"),
+  pathToFileURL(join(desktopRoot, "dist/config.js")).href
 );
 
 const defaults = defaultDesktopConfig();
@@ -122,17 +132,29 @@ if (process.env.PILOT_STAGED_RELEASE === "1") {
   if (!existsSync(STAGE_ROOT)) {
     fail("PILOT_STAGED_RELEASE=1 but dist/pilot-release/MicrodentModern/ missing — run pnpm stage:pilot-release");
   }
-  for (const rel of REQUIRED_STAGED) {
+  for (const rel of REQUIRED_STAGED_LAYOUT) {
     if (!existsSync(join(STAGE_ROOT, rel))) {
       fail(`PILOT_STAGED_RELEASE=1 missing staged artifact: ${rel}`);
     }
   }
+  if (!existsSync(join(STAGE_ROOT, "bridge/server.js"))) {
+    fail("PILOT_STAGED_RELEASE=1 missing bridge/server.js at package root");
+  }
+  if (!existsSync(join(STAGE_ROOT, "web/index.html"))) {
+    fail("PILOT_STAGED_RELEASE=1 missing web/index.html at package root");
+  }
   const stagedSupervisor = readFileSync(join(STAGE_ROOT, "app/dist/bridge-supervisor.js"), "utf8");
+  assertSupervisorResolvesInstallRoot(stagedSupervisor, "staged bridge-supervisor", { packaged: true });
   assertSupervisorSpawnArgv(stagedSupervisor, "staged bridge-supervisor");
+  assertSpawnEnvNoLegacyAck(stagedSupervisor, "staged bridge-supervisor");
   const exampleConfig = readFileSync(join(STAGE_ROOT, "config-templates/config.example.json"), "utf8");
   assertConfigTemplateSafe(exampleConfig, "config-templates/config.example.json");
   const pathsExample = readFileSync(join(STAGE_ROOT, "config-templates/paths.example.env"), "utf8");
   assertConfigTemplateSafe(pathsExample, "config-templates/paths.example.env");
+  const manifest = readFileSync(join(STAGE_ROOT, "RELEASE-MANIFEST.json"), "utf8");
+  if (!/"schemaVersion"/.test(manifest)) {
+    fail("RELEASE-MANIFEST.json must include schemaVersion");
+  }
 }
 
 console.log(

@@ -6,6 +6,8 @@
 
 **Actionable checklist:** [windows-pilot-pre-installer-checklist.md](./windows-pilot-pre-installer-checklist.md) — installer, signing, shortcuts, `%AppData%`, logs, backups, SmartScreen.
 
+**Field test matrix:** [windows-pilot-real-machine-checklist.md](./windows-pilot-real-machine-checklist.md) — each scenario marked **dev dry-run** vs **requires Windows PC** (synthetic paths only).
+
 **Related:** [phase-3-desktop-packaging-plan.md](./phase-3-desktop-packaging-plan.md), [windows-pilot-runbook.md](./windows-pilot-runbook.md), [PILOT-START-HERE.md](./PILOT-START-HERE.md), [apps/desktop/README.md](../apps/desktop/README.md).
 
 ---
@@ -57,6 +59,8 @@ From [phase-3-desktop-packaging-plan.md](./phase-3-desktop-packaging-plan.md) �
 ---
 
 ## Windows test matrix (pilot RC)
+
+Per-scenario **dev dry-run** vs **requires Windows PC** markers: [windows-pilot-real-machine-checklist.md](./windows-pilot-real-machine-checklist.md).
 
 | Scenario | macOS dev | Windows operator | Automated |
 | --- | --- | --- | --- |

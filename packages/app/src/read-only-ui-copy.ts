@@ -10,7 +10,7 @@ export const READ_ONLY_CONNECTED_LABEL = "Connected to copied clinic data";
 export const READ_ONLY_MODE_LABEL = "Read-only mode";
 
 export const READ_ONLY_BANNER_BODY =
-  "This viewer cannot change clinic data. Names, phones, notes, and payment amounts stay hidden in this read-only viewer.";
+  "Pilot read-only viewer — clinic data cannot be changed here. Names, phones, notes, and payment amounts stay hidden.";
 
 export const HIDDEN_IN_READONLY_VIEWER = "hidden in this read-only viewer";
 
@@ -101,6 +101,7 @@ export const TODAY_NEXT_NO_UPCOMING = "No upcoming appointments on the schedule 
 export const TODAY_REMINDERS_EMPTY =
   "No reminders in this read-only viewer. Connect the clinic service and use Schedule or Patients for live data from your copy.";
 
+
 export const TODAY_QUICK_ACTIONS_LEDE = "Front-desk shortcuts when the clinic service is connected.";
 
 export const PATIENT_SEARCH_HINT_CONNECTED = "Uses your copied clinic data. Names and safe hints only.";
@@ -111,6 +112,7 @@ export const PATIENT_SEARCH_OFFLINE_BANNER =
   "Patient search needs the clinic service. Connect the bridge and wait until the top bar shows Connected.";
 
 export const PATIENT_SEARCH_OFFLINE_STATUS = "Connect the clinic service to search patients.";
+
 
 export const PATIENT_SEARCH_IDLE = "Type a name or chart number (at least 2 characters).";
 
@@ -162,6 +164,7 @@ export const PATIENT_SANDBOX_DEMOGRAPHICS_TITLE = "Sandbox demographics (pilot)"
 export const PATIENT_DEMOGRAPHICS_DOCTOR_ID_HINT =
   "Numeric doctor id from the profile only — no names from clinic data.";
 
+
 export const SCHEDULE_EMPTY_TITLE = "No appointments in this range";
 
 export const SCHEDULE_EMPTY_DESCRIPTION =
@@ -183,12 +186,12 @@ export const TAB_UNAVAILABLE_TITLE = "Not available in this read-only viewer";
 export const MIRROR_STALE_BANNER_LABEL = "Local copy may be outdated";
 
 export const MIRROR_STALE_BANNER_BODY =
-  "The SQLite mirror has not been refreshed recently. Search and schedule may show older data until your operator runs a safe mirror import.";
+  "The SQLite mirror has not been refreshed recently. Search and schedule may show older data until your operator runs a safe mirror import (see Settings → Mirror import).";
 
 export const MIRROR_ACTIVE_BANNER_LABEL = "SQLite mirror active";
 
 export const MIRROR_ACTIVE_BANNER_BODY =
-  "Search and schedule use your imported SQLite mirror. Run a safe mirror import when you need fresher copied data.";
+  "Search and schedule use your imported SQLite mirror. Run a safe mirror import when copied data must be fresher — DBF remains the write source of truth.";
 
 export const MIRROR_FALLBACK_BANNER_LABEL = "Using DBF fallback";
 
@@ -217,11 +220,11 @@ export const SANDBOX_WRITE_WARNING_BANNER_BODY =
 
 /** Per-row / panel sandbox write pilot warning (schedule + patient). */
 export const SANDBOX_WRITE_PILOT_PANEL_BANNER =
-  "Sandbox write mode — changes affect disposable data only.";
+  "Sandbox write pilot — commits change disposable DATA only. Capture operation id and backup lines for IT feedback.";
 
 /** Once per schedule view when sandbox write pilots are active. */
 export const SCHEDULE_SANDBOX_WRITE_PILOT_BANNER =
-  "Sandbox write pilot — status and time changes affect disposable data only. Expand a row to preview before applying.";
+  "Sandbox write pilot — status and time changes affect disposable data only. Preview each row before applying; restore from backup if needed.";
 
 export const APPOINTMENT_WRITE_ACTIONS_SUMMARY = "Sandbox write";
 
@@ -258,16 +261,16 @@ export const WRITE_AUDIT_UNAVAILABLE = "Audit log: unavailable.";
 export const WRITE_AUDIT_EMPTY = "Audit log: no recent entries.";
 
 export const WRITE_RESTORE_CLI_HINT =
-  "Restore (sandbox only): use legacy-restore CLI on Write-Sandbox DATA — see pilot-backup-restore-audit.md.";
+  "Restore (sandbox only): use legacy-restore CLI on Write-Sandbox DATA — see docs/pilot-backup-restore-audit.md in your package.";
 
 export const WRITE_FAILED_GUIDANCE =
   "If the commit failed: keep the operation id, check bridge status codes only, and restore from backup if DBF may have changed.";
 
 export const WRITE_AUDIT_STATUS_UPDATE_NOTE =
-  "Full audit detail is available today for status-update commits; other workflows show operation id and backup lines only.";
+  "Audit detail is fullest for status-update commits today; other workflows show operation id, backup, and restore hints.";
 
 export const SETTINGS_PANEL_LEDE =
-  "Bridge, mirror, write mode, and sandbox status for operators. No patient data is shown here.";
+  "Pilot status for bridge, mirror, writes, and sandbox readiness. No patient data is shown here — see docs/PILOT-HANDOFF-PACK.md for the full operator flow.";
 
 export const SETTINGS_BRIDGE_SECTION = "Clinic service";
 
@@ -313,6 +316,7 @@ export const SETTINGS_MIRROR_SQLITE_MISSING = "SQLite path not configured";
 
 export const SETTINGS_SQLITE_MIRROR_UNKNOWN = "SQLite mirror status unknown";
 
+
 export const SETTINGS_MIRROR_USABLE = "Mirror in use for search and schedule";
 
 export const SETTINGS_MIRROR_FALLBACK = "Using DBF fallback";
@@ -324,34 +328,18 @@ export const SETTINGS_MIRROR_REFRESH = "Refresh status";
 export const SETTINGS_MIRROR_NO_RUNS = "No import runs recorded.";
 
 export const SETTINGS_MIRROR_NO_RUNS_HINT =
-  "Run a safe mirror import from the command line, then refresh status here.";
+  "Run a safe mirror import from the command line (see docs/PILOT-HANDOFF-PACK.md § Mirror import), then refresh status here.";
 
 export const SETTINGS_MIRROR_DOC_LINK = "Mirror import operator guide";
 
 export const SETTINGS_MIRROR_STALE_CALLOUT =
   "Mirror metadata is older than 48 hours. Search and schedule may be stale until you import again.";
 
-/** Settings mirror table — partial import row (operator-facing). */
-export const SETTINGS_MIRROR_PARTIAL_CALLOUT =
-  "Some rows were skipped during import. Search and schedule may be incomplete for that table until you fix the source copy and re-import.";
-
-/** Settings mirror table — failed import row (operator-facing). */
-export const SETTINGS_MIRROR_FAILED_CALLOUT =
-  "Import did not finish for this table. Fix the source copy or paths, then run safe import again.";
-
-/** Operator hint when any latest import run is partial (Settings detail). */
-export const SETTINGS_MIRROR_PARTIAL_OPERATOR_HINT =
-  "Partial means row counts imported but some source rows were quarantined. Check import error counts, then re-run safe import after fixing the DATA copy.";
-
-/** Operator hint when any latest import run failed (Settings detail). */
-export const SETTINGS_MIRROR_FAILED_OPERATOR_HINT =
-  "Failed means the table did not import. Confirm DBF files exist under DATA_ROOT, then re-run safe import from PowerShell or bash.";
-
 export const SETTINGS_MIRROR_DBF_SOURCE_TRUTH =
   "DBF files are the source of truth for writes. SQLite is a read snapshot — re-run safe mirror import after sandbox commits when search/schedule must match DBF.";
 
 export const SETTINGS_READINESS_DISTRIBUTION_HINT =
-  "Distribution RC: run pnpm pilot:distribution-checkpoint on the build machine before IT handoff.";
+  "Before IT handoff: run pnpm pilot:distribution-checkpoint on the build machine, or pnpm pilot:release-signoff when sandbox env is configured.";
 
 export const SETTINGS_SANDBOX_PILOT_ON = "Sandbox write pilot enabled in this app build";
 

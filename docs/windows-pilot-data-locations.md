@@ -4,7 +4,23 @@
 
 **Baseline:** Microdent-Modern `main` @ `1b67d2b`
 
-**Index:** [PILOT-START-HERE.md](./PILOT-START-HERE.md) · [apps/desktop/README.md](../apps/desktop/README.md) · first-run [setup.html](../apps/desktop/src/setup/setup.html)
+**Index:** [PILOT-START-HERE.md](./PILOT-START-HERE.md) · [PILOT-HANDOFF-PACK.md](./PILOT-HANDOFF-PACK.md) · [apps/desktop/README.md](../apps/desktop/README.md) · first-run [setup.html](../apps/desktop/src/setup/setup.html)
+
+---
+
+## Implementation status (pilot RC)
+
+Canonical source: `apps/desktop/src/operator-data-locations.ts` (tests in `operator-data-locations.test.ts`).
+
+| Category | Windows hint | Status | Notes |
+| --- | --- | --- | --- |
+| Install / staged package | `C:\Microdent\MicrodentModern\` | **Implemented** | IT extract; no clinic data shipped |
+| Desktop config | `%AppData%\Microdent\config.json` | **Implemented** | First-run setup writes pointers only |
+| DATA_ROOT | `C:\ClinicData\Microdent\DATA` | **Implemented** | Validated in setup; disposable sandbox only |
+| SQLITE_PATH | `C:\Users\Public\MicrodentModern\mirror\clinic.sqlite` | **Implemented** | Validated in setup; outside install |
+| BACKUP_DIR | `C:\Users\Public\MicrodentModern\backups` | **Implemented** | Optional at setup; required before commits |
+| Operator logs | `%AppData%\Microdent\logs\` | **Documented only** | Convention — desktop does not auto-create |
+| QA reports (`qa-runs/`) | Repo dev folder | **Documented only** | Dev/CI only — not shipped to clinic PCs |
 
 ---
 

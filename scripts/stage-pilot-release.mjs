@@ -16,40 +16,23 @@ import {
 } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  assertConfigTemplateSafe,
+  assertSafeSourcePath,
+  assertStagedTreeSafe,
+  FORBIDDEN_ENV_FILE,
+  isAllowedDbfFileName,
+  pathHasForbiddenSegment,
+} from "./pilot-release-artifact-rules.mjs";
+import { generateReleaseManifest } from "./pilot-release-manifest.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const releaseRoot = join(repoRoot, "dist", "pilot-release");
 const stageRoot = join(releaseRoot, "MicrodentModern");
 
-const FORBIDDEN_SEGMENTS = [
-  /microdent-legacy/i,
-  /write-sandbox/i,
-  /legacy-copy/i,
-];
-const FORBIDDEN_FILE = /\.(sqlite3?|dbf|log)$/i;
-const FORBIDDEN_ENV_FILE = /^\.env$/i;
-
 function fail(message) {
   console.error(`[stage-pilot-release] FAIL: ${message}`);
   process.exit(1);
-}
-
-function assertSafeSourcePath(absPath) {
-  const rel = relative(repoRoot, absPath);
-  for (const pattern of FORBIDDEN_SEGMENTS) {
-    if (pattern.test(rel) || pattern.test(absPath)) {
-      fail(`forbidden source path segment: ${pattern}`);
-    }
-  }
-  const base = basename(absPath);
-  if (FORBIDDEN_ENV_FILE.test(base)) {
-    fail(`forbidden sensitive file in source: ${base}`);
-  }
-  if (FORBIDDEN_FILE.test(absPath)) {
-    if (base.toLowerCase() !== "fake_tiny.dbf") {
-      fail(`forbidden sensitive file in source: ${base}`);
-    }
-  }
 }
 
 function countTree(dir) {
@@ -72,7 +55,11 @@ function countTree(dir) {
 
 function requireDist(relPath, label) {
   const abs = join(repoRoot, relPath);
-  assertSafeSourcePath(abs);
+  try {
+    assertSafeSourcePath(abs, repoRoot);
+  } catch (err) {
+    fail(err instanceof Error ? err.message : String(err));
+  }
   if (!existsSync(abs)) {
     fail(`${label} missing — build before staging (${relPath})`);
   }
@@ -80,7 +67,11 @@ function requireDist(relPath, label) {
 }
 
 function copyDistDir(src, dest, options = {}) {
-  assertSafeSourcePath(src);
+  try {
+    assertSafeSourcePath(src, repoRoot);
+  } catch (err) {
+    fail(err instanceof Error ? err.message : String(err));
+  }
   mkdirSync(dest, { recursive: true });
   cpSync(src, dest, {
     recursive: true,
@@ -96,7 +87,10 @@ function copyDistDir(src, dest, options = {}) {
       if (/\.sqlite3?$/i.test(name)) {
         return false;
       }
-      if (/\.dbf$/i.test(name) && name.toLowerCase() !== "fake_tiny.dbf") {
+      if (/\.(dbf|fpt|cdx)$/i.test(name) && !isAllowedDbfFileName(name)) {
+        return false;
+      }
+      if (/\.(exe|bat|cmd)$/i.test(name)) {
         return false;
       }
       if (options.excludeTestArtifacts && /\.test\.(js|d\.ts|cjs)$/i.test(srcPath)) {
@@ -107,19 +101,12 @@ function copyDistDir(src, dest, options = {}) {
   });
 }
 
-function pathHasForbiddenSegment(relPath) {
-  const segments = relPath.split(/[/\\]/);
-  return segments.some(
-    (seg) =>
-      /^microdent-legacy$/i.test(seg) ||
-      /^write-sandbox$/i.test(seg) ||
-      /^legacy-copy$/i.test(seg) ||
-      /^microdent-write-sandbox$/i.test(seg),
-  );
-}
-
 function copyFileSafe(src, dest) {
-  assertSafeSourcePath(src);
+  try {
+    assertSafeSourcePath(src, repoRoot);
+  } catch (err) {
+    fail(err instanceof Error ? err.message : String(err));
+  }
   mkdirSync(dirname(dest), { recursive: true });
   copyFileSync(src, dest);
 }
@@ -130,16 +117,102 @@ function writePlaceholderDir(dirName, lines) {
   writeFileSync(join(dir, "README.txt"), `${lines.join("\n")}\n`, "utf8");
 }
 
-function assertConfigTemplateSafe(content, label) {
-  if (/Microdent-Legacy/i.test(content)) {
-    fail(`${label} must not reference Microdent-Legacy`);
-  }
-  if (/\/Users\//.test(content) || /\/home\//i.test(content)) {
-    fail(`${label} must not contain developer home paths`);
-  }
-  if (/Microdent-Modern/i.test(content)) {
-    fail(`${label} must not contain repo checkout paths`);
-  }
+const HANDOFF_LINES = [
+  "Microdent Modern — Windows pilot handoff",
+  "======================================",
+  "",
+  "This folder is the IT handoff package. It contains compiled app, bridge, and web",
+  "artifacts only — no clinic DBF, SQLite mirror, backups, logs, or .env secrets.",
+  "",
+  "Requirements",
+  "------------",
+  "- Windows 10/11 x64",
+  "- Node.js 22.x on PATH (node.exe — not bundled in this package)",
+  "- Electron runtime (launch via your clinic deployment process or dev checkout)",
+  "",
+  "Install / extract",
+  "-----------------",
+  "1. Copy MicrodentModern/ to an install location (e.g. C:\\Program Files\\MicrodentModern\\).",
+  "2. Do not store DATA_ROOT, mirror SQLite, backups, or logs inside this folder.",
+  "3. On first desktop launch, complete setup for DATA_ROOT, SQLITE_PATH, and BACKUP_DIR.",
+  "4. Desktop config is saved to: %AppData%\\Microdent\\config.json",
+  "   (Use config-templates/config.example.json as a reference only.)",
+  "",
+  "Mirror import",
+  "-------------",
+  "Mirror import is CLI-only. See scripts/mirror-import-pointer.txt and",
+  "docs/phase-4-mirror-import-operator.md. Use disposable sandbox DATA only.",
+  "",
+  "Validation (build machine — from Microdent-Modern repo root)",
+  "-------------------------------------------------------------",
+  "  pnpm test",
+  "  pnpm build:web",
+  "  pnpm --filter @microdent/bridge run build",
+  "  pnpm --filter @microdent/desktop run build",
+  "  pnpm stage:pilot-release",
+  "  pnpm pilot:verify-release",
+  "  pnpm pilot:verify-manifest",
+  "",
+  "Operator acceptance: docs/pilot-acceptance-checklist.md",
+  "Start here: docs/PILOT-HANDOFF-PACK.md (master index) · docs/PILOT-START-HERE.md",
+  "",
+  "Support notes",
+  "-------------",
+  "- writeMode defaults to disabled — sandbox writes require explicit operator setup.",
+  "- No NSIS/MSI installer in this pilot RC. No code signing.",
+  "- Do not attach patient names, DBF files, or full config paths in support tickets.",
+  "",
+];
+
+function writeHandoffReadme() {
+  writeFileSync(join(stageRoot, "HANDOFF-README.txt"), `${HANDOFF_LINES.join("\n")}\n`, "utf8");
+  const md = [
+    "# Microdent Modern — Windows pilot handoff",
+    "",
+    "This folder is the IT handoff package. It contains compiled app, bridge, and web",
+    "artifacts only — no clinic DBF, SQLite mirror, backups, logs, or `.env` secrets.",
+    "",
+    "## Requirements",
+    "",
+    "- Windows 10/11 x64",
+    "- Node.js 22.x on PATH (`node.exe` — not bundled in this package)",
+    "- Electron runtime (launch via your clinic deployment process or dev checkout)",
+    "",
+    "## Install / extract",
+    "",
+    "1. Copy `MicrodentModern/` to an install location (e.g. `C:\\Program Files\\MicrodentModern\\`).",
+    "2. Do not store DATA_ROOT, mirror SQLite, backups, or logs inside this folder.",
+    "3. On first desktop launch, complete setup for DATA_ROOT, SQLITE_PATH, and BACKUP_DIR.",
+    "4. Desktop config is saved to `%AppData%\\Microdent\\config.json` (see `config-templates/config.example.json`).",
+    "",
+    "## Mirror import",
+    "",
+    "CLI-only — see `scripts/mirror-import-pointer.txt` and `docs/phase-4-mirror-import-operator.md`.",
+    "Use disposable sandbox DATA only.",
+    "",
+    "## Validation (build machine)",
+    "",
+    "```text",
+    "pnpm test",
+    "pnpm build:web",
+    "pnpm --filter @microdent/bridge run build",
+    "pnpm --filter @microdent/desktop run build",
+    "pnpm stage:pilot-release",
+    "pnpm pilot:verify-release",
+    "pnpm pilot:verify-manifest",
+    "```",
+    "",
+  "- Operator acceptance: `docs/pilot-acceptance-checklist.md`",
+  "- **Start here:** `docs/PILOT-HANDOFF-PACK.md` (master index) · `docs/PILOT-START-HERE.md`",
+    "",
+    "## Support notes",
+    "",
+    "- `writeMode` defaults to disabled — sandbox writes require explicit operator setup.",
+    "- No NSIS/MSI installer in this pilot RC. No code signing.",
+    "- Do not attach patient names, DBF files, or full config paths in support tickets.",
+    "",
+  ].join("\n");
+  writeFileSync(join(stageRoot, "HANDOFF-README.md"), `${md}\n`, "utf8");
 }
 
 // --- required builds ---
@@ -191,7 +264,11 @@ const configExample = {
 };
 const configExampleJson = `${JSON.stringify(configExample, null, 2)}\n`;
 writeFileSync(join(configTemplatesDir, "config.example.json"), configExampleJson, "utf8");
-assertConfigTemplateSafe(configExampleJson, "config.example.json");
+try {
+  assertConfigTemplateSafe(configExampleJson, "config.example.json");
+} catch (err) {
+  fail(err instanceof Error ? err.message : String(err));
+}
 
 const pathsExampleEnv = [
   "# Placeholder env for bridge CLI — replace with your sandbox paths",
@@ -202,15 +279,23 @@ const pathsExampleEnv = [
   "",
 ].join("\n");
 writeFileSync(join(configTemplatesDir, "paths.example.env"), pathsExampleEnv, "utf8");
-assertConfigTemplateSafe(pathsExampleEnv, "paths.example.env");
+try {
+  assertConfigTemplateSafe(pathsExampleEnv, "paths.example.env");
+} catch (err) {
+  fail(err instanceof Error ? err.message : String(err));
+}
 
 // docs/ — pilot index (no PHI)
 const docsDir = join(stageRoot, "docs");
 mkdirSync(docsDir, { recursive: true });
 for (const name of [
   "PILOT-START-HERE.md",
+  "PILOT-HANDOFF-PACK.md",
   "pilot-tester-guide.md",
   "pilot-acceptance-checklist.md",
+  "pilot-backup-restore-audit.md",
+  "out-of-scope-guardrails.md",
+  "windows-pilot-real-machine-checklist.md",
   "windows-pilot-data-locations.md",
   "windows-pilot-release-layout.md",
   "phase-4-mirror-import-operator.md",
@@ -244,6 +329,7 @@ writeFileSync(
     "Package verification (from repo root after build):",
     "  pnpm stage:pilot-release",
     "  pnpm pilot:verify-release",
+    "  pnpm pilot:verify-manifest",
     "",
   ].join("\n"),
   "utf8",
@@ -289,87 +375,20 @@ writePlaceholderDir("backups", [
   "before enabling sandbox writes. See docs/windows-pilot-data-locations.md.",
 ]);
 
-writeFileSync(
-  join(stageRoot, "HANDOFF-README.txt"),
-  [
-    "Microdent Modern — Windows pilot handoff",
-    "======================================",
-    "",
-    "This folder is the IT handoff package. It contains compiled app, bridge, and web",
-    "artifacts only — no clinic DBF, SQLite mirror, backups, logs, or .env secrets.",
-    "",
-    "Requirements",
-    "------------",
-    "- Windows 10/11 x64",
-    "- Node.js 22.x on PATH (node.exe — not bundled in this package)",
-    "- Electron runtime (launch via your clinic deployment process or dev checkout)",
-    "",
-    "Install / extract",
-    "-----------------",
-    "1. Copy MicrodentModern/ to an install location (e.g. C:\\Program Files\\MicrodentModern\\).",
-    "2. Do not store DATA_ROOT, mirror SQLite, backups, or logs inside this folder.",
-    "3. On first desktop launch, complete setup for DATA_ROOT, SQLITE_PATH, and BACKUP_DIR.",
-    "4. Desktop config is saved to: %AppData%\\Microdent\\config.json",
-    "   (Use config-templates/config.example.json as a reference only.)",
-    "",
-    "Mirror import",
-    "-------------",
-    "Mirror import is CLI-only. See scripts/mirror-import-pointer.txt and",
-    "docs/phase-4-mirror-import-operator.md. Use disposable sandbox DATA only.",
-    "",
-    "Validation (build machine — from Microdent-Modern repo root)",
-    "-------------------------------------------------------------",
-    "  pnpm test",
-    "  pnpm build:web",
-    "  pnpm --filter @microdent/bridge run build",
-    "  pnpm --filter @microdent/desktop run build",
-    "  pnpm stage:pilot-release",
-    "  pnpm pilot:verify-release",
-    "",
-    "Operator acceptance: docs/pilot-acceptance-checklist.md",
-    "Start here: docs/PILOT-START-HERE.md",
-    "",
-    "Support notes",
-    "-------------",
-    "- writeMode defaults to disabled — sandbox writes require explicit operator setup.",
-    "- No NSIS/MSI installer in this pilot RC. No code signing.",
-    "- Do not attach patient names, DBF files, or full config paths in support tickets.",
-    "",
-  ].join("\n"),
-  "utf8",
-);
+writeHandoffReadme();
 
-// Self-check staged tree for sensitive artifacts
-function scanStaged(dir) {
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    const child = join(dir, entry.name);
-    if (entry.isDirectory()) {
-      scanStaged(child);
-      continue;
-    }
-    const name = entry.name;
-    if (/^schedule\.dbf$/i.test(name)) {
-      fail("staged tree must not contain SCHEDULE.DBF");
-    }
-    if (FORBIDDEN_ENV_FILE.test(name)) {
-      fail(`staged tree must not contain .env file: ${name}`);
-    }
-    if (/\.log$/i.test(name)) {
-      fail(`staged tree must not contain log file: ${name}`);
-    }
-    if (/\.sqlite3?$/i.test(name)) {
-      fail(`staged tree must not contain sqlite file: ${name}`);
-    }
-    if (FORBIDDEN_FILE.test(name) && name.toLowerCase() !== "fake_tiny.dbf") {
-      fail(`staged tree must not contain sensitive file: ${name}`);
-    }
-    const rel = relative(stageRoot, child);
-    if (pathHasForbiddenSegment(rel)) {
-      fail("staged tree must not contain Legacy or Write-Sandbox directory segments");
-    }
-  }
+try {
+  assertStagedTreeSafe(stageRoot);
+} catch (err) {
+  fail(err instanceof Error ? err.message : String(err));
 }
-scanStaged(stageRoot);
+
+const buildTimestampUtc = new Date().toISOString();
+try {
+  await generateReleaseManifest(stageRoot, { repoRoot, buildTimestampUtc });
+} catch (err) {
+  fail(`manifest generation failed: ${err instanceof Error ? err.message : String(err)}`);
+}
 
 const counts = countTree(stageRoot);
 console.log(

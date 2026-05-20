@@ -10,11 +10,29 @@
 
 Before clinic PCs receive the staged tree:
 
-1. Run `pnpm pilot:distribution-checkpoint` on the build machine (or equivalent manual steps in [PILOT-START-HERE.md](./PILOT-START-HERE.md)).
-2. Deliver `dist/pilot-release/MicrodentModern/` with `HANDOFF-README.txt` — no `.sqlite`, live DBF, or backups inside the package.
-3. Operators configure `%AppData%\Microdent\config.json` and disposable clinic paths on the target PC.
+1. Run `pnpm pilot:distribution-checkpoint` on the build machine (or `pnpm pilot:release-signoff` when sandbox env is configured).
+2. Deliver `dist/pilot-release/MicrodentModern/` with `HANDOFF-README.txt` and `RELEASE-MANIFEST.json` — no `.sqlite`, live DBF, or backups inside the package.
+3. Operators start at **`docs/PILOT-HANDOFF-PACK.md`** in the staged package.
+4. Operators configure `%AppData%\Microdent\config.json` and disposable clinic paths on the target PC.
 
 Recovery copy in the app (after commits) points to **legacy-restore CLI** on Write-Sandbox only — not production legacy folders.
+
+---
+
+## Packaged pilot — operator recovery
+
+On clinic Windows PCs (after sandbox writes):
+
+| Step | Action | Windows command |
+| --- | --- | --- |
+| 1 | Note **operation id** and backup line from write feedback (Settings / write panels) | UI metadata only — no paths |
+| 2 | Verify backup manifest | `pnpm --filter @microdent/bridge run legacy-backup-verify` |
+| 3 | Restore disposable DATA copy | `pnpm --filter @microdent/bridge run legacy-restore` |
+| 4 | Re-import mirror if search/schedule must match DBF | `pnpm --filter @microdent/sqlite-mirror run import-safe` |
+
+**Audit scope:** `appointment.statusUpdate` shows the fullest audit detail in write feedback today. Other workflows (`appointment.timeMove`, `appointment.create`, `patient.demographics.update`) show operation id, backup line, restore hint, and terminal status when available — never paths or row bodies.
+
+**PHI-safe feedback lines** (from `write-operation-feedback.ts`): operation id, backup created/not created/skipped, audit entry count and terminal status, restore CLI hint, failed-commit guidance. No `DATA_ROOT`, patient names, phones, or `before`/`after` payloads.
 
 ---
 

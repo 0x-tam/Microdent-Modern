@@ -36,6 +36,24 @@ const FORBIDDEN_WRITE_PATH_FRAGMENTS = [
   "/allerg",
 ] as const;
 
+/** Sensitive read-only domains — must stay GET-only in v1.ts (no PATCH/POST write handlers). */
+const READ_ONLY_SENSITIVE_DOMAIN_ROUTES = [
+  'router.get("/patients/:patientId/medical-summary"',
+  'router.get("/patients/:patientId/treatments"',
+  'router.get("/patients/:patientId/chart"',
+  'router.get("/patients/:patientId/ledger"',
+] as const;
+
+const READ_ONLY_SENSITIVE_DOMAIN_PATH_FRAGMENTS = [
+  "/medical-summary",
+  "/treatments",
+  "/chart",
+  "/ledger",
+] as const;
+
+/** Audit / row-dump keys that must never appear on pilot write request bodies. */
+const FORBIDDEN_ROW_DUMP_BODY_KEYS = ["rawRow", "before", "after"] as const;
+
 /** Out-of-scope legacy columns; strict Zod bodies must reject these on schedule routes. */
 const FORBIDDEN_OUT_OF_SCOPE_SCHEDULE_BODY_KEYS = [
   "NOTE",
@@ -43,6 +61,19 @@ const FORBIDDEN_OUT_OF_SCOPE_SCHEDULE_BODY_KEYS = [
   "DESC",
   "AMOUNT",
   "SAMOUNT",
+] as const;
+
+/** Domain-specific body keys for payment/ledger/treatment/chart/medical/memo — never on pilot writes. */
+const FORBIDDEN_DOMAIN_BODY_KEYS = [
+  "BALANCE",
+  "FEE",
+  "TREATMENT",
+  "PROCEDURE",
+  "CHART",
+  "ODONTOGRAM",
+  "MEDICAL",
+  "ALLERGY",
+  "MEMO",
 ] as const;
 
 const ALLOWED_TIME_MOVE_BODY = {
@@ -60,6 +91,30 @@ async function patchTimeMove(
     method: "PATCH",
     headers: { "Content-Type": "application/json", "X-Write-Intent": "commit" },
     body: JSON.stringify({ ...ALLOWED_TIME_MOVE_BODY, ...extra }),
+  });
+}
+
+async function patchStatus(
+  port: number,
+  appointmentId: string,
+  extra: Record<string, unknown>,
+): Promise<Response> {
+  return fetch(`http://127.0.0.1:${port}/v1/schedule/appointments/${appointmentId}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", "X-Write-Intent": "commit" },
+    body: JSON.stringify({ status: 2, ...extra }),
+  });
+}
+
+async function patchDemographics(
+  port: number,
+  patientId: string,
+  extra: Record<string, unknown>,
+): Promise<Response> {
+  return fetch(`http://127.0.0.1:${port}/v1/patients/${patientId}/demographics`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", "X-Write-Intent": "commit" },
+    body: JSON.stringify({ firstName: "Demo", ...extra }),
   });
 }
 
@@ -102,6 +157,20 @@ describe("write route inventory", () => {
     }
     const blockedKeyChecks = V1_SOURCE.match(/findBlockedScheduleBodyKeys\(req\.body\)/g) ?? [];
     expect(blockedKeyChecks).toHaveLength(2);
+  });
+
+  it("registers sensitive domains as GET read routes only (no write handlers)", () => {
+    for (const route of READ_ONLY_SENSITIVE_DOMAIN_ROUTES) {
+      expect(V1_SOURCE).toContain(route);
+    }
+    for (const fragment of READ_ONLY_SENSITIVE_DOMAIN_PATH_FRAGMENTS) {
+      expect(V1_SOURCE).not.toMatch(
+        new RegExp(`router\\.(patch|post|put|delete)\\([^)]*${fragment.replace(/\//g, "\\/")}`, "i"),
+      );
+    }
+    expect(V1_SOURCE).not.toMatch(
+      /router\.(patch|post)\([^)]*(?:\/balance|\/amount|balance|amount)/i,
+    );
   });
 
   it.each(SCHEDULE_BLOCKED_WRITE_FIELD_NAMES)(
@@ -159,19 +228,90 @@ describe("write route inventory", () => {
   it("rejects blocked COMMENT on status PATCH before commit", async () => {
     await withEnabledSandboxServer({ prefix: "inventory-status-comment-" }, async ({ port }) => {
       vi.stubEnv("ALLOW_LEGACY_WRITES", "I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY");
-      const res = await fetch(
-        `http://127.0.0.1:${port}/v1/schedule/appointments/1001/status`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json", "X-Write-Intent": "commit" },
-          body: JSON.stringify({ status: 2, COMMENT: "blocked" }),
-        },
-      );
+      const res = await patchStatus(port, "1001", { COMMENT: "blocked" });
       expect(res.status).toBe(400);
       const json = (await res.json()) as { error?: { code?: string } };
       expect(json.error?.code).toBe("INVALID_REQUEST_BODY");
     });
   });
+
+  it.each(FORBIDDEN_ROW_DUMP_BODY_KEYS)(
+    "rejects row-dump body key %s on status PATCH (strict schema)",
+    async (field) => {
+      await withEnabledSandboxServer({ prefix: `inventory-status-dump-${field}-` }, async ({ port }) => {
+        vi.stubEnv("ALLOW_LEGACY_WRITES", "I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY");
+        const res = await patchStatus(port, "1001", { [field]: { leaked: true } });
+        expect(res.status).toBe(400);
+        const json = (await res.json()) as { error?: { code?: string } };
+        expect(json.error?.code).toBe("INVALID_REQUEST_BODY");
+      });
+    },
+  );
+
+  it.each(FORBIDDEN_ROW_DUMP_BODY_KEYS)(
+    "rejects row-dump body key %s on time-move PATCH (strict schema)",
+    async (field) => {
+      await withEnabledSandboxServer({ prefix: `inventory-time-dump-${field}-` }, async ({ port }) => {
+        vi.stubEnv("ALLOW_LEGACY_WRITES", "I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY");
+        const res = await patchTimeMove(port, "1001", { [field]: { leaked: true } });
+        expect(res.status).toBe(400);
+        const json = (await res.json()) as { error?: { code?: string } };
+        expect(json.error?.code).toBe("INVALID_REQUEST_BODY");
+      });
+    },
+  );
+
+  it.each(FORBIDDEN_ROW_DUMP_BODY_KEYS)(
+    "rejects row-dump body key %s on appointment create POST (strict schema)",
+    async (field) => {
+      await withEnabledSandboxServer({ prefix: `inventory-create-dump-${field}-` }, async ({ port }) => {
+        vi.stubEnv("ALLOW_LEGACY_WRITES", "I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY");
+        const res = await postCreate(port, { [field]: { leaked: true } });
+        expect(res.status).toBe(400);
+        const json = (await res.json()) as { error?: { code?: string } };
+        expect(json.error?.code).toBe("INVALID_REQUEST_BODY");
+      });
+    },
+  );
+
+  it.each(FORBIDDEN_DOMAIN_BODY_KEYS)(
+    "rejects out-of-scope domain body key %s on time-move PATCH (strict schema)",
+    async (field) => {
+      await withEnabledSandboxServer({ prefix: `inventory-domain-time-${field}-` }, async ({ port }) => {
+        vi.stubEnv("ALLOW_LEGACY_WRITES", "I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY");
+        const res = await patchTimeMove(port, "1001", { [field]: "blocked" });
+        expect(res.status).toBe(400);
+        const json = (await res.json()) as { error?: { code?: string } };
+        expect(json.error?.code).toBe("INVALID_REQUEST_BODY");
+      });
+    },
+  );
+
+  it.each(FORBIDDEN_DOMAIN_BODY_KEYS)(
+    "rejects out-of-scope domain body key %s on appointment create POST (strict schema)",
+    async (field) => {
+      await withEnabledSandboxServer({ prefix: `inventory-domain-create-${field}-` }, async ({ port }) => {
+        vi.stubEnv("ALLOW_LEGACY_WRITES", "I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY");
+        const res = await postCreate(port, { [field]: "blocked" });
+        expect(res.status).toBe(400);
+        const json = (await res.json()) as { error?: { code?: string } };
+        expect(json.error?.code).toBe("INVALID_REQUEST_BODY");
+      });
+    },
+  );
+
+  it.each(FORBIDDEN_DOMAIN_BODY_KEYS)(
+    "rejects out-of-scope domain body key %s on status PATCH (strict schema)",
+    async (field) => {
+      await withEnabledSandboxServer({ prefix: `inventory-domain-status-${field}-` }, async ({ port }) => {
+        vi.stubEnv("ALLOW_LEGACY_WRITES", "I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY");
+        const res = await patchStatus(port, "1001", { [field]: "blocked" });
+        expect(res.status).toBe(400);
+        const json = (await res.json()) as { error?: { code?: string } };
+        expect(json.error?.code).toBe("INVALID_REQUEST_BODY");
+      });
+    },
+  );
 
   it("rejects non-allowlisted keys on patient demographics PATCH (strict schema)", async () => {
     const tmp = mkdtempSync(join(tmpdir(), "inventory-demo-"));
@@ -188,11 +328,7 @@ describe("write route inventory", () => {
       });
       await withHttpServer(app, async (port) => {
         vi.stubEnv("ALLOW_LEGACY_WRITES", "I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY");
-        const res = await fetch(`http://127.0.0.1:${port}/v1/patients/90001/demographics`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json", "X-Write-Intent": "commit" },
-          body: JSON.stringify({ displayName: "Demo", telephone: "555-0000" }),
-        });
+        const res = await patchDemographics(port, "90001", { displayName: "Demo", telephone: "555-0000" });
         expect(res.status).toBe(400);
         const json = (await res.json()) as { error?: { code?: string } };
         expect(json.error?.code).toBe("INVALID_REQUEST_BODY");
@@ -219,11 +355,63 @@ describe("write route inventory", () => {
         });
         await withHttpServer(app, async (port) => {
           vi.stubEnv("ALLOW_LEGACY_WRITES", "I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY");
-          const res = await fetch(`http://127.0.0.1:${port}/v1/patients/90001/demographics`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json", "X-Write-Intent": "commit" },
-            body: JSON.stringify({ firstName: "Demo", [field]: "blocked" }),
-          });
+          const res = await patchDemographics(port, "90001", { [field]: "blocked" });
+          expect(res.status).toBe(400);
+          const json = (await res.json()) as { error?: { code?: string } };
+          expect(json.error?.code).toBe("INVALID_REQUEST_BODY");
+        });
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.each(FORBIDDEN_ROW_DUMP_BODY_KEYS)(
+    "rejects row-dump body key %s on patient demographics PATCH (strict schema)",
+    async (field) => {
+      const tmp = mkdtempSync(join(tmpdir(), `inventory-demo-dump-${field}-`));
+      try {
+        await writeScheduleFixtures(tmp);
+        writeSandboxMarker(tmp);
+        const app = createBridgeApp("v-inventory-demo", {
+          bridgeConfig: {
+            listen: { host: "127.0.0.1", port: 0 },
+            dataRoot: { configured: true, path: tmp },
+            writeMode: "enabled",
+            backupDir: { configured: true, path: join(tmp, "backups") },
+          },
+        });
+        await withHttpServer(app, async (port) => {
+          vi.stubEnv("ALLOW_LEGACY_WRITES", "I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY");
+          const res = await patchDemographics(port, "90001", { [field]: { leaked: true } });
+          expect(res.status).toBe(400);
+          const json = (await res.json()) as { error?: { code?: string } };
+          expect(json.error?.code).toBe("INVALID_REQUEST_BODY");
+        });
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.each(FORBIDDEN_DOMAIN_BODY_KEYS)(
+    "rejects out-of-scope domain body key %s on patient demographics PATCH (strict schema)",
+    async (field) => {
+      const tmp = mkdtempSync(join(tmpdir(), `inventory-demo-domain-${field}-`));
+      try {
+        await writeScheduleFixtures(tmp);
+        writeSandboxMarker(tmp);
+        const app = createBridgeApp("v-inventory-demo", {
+          bridgeConfig: {
+            listen: { host: "127.0.0.1", port: 0 },
+            dataRoot: { configured: true, path: tmp },
+            writeMode: "enabled",
+            backupDir: { configured: true, path: join(tmp, "backups") },
+          },
+        });
+        await withHttpServer(app, async (port) => {
+          vi.stubEnv("ALLOW_LEGACY_WRITES", "I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY");
+          const res = await patchDemographics(port, "90001", { [field]: "blocked" });
           expect(res.status).toBe(400);
           const json = (await res.json()) as { error?: { code?: string } };
           expect(json.error?.code).toBe("INVALID_REQUEST_BODY");
