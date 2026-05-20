@@ -3,6 +3,7 @@ import {
   resolveBackupConfiguredStatus,
   resolveDataRootConfiguredStatus,
   resolvePilotReadinessSummary,
+  resolvePilotReadinessChecklist,
   resolveSandboxValidityStatus,
   resolveSqliteMirrorStatus,
 } from "./settings-status.js";
@@ -129,5 +130,52 @@ describe("settings-status", () => {
     );
     expect(readOnly.some((c) => c.label.match(/read-only/i))).toBe(true);
     expect(readOnly.some((c) => c.label.match(/mirror active/i))).toBe(true);
+    expect(readOnly.some((c) => c.label.match(/read-only QA/i))).toBe(true);
+  });
+
+  it("includes backup chip when backupDirConfigured", () => {
+    const chips = resolvePilotReadinessSummary(
+      "connected",
+      {
+        writeMode: "disabled",
+        writesPermitted: false,
+        writableSandbox: true,
+        dataRootConfigured: true,
+        backupDirConfigured: true,
+        sqlitePathConfigured: true,
+      },
+      null,
+    );
+    expect(chips.some((c) => c.key === "backup-configured")).toBe(true);
+  });
+
+  it("builds structured checklist with six items", () => {
+    const checklist = resolvePilotReadinessChecklist(
+      "connected",
+      {
+        writeMode: "disabled",
+        writesPermitted: false,
+        writableSandbox: false,
+        dataRootConfigured: true,
+        backupDirConfigured: false,
+        sqlitePathConfigured: true,
+      },
+      {
+        sqliteConfigured: true,
+        sqliteUsable: true,
+        importedTables: ["patients"],
+        latestImportRuns: [],
+      },
+    );
+    expect(checklist).toHaveLength(6);
+    expect(checklist.map((i) => i.key)).toEqual([
+      "bridge",
+      "dataRoot",
+      "mirror",
+      "backup",
+      "write",
+      "sandbox",
+    ]);
+    expect(checklist.every((i) => !i.label.match(/C:\\\\|\/Users\//))).toBe(true);
   });
 });

@@ -2,7 +2,7 @@
 
 Shell helpers for local development and sandbox operations.
 
-**Windows MVP (start here):** [docs/phase-6-windows-mvp-operator-guide.md](../docs/phase-6-windows-mvp-operator-guide.md). **Pilot RC:** [docs/windows-pilot-runbook.md](../docs/windows-pilot-runbook.md). **Sandbox pilot QA:** [docs/phase-7-sandbox-pilot-qa-runbook.md](../docs/phase-7-sandbox-pilot-qa-runbook.md). **Operator QA index:** [docs/phase-5-operator-qa-runbook.md](../docs/phase-5-operator-qa-runbook.md). **Script classification (full table):** [docs/phase-3-windows-readiness-audit.md](../docs/phase-3-windows-readiness-audit.md).
+**Windows clinic pilot (start here):** [docs/PILOT-START-HERE.md](../docs/PILOT-START-HERE.md). **Windows MVP detail:** [docs/phase-6-windows-mvp-operator-guide.md](../docs/phase-6-windows-mvp-operator-guide.md). **Pilot RC:** [docs/windows-pilot-runbook.md](../docs/windows-pilot-runbook.md). **Sandbox pilot QA:** [docs/phase-7-sandbox-pilot-qa-runbook.md](../docs/phase-7-sandbox-pilot-qa-runbook.md). **Operator QA index:** [docs/phase-5-operator-qa-runbook.md](../docs/phase-5-operator-qa-runbook.md). **Script classification (full table):** [docs/phase-3-windows-readiness-audit.md](../docs/phase-3-windows-readiness-audit.md).
 
 ## Hard rules
 
@@ -98,7 +98,8 @@ Operator flow: [docs/phase-6-windows-mvp-operator-guide.md](../docs/phase-6-wind
 | `pnpm sandbox:validate` | Vitest band | Cross-platform Node | Fast sandbox rules |
 | `pnpm sandbox:validate:real` | Vitest + env | Cross-platform Node | Optional real-path band |
 | `pnpm qa:sandbox` | `scripts/qa-sandbox-run.sh` | macOS-oriented bash | Git Bash on Windows or manual §7 in phase-6 guide |
-| `pnpm desktop:release-smoke` | `@microdent/desktop` `release-smoke` | Cross-platform Node | Build + vitest + dist artifact checks |
+| `pnpm desktop:release-smoke` | `@microdent/desktop` `release-smoke` | Cross-platform Node | Build + vitest + desktop/web/bridge dist checks |
+| `pnpm pilot-checkpoint` | test + `build:web` + `desktop:release-smoke` | Cross-platform Node | Quick handoff gate — **does not** run `qa:sandbox` (needs sandbox env) |
 | `bash scripts/qa-sandbox-write-smoke.sh` | smoke only | macOS-oriented bash | Bridge must already be up |
 | `pnpm --filter @microdent/desktop run start` | Electron | Cross-platform Node | `%AppData%\Microdent\config.json` |
 | `node services/bridge/dist/server.js` | production bridge | Windows production-ready | Set env in PowerShell first |

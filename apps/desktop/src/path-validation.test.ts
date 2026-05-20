@@ -101,4 +101,35 @@ describe("path-validation", () => {
     const result = validateBackupDir(backup, { createIfMissing: true });
     expect(result.ok).toBe(true);
   });
+
+  it("validates backup dir paths with spaces when parent exists", () => {
+    const parent = mkdtempSync(join(tmpdir(), "microdent backup parent "));
+    cleanup.push(parent);
+    const backup = join(parent, "My Backups");
+    const result = validateBackupDir(backup, { createIfMissing: true });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.normalizedPath).toContain(" ");
+    }
+  });
+
+  it("classifies UNC paths separately from drive-letter paths", () => {
+    const uncData = "\\\\fileserver\\clinic\\Write-Sandbox\\DATA";
+    const driveData = "C:\\Microdent\\Write-Sandbox\\DATA";
+    expect(isOperatorAbsolutePath(uncData)).toBe(true);
+    expect(isOperatorAbsolutePath(driveData)).toBe(true);
+    expect(getOperatorPathWarnings(uncData).some((w) => /UNC/i.test(w))).toBe(true);
+    expect(getOperatorPathWarnings(driveData)).toHaveLength(0);
+  });
+
+  it("accepts Windows drive-letter paths with spaces as absolute shape", () => {
+    const path = "C:\\Microdent\\My Sandbox\\DATA";
+    expect(isOperatorAbsolutePath(path)).toBe(true);
+    expect(normalizeOperatorPath(path)).toBe("C:/Microdent/My Sandbox/DATA");
+    const missing = validateDataRootDir(path);
+    expect(missing.ok).toBe(false);
+    if (!missing.ok) {
+      expect(missing.code).toBe("missing");
+    }
+  });
 });

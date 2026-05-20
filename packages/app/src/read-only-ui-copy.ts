@@ -19,7 +19,8 @@ export const CLINIC_SERVICE_OFFLINE_TITLE = "Clinic service offline";
 export const CLINIC_SERVICE_OFFLINE_PANEL =
   "Connect the bridge and wait until the top bar shows Connected, then try again.";
 
-export const CLINIC_SERVICE_OFFLINE_SECTION = "Connect the bridge to load this section.";
+export const CLINIC_SERVICE_OFFLINE_SECTION =
+  "Connect the clinic service to load this section. Check Settings for bridge status and next steps.";
 
 export const CLINIC_SERVICE_CHECKING = "Waiting for the clinic service…";
 
@@ -37,7 +38,7 @@ export const PATIENT_PROFILE_READONLY_NOTE =
 export const PATIENT_PAGE_SEARCH_TITLE = "Find a patient";
 
 export const PATIENT_PAGE_SEARCH_LEDE =
-  "Search by name or chart number when the clinic service is connected. There is no full patient directory in this read-only viewer — only matches for your query are shown.";
+  "Search by name or chart number when the clinic service is connected. This read-only viewer shows matches only — there is no full patient directory.";
 
 export const PATIENT_PAGE_SEARCH_PRIVACY =
   "Uses your copied clinic data. Names, chart numbers, record ids, and masked phone hints only — no notes, addresses, or payment fields.";
@@ -75,7 +76,7 @@ export const TRUNCATED_LIST_BANNER =
   "Showing a capped list only. Additional lines are omitted in this read-only viewer.";
 
 export const SCHEDULE_PRIVACY_LEDE =
-  "Read-only schedule. Names and chart numbers use a safe patient summary; notes and phone numbers stay hidden.";
+  "Read-only schedule from your copied data. Patient names use a safe summary; notes and phone numbers stay hidden.";
 
 export const TODAY_PRIVACY_LEDE =
   "Read-only day list. Names and chart numbers use a safe patient summary; notes, phones, and payment fields stay hidden.";
@@ -87,7 +88,7 @@ export const TODAY_NEXT_LOADING = "Loading next appointment…";
 export const TODAY_EMPTY_TITLE = "No appointments today";
 
 export const TODAY_EMPTY_DESCRIPTION =
-  "Today's list is clear. Open the full schedule to check other days, or search for a patient.";
+  "No appointments on today's list. Open Schedule for other days or search for a patient.";
 
 export const TODAY_OPEN_SCHEDULE = "Open schedule";
 
@@ -380,6 +381,16 @@ export const SETTINGS_READINESS_SANDBOX_READY = "Sandbox pilot ready (marker + p
 export const SETTINGS_READINESS_SANDBOX_NOT_READY = "Sandbox not ready for commits";
 
 export const SETTINGS_READINESS_BRIDGE_OFFLINE = "Clinic service offline — complete setup first";
+
+export const SETTINGS_READINESS_BACKUP_CONFIGURED = "Backup folder configured";
+
+export const SETTINGS_READINESS_BACKUP_NOT_CONFIGURED = "Backup not configured — required for commits";
+
+export const SETTINGS_READINESS_READONLY_QA_HINT = "Read-only QA: run pnpm test + build:web";
+
+export const SETTINGS_READINESS_SANDBOX_QA_HINT = "Sandbox QA: run phase-7 runbook (pnpm qa:sandbox)";
+
+export const SETTINGS_PILOT_CHECKLIST_TITLE = "Pilot checklist";
 
 export const SETTINGS_ENABLED_NON_SANDBOX_BANNER_LABEL = "Writes enabled outside sandbox";
 

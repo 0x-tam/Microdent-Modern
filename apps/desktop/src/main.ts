@@ -11,9 +11,10 @@ import {
   loadDesktopConfig,
   saveDesktopConfig,
 } from "./config.js";
-import { maskOperatorPath } from "./path-validation.js";
+import { formatStartupFailure, STARTUP_FAILURE_FOOTER } from "./startup-failure.js";
 import { showSetupWindow } from "./setup/setup-window.js";
 import { collectDesktopStartupWarnings } from "./startup-validation.js";
+import { maskOperatorPath } from "./path-validation.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, "..", "..", "..");
@@ -56,17 +57,10 @@ async function createWindow(): Promise<void> {
   await win.loadURL(supervisor.uiUrl);
 }
 
-function formatStartupFailure(err: unknown): string {
-  if (err instanceof Error && err.message.trim().length > 0) {
-    return err.message;
-  }
-  return "unknown startup error";
-}
-
 function showStartupFailureDialog(message: string): void {
   dialog.showErrorBox(
     "Microdent desktop could not start",
-    `${message}\n\nCheck bridge build (pnpm --filter @microdent/bridge run build), paths in setup, and that the bridge port is free.`,
+    `${message}\n\n${STARTUP_FAILURE_FOOTER}`,
   );
 }
 

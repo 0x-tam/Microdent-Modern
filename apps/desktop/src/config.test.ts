@@ -78,4 +78,25 @@ describe("desktopConfigDir", () => {
     platformMock.mockReturnValue("linux");
     expect(desktopConfigDir()).toBe("/home/operator/.config/microdent");
   });
+
+  it("accepts Windows AppData-style paths in saved config", () => {
+    expect(
+      desktopConfigNeedsSetup({
+        version: 1,
+        dataRoot: "C:\\Users\\Operator\\AppData\\Local\\Microdent\\Write-Sandbox\\DATA",
+        sqlitePath: "C:\\Users\\Operator\\AppData\\Local\\Microdent\\mirror.sqlite",
+        writeMode: "disabled",
+      }),
+    ).toBe(false);
+  });
+
+  it("still requires setup when AppData-style paths are blank", () => {
+    expect(
+      desktopConfigNeedsSetup({
+        version: 1,
+        dataRoot: "   ",
+        sqlitePath: "C:\\Users\\Operator\\AppData\\Local\\Microdent\\mirror.sqlite",
+      }),
+    ).toBe(true);
+  });
 });

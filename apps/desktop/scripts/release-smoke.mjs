@@ -8,6 +8,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const desktopRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+const repoRoot = join(desktopRoot, "..", "..");
 
 const REQUIRED_DIST = [
   "dist/main.js",
@@ -28,6 +29,16 @@ for (const rel of REQUIRED_DIST) {
   if (!existsSync(join(desktopRoot, rel))) {
     fail(`missing dist artifact: ${rel}`);
   }
+}
+
+const webDistIndex = join(repoRoot, "apps", "web", "dist", "index.html");
+if (!existsSync(webDistIndex)) {
+  fail("web dist missing — run pnpm build:web before release-smoke");
+}
+
+const bridgeServerDist = join(repoRoot, "services", "bridge", "dist", "server.js");
+if (!existsSync(bridgeServerDist)) {
+  fail("bridge dist missing — run pnpm --filter @microdent/bridge run build");
 }
 
 const supervisorDist = readFileSync(join(desktopRoot, "dist/bridge-supervisor.js"), "utf8");
@@ -58,4 +69,6 @@ if ("dataRoot" in defaults || "sqlitePath" in defaults) {
   fail("defaults must not ship hardcoded path fields");
 }
 
-console.log("[release-smoke] dist artifacts, config defaults, and supervisor entrypoint OK");
+console.log(
+  "[release-smoke] desktop dist, web dist, bridge dist, config defaults, and supervisor entrypoint OK",
+);

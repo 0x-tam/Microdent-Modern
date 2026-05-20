@@ -36,6 +36,7 @@ Windows PowerShell equivalents are in [phase-6-windows-mvp-operator-guide.md](./
 | 1 | Create write sandbox | `pnpm legacy:create-sandbox` (or bridge CLI) | `.microdent-write-sandbox.json` under `DATA_ROOT` |
 | 2 | Mirror import | `pnpm mirror:import-safe` with `DATA_ROOT` + `SQLITE_PATH` | CLI `overall: success` or `partial`; Settings mirror metadata |
 | 3 | Read-only smoke | `pnpm test` + `pnpm build:web` | All workspaces green |
+| 3b | Quick handoff gate (no sandbox) | `pnpm pilot-checkpoint` | test + web build + desktop release-smoke |
 | 4 | Sandbox QA | `pnpm qa:sandbox` | Exit 0; sections 1/5–5/5; **DBF readback** `source=dbf` |
 | 5 | Optional restore spot-check | `pnpm legacy:restore` with test backup | Restores sandbox copy only |
 | 6 | Reset sandbox (when needed) | Re-create sandbox or restore; **separate** from mirror re-import | Fresh marker; no production legacy |

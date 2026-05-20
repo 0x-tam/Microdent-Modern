@@ -2509,6 +2509,70 @@
   color: var(--ui-text-secondary, #555);
 }
 
+.app-settings__checklist {
+  margin-bottom: var(--ui-space-4);
+  padding: var(--ui-space-3) var(--ui-space-4);
+  border-radius: var(--ui-radius-sm, 6px);
+  background: var(--ui-bg-surface, #fff);
+  border: 1px solid var(--ui-border-subtle, #dde1e6);
+}
+
+.app-settings__checklist-title {
+  margin: 0 0 var(--ui-space-2);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.app-settings__checklist-items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app-settings__checklist-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: var(--ui-space-2) 0;
+  border-bottom: 1px solid var(--ui-border-subtle, #eceff1);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.app-settings__checklist-item:last-child {
+  border-bottom: none;
+}
+
+.app-settings__checklist-label::before {
+  margin-right: 0.35rem;
+  font-weight: 700;
+}
+
+.app-settings__checklist-item--ok .app-settings__checklist-label::before {
+  content: "✓";
+  color: var(--ui-status-success, #1b5e20);
+}
+
+.app-settings__checklist-item--warn .app-settings__checklist-label::before {
+  content: "!";
+  color: var(--ui-status-warning, #9a6700);
+}
+
+.app-settings__checklist-item--danger .app-settings__checklist-label::before {
+  content: "!";
+  color: var(--ui-status-danger, #b00020);
+}
+
+.app-settings__checklist-item--neutral .app-settings__checklist-label::before {
+  content: "·";
+  color: var(--ui-text-secondary, #555);
+}
+
+.app-settings__checklist-next {
+  color: var(--ui-text-secondary, #555);
+  font-size: 0.82rem;
+}
+
 .app-settings__cli-hint {
   margin: var(--ui-space-2) 0 0;
   font-size: 0.85rem;

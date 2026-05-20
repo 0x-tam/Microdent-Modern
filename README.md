@@ -2,6 +2,8 @@
 
 Modern read-only clinic stack (bridge + shared contracts + future desktop shell). Product direction and phases live in [docs/master-build-plan.md](docs/master-build-plan.md).
 
+**Windows clinic pilot:** start at [docs/PILOT-START-HERE.md](docs/PILOT-START-HERE.md) (numbered flow, troubleshooting, validation commands).
+
 **Warning:** Real Microdent `DATA` must stay **outside** git. Do not add production or clinic `DATA/` trees to this repository. For local read-only testing, use only an absolute **`DATA_ROOT`** pointing at a **copied** path on disk (never commit PHI or real patient tables).
 
 **Data hygiene:** Legacy install trees and FoxPro/VB binaries must **never** be committed. The repo only ships a tiny synthetic DBF for automated tests.

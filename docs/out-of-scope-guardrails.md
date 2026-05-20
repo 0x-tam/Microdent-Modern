@@ -56,4 +56,35 @@ Before treating a build as **Windows pilot RC**:
 - [ ] No `Microdent-Legacy` or production paths in `DATA_ROOT`
 - [ ] Docs: [windows-pilot-runbook.md](./windows-pilot-runbook.md), [phase-7-sandbox-pilot-qa-runbook.md](./phase-7-sandbox-pilot-qa-runbook.md)
 
-**Related pilot docs:** [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md), [phase-6-windows-mvp-operator-guide.md](./phase-6-windows-mvp-operator-guide.md), [windows-pilot-packaging-gap-report.md](./windows-pilot-packaging-gap-report.md).
+**Related pilot docs:** [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md), [phase-6-windows-mvp-operator-guide.md](./phase-6-windows-mvp-operator-guide.md), [windows-pilot-packaging-gap-report.md](./windows-pilot-packaging-gap-report.md), [PILOT-START-HERE.md](./PILOT-START-HERE.md).
+
+---
+
+## Pilot handoff sign-off (operator + dev)
+
+Complete before handing a build to clinic staff. Both parties initial the printed copy or ticket comment.
+
+### Operator sign-off
+
+| # | Item | Pass |
+| --- | --- | --- |
+| O1 | Read [PILOT-START-HERE.md](./PILOT-START-HERE.md) and [windows-pilot-runbook.md](./windows-pilot-runbook.md) | ☐ |
+| O2 | Desktop first-run setup saved sandbox paths; **never** live `Microdent-Legacy` as `DATA_ROOT` | ☐ |
+| O3 | Settings **Pilot readiness** strip + checklist reviewed — bridge connected, mirror status understood | ☐ |
+| O4 | Mirror import run from CLI; Settings mirror table shows import runs | ☐ |
+| O5 | Read-only smoke: Today, Patients, Schedule, Profile tabs load without errors | ☐ |
+| O6 | (If writes enabled) `BACKUP_DIR` configured; only four sandbox workflows used | ☐ |
+| O7 | (If sandbox pilot) `pnpm qa:sandbox` exit 0 or phase-7 manual steps documented | ☐ |
+| O8 | Understands unsupported domains (payments, ledger, chart, memos) — this doc | ☐ |
+
+### Developer sign-off
+
+| # | Item | Pass |
+| --- | --- | --- |
+| D1 | `pnpm pilot-checkpoint` passes on handoff machine (or full checkpoint with sandbox env) | ☐ |
+| D2 | `write-route-inventory.test.ts` green — exactly four PATCH/POST write routes; no DELETE/PUT | ☐ |
+| D3 | Forbidden-token tests pass on Settings checklist and clinic read surfaces | ☐ |
+| D4 | `release-smoke` verifies desktop dist, bridge dist reference, and `apps/web/dist/index.html` | ☐ |
+| D5 | No `Microdent-Legacy`, `.sqlite`, or sandbox DATA committed to git | ☐ |
+| D6 | [windows-pilot-pre-installer-checklist.md](./windows-pilot-pre-installer-checklist.md) shared with IT | ☐ |
+| D7 | Packaging gaps documented — no false promise of installer/signing | ☐ |

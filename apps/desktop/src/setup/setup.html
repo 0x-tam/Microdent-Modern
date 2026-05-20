@@ -129,7 +129,9 @@
         aria-describedby="dataRootError dataRootHint"
       />
       <div id="dataRootError" class="field-error" role="alert"></div>
-      <div id="dataRootHint" class="field-hint"></div>
+      <div id="dataRootHint" class="field-hint">
+        Folder with your disposable sandbox DBF files. Example: <code>C:\Microdent\Write-Sandbox\DATA</code>
+      </div>
 
       <label for="sqlitePath">SQLITE_PATH (file)</label>
       <input
@@ -142,7 +144,9 @@
         aria-describedby="sqlitePathError sqlitePathHint"
       />
       <div id="sqlitePathError" class="field-error" role="alert"></div>
-      <div id="sqlitePathHint" class="field-hint"></div>
+      <div id="sqlitePathHint" class="field-hint">
+        SQLite mirror file for search and schedule. Example: <code>C:\Microdent\mirror\MICRODENT_MIRROR.sqlite</code>
+      </div>
 
       <label for="backupDir">BACKUP_DIR (folder, optional)</label>
       <input
@@ -192,6 +196,19 @@
           : "";
       }
 
+      function defaultHint(id) {
+        if (id === "dataRoot") {
+          return "Folder with your disposable sandbox DBF files. Example: C:\\Microdent\\Write-Sandbox\\DATA";
+        }
+        if (id === "sqlitePath") {
+          return "SQLite mirror file for search and schedule. Example: C:\\Microdent\\mirror\\MICRODENT_MIRROR.sqlite";
+        }
+        if (id === "backupDir") {
+          return "Optional. Required before enabling sandbox writes. Example: C:\\Microdent\\Write-Sandbox\\backups";
+        }
+        return "";
+      }
+
       function validateField(id) {
         const input = document.getElementById(id);
         const errorEl = document.getElementById(`${id}Error`);
@@ -200,7 +217,7 @@
         const value = input.value;
 
         errorEl.textContent = "";
-        hintEl.textContent = spaceHint(value);
+        hintEl.textContent = spaceHint(value) || defaultHint(id);
         input.classList.remove("invalid");
 
         if (!rule.required && value.trim().length === 0) {

@@ -45,4 +45,21 @@ describe("validateSetupPayload", () => {
       expect(result.sqlitePath).toBe(sqlitePath);
     }
   });
+
+  it("accepts paths with spaces when directories exist", () => {
+    const dataRoot = mkdtempSync(join(tmpdir(), "microdent setup data "));
+    const sqliteDir = mkdtempSync(join(tmpdir(), "microdent setup sql "));
+    cleanup.push(dataRoot, sqliteDir);
+    const sqlitePath = join(sqliteDir, "mirror.sqlite");
+    writeFileSync(sqlitePath, "");
+
+    const result = validateSetupPayload({
+      dataRoot,
+      sqlitePath,
+    });
+    expect("writeMode" in result).toBe(true);
+    if ("writeMode" in result) {
+      expect(result.dataRoot).toContain(" ");
+    }
+  });
 });

@@ -2,7 +2,9 @@
 
 **Purpose:** End-to-end path for a non-developer operator to install, launch the desktop MVP, import mirror data, validate read-only use, and optionally sign off sandbox writes — without reading application source.
 
-**Related:** [phase-6-windows-mvp-operator-guide.md](./phase-6-windows-mvp-operator-guide.md) (detailed Windows steps), [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md) (QA tracks), [phase-7-sandbox-pilot-qa-runbook.md](./phase-7-sandbox-pilot-qa-runbook.md) (sandbox sign-off), [phase-4-mirror-import-operator.md](./phase-4-mirror-import-operator.md) (mirror CLI), [out-of-scope-guardrails.md](./out-of-scope-guardrails.md), [apps/desktop/README.md](../apps/desktop/README.md), [scripts/README.md](../scripts/README.md), [windows-pilot-packaging-gap-report.md](./windows-pilot-packaging-gap-report.md).
+**Start here:** [PILOT-START-HERE.md](./PILOT-START-HERE.md) — one-page index, troubleshooting, and validation commands.
+
+**Related:** [phase-6-windows-mvp-operator-guide.md](./phase-6-windows-mvp-operator-guide.md) (detailed Windows steps), [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md) (QA tracks), [phase-7-sandbox-pilot-qa-runbook.md](./phase-7-sandbox-pilot-qa-runbook.md) (sandbox sign-off), [phase-4-mirror-import-operator.md](./phase-4-mirror-import-operator.md) (mirror CLI), [out-of-scope-guardrails.md](./out-of-scope-guardrails.md), [apps/desktop/README.md](../apps/desktop/README.md), [scripts/README.md](../scripts/README.md), [windows-pilot-packaging-gap-report.md](./windows-pilot-packaging-gap-report.md), [windows-pilot-pre-installer-checklist.md](./windows-pilot-pre-installer-checklist.md).
 
 ---
 

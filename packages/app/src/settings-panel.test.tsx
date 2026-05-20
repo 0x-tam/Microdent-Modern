@@ -180,6 +180,20 @@ describe("SettingsPanel", () => {
     expect(html).toContain("Read-only safe");
   });
 
+  it("shows pilot checklist when connected", () => {
+    const html = renderToStaticMarkup(
+      <SettingsPanel
+        bridgePhase="connected"
+        writeCapability={writeCapBase}
+        mirrorStatus={mirrorWithRuns}
+        onMirrorStatusChange={() => {}}
+      />,
+    );
+    expect(html).toContain("Pilot checklist");
+    expect(html).toContain("Clinic service connected");
+    expect(html).toContain("DATA_ROOT configured");
+  });
+
   it("shows masked path hints when connection diagnostics are enabled", () => {
     const html = renderToStaticMarkup(
       <SettingsPanel

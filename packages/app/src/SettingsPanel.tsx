@@ -29,6 +29,7 @@ import {
   SETTINGS_MIRROR_STALE_CALLOUT,
   SETTINGS_NEXT_STEP_LABEL,
   SETTINGS_PILOT_READINESS_TITLE,
+  SETTINGS_PILOT_CHECKLIST_TITLE,
   SETTINGS_PILOT_SECTION,
   SETTINGS_PANEL_LEDE,
   SETTINGS_SANDBOX_PILOT_OFF,
@@ -41,6 +42,7 @@ import {
   resolveBackupConfiguredStatus,
   resolveDataRootConfiguredStatus,
   resolvePilotReadinessSummary,
+  resolvePilotReadinessChecklist,
   resolveSandboxValidityStatus,
   resolveSqliteMirrorStatus,
 } from "./settings-status.js";
@@ -164,6 +166,9 @@ export function SettingsPanel({
   const backupStatus = resolveBackupConfiguredStatus(writeCapability);
   const sqliteMirrorStatus = resolveSqliteMirrorStatus(bridgePhase, mirrorStatus, writeCapability);
   const pilotReadiness = resolvePilotReadinessSummary(bridgePhase, writeCapability, mirrorStatus);
+  const pilotChecklist = resolvePilotReadinessChecklist(bridgePhase, writeCapability, mirrorStatus, {
+    sandboxWritePilot,
+  });
   const dangerBanners = resolveSettingsDangerBanners(bridgePhase, mirrorStatus, writeCapability);
   const mirrorStale =
     bridgePhase === "connected" && mirrorStatus !== null && isMirrorImportStale(mirrorStatus, Date.now());
@@ -226,6 +231,29 @@ export function SettingsPanel({
                 className={`app-settings__readiness-chip app-settings__readiness-chip--${chip.tone}`}
               >
                 {chip.label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {pilotChecklist.length > 0 ? (
+        <div className="app-settings__checklist" role="region" aria-labelledby="settings-checklist-title">
+          <h2 id="settings-checklist-title" className="app-settings__checklist-title">
+            {SETTINGS_PILOT_CHECKLIST_TITLE}
+          </h2>
+          <ul className="app-settings__checklist-items">
+            {pilotChecklist.map((item) => (
+              <li
+                key={item.key}
+                className={`app-settings__checklist-item app-settings__checklist-item--${item.tone}`}
+              >
+                <span className="app-settings__checklist-label">{item.label}</span>
+                {item.nextStep ? (
+                  <span className="app-settings__checklist-next">
+                    <strong>{SETTINGS_NEXT_STEP_LABEL}:</strong> {item.nextStep}
+                  </span>
+                ) : null}
               </li>
             ))}
           </ul>

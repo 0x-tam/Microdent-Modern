@@ -1,10 +1,12 @@
 # Windows pilot packaging gap report
 
 **Date:** 2026-05-20  
-**Baseline:** Microdent-Modern `main` @ `5c88cbd`  
+**Baseline:** Microdent-Modern `main` @ `5221530`  
 **Scope:** Honest assessment of what works in the pilot RC vs what remains manual or unimplemented.
 
-**Related:** [phase-3-desktop-packaging-plan.md](./phase-3-desktop-packaging-plan.md), [windows-pilot-runbook.md](./windows-pilot-runbook.md), [apps/desktop/README.md](../apps/desktop/README.md).
+**Actionable checklist:** [windows-pilot-pre-installer-checklist.md](./windows-pilot-pre-installer-checklist.md) — installer, signing, shortcuts, `%AppData%`, logs, backups, SmartScreen.
+
+**Related:** [phase-3-desktop-packaging-plan.md](./phase-3-desktop-packaging-plan.md), [windows-pilot-runbook.md](./windows-pilot-runbook.md), [PILOT-START-HERE.md](./PILOT-START-HERE.md), [apps/desktop/README.md](../apps/desktop/README.md).
 
 ---
 
