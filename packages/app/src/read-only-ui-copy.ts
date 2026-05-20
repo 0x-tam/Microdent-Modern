@@ -374,3 +374,42 @@ export const SETTINGS_MIRROR_RUN_STATUS_PARTIAL = "Partial";
 export const SETTINGS_MIRROR_RUN_STATUS_FAILED = "Failed";
 
 export const SETTINGS_MIRROR_RUN_STATUS_RUNNING = "Running";
+
+export const SETTINGS_NEXT_STEP_LABEL = "Next step";
+
+export const SETTINGS_NEXT_STEP_BRIDGE =
+  "Start the clinic service (desktop app or bridge) and wait until Settings shows Connected.";
+
+export const SETTINGS_NEXT_STEP_DATA_ROOT =
+  "Set DATA_ROOT in desktop setup or bridge env to your disposable Write-Sandbox DATA folder.";
+
+export const SETTINGS_NEXT_STEP_WRITE_DISABLED =
+  "Writes are off. Enable dry-run or enabled only on a disposable sandbox after backup is configured.";
+
+export const SETTINGS_NEXT_STEP_WRITE_DRY_RUN =
+  "Dry-run plans changes only. Use Schedule or Patient write pilots to preview, then enable commits when ready.";
+
+export const SETTINGS_NEXT_STEP_WRITE_ENABLED =
+  "Writes are enabled on the sandbox. Use pilot panels only; never point DATA_ROOT at production legacy.";
+
+export const SETTINGS_NEXT_STEP_SANDBOX =
+  "Fix DATA_ROOT: point the bridge at a disposable sandbox folder with the write-sandbox marker before enabling commits.";
+
+export const SETTINGS_NEXT_STEP_BACKUP =
+  "Set BACKUP_DIR in desktop setup or bridge env before committing sandbox changes.";
+
+export const SETTINGS_NEXT_STEP_PILOT_BUILD =
+  "Rebuild the web app with VITE_SANDBOX_WRITE_PILOT=true to show write pilots in this UI.";
+
+export const SETTINGS_NEXT_STEP_MIRROR_IMPORT =
+  "Run the safe mirror import command from the operator guide, then Refresh status here.";
+
+export const SETTINGS_NEXT_STEP_MIRROR_REFRESH = "Tap Refresh status after the clinic service connects.";
+
+export const SETTINGS_NEXT_STEP_MIRROR_STALE =
+  "Mirror metadata is stale. Re-run safe import; DBF remains the source of truth for writes.";
+
+export const SETTINGS_BACKUP_NOT_CONFIGURED_BANNER_LABEL = "Backup required for commits";
+
+export const SETTINGS_BACKUP_NOT_CONFIGURED_BANNER_BODY =
+  "Write mode is enabled but BACKUP_DIR is not configured. Set a backup folder before committing sandbox changes.";

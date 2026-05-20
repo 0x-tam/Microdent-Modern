@@ -26,6 +26,7 @@ import {
   SETTINGS_MIRROR_RUN_STATUS_SUCCESS,
   SETTINGS_MIRROR_SECTION,
   SETTINGS_MIRROR_STALE_CALLOUT,
+  SETTINGS_NEXT_STEP_LABEL,
   SETTINGS_PILOT_SECTION,
   SETTINGS_PANEL_LEDE,
   SETTINGS_SANDBOX_PILOT_OFF,
@@ -40,6 +41,10 @@ import {
   resolveSandboxValidityStatus,
   resolveSqliteMirrorStatus,
 } from "./settings-status.js";
+import {
+  resolveSettingsOperatorNextStep,
+  type SettingsCardKey,
+} from "./settings-operator-next-step.js";
 import {
   resolveSettingsDangerBanners,
   resolveWriteModeChip,
@@ -109,6 +114,32 @@ function isDesktopFileProtocol(): boolean {
 
 function showDevPathHints(showConnectionDiagnostics: boolean): boolean {
   return showConnectionDiagnostics;
+}
+
+type SettingsNextStepProps = {
+  card: SettingsCardKey;
+  bridgePhase: BridgeHealthPhase;
+  writeCapability: BridgeDevStatusResponse | null;
+  mirrorStatus: MirrorStatusResponse | null;
+  sandboxWritePilot?: boolean;
+};
+
+function SettingsNextStep({
+  card,
+  bridgePhase,
+  writeCapability,
+  mirrorStatus,
+  sandboxWritePilot,
+}: SettingsNextStepProps) {
+  const step = resolveSettingsOperatorNextStep(card, bridgePhase, writeCapability, mirrorStatus, {
+    sandboxWritePilot,
+  });
+  if (!step) return null;
+  return (
+    <p className="app-settings__next-step" role="note">
+      <strong>{SETTINGS_NEXT_STEP_LABEL}:</strong> {step}
+    </p>
+  );
 }
 
 export function SettingsPanel({
@@ -186,6 +217,7 @@ export function SettingsPanel({
           </CardHeader>
           <CardBody>
             <p className={`app-settings__status app-settings__status--${bridgePhase}`}>{bridgeLabel}</p>
+            <SettingsNextStep card="bridge" {...{ bridgePhase, writeCapability, mirrorStatus, sandboxWritePilot }} />
             {showConnectionDiagnostics && bridgeBaseUrl?.trim() ? (
               <p className="app-settings__diag" role="note">
                 Bridge URL: {bridgeBaseUrl.trim()}
@@ -200,6 +232,7 @@ export function SettingsPanel({
           </CardHeader>
           <CardBody>
             <p className={`app-settings__status app-settings__status--${dataRootStatus.tone}`}>{dataRootStatus.label}</p>
+            <SettingsNextStep card="dataRoot" {...{ bridgePhase, writeCapability, mirrorStatus, sandboxWritePilot }} />
             {devHints ? (
               <ul className="app-settings__path-hints" role="note">
                 <li>
@@ -226,6 +259,7 @@ export function SettingsPanel({
             ) : (
               <p className="app-settings__muted">Connect the clinic service to load write mode.</p>
             )}
+            <SettingsNextStep card="write" {...{ bridgePhase, writeCapability, mirrorStatus, sandboxWritePilot }} />
           </CardBody>
         </Card>
 
@@ -235,6 +269,7 @@ export function SettingsPanel({
           </CardHeader>
           <CardBody>
             <p className={`app-settings__status app-settings__status--${sandboxStatus.tone}`}>{sandboxStatus.label}</p>
+            <SettingsNextStep card="sandbox" {...{ bridgePhase, writeCapability, mirrorStatus, sandboxWritePilot }} />
           </CardBody>
         </Card>
 
@@ -244,6 +279,7 @@ export function SettingsPanel({
           </CardHeader>
           <CardBody>
             <p className={`app-settings__status app-settings__status--${backupStatus.tone}`}>{backupStatus.label}</p>
+            <SettingsNextStep card="backup" {...{ bridgePhase, writeCapability, mirrorStatus, sandboxWritePilot }} />
             {devHints && writeCapability?.backupDirConfigured ? (
               <p className="app-settings__path-hints" role="note">
                 <code>{MASKED_PATH_HINT_EXAMPLES.backup}</code>
@@ -260,6 +296,7 @@ export function SettingsPanel({
             <p className="app-settings__muted">
               {sandboxWritePilot ? SETTINGS_SANDBOX_PILOT_ON : SETTINGS_SANDBOX_PILOT_OFF}
             </p>
+            <SettingsNextStep card="pilot" {...{ bridgePhase, writeCapability, mirrorStatus, sandboxWritePilot }} />
           </CardBody>
         </Card>
 
@@ -282,6 +319,10 @@ export function SettingsPanel({
             <p className={`app-settings__status app-settings__status--${sqliteMirrorStatus.tone}`}>
               {sqliteMirrorStatus.label}
             </p>
+            <SettingsNextStep
+              card="sqliteMirror"
+              {...{ bridgePhase, writeCapability, mirrorStatus, sandboxWritePilot }}
+            />
             {devHints && writeCapability?.sqlitePathConfigured ? (
               <p className="app-settings__path-hints" role="note">
                 SQLite: <code>{MASKED_PATH_HINT_EXAMPLES.sqlite}</code>
@@ -311,6 +352,7 @@ export function SettingsPanel({
               <p className="app-settings__muted">Mirror status unavailable.</p>
             ) : (
               <>
+                <SettingsNextStep card="mirror" {...{ bridgePhase, writeCapability, mirrorStatus, sandboxWritePilot }} />
                 <ul className="app-settings__facts">
                   <li>
                     {SETTINGS_MIRROR_IMPORTED_COUNT}: {importedCount}

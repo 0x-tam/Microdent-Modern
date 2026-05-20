@@ -1,121 +1,92 @@
-# Windows MVP batch report — 2026-05-19
+# Windows MVP batch report — A–K (2026-05-20)
 
 **Repo:** `/Users/Tamam/Desktop/Microdent/Microdent-Modern`  
+**Baseline:** clean `main` at `0c42fd8` (audit-first gap-fill)  
 **Branch:** `main` (uncommitted working tree)  
-**Coordinator checkpoint:** 2026-05-18 (Wave 2/3 audit + full re-run)  
+**Coordinator checkpoint:** 2026-05-20 (Wave 2/3 + coordinator re-run)  
 **Commit policy:** Do not commit unless explicitly instructed.
 
 ## Wave summary
 
 | Wave | Status | Outcome |
 | --- | --- | --- |
-| Wave 1 (A/C/D/F) | Done (prior run) | Desktop startup validation, sandbox docs, root `pnpm test` + desktop |
-| Wave 2 (G/H/I/E) | **Audit only** | All workstreams already on `main` (`8d1a9dc` / `9c901d4`); no `packages/app` diff this run |
-| Wave 3 (B+J) | **Audit only** | Clinic polish already on `main`; no diff this run |
+| Wave 1 (A/C/D/I/J/K) | **Done (prior)** | Desktop startup dialog + required paths; sandbox section banners + mirror advisory; route inventory test; out-of-scope doc; AppShell safe health log |
+| Wave 2 (B/E/F) | **Verified** | B gap-fill in tree (next-step resolver, danger banners, masked paths); E/F audit-only — write UX already on main |
+| Wave 3 (G/H) | **Gap-fill + audit** | G: forbidden-token on PatientSearchBar; global `IS_REACT_ACT_ENVIRONMENT` in `vitest.setup.ts` (0 act warnings); H audit-only |
 | Coordinator | **PASS** | `pnpm test`, `pnpm build:web`, `pnpm qa:sandbox` green on Node 22 |
 
-## Agents / workstreams (A–J + Coordinator)
+## Workstreams vs `main` (`0c42fd8`)
 
-| Workstream | Agent | Verdict (this run) | vs `main` |
-| --- | --- | --- | --- |
-| A | DesktopMVP | **Gap-fill (uncommitted)** | `startup-validation.ts`, supervisor/main wiring, root test script |
-| B+J | ClinicProductPolish | **Already on main** | `today-dashboard`, `PatientSearchBar`, profile read tabs, schedule read-only, `read-only-ui-copy`, `app-shell.css` |
-| C | SandboxQA | **Already on main** | DBF readback; docs touched in uncommitted F slice |
-| D | MirrorOps | **Already on main** | Mirror status API + Settings mirror card |
-| E | PrivacyStability | **Already on main** | `AppShell` AbortController cleanup, `app-shell-fetch-cleanup.test.tsx`, forbidden tokens on settings/write/mirror/schedule |
-| F | DocsRunbooks | **Gap-fill (uncommitted)** | DBF vs mirror in phase-3/4 docs |
-| G | SettingsDash | **Already on main** | Cards (bridge, paths, mirror, write, sandbox, backup, pilot, desktop); danger banners; `omitShellBannersDetailedInSettings` when Settings active |
-| H | AppointmentWriteUX | **Already on main** | Status/time/create pilots; dry-run → confirm → commit; refresh; `appointment-*-write` + `appointment-write-actions-panel` tests |
-| I | PatientDemoUX | **Already on main** | `PatientDemographicsWritePanel`; allowlist; `patient-demographics-write.test.tsx` |
-| — | Coordinator | **PASS** | Checkpoint below; no commit |
+| WS | Verdict | Changes |
+| --- | --- | --- |
+| **A** DesktopStartup | **Gap-fill (prior)** | `startup-validation`, `main.ts` dialog, setup/README/tests |
+| **B** OperatorSettings | **Gap-fill** | `settings-operator-next-step.ts` + tests; `SettingsPanel.tsx` per-card next steps; `resolveBackupNotConfiguredBanner` + `resolveSettingsDangerBanners`; `settings-panel.test.tsx`, `shell-status-banners.test.ts`; `app-shell.css` |
+| **C** SandboxQA | **Gap-fill (prior)** | `qa-sandbox-run.sh`, `qa-sandbox-write-smoke.sh` section banners; mirror advisory |
+| **D** MirrorBackend | **Already on main** | No backend change this batch |
+| **E** AppointmentUX | **Audit-only** | Sandbox pilot banners, dry-run → confirm → commit, safe summaries, schedule refresh — verified in `SchedulePanel` + `Appointment*Write*` |
+| **F** PatientDemoUX | **Audit-only** | Allowlist fields, sandbox warning, dry-run/confirm, profile refresh — verified in `PatientDemographicsWritePanel` |
+| **G** PrivacyStability | **Gap-fill** | `patient-search-bar.test.tsx` `assertNoForbiddenDomTokens`; `vitest.setup.ts` React act environment (eliminates stderr act warnings) |
+| **H** ClinicPolish | **Audit-only** | Read-only polish on main (`today-dashboard`, `PatientSearchBar`, profile read tabs, schedule read-only) |
+| **I** DocsPilot | **Gap-fill (prior)** | `docs/phase-6-windows-mvp-operator-guide.md` |
+| **J** LogRedaction | **Gap-fill (prior)** | `AppShell.tsx` safe health logging |
+| **K** ScopeGuardrails | **Gap-fill (prior)** | `docs/out-of-scope-guardrails.md`; `write-route-inventory.test.ts` |
 
-### Wave 2 audit notes (G/H/I/E)
+## Mandatory checkpoint (2026-05-20)
 
-- **G:** `SettingsPanel.tsx`, `settings-status.ts`, `shell-status-banners.ts` — backup/sandbox warnings via status cards + `resolveSettingsDangerBanners` (non-sandbox, mirror stale, write enabled). Shell dedupe when `active === "settings"` in `AppShell.tsx`.
-- **H:** Write blocks in `SchedulePanel` owned by appointment write components; sandbox pilot gating via `sandbox-write-pilot.ts`.
-- **I:** Demographics section in `PatientProfilePanel`; no phone/address/medical fields in write panel.
-- **E:** No additional changes required; `act(...)` warnings remain in stderr (non-failing).
+| Step | Result | Notes |
+| --- | --- | --- |
+| `nvm use 22` | **PASS** | v22.22.3 |
+| `pnpm test` | **PASS** | contracts 3; sqlite-mirror 42; bridge **308** (+4 skipped); bridge-client 36; ui 10; app **266**; desktop **31** |
+| `pnpm build:web` | **PASS** | Vite production build OK |
+| `pnpm qa:sandbox` | **PASS** | 5 sections; 4 workflows; **DBF readback** `source=dbf`; mirror advisory WARN (partial imports) — non-blocking |
+| `git status` | **DIRTY** | Focused diff (~20 paths); nothing staged |
 
-### Wave 3 audit notes (B+J)
-
-- Read-only polish and offline/empty/loading copy present on touched surfaces.
-- **Minor follow-up (not blocking):** `patient-search-bar.test.tsx` does not call `assertNoForbiddenDomTokens` (other surfaces do). Safe to add in a future slice.
-
-## Mandatory checkpoint
-
-| Step | Command / action | Result | Notes |
-| --- | --- | --- | --- |
-| Node | `nvm use 22` | **PASS** | v22.22.3 |
-| Unit/integration tests | `pnpm test` | **PASS** | contracts 3; sqlite-mirror 42; bridge 302 (+4 skipped); bridge-client 36; ui 10; app **261**; desktop **28** |
-| Web build | `pnpm build:web` | **PASS** | Vite production build OK |
-| Sandbox env | `DATA_ROOT`, `SQLITE_PATH`, `BACKUP_DIR` | **SET** | Write-sandbox paths (not in git) |
-| Port cleanup | `lsof -ti :17890` kill | **OK** | Before `qa:sandbox` |
-| Sandbox QA | `pnpm qa:sandbox` | **PASS** | `qa:sandbox complete`; `qa-sandbox-write-smoke complete (4 workflows)`; **DBF readback** `source=dbf` on all workflows |
-| Git snapshot | `git status` | **DIRTY** | 7 modified, 2 untracked; nothing staged |
-
-### Sandbox success excerpt
+### Sandbox excerpt
 
 ```
 [qa-write-smoke] readback workflow=appointment.statusUpdate source=dbf appointment_id=100 status=2
 [qa-write-smoke] === qa-sandbox-write-smoke complete (4 workflows) ===
-[qa-sandbox-run] qa:sandbox complete
+========== qa:sandbox complete ==========
 ```
 
-## Files changed (uncommitted — this batch)
+## Changed files (working tree)
 
-| Path | Workstream |
-| --- | --- |
-| `apps/desktop/src/startup-validation.ts` | A |
-| `apps/desktop/src/startup-validation.test.ts` | A |
-| `apps/desktop/src/bridge-supervisor.ts` | A |
-| `apps/desktop/src/bridge-supervisor.test.ts` | A |
-| `apps/desktop/src/main.ts` | A |
-| `package.json` (root `pnpm test` includes desktop) | A / Coordinator |
-| `docs/phase-3-sandbox-qa-runner.md` | C / F |
-| `docs/phase-4-mirror-import-operator.md` | D / F |
-| `qa-runs/2026-05-19-windows-mvp-batch-report.md` | Coordinator |
+**Modified:**  
+`apps/desktop/README.md`, `apps/desktop/src/{bridge-supervisor,main,startup-validation}.*`, `apps/desktop/src/setup/setup.html`  
+`docs/phase-3-write-safe-qa-checklist.md`, `docs/phase-6-windows-mvp-operator-guide.md`  
+`packages/app/src/{AppShell,SettingsPanel,app-shell.css,patient-search-bar.test,read-only-ui-copy,settings-panel.test,shell-status-banners}.*`, `packages/app/vitest.setup.ts`  
+`qa-runs/2026-05-19-windows-mvp-batch-report.md`  
+`scripts/qa-sandbox-run.sh`, `scripts/qa-sandbox-write-smoke.sh`
 
-**No Wave 2/3 `packages/app` files modified this run.**
+**Untracked:**  
+`docs/out-of-scope-guardrails.md`  
+`packages/app/src/settings-operator-next-step.{ts,test.ts}`  
+`services/bridge/src/write-safety/write-route-inventory.test.ts`
 
-## Merge sanity
-
-| Area | Finding |
-| --- | --- |
-| `read-only-ui-copy.ts` | Single source in `packages/app` only |
-| `AppShell.tsx` | Single copy; fetch cleanup + settings banner dedupe on main |
-| `SchedulePanel.tsx` | Write sections (H) vs read-only (B) — no conflict in working tree |
-| `maskOperatorPath` | Intentional duplication: `packages/app` vs `apps/desktop/path-validation.ts` |
-
-No conflict markers.
-
-## Git hygiene / legacy sentinels
-
-| Check | Status |
-| --- | --- |
-| `Legacy/` or `Legacy-Copy/` in diff or untracked | **PASS** — none |
-| `.sqlite`, Write-Sandbox `DATA`, or `backups` tracked/staged | **PASS** — none |
-| Secrets in tree | Not scanned; env paths are local exports only |
+**Not tracked (correct):** sandbox DATA, `.sqlite`, Legacy trees, `packages/app/dist/`, `node_modules/`
 
 ## Safe to commit?
 
-**Yes (recommended for Wave 1 slice)** — checkpoint green. Uncommitted diff is desktop startup validation + docs + root test script + this report. Wave 2/3 UI already committed on `main`; nothing additional to stage for G–J/E/B.
+**Yes** — single focused batch. Suggested message:
 
-**Blockers:** None.
+```
+feat(clinic-mvp): desktop startup, settings next steps, QA sections, privacy
 
-## Risks
+Gap-fill: require desktop paths + operator error dialog, Settings per-card next steps
+and danger banners, sandbox QA sectioning with mirror advisory, route inventory test,
+out-of-scope doc, patient search forbidden-token coverage, vitest act environment.
+```
 
-1. **Dual `maskOperatorPath`** — Electron vs web may show different masked strings.
-2. **Desktop startup validation** — paths removed after setup fail at bridge start with masked errors (intended).
-3. **Vitest `act(...)` warnings** — noisy app stderr on write tests; not failing.
-4. **Patient search forbidden-token test** — optional gap; not a regression risk today.
+## Risks / follow-ups
 
-## Next batch (suggested)
+| Risk | Mitigation |
+| --- | --- |
+| Desktop requires paths before bridge start | Setup flow unchanged |
+| Settings next-step copy | Masked paths only; forbidden-token tests on Settings/shell |
+| Mirror advisory WARN in QA | Warn-only; DBF is write proof |
+| `origin` remote missing | Push/CI blocked (pre-existing) |
+| Per-file `IS_REACT_ACT_ENVIRONMENT` duplicates | Optional cleanup; global setup now covers jsdom tests |
 
-1. Commit Wave 1 + docs when instructed (optional PR split: desktop vs docs).
-2. Add `assertNoForbiddenDomTokens` to `patient-search-bar.test.tsx` if tightening Wave 3 privacy regression.
-3. Extract shared `@microdent/operator-path` for desktop + web masking.
-4. Push remote + CI when `origin` is configured.
+## Blockers
 
----
-
-*Generated by Windows MVP batch coordinator (Wave 2/3 audit + checkpoint). No git commit performed.*
+None for local sign-off. Push blocked only by missing `origin` (unchanged).

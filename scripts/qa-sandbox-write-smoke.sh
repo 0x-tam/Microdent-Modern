@@ -30,6 +30,12 @@ CURRENT_WORKFLOW=""
 
 log() { echo "[qa-write-smoke] $*"; }
 
+section_banner() {
+  echo ""
+  echo "---------- $* ----------"
+  echo ""
+}
+
 if ! command -v sqlite3 >/dev/null 2>&1; then
   log "FAIL: sqlite3 required"
   exit 1
@@ -269,6 +275,7 @@ if [[ -z "${STATUS_BEFORE}" || ! "${STATUS_BEFORE}" =~ ^[0-9]+$ ]]; then
 fi
 STATUS_AFTER=$(( (STATUS_BEFORE + 1) % 6 ))
 
+section_banner "Fixture discovery"
 log "appointment_id=${APPT_ID} patient_id_present=yes status_before=${STATUS_BEFORE}"
 
 # --- 1. appointment.statusUpdate ---
@@ -537,4 +544,5 @@ if [[ -f "${SQLITE_PATH}" ]]; then
   fi
 fi
 
+section_banner "Final summary"
 log "=== qa-sandbox-write-smoke complete (4 workflows) ==="

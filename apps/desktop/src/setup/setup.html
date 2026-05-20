@@ -132,7 +132,11 @@
         aria-describedby="backupDirError backupDirHint"
       />
       <div id="backupDirError" class="field-error" role="alert"></div>
-      <div id="backupDirHint" class="field-hint"></div>
+      <div id="backupDirHint" class="field-hint">
+        Optional. Required before enabling sandbox writes on the bridge. Prefer
+        <code>C:\Microdent\Write-Sandbox\backups</code> on a local drive — UNC shares
+        (<code>\\server\share\…</code>) may be slow or unreliable.
+      </div>
 
       <label>Write mode</label>
       <p class="readonly" id="writeModeDisplay" aria-readonly="true">disabled (not changeable here)</p>

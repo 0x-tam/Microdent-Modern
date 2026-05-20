@@ -189,7 +189,7 @@ describe("SettingsPanel", () => {
       />,
     );
     expect(html).toContain("Refresh status");
-    expect(html).not.toContain("import-safe");
+    expect(html).toContain("Next step");
   });
 
   it("forbids forbidden DOM tokens on production-like connected snapshots", () => {

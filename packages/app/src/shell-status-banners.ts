@@ -10,6 +10,8 @@ import {
   SANDBOX_WRITE_WARNING_BANNER_BODY,
   SANDBOX_WRITE_WARNING_BANNER_LABEL,
   SETTINGS_BRIDGE_OFFLINE_BANNER_BODY,
+  SETTINGS_BACKUP_NOT_CONFIGURED_BANNER_BODY,
+  SETTINGS_BACKUP_NOT_CONFIGURED_BANNER_LABEL,
   SETTINGS_BRIDGE_OFFLINE_BANNER_LABEL,
   SETTINGS_ENABLED_NON_SANDBOX_BANNER_BODY,
   SETTINGS_ENABLED_NON_SANDBOX_BANNER_LABEL,
@@ -120,6 +122,25 @@ export function resolveWriteModeBanner(
 }
 
 /**
+ * Danger when write mode is enabled but BACKUP_DIR is not configured.
+ */
+export function resolveBackupNotConfiguredBanner(
+  phase: BridgeHealthPhase,
+  writeCapability: BridgeDevStatusResponse | null,
+): ShellStatusBanner | null {
+  if (phase !== "connected" || writeCapability === null) return null;
+  if (writeCapability.writeMode !== "enabled" || writeCapability.backupDirConfigured) {
+    return null;
+  }
+  return {
+    key: "backup-not-configured",
+    label: SETTINGS_BACKUP_NOT_CONFIGURED_BANNER_LABEL,
+    body: SETTINGS_BACKUP_NOT_CONFIGURED_BANNER_BODY,
+    tone: "danger",
+  };
+}
+
+/**
  * Danger when write mode is enabled but DATA_ROOT is not a validated disposable sandbox.
  */
 export function resolveEnabledNonSandboxBanner(
@@ -167,6 +188,8 @@ export function resolveSettingsDangerBanners(
   if (writeMode && writeMode.tone === "danger") banners.push(writeMode);
   const nonSandbox = resolveEnabledNonSandboxBanner(phase, writeCapability);
   if (nonSandbox) banners.push(nonSandbox);
+  const backupMissing = resolveBackupNotConfiguredBanner(phase, writeCapability);
+  if (backupMissing) banners.push(backupMissing);
   const sandbox = resolveSandboxWriteWarningBanner(phase, writeCapability);
   if (sandbox) banners.push(sandbox);
   return banners;

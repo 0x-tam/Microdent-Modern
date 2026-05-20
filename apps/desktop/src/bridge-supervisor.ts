@@ -88,6 +88,8 @@ export class BridgeSupervisor {
       }
       await new Promise((r) => setTimeout(r, 400));
     }
-    throw new Error("bridge health check timed out");
+    throw new Error(
+      "bridge health check timed out (confirm bridge dist is built and the configured port is free)",
+    );
   }
 }

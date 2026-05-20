@@ -8,7 +8,7 @@
 
 **Status (2026-05-17):** All **15** steps are executable on a **disposable write sandbox** when `WRITE_MODE`, `BACKUP_DIR`, `DATA_ROOT`, sandbox marker, and `ALLOW_LEGACY_WRITES` ack are configured per the runbook. Production Legacy paths remain forbidden.
 
-**Related:** [phase-3-disposable-write-sandbox.md](./phase-3-disposable-write-sandbox.md), [phase-3-sandbox-guard.md](./phase-3-sandbox-guard.md), [phase-3-write-mode-config.md](./phase-3-write-mode-config.md), [phase-3-backup-cli.md](./phase-3-backup-cli.md), [phase-3-appointment-status-dry-run.md](./phase-3-appointment-status-dry-run.md), [phase-3-audit-log-schema.md](./phase-3-audit-log-schema.md).
+**Related:** [out-of-scope-guardrails.md](./out-of-scope-guardrails.md), [phase-3-disposable-write-sandbox.md](./phase-3-disposable-write-sandbox.md), [phase-3-sandbox-guard.md](./phase-3-sandbox-guard.md), [phase-3-write-mode-config.md](./phase-3-write-mode-config.md), [phase-3-backup-cli.md](./phase-3-backup-cli.md), [phase-3-appointment-status-dry-run.md](./phase-3-appointment-status-dry-run.md), [phase-3-audit-log-schema.md](./phase-3-audit-log-schema.md).
 
 ---
 

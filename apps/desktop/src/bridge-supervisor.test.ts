@@ -69,32 +69,15 @@ describe("BridgeSupervisor spawn env", () => {
     vi.unstubAllGlobals();
   });
 
-  it("passes WRITE_MODE disabled and omits DATA_ROOT/SQLITE_PATH when config has no paths", async () => {
+  it("rejects start when DATA_ROOT and SQLITE_PATH are missing from config", async () => {
     const supervisor = new BridgeSupervisor({
       repoRoot: "/tmp/microdent-repo",
       config: defaultDesktopConfig(),
       nodeBinary: "/usr/bin/node",
     });
 
-    await supervisor.start();
-
-    expect(spawnMock).toHaveBeenCalledOnce();
-    const [, args, options] = spawnMock.mock.calls[0] as [
-      string,
-      string[],
-      { env: NodeJS.ProcessEnv },
-    ];
-    expect(args).toHaveLength(1);
-    expect(args[0]).toMatch(/server\.js$/);
-    expect(args[0]).not.toMatch(/\.(exe|bat|cmd)$/i);
-    const { env } = options;
-    expect(env.WRITE_MODE).toBe("disabled");
-    expect(env.BRIDGE_HOST).toBe("127.0.0.1");
-    expect(env.BRIDGE_PORT).toBe("17890");
-    expect(env.NODE_ENV).toBe("production");
-    expect(env.DATA_ROOT).toBeUndefined();
-    expect(env.SQLITE_PATH).toBeUndefined();
-    assertNoForbiddenPaths(env);
+    await expect(supervisor.start()).rejects.toThrow(/DATA_ROOT is required/i);
+    expect(spawnMock).not.toHaveBeenCalled();
   });
 
   it("defaults WRITE_MODE to disabled when writeMode is omitted from config", async () => {
@@ -166,7 +149,11 @@ describe("BridgeSupervisor spawn env", () => {
   it("spawns node with bridge dist/server.js only (no shell, no FoxPro)", async () => {
     const supervisor = new BridgeSupervisor({
       repoRoot: "C:\\repos\\Microdent-Modern",
-      config: defaultDesktopConfig(),
+      config: {
+        ...defaultDesktopConfig(),
+        dataRoot: "C:\\Microdent\\Write-Sandbox\\DATA",
+        sqlitePath: "C:\\Microdent\\mirror.sqlite",
+      },
       nodeBinary: "C:\\Program Files\\nodejs\\node.exe",
     });
 

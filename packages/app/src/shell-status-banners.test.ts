@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   omitShellBannersDetailedInSettings,
+  resolveBackupNotConfiguredBanner,
   resolveBridgeOfflineBanner,
   resolveEnabledNonSandboxBanner,
   resolveMirrorConnectionBanner,
@@ -119,6 +120,21 @@ describe("resolveShellStatusBanners", () => {
   it("orders mirror, write mode, then sandbox warning", () => {
     const keys = resolveShellStatusBanners("connected", mirrorActive, capSandbox).map((b) => b.key);
     expect(keys).toEqual(["mirror-active", "write-mode-enabled", "sandbox-write-warning"]);
+  });
+});
+
+describe("resolveBackupNotConfiguredBanner", () => {
+  it("shows when writes are enabled without BACKUP_DIR", () => {
+    expect(
+      resolveBackupNotConfiguredBanner("connected", {
+        writeMode: "enabled",
+        writesPermitted: true,
+        writableSandbox: true,
+        dataRootConfigured: true,
+        backupDirConfigured: false,
+        sqlitePathConfigured: true,
+      })?.key,
+    ).toBe("backup-not-configured");
   });
 });
 

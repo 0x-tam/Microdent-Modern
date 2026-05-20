@@ -33,6 +33,12 @@ BRIDGE_LOG=""
 
 log() { echo "[qa-sandbox-run] $*"; }
 
+section_banner() {
+  echo ""
+  echo "========== $* =========="
+  echo ""
+}
+
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
     log "FAIL: $1 required"
@@ -43,6 +49,7 @@ require_cmd() {
 require_cmd curl
 require_cmd jq
 
+section_banner "1/5 Preflight"
 bash "${SCRIPT_DIR}/qa-sandbox-preflight.sh"
 
 if ! realpath "${DATA_ROOT}" 2>/dev/null | grep -q 'Microdent-Write-Sandbox'; then
@@ -64,6 +71,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+section_banner "2/5 Bridge build and start"
 log "building bridge (contracts + dist)"
 (cd "${QA_REPO}" && pnpm --filter @microdent/contracts run build >/dev/null)
 (cd "${QA_REPO}" && pnpm --filter @microdent/bridge run build >/dev/null)
@@ -136,10 +144,36 @@ wait_for_write_capability() {
   return 1
 }
 
+section_banner "3/5 Health and write-capability"
 wait_for_health
 wait_for_write_capability
 
+section_banner "4/5 Mirror freshness advisory (warn only)"
+if mirror_raw="$(curl_get /v1/mirror/status 2>/dev/null)" \
+  && echo "${mirror_raw}" | jq -e '.sqliteConfigured == true' >/dev/null 2>&1; then
+  imported="$(echo "${mirror_raw}" | jq -r '.importedTables | length' 2>/dev/null || echo 0)"
+  runs="$(echo "${mirror_raw}" | jq -r '.latestImportRuns | length' 2>/dev/null || echo 0)"
+  log "mirror advisory: imported_tables=${imported} latest_runs=${runs} (stale mirror does not fail write proof)"
+  stale_count="$(echo "${mirror_raw}" | jq -r '
+    [.latestImportRuns[]? | select(.finishedAt != null)
+      | select((now - (.finishedAt | fromdateiso8601)) > 172800)] | length
+  ' 2>/dev/null || echo 0)"
+  if [[ "${stale_count}" != "0" && "${stale_count}" != "null" ]]; then
+    log "WARN: mirror metadata includes imports older than 48h — re-run mirror:import-safe before relying on search/schedule"
+  fi
+  partial_failed="$(echo "${mirror_raw}" | jq -r '
+    [.latestImportRuns[]? | select(.status == "partial" or .status == "failed")] | length
+  ' 2>/dev/null || echo 0)"
+  if [[ "${partial_failed}" != "0" && "${partial_failed}" != "null" ]]; then
+    log "WARN: mirror has partial/failed table imports — DBF remains source of truth for writes"
+  fi
+else
+  log "mirror advisory: status unavailable (skipped)"
+fi
+
+section_banner "5/5 Sandbox write smoke (DBF readback)"
 export BRIDGE_URL DATA_ROOT SQLITE_PATH BACKUP_DIR QA_REPO
 log "running qa-sandbox-write-smoke"
 bash "${SCRIPT_DIR}/qa-sandbox-write-smoke.sh"
+section_banner "qa:sandbox complete"
 log "qa:sandbox complete"

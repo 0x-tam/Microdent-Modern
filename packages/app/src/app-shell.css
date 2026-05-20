@@ -2530,6 +2530,13 @@
   color: var(--ui-text-secondary);
 }
 
+.app-settings__next-step {
+  margin: var(--ui-space-2) 0 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
 .app-settings__muted {
   margin: var(--ui-space-2) 0 0;
   color: var(--ui-text-secondary);

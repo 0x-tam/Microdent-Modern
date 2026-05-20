@@ -4,6 +4,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { BridgeClientError } from "@microdent/bridge-client";
 import { PatientSearchBar, safePatientSearchError } from "./PatientSearchBar.js";
+import { assertNoForbiddenDomTokens } from "./read-only-smoke-fixtures.js";
 
 function setSearchInputValue(input: HTMLInputElement, value: string): void {
   const proto = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value");
@@ -117,6 +118,31 @@ describe("PatientSearchBar", () => {
     });
     expect(fetchImpl).not.toHaveBeenCalled();
     expect(container.textContent).toContain("Enter at least 2 letters");
+  });
+
+  it("does not render forbidden PHI tokens in the DOM", async () => {
+    const fetchImpl = vi.fn(async () => {
+      return new Response(JSON.stringify(demoHitResponse), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+    act(() => {
+      root.render(
+        <PatientSearchBar bridgePhase="connected" bridgeBaseUrl="http://127.0.0.1:17890" fetchImpl={fetchImpl} />,
+      );
+    });
+    const input = container.querySelector("input#app-patient-search-input") as HTMLInputElement;
+    await act(async () => {
+      setSearchInputValue(input, "De");
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(320);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    assertNoForbiddenDomTokens(container.textContent ?? "");
   });
 
   it("shows successful results using only safe fields from the response", async () => {

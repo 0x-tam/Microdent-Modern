@@ -81,7 +81,7 @@ pnpm --filter @microdent/desktop run build
 pnpm --filter @microdent/desktop run start
 ```
 
-On startup: load config → optional setup window → spawn bridge with `WRITE_MODE`, `DATA_ROOT`, `SQLITE_PATH`, and `BACKUP_DIR` (when set) → poll `GET /health` → open window (`file://` web dist when built, else bridge URL).
+On startup: load config → optional setup window → validate required paths → spawn bridge with `WRITE_MODE`, `DATA_ROOT`, `SQLITE_PATH`, and `BACKUP_DIR` (when set) → poll `GET /health` (15s timeout) → open window (`file://` web dist when built, else bridge URL). If startup fails, an **error dialog** explains the masked failure before the app exits (console log only is not enough for operators).
 
 ## Windows operator checklist
 

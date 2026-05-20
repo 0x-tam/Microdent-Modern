@@ -2,7 +2,7 @@
  * Electron main entry — spawns bridge, loads static web dist, supervises health.
  * MVP: no installer signing; run `pnpm build` in bridge + web before `pnpm start` here.
  */
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, dialog } from "electron";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { BridgeSupervisor } from "./bridge-supervisor.js";
@@ -13,6 +13,7 @@ import {
 } from "./config.js";
 import { maskOperatorPath } from "./path-validation.js";
 import { showSetupWindow } from "./setup/setup-window.js";
+import { collectDesktopStartupWarnings } from "./startup-validation.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, "..", "..", "..");
@@ -37,6 +38,9 @@ async function resolveDesktopConfig() {
 
 async function createWindow(): Promise<void> {
   const config = await resolveDesktopConfig();
+  for (const warning of collectDesktopStartupWarnings(config)) {
+    console.warn(`Microdent desktop: ${warning}`);
+  }
   supervisor = new BridgeSupervisor({ repoRoot, config });
   await supervisor.start();
 
@@ -59,9 +63,18 @@ function formatStartupFailure(err: unknown): string {
   return "unknown startup error";
 }
 
+function showStartupFailureDialog(message: string): void {
+  dialog.showErrorBox(
+    "Microdent desktop could not start",
+    `${message}\n\nCheck bridge build (pnpm --filter @microdent/bridge run build), paths in setup, and that the bridge port is free.`,
+  );
+}
+
 app.whenReady().then(() => {
   createWindow().catch((err) => {
-    console.error(`Microdent desktop startup failed: ${formatStartupFailure(err)}`);
+    const message = formatStartupFailure(err);
+    console.error(`Microdent desktop startup failed: ${message}`);
+    showStartupFailureDialog(message);
     app.exit(1);
   });
 });

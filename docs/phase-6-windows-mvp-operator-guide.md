@@ -2,7 +2,9 @@
 
 **Purpose:** Single Windows-first narrative to install, build, configure desktop, import mirror data, validate read-only behavior, optionally enable sandbox write pilot UI, and sign off sandbox QA — without reading application source. Use placeholder paths like `C:\Microdent\...` only; never paste real patient data, chart numbers, or production UNC paths into docs or tickets.
 
-**Related:** [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md) (detailed QA tracks), [phase-4-windows-operator-quickstart.md](./phase-4-windows-operator-quickstart.md) (compact deploy), [phase-3-windows-readiness-audit.md](./phase-3-windows-readiness-audit.md) (script classification), [scripts/README.md](../scripts/README.md), [apps/desktop/README.md](../apps/desktop/README.md).
+**Related:** [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md) (detailed QA tracks), [phase-4-windows-operator-quickstart.md](./phase-4-windows-operator-quickstart.md) (compact deploy), [phase-3-windows-readiness-audit.md](./phase-3-windows-readiness-audit.md) (script classification), [out-of-scope-guardrails.md](./out-of-scope-guardrails.md), [scripts/README.md](../scripts/README.md), [apps/desktop/README.md](../apps/desktop/README.md).
+
+**Startup failures:** If the desktop app cannot start, an error dialog shows a masked message (bridge build, required paths, health timeout). Check `%AppData%\Microdent\config.json` and rebuild bridge/web dist before retrying.
 
 ---
 

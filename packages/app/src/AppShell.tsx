@@ -163,7 +163,10 @@ export function AppShell({
       setBridgePhase("offline");
       setLastHealthOfflineReason(describeBridgeHealthProbeError(probe.error));
       if (bridgeHealthLogDiagnostics && probe.error !== undefined) {
-        console.warn("[Microdent] Bridge health check did not succeed", probe.error);
+        console.warn(
+          "[Microdent] Bridge health check did not succeed:",
+          describeBridgeHealthProbeError(probe.error),
+        );
       }
     },
     [bridgeBaseUrl, bridgeHealthLogDiagnostics, fetchImpl],
