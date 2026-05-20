@@ -81,7 +81,19 @@ pnpm --filter @microdent/desktop run build
 pnpm --filter @microdent/desktop run start
 ```
 
-On startup: load config → optional setup window → validate required paths → spawn bridge with `WRITE_MODE`, `DATA_ROOT`, `SQLITE_PATH`, and `BACKUP_DIR` (when set) → poll `GET /health` (15s timeout) → open window (`file://` web dist when built, else bridge URL). If startup fails, an **error dialog** explains the masked failure before the app exits (console log only is not enough for operators).
+On startup: load config → optional setup window → validate required paths → spawn bridge with `WRITE_MODE`, `DATA_ROOT`, `SQLITE_PATH`, and `BACKUP_DIR` (when set) → poll `GET /health` (15s timeout) → open window (`file://` web dist when built, else bridge URL). If startup fails due to invalid paths, the error dialog offers **Re-open setup** to correct sandbox paths before exit. Other failures show a single error dialog.
+
+## Pilot launcher (Windows clinic RC)
+
+| Step | Command / action |
+| --- | --- |
+| Build once | `pnpm --filter @microdent/bridge run build` · `pnpm build:web` · `pnpm --filter @microdent/desktop run build` |
+| Quick gate | `pnpm pilot-checkpoint` (test + web + release-smoke) |
+| Full gate | Set sandbox env, then `pnpm pilot:full-checkpoint` |
+| Launch | `pnpm --filter @microdent/desktop run start` |
+| Verify | Settings → **Pilot checklist** after first-run setup |
+
+Logs: `%AppData%\Microdent\` config only — bridge stdout/stderr in the terminal that launched desktop (no PHI).
 
 ## Windows operator checklist
 

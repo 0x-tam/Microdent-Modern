@@ -30,3 +30,10 @@ export function formatStartupFailure(err: unknown): string {
 
 export const STARTUP_FAILURE_FOOTER =
   "If paths look correct: rebuild bridge (pnpm --filter @microdent/bridge run build) and web (pnpm build:web), then restart.";
+
+/** True when the operator can fix paths via first-run setup (offer re-open setup). */
+export function isPathRelatedStartupFailure(message: string): boolean {
+  return /setup|paths are invalid|DATA_ROOT|SQLITE|not_absolute|not_directory|not_file|missing path|sandbox paths/i.test(
+    message,
+  );
+}

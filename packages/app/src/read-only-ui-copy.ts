@@ -33,7 +33,7 @@ export const CLINIC_SERVICE_CONNECT_TODAY =
   "Connect the clinic service to load today’s appointments from your copied data.";
 
 export const PATIENT_PROFILE_READONLY_NOTE =
-  "Read-only patient record — safe fields from your copied data only. Nothing here can be edited.";
+  "Read-only patient record from your copied clinic data. Safe fields only — write pilots appear only when IT enables them.";
 
 export const PATIENT_PAGE_SEARCH_TITLE = "Find a patient";
 
@@ -41,7 +41,7 @@ export const PATIENT_PAGE_SEARCH_LEDE =
   "Search by name or chart number when the clinic service is connected. This read-only viewer shows matches only — there is no full patient directory.";
 
 export const PATIENT_PAGE_SEARCH_PRIVACY =
-  "Uses your copied clinic data. Names, chart numbers, record ids, and masked phone hints only — no notes, addresses, or payment fields.";
+  "Uses your copied clinic data. Names, chart numbers, and record ids only — no notes, addresses, or payment fields.";
 
 export const PATIENT_MODULE_TABS_HINT =
   "After you open a patient, use the Chart, Treatments, and Ledger preview tabs for dental chart, procedure history, and ledger metadata (read-only; sensitive fields stay hidden).";
@@ -52,7 +52,7 @@ export const PATIENT_NO_SELECTION_DESCRIPTION =
   "Search below or in the top bar, pick a row when the clinic service is connected, and this area will open their record.";
 
 export const PATIENT_TAB_SUMMARY_LEDE =
-  "Safe demographics from your copied patient file. Addresses, coverage details, and clinical notes stay hidden.";
+  "Safe demographics from your copied patient file. Addresses, coverage details, and clinical notes stay hidden in this read-only viewer.";
 
 export const PATIENT_TAB_APPOINTMENTS_LEDE =
   "Appointment history is read-only. Schedule note text and unlisted patient fields stay hidden.";
@@ -76,10 +76,10 @@ export const TRUNCATED_LIST_BANNER =
   "Showing a capped list only. Additional lines are omitted in this read-only viewer.";
 
 export const SCHEDULE_PRIVACY_LEDE =
-  "Read-only schedule from your copied data. Patient names use a safe summary; notes and phone numbers stay hidden.";
+  "Read-only schedule from your copied clinic data. Patient names use a safe summary; notes and phone numbers stay hidden.";
 
 export const TODAY_PRIVACY_LEDE =
-  "Read-only day list. Names and chart numbers use a safe patient summary; notes, phones, and payment fields stay hidden.";
+  "Read-only day list from your copied clinic data. Names and chart numbers use a safe summary; notes, phones, and payment fields stay hidden.";
 
 export const TODAY_LOADING = "Loading today's schedule from your clinic copy…";
 
@@ -218,7 +218,7 @@ export const SANDBOX_WRITE_WARNING_BANNER_BODY =
 
 /** Per-row / panel sandbox write pilot warning (schedule + patient). */
 export const SANDBOX_WRITE_PILOT_PANEL_BANNER =
-  "Sandbox write mode — changes affect disposable data only.";
+  "Sandbox write pilot — dry-run first, then confirm apply. Changes affect disposable DATA only.";
 
 /** Once per schedule view when sandbox write pilots are active. */
 export const SCHEDULE_SANDBOX_WRITE_PILOT_BANNER =
@@ -392,6 +392,10 @@ export const SETTINGS_READINESS_SANDBOX_QA_HINT = "Sandbox QA: run phase-7 runbo
 
 export const SETTINGS_PILOT_CHECKLIST_TITLE = "Pilot checklist";
 
+export const SETTINGS_CHECKLIST_DATA_ROOT_SAFE = "DATA_ROOT safe (not production legacy)";
+
+export const SETTINGS_CHECKLIST_MIRROR_IMPORT = "Latest mirror import healthy";
+
 export const SETTINGS_ENABLED_NON_SANDBOX_BANNER_LABEL = "Writes enabled outside sandbox";
 
 export const SETTINGS_ENABLED_NON_SANDBOX_BANNER_BODY =
@@ -420,6 +424,9 @@ export const SETTINGS_NEXT_STEP_DESKTOP_SETUP =
 
 export const SETTINGS_NEXT_STEP_DATA_ROOT =
   "Set DATA_ROOT in desktop setup or bridge env to your disposable Write-Sandbox DATA folder.";
+
+export const SETTINGS_NEXT_STEP_DATA_ROOT_FORBIDDEN =
+  "DATA_ROOT did not pass the disposable sandbox guard. Point the bridge at a sandbox folder with the marker — never production legacy.";
 
 export const SETTINGS_NEXT_STEP_WRITE_DISABLED =
   "Writes are off. Enable dry-run or enabled only on a disposable sandbox after backup is configured.";

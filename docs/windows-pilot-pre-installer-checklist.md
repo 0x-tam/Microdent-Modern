@@ -2,7 +2,7 @@
 
 **Purpose:** Actionable IT/operator checklist derived from the packaging gap report. Use before investing in NSIS/signing work.
 
-**Baseline:** Microdent-Modern `main` @ `5221530`.
+**Baseline:** Microdent-Modern `main` @ `678585f`.
 
 **Related:** [windows-pilot-packaging-gap-report.md](./windows-pilot-packaging-gap-report.md), [PILOT-START-HERE.md](./PILOT-START-HERE.md), [phase-3-desktop-packaging-plan.md](./phase-3-desktop-packaging-plan.md).
 
@@ -42,7 +42,8 @@
 | Item | Status | Owner | Notes |
 | --- | --- | --- | --- |
 | Authenticode code signing | **Blocked** | Dev / IT | Required for SmartScreen confidence |
-| SmartScreen / first-run warnings | **Manual** | IT | Expected for unsigned Electron + Node |
+| SmartScreen / first-run warnings | **Manual** | IT | Expected for unsigned Electron + Node; use “Run anyway” after verifying publisher path |
+| Windows DBF file locking | **Manual** | Operator | Close legacy FoxPro and file handles before sandbox commits |
 | Antivirus exclusions (if needed) | **Manual** | IT | Local `node.exe` + Electron; no FoxPro |
 
 ---
@@ -53,7 +54,7 @@
 | --- | --- | --- | --- |
 | `%AppData%\Microdent\config.json` | **Done now** | Operator | Paths + `writeMode: disabled` default |
 | `%AppData%` backup of operator config | **Manual** | IT | Before pilot upgrades |
-| Bridge / desktop console logs | **Manual** | Operator | No PHI — status codes only |
+| Bridge / desktop console logs | **Manual** | Operator | `%AppData%\Microdent\` config; launch terminal shows PHI-safe bridge status |
 | **BACKUP_DIR** for sandbox commits | **Manual** | Operator | Set in setup or bridge env |
 | Disposable **DATA_ROOT** only | **Done now** | — | Guardrails + validation |
 
@@ -73,7 +74,7 @@
 
 Before clinic pilot day:
 
-- [ ] `pnpm pilot-checkpoint` passes on the target machine (or full checkpoint with sandbox env)
+- [ ] `pnpm pilot-checkpoint` passes on the target machine (or `pnpm pilot:full-checkpoint` with sandbox env)
 - [ ] First-run setup saves sandbox paths; **Settings → Pilot readiness** checklist green where expected
 - [ ] Mirror import completed; Settings mirror table shows import runs
 - [ ] Read-only smoke: Today, Patients, Schedule load from copied data

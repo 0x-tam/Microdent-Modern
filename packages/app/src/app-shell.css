@@ -2533,10 +2533,23 @@
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  padding: var(--ui-space-2) 0;
+  padding: var(--ui-space-2) 0 var(--ui-space-2) 0.5rem;
   border-bottom: 1px solid var(--ui-border-subtle, #eceff1);
   font-size: 0.88rem;
   line-height: 1.4;
+  border-left: 3px solid transparent;
+}
+
+.app-settings__checklist-item--warn {
+  border-left-color: var(--ui-status-warning, #9a6700);
+}
+
+.app-settings__checklist-item--danger {
+  border-left-color: var(--ui-status-danger, #b00020);
+}
+
+.app-settings__checklist-item--ok {
+  border-left-color: var(--ui-status-success, #1b5e20);
 }
 
 .app-settings__checklist-item:last-child {

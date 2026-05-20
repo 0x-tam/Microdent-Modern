@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # PHI-safe sandbox write smoke: status, time move, create, demographics.
+# Read-only regression first: pnpm test && pnpm build:web (no sandbox env).
 # Per workflow: dry-run → backup → commit → restore → hash revert.
 # Logs HTTP codes, workflows, operationId, hash prefixes, backup basenames only.
 #

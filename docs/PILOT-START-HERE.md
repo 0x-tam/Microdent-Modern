@@ -2,7 +2,9 @@
 
 **Purpose:** One-page index for operators and IT. Follow the numbered flow below; use linked runbooks for detail.
 
-**Baseline:** Microdent-Modern `main` @ `5221530` (pilot RC).
+**Baseline:** Microdent-Modern `main` @ `678585f` (pilot RC batch A–L).
+
+**Tester script:** [pilot-tester-guide.md](./pilot-tester-guide.md)
 
 ---
 
@@ -47,12 +49,18 @@ pnpm pilot-checkpoint
 
 Runs `pnpm test`, `pnpm build:web`, and `pnpm desktop:release-smoke`. Does **not** run sandbox QA (needs disposable paths).
 
-### Full developer checkpoint (with sandbox)
+### Full pilot checkpoint (with sandbox env)
 
 ```bash
 export DATA_ROOT="/path/to/Microdent-Write-Sandbox/DATA"
 export SQLITE_PATH="/path/to/MICRODENT_MIRROR_SANDBOX.sqlite"
 export BACKUP_DIR="/path/to/Microdent-Write-Sandbox/backups"
+pnpm pilot:full-checkpoint
+```
+
+Or run the same steps manually:
+
+```bash
 pnpm test
 pnpm build:web
 pnpm qa:sandbox
@@ -68,8 +76,26 @@ pnpm --filter @microdent/desktop run release-smoke
 | `pnpm build:web` | `apps/web/dist/index.html` for desktop `file://` UI |
 | `pnpm desktop:release-smoke` | Desktop dist, bridge dist reference, config defaults |
 | `pnpm qa:sandbox` | Four write workflows + DBF readback (needs env above) |
+| `pnpm pilot:full-checkpoint` | Above chain when sandbox env is set |
 
 Script index: [scripts/README.md](../scripts/README.md).
+
+---
+
+## Issue report template (no PHI)
+
+Use when filing pilot feedback:
+
+| Field | What to include |
+| --- | --- |
+| Build | `main` @ `678585f` (or current commit) |
+| Checkpoint | `pilot-checkpoint` / `pilot:full-checkpoint` pass or fail |
+| Settings checklist | Which rows are warn (screenshot OK — no patient names) |
+| Mirror | Stale / partial / failed / OK from Settings refresh |
+| Writes | `operationId` + audit status from feedback lines only |
+| Do not attach | DBF files, patient names, full config paths in public tickets |
+
+Full template: [pilot-tester-guide.md](./pilot-tester-guide.md#issue-report-template).
 
 ---
 
@@ -81,7 +107,7 @@ Script index: [scripts/README.md](../scripts/README.md).
 | **Missing web dist** / blank UI | Run `pnpm build:web` — desktop loads `apps/web/dist/index.html` |
 | **Port 17890 in use** | Close other bridge processes; or change `bridgePort` in `%AppData%\Microdent\config.json` |
 | **Mirror stale** vs DBF | Re-run `pnpm mirror:import-safe`; DBF is write source of truth — mirror does not auto-refresh on commit |
-| **Setup closed** without save | Restart desktop app and complete first-run setup |
+| **Setup closed** without save | Restart desktop; choose **Re-open setup** if offered |
 | **Write blocked** | Sandbox marker, `writeMode`, `ALLOW_LEGACY_WRITES` ack — see phase-7 runbook |
 | **Unsupported feature** | [out-of-scope-guardrails.md](./out-of-scope-guardrails.md) |
 
@@ -103,6 +129,8 @@ Full guardrails: [out-of-scope-guardrails.md](./out-of-scope-guardrails.md).
 | Doc | Use when |
 | --- | --- |
 | [windows-pilot-runbook.md](./windows-pilot-runbook.md) | Full Windows operator steps |
+| [pilot-tester-guide.md](./pilot-tester-guide.md) | Guided day 1–3 test script |
+| [pilot-backup-restore-audit.md](./pilot-backup-restore-audit.md) | Backup/restore + UI feedback |
 | [phase-6-windows-mvp-operator-guide.md](./phase-6-windows-mvp-operator-guide.md) | Detailed Windows CLI |
 | [phase-7-sandbox-pilot-qa-runbook.md](./phase-7-sandbox-pilot-qa-runbook.md) | Sandbox sign-off |
 | [windows-pilot-packaging-gap-report.md](./windows-pilot-packaging-gap-report.md) | What installer work remains |

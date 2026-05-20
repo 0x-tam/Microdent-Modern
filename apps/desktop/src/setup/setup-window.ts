@@ -107,7 +107,7 @@ export function showSetupWindow(initial: DesktopConfig): Promise<DesktopConfig> 
       win.close();
       return {
         ok: true as const,
-        summary: `Saved: data=${maskOperatorPath(result.dataRoot ?? "")} sqlite=${maskOperatorPath(result.sqlitePath ?? "")} (write mode disabled)`,
+        summary: `Saved. Open Settings → Pilot checklist to verify paths. Write mode stays disabled until you change config manually.`,
       };
     });
 

@@ -99,7 +99,8 @@ Operator flow: [docs/phase-6-windows-mvp-operator-guide.md](../docs/phase-6-wind
 | `pnpm sandbox:validate:real` | Vitest + env | Cross-platform Node | Optional real-path band |
 | `pnpm qa:sandbox` | `scripts/qa-sandbox-run.sh` | macOS-oriented bash | Git Bash on Windows or manual §7 in phase-6 guide |
 | `pnpm desktop:release-smoke` | `@microdent/desktop` `release-smoke` | Cross-platform Node | Build + vitest + desktop/web/bridge dist checks |
-| `pnpm pilot-checkpoint` | test + `build:web` + `desktop:release-smoke` | Cross-platform Node | Quick handoff gate — **does not** run `qa:sandbox` (needs sandbox env) |
+| `pnpm pilot-checkpoint` | test + `build:web` + `desktop:release-smoke` | Cross-platform Node | Quick handoff gate — **does not** run `qa:sandbox` |
+| `pnpm pilot:full-checkpoint` | `scripts/pilot-full-checkpoint.sh` | Cross-platform bash | Full RC gate when `DATA_ROOT` + `SQLITE_PATH` set; skips `qa:sandbox` otherwise |
 | `bash scripts/qa-sandbox-write-smoke.sh` | smoke only | macOS-oriented bash | Bridge must already be up |
 | `pnpm --filter @microdent/desktop run start` | Electron | Cross-platform Node | `%AppData%\Microdent\config.json` |
 | `node services/bridge/dist/server.js` | production bridge | Windows production-ready | Set env in PowerShell first |

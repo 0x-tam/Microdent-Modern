@@ -14,17 +14,20 @@ import {
   SETTINGS_NEXT_STEP_WRITE_DISABLED,
   SETTINGS_NEXT_STEP_WRITE_DRY_RUN,
   SETTINGS_NEXT_STEP_WRITE_ENABLED,
+  SETTINGS_NEXT_STEP_DATA_ROOT_FORBIDDEN,
 } from "./read-only-ui-copy.js";
 
 export type SettingsCardKey =
   | "bridge"
   | "dataRoot"
+  | "dataRootSafe"
   | "write"
   | "sandbox"
   | "backup"
   | "pilot"
   | "sqliteMirror"
-  | "mirror";
+  | "mirror"
+  | "mirrorImport";
 
 /** One-line operator action for a Settings card (no paths or PHI). */
 export function resolveSettingsOperatorNextStep(
@@ -50,6 +53,12 @@ export function resolveSettingsOperatorNextStep(
     case "dataRoot":
       if (bridgePhase !== "connected" || !writeCapability) return null;
       if (!writeCapability.dataRootConfigured) return SETTINGS_NEXT_STEP_DATA_ROOT;
+      return null;
+    case "dataRootSafe":
+      if (bridgePhase !== "connected" || !writeCapability) return null;
+      if (writeCapability.dataRootConfigured && !writeCapability.writableSandbox) {
+        return SETTINGS_NEXT_STEP_DATA_ROOT_FORBIDDEN;
+      }
       return null;
     case "write":
       if (bridgePhase !== "connected" || !writeCapability) return null;
@@ -80,6 +89,15 @@ export function resolveSettingsOperatorNextStep(
       if (mirrorStatus === null) return SETTINGS_NEXT_STEP_MIRROR_REFRESH;
       if (isMirrorImportStale(mirrorStatus, nowMs)) return SETTINGS_NEXT_STEP_MIRROR_STALE;
       if (mirrorStatus.latestImportRuns.length === 0) return SETTINGS_NEXT_STEP_MIRROR_IMPORT;
+      if (mirrorStatus.latestImportRuns.some((r) => r.status === "partial" || r.status === "failed")) {
+        return SETTINGS_NEXT_STEP_MIRROR_IMPORT;
+      }
+      return null;
+    case "mirrorImport":
+      if (bridgePhase !== "connected") return null;
+      if (mirrorStatus === null) return SETTINGS_NEXT_STEP_MIRROR_REFRESH;
+      if (mirrorStatus.latestImportRuns.length === 0) return SETTINGS_NEXT_STEP_MIRROR_IMPORT;
+      if (isMirrorImportStale(mirrorStatus, nowMs)) return SETTINGS_NEXT_STEP_MIRROR_STALE;
       if (mirrorStatus.latestImportRuns.some((r) => r.status === "partial" || r.status === "failed")) {
         return SETTINGS_NEXT_STEP_MIRROR_IMPORT;
       }

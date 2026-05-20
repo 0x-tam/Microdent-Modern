@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatStartupFailure } from "./startup-failure.js";
+import { formatStartupFailure, isPathRelatedStartupFailure } from "./startup-failure.js";
 
 describe("formatStartupFailure", () => {
   it("maps setup closed to operator action", () => {
@@ -30,5 +30,12 @@ describe("formatStartupFailure", () => {
     expect(formatStartupFailure(new Error("Custom operator-safe message"))).toBe(
       "Custom operator-safe message",
     );
+  });
+
+  it("detects path-related failures for setup retry", () => {
+    expect(isPathRelatedStartupFailure("Desktop paths are invalid or missing. Re-open setup.")).toBe(
+      true,
+    );
+    expect(isPathRelatedStartupFailure("Bridge server not built.")).toBe(false);
   });
 });

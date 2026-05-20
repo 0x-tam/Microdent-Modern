@@ -176,8 +176,9 @@ export function PatientDemographicsWritePanel({
       </h4>
       <SandboxWriteBanner />
       <p className="app-sandbox-write__hint">
-        Preview runs a dry-run backup plan first. Apply stays disabled until preview succeeds. Phone,
-        address, insurance, and notes are not editable here.
+        Preview runs a dry-run backup plan first. Apply stays disabled until preview succeeds. Only allowlisted
+        name/chart fields — phone, address, and notes are not editable. Once committed, check operation id and backup
+        lines below.
       </p>
       <div className="app-patient-demographics-write__groups">
         <fieldset className="app-sandbox-write__group" disabled={loading}>

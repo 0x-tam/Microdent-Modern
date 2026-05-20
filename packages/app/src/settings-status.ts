@@ -30,6 +30,8 @@ import {
   SETTINGS_SANDBOX_UNKNOWN,
   SETTINGS_SANDBOX_VALID,
   SETTINGS_SQLITE_MIRROR_UNKNOWN,
+  SETTINGS_CHECKLIST_DATA_ROOT_SAFE,
+  SETTINGS_CHECKLIST_MIRROR_IMPORT,
 } from "./read-only-ui-copy.js";
 import { isMirrorImportStale } from "./mirror-stale.js";
 import type { SettingsCardKey } from "./settings-operator-next-step.js";
@@ -185,10 +187,6 @@ const CHECKLIST_MIRROR = "Mirror ready for search/schedule";
 const CHECKLIST_BACKUP = "Backup folder configured";
 const CHECKLIST_WRITE = "Write mode safe for pilot";
 const CHECKLIST_SANDBOX = "Sandbox valid for commits";
-
-/**
- * Structured pilot checklist for Settings (no paths or PHI).
- */
 export function resolvePilotReadinessChecklist(
   bridgePhase: BridgeHealthPhase,
   writeCapability: BridgeDevStatusResponse | null,
@@ -218,6 +216,23 @@ export function resolvePilotReadinessChecklist(
     nextStep: resolveSettingsOperatorNextStep("dataRoot", bridgePhase, writeCapability, mirrorStatus, nextOpts),
   };
 
+  let dataRootSafeTone: SettingsStatusTone = "neutral";
+  if (bridgePhase === "connected" && writeCapability?.dataRootConfigured) {
+    dataRootSafeTone = writeCapability.writableSandbox ? "ok" : "warn";
+  }
+  const dataRootSafeItem: PilotChecklistItem = {
+    key: "dataRootSafe",
+    label: SETTINGS_CHECKLIST_DATA_ROOT_SAFE,
+    tone: dataRootSafeTone,
+    nextStep: resolveSettingsOperatorNextStep(
+      "dataRootSafe",
+      bridgePhase,
+      writeCapability,
+      mirrorStatus,
+      nextOpts,
+    ),
+  };
+
   let mirrorTone: SettingsStatusTone = "neutral";
   if (bridgePhase === "connected" && mirrorStatus !== null) {
     if (!mirrorStatus.sqliteUsable) {
@@ -233,6 +248,33 @@ export function resolvePilotReadinessChecklist(
     label: CHECKLIST_MIRROR,
     tone: mirrorTone,
     nextStep: resolveSettingsOperatorNextStep("mirror", bridgePhase, writeCapability, mirrorStatus, nextOpts),
+  };
+
+  let mirrorImportTone: SettingsStatusTone = "neutral";
+  if (bridgePhase === "connected" && mirrorStatus !== null) {
+    if (mirrorStatus.latestImportRuns.length === 0) {
+      mirrorImportTone = "warn";
+    } else if (mirrorStatus.latestImportRuns.some((r) => r.status === "failed")) {
+      mirrorImportTone = "warn";
+    } else if (mirrorStatus.latestImportRuns.some((r) => r.status === "partial")) {
+      mirrorImportTone = "warn";
+    } else if (isMirrorImportStale(mirrorStatus, nowMs)) {
+      mirrorImportTone = "warn";
+    } else {
+      mirrorImportTone = "ok";
+    }
+  }
+  const mirrorImportItem: PilotChecklistItem = {
+    key: "mirrorImport",
+    label: SETTINGS_CHECKLIST_MIRROR_IMPORT,
+    tone: mirrorImportTone,
+    nextStep: resolveSettingsOperatorNextStep(
+      "mirrorImport",
+      bridgePhase,
+      writeCapability,
+      mirrorStatus,
+      nextOpts,
+    ),
   };
 
   let backupTone: SettingsStatusTone = "neutral";
@@ -274,5 +316,14 @@ export function resolvePilotReadinessChecklist(
     nextStep: resolveSettingsOperatorNextStep("sandbox", bridgePhase, writeCapability, mirrorStatus, nextOpts),
   };
 
-  return [bridgeItem, dataRootItem, mirrorItem, backupItem, writeItem, sandboxItem];
+  return [
+    bridgeItem,
+    dataRootItem,
+    dataRootSafeItem,
+    mirrorItem,
+    mirrorImportItem,
+    backupItem,
+    writeItem,
+    sandboxItem,
+  ];
 }

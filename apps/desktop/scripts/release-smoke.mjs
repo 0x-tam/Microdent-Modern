@@ -15,6 +15,7 @@ const REQUIRED_DIST = [
   "dist/bridge-supervisor.js",
   "dist/config.js",
   "dist/startup-validation.js",
+  "dist/startup-failure.js",
   "dist/setup/setup.html",
   "dist/setup/setup-preload.cjs",
   "dist/setup/setup-window.js",

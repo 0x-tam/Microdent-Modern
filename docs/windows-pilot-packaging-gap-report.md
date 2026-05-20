@@ -1,7 +1,7 @@
 # Windows pilot packaging gap report
 
 **Date:** 2026-05-20  
-**Baseline:** Microdent-Modern `main` @ `5221530`  
+**Baseline:** Microdent-Modern `main` @ `678585f`  
 **Scope:** Honest assessment of what works in the pilot RC vs what remains manual or unimplemented.
 
 **Actionable checklist:** [windows-pilot-pre-installer-checklist.md](./windows-pilot-pre-installer-checklist.md) — installer, signing, shortcuts, `%AppData%`, logs, backups, SmartScreen.
@@ -86,3 +86,16 @@ From [phase-3-desktop-packaging-plan.md](./phase-3-desktop-packaging-plan.md) �
 | Wrong `DATA_ROOT` | High | Setup validation, sandbox guard, out-of-scope doc |
 | Stale mirror after writes | Medium | Settings stale callout; DBF readback in QA |
 | No signed installer | Low for pilot | Document unpackaged MVP scope |
+| Windows file locking | Medium | Close FoxPro/legacy apps before bridge writes; avoid open DBF in Excel |
+| SmartScreen on first launch | Low | Expected for unsigned Electron — IT “More info → Run anyway” |
+
+---
+
+## Windows-specific notes (pilot RC)
+
+| Topic | Guidance |
+| --- | --- |
+| **SmartScreen** | Unsigned `electron.exe` + `node.exe` may prompt — not a virus signal for unpackaged MVP |
+| **File locking** | `SCHEDULE.DBF` / `PATIENT.DBF` must not be open in FoxPro or other tools during writes |
+| **Logs** | Desktop config in `%AppData%\Microdent\`; bridge logs in the terminal that launched desktop (PHI-safe status only) |
+| **Antivirus** | May scan `node dist/server.js` on first run — allowlist if startup times out |

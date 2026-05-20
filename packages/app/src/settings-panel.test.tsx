@@ -192,6 +192,8 @@ describe("SettingsPanel", () => {
     expect(html).toContain("Pilot checklist");
     expect(html).toContain("Clinic service connected");
     expect(html).toContain("DATA_ROOT configured");
+    expect(html).toContain("not production legacy");
+    expect(html).toContain("mirror import healthy");
   });
 
   it("shows masked path hints when connection diagnostics are enabled", () => {

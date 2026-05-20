@@ -7,11 +7,16 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { BridgeSupervisor } from "./bridge-supervisor.js";
 import {
+  defaultDesktopConfig,
   desktopConfigNeedsSetup,
   loadDesktopConfig,
   saveDesktopConfig,
 } from "./config.js";
-import { formatStartupFailure, STARTUP_FAILURE_FOOTER } from "./startup-failure.js";
+import {
+  formatStartupFailure,
+  isPathRelatedStartupFailure,
+  STARTUP_FAILURE_FOOTER,
+} from "./startup-failure.js";
 import { showSetupWindow } from "./setup/setup-window.js";
 import { collectDesktopStartupWarnings } from "./startup-validation.js";
 import { maskOperatorPath } from "./path-validation.js";
@@ -64,13 +69,48 @@ function showStartupFailureDialog(message: string): void {
   );
 }
 
-app.whenReady().then(() => {
-  createWindow().catch((err) => {
-    const message = formatStartupFailure(err);
-    console.error(`Microdent desktop startup failed: ${message}`);
-    showStartupFailureDialog(message);
-    app.exit(1);
+function offerReopenSetup(message: string): boolean {
+  const choice = dialog.showMessageBoxSync({
+    type: "error",
+    title: "Microdent desktop could not start",
+    message,
+    detail: STARTUP_FAILURE_FOOTER,
+    buttons: ["Re-open setup", "Exit"],
+    defaultId: 0,
+    cancelId: 1,
   });
+  return choice === 0;
+}
+
+function clearPathsForSetupRetry(): void {
+  const current = loadDesktopConfig();
+  saveDesktopConfig({
+    ...defaultDesktopConfig(),
+    bridgePort: current.bridgePort,
+  });
+}
+
+async function startDesktop(): Promise<void> {
+  while (true) {
+    try {
+      await createWindow();
+      return;
+    } catch (err) {
+      const message = formatStartupFailure(err);
+      console.error(`Microdent desktop startup failed: ${message}`);
+      if (isPathRelatedStartupFailure(message) && offerReopenSetup(message)) {
+        clearPathsForSetupRetry();
+        continue;
+      }
+      showStartupFailureDialog(message);
+      app.exit(1);
+      return;
+    }
+  }
+}
+
+app.whenReady().then(() => {
+  void startDesktop();
 });
 
 app.on("window-all-closed", () => {

@@ -2,6 +2,8 @@
 # Start a stable bridge (built dist, not tsx watch), wait for readiness, run sandbox write smoke.
 # PHI-safe logs — paths and payloads are not printed.
 #
+# Read-only regression (no sandbox env): pnpm test && pnpm build:web
+#
 # Requires:
 #   DATA_ROOT     — disposable Microdent-Write-Sandbox/DATA
 #   SQLITE_PATH   — mirror sqlite (smoke + optional audit)

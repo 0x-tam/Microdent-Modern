@@ -2,7 +2,7 @@
 
 **Purpose:** Repeatable sign-off for the Windows pilot release candidate: disposable sandbox, mirror import, read-only regression, four write workflows with DBF readback, backup/restore, and reset/re-import — without PHI in logs.
 
-**Related:** [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md), [phase-6-windows-mvp-operator-guide.md](./phase-6-windows-mvp-operator-guide.md), [windows-pilot-runbook.md](./windows-pilot-runbook.md), [out-of-scope-guardrails.md](./out-of-scope-guardrails.md), [scripts/README.md](../scripts/README.md).
+**Related:** [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md), [phase-6-windows-mvp-operator-guide.md](./phase-6-windows-mvp-operator-guide.md), [windows-pilot-runbook.md](./windows-pilot-runbook.md), [pilot-backup-restore-audit.md](./pilot-backup-restore-audit.md), [out-of-scope-guardrails.md](./out-of-scope-guardrails.md), [scripts/README.md](../scripts/README.md).
 
 ---
 
@@ -37,6 +37,7 @@ Windows PowerShell equivalents are in [phase-6-windows-mvp-operator-guide.md](./
 | 2 | Mirror import | `pnpm mirror:import-safe` with `DATA_ROOT` + `SQLITE_PATH` | CLI `overall: success` or `partial`; Settings mirror metadata |
 | 3 | Read-only smoke | `pnpm test` + `pnpm build:web` | All workspaces green |
 | 3b | Quick handoff gate (no sandbox) | `pnpm pilot-checkpoint` | test + web build + desktop release-smoke |
+| 3c | Full pilot gate (sandbox env set) | `pnpm pilot:full-checkpoint` | Same as rows 3–4 + desktop smoke |
 | 4 | Sandbox QA | `pnpm qa:sandbox` | Exit 0; sections 1/5–5/5; **DBF readback** `source=dbf` |
 | 5 | Optional restore spot-check | `pnpm legacy:restore` with test backup | Restores sandbox copy only |
 | 6 | Reset sandbox (when needed) | Re-create sandbox or restore; **separate** from mirror re-import | Fresh marker; no production legacy |

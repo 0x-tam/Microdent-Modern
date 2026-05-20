@@ -1,7 +1,7 @@
-# Windows Pilot RC batch report — A–I (2026-05-20)
+# Windows Pilot RC batch report — A–L (2026-05-20)
 
 **Repo:** `/Users/Tamam/Desktop/Microdent/Microdent-Modern`  
-**Baseline:** clean `main` at `5c88cbd` (audit-first gap-fill)  
+**Baseline:** clean `main` at `678585f` (audit-first gap-fill)  
 **Branch:** `main` (uncommitted working tree)  
 **Coordinator checkpoint:** 2026-05-20  
 **Commit policy:** Do not commit unless explicitly instructed.
@@ -12,9 +12,10 @@
 
 | Wave | Status | Outcome |
 | --- | --- | --- |
-| Wave 1 (A/B, E, G/I, H) | **Done** | Desktop release-smoke + setup checklist; phase-7 QA runbook; pilot docs + gap report; route inventory DELETE/PUT guard |
-| Wave 2 (C, D, F) | **Done** | Settings pilot readiness strip; mirror CLI copy; clinic read UX audit-only |
-| Coordinator | **PASS** | `pnpm test`, `pnpm build:web`, `pnpm qa:sandbox`, `pnpm desktop:release-smoke` |
+| Wave 1 (A, E, F, J, K, L) | **Done** | Desktop re-open setup + release-smoke invariant; pilot QA script; backup/restore doc; handoff pack; guardrails log sweep; packaging RC docs |
+| Wave 2 (B+C, D) | **Done** | Settings checklist +8 rows; setup.html alignment; mirror copy verified |
+| Wave 3 (G+H, I) | **Done** | Write UX copy polish; read-only clinic copy polish |
+| Coordinator | **PASS** | Full mandatory checkpoint green |
 
 ---
 
@@ -22,13 +23,16 @@
 
 | WS | Verdict | Changes |
 | --- | --- | --- |
-| **A/B** DesktopRC | **Gap-fill** | `release-smoke` script + root alias; setup missing-field checklist; README; bridge-supervisor audit unchanged (already Node-only, `WRITE_MODE` default disabled) |
-| **C** SettingsRC | **Gap-fill** | `resolvePilotReadinessSummary`; Settings readiness strip; desktop-setup next step; `import.meta.env.DEV` path hints; CSS |
-| **D** MirrorPilotFlow | **Gap-fill** | Mirror CLI command copy in Settings; phase-4 pilot section; mirror-status backend audit-only (already safe) |
-| **E** SandboxPilotQA | **Gap-fill** | `docs/phase-7-sandbox-pilot-qa-runbook.md`; `scripts/qa-sandbox-pilot-checklist.sh`; `scripts/README.md` sync |
-| **F** ClinicWorkflowPolish | **Audit-only** | Today/Patients/Schedule/Profile read copy already on main via `read-only-ui-copy.ts`; write panels unchanged |
-| **G/I** PilotDocsAndGap | **Gap-fill** | `docs/windows-pilot-runbook.md`; `docs/windows-pilot-packaging-gap-report.md`; cross-links phase-5/6/4 |
-| **H** SafetyGuardrails | **Gap-fill** | `write-route-inventory.test.ts` no DELETE/PUT; `out-of-scope-guardrails.md` pilot RC checklist; forbidden tokens on Settings (existing + new snapshots) |
+| **A** DesktopRCFlow | **Gap-fill** | `main.ts` re-open setup dialog on path failures; `startup-failure.ts` helper; `release-smoke.mjs` requires `startup-failure.js` dist; README pilot launcher table |
+| **B+C** SetupAndReadiness | **Gap-fill** | `setup.html` sandbox terminology; setup save → Settings checklist hint; checklist +2 rows (DATA_ROOT safe, mirror import); CSS hierarchy; tests |
+| **D** MirrorWorkflow | **Audit-only** | `mirror-status.ts` already safe; phase-4 pilot RC section present; Settings mirror strings consumed |
+| **E** PilotQA | **Gap-fill** | `scripts/pilot-full-checkpoint.sh` + `pnpm pilot:full-checkpoint`; qa script read-only pointers; phase-7 + PILOT-START-HERE sync |
+| **F** BackupRestoreConfidence | **Gap-fill** | Write panels already use `write-operation-feedback.ts` (audit-only); new `docs/pilot-backup-restore-audit.md` |
+| **G+H** WritePilotUX | **Gap-fill** | Sandbox banner + demographics hint copy; forbidden-token-safe wording |
+| **I** ClinicPolish | **Gap-fill** | Today/Patients/Schedule/Profile lede copy via `read-only-ui-copy.ts` |
+| **J** HandoffPack | **Gap-fill** | PILOT-START-HERE @ `678585f`; issue template; `docs/pilot-tester-guide.md`; scripts/README |
+| **K** Guardrails | **Audit-only** | Route inventory unchanged (green); forbidden-token tests extended via checklist; log sweep note in out-of-scope doc |
+| **L** PackagingRC | **Gap-fill** | Packaging gap + pre-installer checklist @ `678585f`; SmartScreen / file locking / `%AppData%` logs |
 
 ---
 
@@ -37,11 +41,12 @@
 | Step | Result | Notes |
 | --- | --- | --- |
 | `nvm use 22` | **PASS** | v22.22.3 |
-| `pnpm test` | **PASS** | contracts 3; sqlite-mirror 42; bridge 308 (+4 skipped); bridge-client 36; ui 10; app **269**; desktop 31 |
+| `pnpm test` | **PASS** | contracts 3; sqlite-mirror 42; bridge 308 (+4 skipped); bridge-client 36; ui 10; app **272**; desktop **44** |
 | `pnpm build:web` | **PASS** | Vite production build OK |
 | `pnpm qa:sandbox` | **PASS** | 5 sections; 4 workflows; DBF readback `source=dbf`; mirror partial WARN (non-blocking) |
-| `pnpm desktop:release-smoke` | **PASS** | build + vitest + dist/config/supervisor checks |
-| `git status` | **DIRTY** | 17 modified, 5 untracked; no Legacy/sandbox DATA/sqlite tracked |
+| `pnpm --filter @microdent/desktop run test` | **PASS** | 44 tests |
+| `pnpm --filter @microdent/desktop run release-smoke` | **PASS** | dist + web + bridge + supervisor invariants |
+| `git status` | **DIRTY** | 24 modified, 3 untracked; no Legacy/sandbox DATA/sqlite tracked |
 
 ### Sandbox excerpt
 
@@ -49,24 +54,24 @@
 [qa-write-smoke] readback workflow=appointment.statusUpdate source=dbf appointment_id=100 status=2
 [qa-write-smoke] === qa-sandbox-write-smoke complete (4 workflows) ===
 ========== qa:sandbox complete ==========
+[qa-sandbox-run] WARN: mirror has partial/failed table imports — DBF remains source of truth for writes
 ```
 
 ---
 
 ## Changed files
 
-**Modified:**  
-`apps/desktop/{README.md,package.json,src/setup/setup.html}`  
-`docs/{out-of-scope-guardrails.md,phase-4-mirror-import-operator.md,phase-6-windows-mvp-operator-guide.md}`  
+**Modified (24):**  
+`apps/desktop/{README.md,scripts/release-smoke.mjs,src/{main.ts,startup-failure.ts,startup-failure.test.ts,setup/setup.html,setup/setup-window.ts}}`  
+`docs/{PILOT-START-HERE.md,out-of-scope-guardrails.md,phase-7-sandbox-pilot-qa-runbook.md,windows-pilot-packaging-gap-report.md,windows-pilot-pre-installer-checklist.md}`  
 `package.json`  
-`packages/app/src/{SettingsPanel.tsx,app-shell.css,read-only-ui-copy.ts,settings-operator-next-step.ts,settings-operator-next-step.test.ts,settings-panel.test.tsx,settings-status.ts,settings-status.test.ts}`  
-`scripts/README.md`  
-`services/bridge/src/write-safety/write-route-inventory.test.ts`
+`packages/app/src/{PatientDemographicsWritePanel.tsx,app-shell.css,appointment-status-write.test.tsx,read-only-ui-copy.ts,settings-operator-next-step.ts,settings-panel.test.tsx,settings-status.ts,settings-status.test.ts}`  
+`scripts/{README.md,qa-sandbox-run.sh,qa-sandbox-write-smoke.sh}`
 
-**Untracked:**  
-`apps/desktop/scripts/release-smoke.mjs`  
-`docs/{phase-7-sandbox-pilot-qa-runbook.md,windows-pilot-runbook.md,windows-pilot-packaging-gap-report.md}`  
-`scripts/qa-sandbox-pilot-checklist.sh`
+**Untracked (3):**  
+`docs/pilot-backup-restore-audit.md`  
+`docs/pilot-tester-guide.md`  
+`scripts/pilot-full-checkpoint.sh`
 
 **Not tracked (correct):** sandbox DATA, `.sqlite`, Legacy trees, `dist/`, `node_modules/`
 
@@ -74,14 +79,15 @@
 
 ## Safe to commit?
 
-**Yes** — focused pilot RC batch. Suggested message:
+**Yes** — focused pilot RC batch A–L gap-fill on `678585f`. Suggested message:
 
 ```
-feat(pilot-rc): desktop release smoke, settings readiness, pilot docs
+feat(pilot-rc): batch A-L gap-fill for Windows clinic RC
 
-Gap-fill: desktop release-smoke + setup checklist, Settings pilot readiness
-strip and mirror CLI hints, phase-7 sandbox QA runbook, windows pilot runbook
-and packaging gap report, route inventory DELETE/PUT guard, out-of-scope RC checklist.
+Add pilot full checkpoint script, desktop re-open setup recovery,
+Settings checklist rows for forbidden DATA_ROOT and mirror import,
+handoff docs and backup/restore audit, packaging RC notes, and
+read-only/write UX copy polish without new write domains.
 ```
 
 ---
@@ -93,11 +99,13 @@ and packaging gap report, route inventory DELETE/PUT guard, out-of-scope RC chec
 | Unpackaged desktop (Node + build manual) | Documented in packaging gap report |
 | Mirror partial WARN in QA | Warn-only; DBF is write proof |
 | `pnpm qa:sandbox` needs Git Bash on Windows | phase-6 §7 + phase-7 runbook |
-| `origin` remote missing | Push/CI blocked (pre-existing) |
+| SmartScreen / unsigned Electron | Documented in pre-installer checklist |
+| Windows DBF file locking | Operator closes legacy handles before writes |
 | Pilot write UI requires `VITE_SANDBOX_WRITE_PILOT=true` | Documented in runbooks |
+| Forbidden-token tests reject substring `before`/`after` | Write copy avoids those tokens in banners |
 
 ---
 
 ## Blockers
 
-None for local pilot RC sign-off. Push blocked only by missing `origin` (unchanged).
+None for local pilot RC sign-off.

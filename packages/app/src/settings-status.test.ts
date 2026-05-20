@@ -149,7 +149,7 @@ describe("settings-status", () => {
     expect(chips.some((c) => c.key === "backup-configured")).toBe(true);
   });
 
-  it("builds structured checklist with six items", () => {
+  it("builds structured checklist with eight items", () => {
     const checklist = resolvePilotReadinessChecklist(
       "connected",
       {
@@ -167,15 +167,19 @@ describe("settings-status", () => {
         latestImportRuns: [],
       },
     );
-    expect(checklist).toHaveLength(6);
+    expect(checklist).toHaveLength(8);
     expect(checklist.map((i) => i.key)).toEqual([
       "bridge",
       "dataRoot",
+      "dataRootSafe",
       "mirror",
+      "mirrorImport",
       "backup",
       "write",
       "sandbox",
     ]);
     expect(checklist.every((i) => !i.label.match(/C:\\\\|\/Users\//))).toBe(true);
+    expect(checklist.some((i) => i.label.match(/not production legacy/i))).toBe(true);
+    expect(checklist.some((i) => i.label.match(/mirror import healthy/i))).toBe(true);
   });
 });

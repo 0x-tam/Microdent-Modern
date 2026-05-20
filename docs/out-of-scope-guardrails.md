@@ -42,6 +42,12 @@
 - `pnpm qa:sandbox` proves writes via **DBF readback**, not mirror row queries.
 - Logs and docs: HTTP status, workflow, `operationId`, hash prefixes, backup basenames — no PHI or raw row bodies.
 
+## Log sweep (pilot RC batch)
+
+Spot-checked desktop, bridge CLI, and `scripts/qa-sandbox*.sh` — logs use workflow names, HTTP status, `operationId`, and hash prefixes only. No raw DBF row bodies or patient identifiers in scripted output.
+
+---
+
 ## Pilot RC checklist (2026-05)
 
 Before treating a build as **Windows pilot RC**:
@@ -54,7 +60,7 @@ Before treating a build as **Windows pilot RC**:
 - [ ] Route inventory test: four PATCH/POST handlers; no DELETE/PUT write routes
 - [ ] Forbidden-token tests pass on touched UI (Settings, clinic read surfaces)
 - [ ] No `Microdent-Legacy` or production paths in `DATA_ROOT`
-- [ ] Docs: [windows-pilot-runbook.md](./windows-pilot-runbook.md), [phase-7-sandbox-pilot-qa-runbook.md](./phase-7-sandbox-pilot-qa-runbook.md)
+- [ ] Docs: [windows-pilot-runbook.md](./windows-pilot-runbook.md), [phase-7-sandbox-pilot-qa-runbook.md](./phase-7-sandbox-pilot-qa-runbook.md), [pilot-tester-guide.md](./pilot-tester-guide.md)
 
 **Related pilot docs:** [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md), [phase-6-windows-mvp-operator-guide.md](./phase-6-windows-mvp-operator-guide.md), [windows-pilot-packaging-gap-report.md](./windows-pilot-packaging-gap-report.md), [PILOT-START-HERE.md](./PILOT-START-HERE.md).
 

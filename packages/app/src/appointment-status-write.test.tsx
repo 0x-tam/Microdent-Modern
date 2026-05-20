@@ -135,13 +135,13 @@ describe("AppointmentStatusWriteAction", () => {
 
   it("shows sandbox write banner when pilot is active and not embedded", () => {
     renderPilot();
-    expect(container.textContent).toContain("Sandbox write mode");
-    expect(container.textContent).toContain("disposable data only");
+    expect(container.textContent).toContain("Sandbox write pilot");
+    expect(container.textContent).toContain("disposable DATA only");
   });
 
   it("hides sandbox write banner when embedded", () => {
     renderPilot({ embedded: true });
-    expect(container.textContent).not.toContain("Sandbox write mode");
+    expect(container.textContent).not.toContain("Sandbox write pilot");
   });
 
   async function previewAndApplyStatusChange(fetchImpl: typeof fetch) {
