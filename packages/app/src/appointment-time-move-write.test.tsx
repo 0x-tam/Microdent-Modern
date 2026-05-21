@@ -7,6 +7,7 @@ import {
   APPOINTMENT_TIME_MOVE_WRITE_CONFIRM,
   SCHEDULE_CONFLICT_SAFE_MESSAGE,
 } from "./appointment-time-move-write.js";
+import { WRITE_POST_COMMIT_MIRROR_NUDGE } from "./read-only-ui-copy.js";
 import { containsForbiddenWriteResultToken } from "./safe-write-plan-display.js";
 import { assertNoForbiddenDomTokens } from "./read-only-smoke-fixtures.js";
 
@@ -155,6 +156,7 @@ describe("AppointmentTimeMoveWriteAction", () => {
     expect(onCommitted).toHaveBeenCalledTimes(1);
     const text = container.textContent ?? "";
     expect(text).toContain("Committed: true");
+    expect(text).toContain(WRITE_POST_COMMIT_MIRROR_NUDGE);
     assertNoForbiddenDomTokens(text);
     expect(containsForbiddenWriteResultToken(text)).toBe(false);
   });

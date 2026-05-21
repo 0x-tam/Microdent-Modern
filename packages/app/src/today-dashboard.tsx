@@ -6,21 +6,26 @@ import type { AppSidebarModuleId } from "./app-nav-modules.js";
 import type { BridgeHealthPhase } from "./bridge-health.js";
 import { FixtureConnectionPanel } from "./FixtureConnectionPanel.js";
 import { LegacyCatalogPanel } from "./LegacyCatalogPanel.js";
-import { doctorDisplayLabel } from "./doctor-labels.js";
 import { isMirrorImportStale } from "./mirror-stale.js";
 import {
+  appointmentVisitMeta,
+  buildRoomLabelMap,
   formatAppointmentStatusMix,
   patientApptStatusBadgeVariant,
   patientApptStatusLabel,
+  patientApptStatusSemanticLabel,
+  roomDisplayLabel,
+  type RoomLabelMap,
 } from "./patient-appointments-display.js";
 import { resolveFrontDeskOverview } from "./settings-status.js";
-import { procClassDisplayLabel, type ProcedureReferenceMaps } from "./procedure-reference.js";
+import type { ProcedureReferenceMaps } from "./procedure-reference.js";
 import { useDoctorLabels } from "./useDoctorLabels.js";
 import { useProcedureReference } from "./useProcedureReference.js";
 import {
   CLINIC_AT_A_GLANCE_TITLE,
   CLINIC_SERVICE_CHECKING,
   CLINIC_SERVICE_CONNECT_TODAY,
+  FRONT_DESK_OVERVIEW_OPEN_SETTINGS,
   MIRROR_ACTIVE_BANNER_LABEL,
   MIRROR_FALLBACK_BANNER_LABEL,
   MIRROR_STALE_BANNER_LABEL,
@@ -73,12 +78,6 @@ function statusBadgeVariant(
   code: number,
 ): "neutral" | "success" | "warning" | "danger" | "info" {
   return patientApptStatusBadgeVariant(code);
-}
-
-function formatDuration(a: ScheduleAppointmentItem): string {
-  const slotMin = a.periodMinutes ?? 30;
-  const total = a.durationSlots * slotMin;
-  return `${total} min`;
 }
 
 function dashboardPatientHeadline(appt: ScheduleAppointmentItem): string {
@@ -153,17 +152,12 @@ function visitMetaLine(
   a: ScheduleAppointmentItem,
   doctorLabels: ReadonlyMap<string, string>,
   procedureMaps: ProcedureReferenceMaps,
+  roomMap: RoomLabelMap,
 ): string {
-  const parts: string[] = [`Room ${a.room}`, formatDuration(a)];
-  const doc = doctorDisplayLabel(a.docId, doctorLabels);
-  if (doc !== null) {
-    parts.push(doc);
-  }
-  const proc = procClassDisplayLabel(a.procClass, procedureMaps);
-  if (proc !== null) {
-    parts.push(proc);
-  }
-  return parts.join(" · ");
+  return appointmentVisitMeta(a, doctorLabels, procedureMaps, {
+    includeDuration: true,
+    roomLabel: roomDisplayLabel(a.room, roomMap),
+  });
 }
 
 export type DashboardPatientSummary = {
@@ -182,6 +176,8 @@ export type DashboardHomeProps = {
   selectedPatientChartNumber?: string | null;
   mirrorStatus?: MirrorStatusResponse | null;
   writeCapability?: BridgeDevStatusResponse | null;
+  sandboxWritePilot?: boolean;
+  sessionRecentPatientCount?: number;
 };
 
 type MirrorFreshness = {
@@ -233,11 +229,14 @@ export function DashboardHome({
   selectedPatientChartNumber = null,
   mirrorStatus = null,
   writeCapability = null,
+  sandboxWritePilot = false,
+  sessionRecentPatientCount = 0,
 }: DashboardHomeProps) {
   const base = bridgeBaseUrl?.trim() ?? "";
   const canLoad = Boolean(base) && bridgePhase === "connected";
   const { labels: doctorLabels } = useDoctorLabels({ bridgePhase, bridgeBaseUrl, fetchImpl });
   const { maps: procedureMaps } = useProcedureReference({ bridgePhase, bridgeBaseUrl, fetchImpl });
+  const [roomMap, setRoomMap] = useState<RoomLabelMap>(() => new Map());
 
   const todayIso = useMemo(() => toLocalIsoDate(new Date()), []);
 
@@ -264,6 +263,33 @@ export function DashboardHome({
     },
     [onOpenPatient],
   );
+
+  useEffect(() => {
+    if (!canLoad) {
+      setRoomMap(new Map());
+      return;
+    }
+
+    let cancelled = false;
+    const client = createBridgeClient({ baseUrl: base, fetch: fetchImpl });
+
+    void (async () => {
+      try {
+        const res = await client.getScheduleRooms();
+        if (!cancelled) {
+          setRoomMap(buildRoomLabelMap(res.rooms));
+        }
+      } catch {
+        if (!cancelled) {
+          setRoomMap(new Map());
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canLoad, base, fetchImpl]);
 
   const loadToday = useCallback(async () => {
     if (!canLoad) {
@@ -332,6 +358,9 @@ export function DashboardHome({
         mirrorStatus,
         writeCapability,
         todayAppointmentCount: todayCountForOverview,
+        sandboxWritePilot,
+        sessionRecentPatientCount,
+        todayStatusMix: statusMixLine,
         selectedPatientId,
         selectedPatientDisplayName,
         selectedPatientChartNumber,
@@ -341,6 +370,9 @@ export function DashboardHome({
       mirrorStatus,
       writeCapability,
       todayCountForOverview,
+      sandboxWritePilot,
+      sessionRecentPatientCount,
+      statusMixLine,
       selectedPatientId,
       selectedPatientDisplayName,
       selectedPatientChartNumber,
@@ -490,7 +522,7 @@ export function DashboardHome({
                   <span className="app-appt-list__patient-chart"> · {dashboardPatientChart(a)}</span>
                 ) : null}
               </span>
-              <span className="app-appt-list__visit">{visitMetaLine(a, doctorLabels, procedureMaps)}</span>
+              <span className="app-appt-list__visit">{visitMetaLine(a, doctorLabels, procedureMaps, roomMap)}</span>
               <div className="app-appt-list__extras">
                 {a.hasComment ? <span className="app-appt-list__pill">Note hidden</span> : null}
                 {a.missed ? (
@@ -511,7 +543,7 @@ export function DashboardHome({
                 ) : null}
               </div>
             </div>
-            <Badge variant={statusBadgeVariant(a.status)} semanticLabel={`Visit status: ${statusLabel(a.status)}`}>
+            <Badge variant={statusBadgeVariant(a.status)} semanticLabel={patientApptStatusSemanticLabel(a.status)}>
               {statusLabel(a.status)}
             </Badge>
           </li>
@@ -590,7 +622,7 @@ export function DashboardHome({
           ) : null}
         </p>
         <p className="app-next-patient__detail">
-          {visitMetaLine(nextUpcoming, doctorLabels, procedureMaps)} · {statusLabel(nextUpcoming.status)}
+          {visitMetaLine(nextUpcoming, doctorLabels, procedureMaps, roomMap)} · {statusLabel(nextUpcoming.status)}
         </p>
         <div className="app-next-patient__badges">
           {nextUpcoming.hasComment ? <span className="app-appt-list__pill">Note hidden</span> : null}
@@ -736,6 +768,17 @@ export function DashboardHome({
                   </div>
                 ))}
               </dl>
+              {canLoad ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="compact"
+                  className="ui-focusable app-dashboard-clinic-overview__settings-link"
+                  onClick={() => onOpenModule("settings")}
+                >
+                  {FRONT_DESK_OVERVIEW_OPEN_SETTINGS}
+                </Button>
+              ) : null}
             </CardBody>
           </Card>
 

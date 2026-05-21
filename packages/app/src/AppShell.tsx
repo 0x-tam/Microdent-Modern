@@ -148,7 +148,6 @@ export function AppShell({
   const [mirrorDiagLabel, setMirrorDiagLabel] = useState<string | null>(null);
   const [mirrorStatus, setMirrorStatus] = useState<MirrorStatusResponse | null>(null);
   const [writeCapability, setWriteCapability] = useState<BridgeDevStatusResponse | null>(null);
-  const [scheduleInitialDate, setScheduleInitialDate] = useState<string | null>(null);
 
   const mainHeadingId = "app-main-heading";
 
@@ -197,26 +196,10 @@ export function AppShell({
     [rememberRecentPatient],
   );
 
-  const handleRecentPatientSelect = useCallback(
-    (entry: SessionRecentPatient) => {
-      handlePatientRecordSelect(entry);
-    },
-    [handlePatientRecordSelect],
-  );
-
   const handlePatientSelectionClear = useCallback(() => {
     setSelectedPatientId(null);
     setSelectedPatientDisplayName(null);
     setSelectedPatientChartNumber(null);
-  }, []);
-
-  const handleOpenScheduleAtDate = useCallback((dateIso: string) => {
-    setScheduleInitialDate(dateIso);
-    setActive("schedule");
-  }, []);
-
-  const handleScheduleInitialDateApplied = useCallback(() => {
-    setScheduleInitialDate(null);
   }, []);
 
   const runBridgeHealthCheck = useCallback(
@@ -386,10 +369,8 @@ export function AppShell({
             bridgeBaseUrl={bridgeBaseUrl}
             selectedPatientId={selectedPatientId}
             selectedDisplayName={selectedPatientDisplayName}
-            recentPatients={recentPatients}
             fetchImpl={fetchImpl}
             onPatientRecordSelect={handlePatientRecordSelect}
-            onRecentPatientSelect={handleRecentPatientSelect}
             onPatientSelectionClear={handlePatientSelectionClear}
           />
         </div>
@@ -538,6 +519,9 @@ export function AppShell({
                   bridgeBaseUrl={bridgeBaseUrl}
                   bridgePhase={bridgePhase}
                   fetchImpl={fetchImpl}
+                  writeCapability={writeCapability}
+                  sandboxWritePilot={sandboxWritePilot}
+                  sessionRecentPatientCount={recentPatients.length}
                 />
               ) : active === "schedule" ? (
                 <SchedulePanel
@@ -547,11 +531,7 @@ export function AppShell({
                   fetchImpl={fetchImpl}
                   writeDiagnosticsActions={devWriteActionsEnabled}
                   sandboxWritePilot={sandboxWritePilot}
-                  initialDate={scheduleInitialDate}
-                  onInitialDateApplied={handleScheduleInitialDateApplied}
                   onBackToday={() => setActive("today")}
-                  onOpenPatient={handleOpenPatient}
-                  mirrorStatus={mirrorStatus}
                 />
               ) : active === "settings" ? (
                 <SettingsPanel
@@ -572,12 +552,9 @@ export function AppShell({
                   fetchImpl={fetchImpl}
                   sandboxWritePilot={sandboxWritePilot}
                   writeCapability={writeCapability}
-                  recentPatients={recentPatients}
                   onBackToday={() => setActive("today")}
                   onClearPatient={handlePatientSelectionClear}
                   onPatientRecordSelect={handlePatientRecordSelect}
-                  onRecentPatientSelect={handleRecentPatientSelect}
-                  onOpenScheduleAtDate={handleOpenScheduleAtDate}
                 />
               )}
             </div>

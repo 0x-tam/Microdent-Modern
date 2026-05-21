@@ -30,12 +30,52 @@ export function chartTreatedLabel(treated: boolean): string {
 
 export type ChartTreatedFilter = "all" | "treated";
 
+export type ChartSummaryStats = {
+  totalEntries: number;
+  uniqueTeeth: number;
+  treatedCount: number;
+  notTreatedCount: number;
+};
+
+export function chartSummaryStats(items: readonly PatientChartEntry[]): ChartSummaryStats {
+  const teeth = new Set<number>();
+  let treatedCount = 0;
+  let notTreatedCount = 0;
+  for (const e of items) {
+    if (e.toothNumber !== null) teeth.add(e.toothNumber);
+    if (e.treated) treatedCount++;
+    else notTreatedCount++;
+  }
+  return {
+    totalEntries: items.length,
+    uniqueTeeth: teeth.size,
+    treatedCount,
+    notTreatedCount,
+  };
+}
+
+export function chartTypesFromEntries(items: readonly PatientChartEntry[]): number[] {
+  const types = new Set<number>();
+  for (const e of items) {
+    if (e.chartType !== null) types.add(e.chartType);
+  }
+  return [...types].sort((a, b) => a - b);
+}
+
 export function filterChartEntriesForDisplay(
   items: readonly PatientChartEntry[],
   treatedFilter: ChartTreatedFilter,
+  chartTypeFilter: number | null = null,
 ): PatientChartEntry[] {
-  if (treatedFilter === "all") return [...items];
-  return items.filter((e) => e.treated);
+  let result = treatedFilter === "all" ? [...items] : items.filter((e) => e.treated);
+  if (chartTypeFilter !== null) {
+    result = result.filter((e) => e.chartType === chartTypeFilter);
+  }
+  return result;
+}
+
+export function chartTypeFilterActive(chartTypeFilter: number | null): boolean {
+  return chartTypeFilter !== null;
 }
 
 export type ChartToothGroup = {

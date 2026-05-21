@@ -75,19 +75,50 @@ function uniqueNonEmpty(values: Iterable<string | null | undefined>): string[] {
 }
 
 /**
- * Picks one label when every candidate agrees on a single displayName, else a single category.
+ * When displayName equals procedureCode (code-only / ambiguous), prefer category when present.
+ */
+function pickEntryLabel(entry: ProcedureDictionaryEntry): string | null {
+  const name = nonEmptyTrimmed(entry.displayName);
+  const category = nonEmptyTrimmed(entry.category);
+  if (name !== null && name !== entry.procedureCode) {
+    return name;
+  }
+  if (category !== null) {
+    return category;
+  }
+  return name;
+}
+
+/**
+ * Picks one label when every candidate agrees on a single resolved label, else a single category.
  * Returns null when names/categories conflict or are all blank.
  */
 function resolveUnambiguousLabel(entries: readonly ProcedureDictionaryEntry[]): string | null {
-  const names = uniqueNonEmpty(entries.map((e) => e.displayName));
-  if (names.length === 1) {
-    return names[0]!;
+  const labels = uniqueNonEmpty(entries.map((e) => pickEntryLabel(e)));
+  if (labels.length === 1) {
+    return labels[0]!;
   }
   const categories = uniqueNonEmpty(entries.map((e) => e.category));
   if (categories.length === 1) {
     return categories[0]!;
   }
   return null;
+}
+
+/** Safe label for a procedure code row when API `procedureLabel` is missing. */
+export function procedureReferenceLabelForCode(
+  code: string,
+  maps: ProcedureReferenceMaps = EMPTY_PROCEDURE_REFERENCE_MAPS,
+): string | null {
+  const key = normalizeProcedureCode(code);
+  if (key.length === 0) {
+    return null;
+  }
+  const entry = maps.byProcedureCode.get(key);
+  if (entry === undefined) {
+    return null;
+  }
+  return pickEntryLabel(entry);
 }
 
 function lookupByProcedureCode(

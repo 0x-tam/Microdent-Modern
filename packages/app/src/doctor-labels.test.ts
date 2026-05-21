@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDoctorLabelMap, doctorDisplayLabel, normalizeDoctorId } from "./doctor-labels.js";
+import { buildDoctorLabelMap, doctorDisplayLabel, normalizeDoctorId, profileAssignedProviderLabel } from "./doctor-labels.js";
 
 describe("normalizeDoctorId", () => {
   it("returns null for zero and invalid values", () => {
@@ -46,5 +46,34 @@ describe("doctorDisplayLabel", () => {
   it("returns null when there is no provider id", () => {
     expect(doctorDisplayLabel(0, labels)).toBeNull();
     expect(doctorDisplayLabel(null, labels)).toBeNull();
+  });
+});
+
+describe("profileAssignedProviderLabel", () => {
+  const labels = buildDoctorLabelMap([
+    { doctorId: "5", displayName: "Synthetic Provider Gamma", active: true },
+  ]);
+
+  it("uses Doctor {id} fallback when reference is missing", () => {
+    expect(profileAssignedProviderLabel(9, labels)).toBe("Doctor 9");
+  });
+
+  it("returns em dash when provider id is absent", () => {
+    expect(profileAssignedProviderLabel(null, labels)).toBe("—");
+    expect(profileAssignedProviderLabel(0, labels)).toBe("—");
+  });
+
+  it("never emits forbidden DBF field tokens in labels", () => {
+    const outputs = [
+      doctorDisplayLabel(9, labels),
+      doctorDisplayLabel(5, labels),
+      profileAssignedProviderLabel(9, labels),
+      profileAssignedProviderLabel(null, labels),
+    ];
+    for (const out of outputs) {
+      if (out) {
+        expect(out).not.toMatch(/\bPAT_NAME\b|\bTELEPHONE\b|\bAMOUNT\b|\bSAMOUNT\b/i);
+      }
+    }
   });
 });

@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   filterLedgerEntriesByType,
   formatLedgerDate,
+  formatLedgerMonthGroupHeading,
   formatLedgerMonthHeading,
+  formatLedgerTypeDistribution,
   groupLedgerEntriesByMonth,
   ledgerAdjustmentTypeLabel,
   ledgerCardPaymentLabel,
@@ -10,6 +12,7 @@ import {
   ledgerEntryKinds,
   ledgerEntryMatchesKind,
   ledgerPaymentTypeLabel,
+  ledgerTypeDistributionCounts,
   ledgerTypeFiltersPresent,
   sortLedgerEntriesForDisplay,
 } from "./patient-ledger-display.js";
@@ -91,6 +94,19 @@ describe("ledger grouping and filters", () => {
     ]);
     expect(groups.map((g) => g.monthKey)).toEqual(["2024-06", "2024-01", "undated"]);
     expect(formatLedgerMonthHeading("2024-06")).toMatch(/2024/);
+    expect(formatLedgerMonthGroupHeading("2024-06", 2)).toMatch(/2024.*2 entries/);
+  });
+
+  it("formats type distribution without amounts", () => {
+    const items = [
+      entry("1", "2024-06-01", { chargeTypeCode: 2, adjustmentTypeCode: 0, paymentTypeCode: 0 }),
+      entry("2", "2024-06-01", { chargeTypeCode: 3, adjustmentTypeCode: 0, paymentTypeCode: 0 }),
+      entry("3", "2024-05-01", { chargeTypeCode: 0, adjustmentTypeCode: 1, paymentTypeCode: 0 }),
+      entry("4", "2024-05-01", { chargeTypeCode: 0, adjustmentTypeCode: 0, paymentTypeCode: 100 }),
+    ];
+    const counts = ledgerTypeDistributionCounts(items);
+    expect(formatLedgerTypeDistribution(counts)).toBe("2 charges · 1 payment · 1 adjustment");
+    expect(formatLedgerTypeDistribution(counts)).not.toMatch(/\$|AMOUNT|SAMOUNT/i);
   });
 
   it("uses safe filter labels without forbidden tokens", () => {

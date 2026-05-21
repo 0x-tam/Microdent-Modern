@@ -1,7 +1,30 @@
-import type { ScheduleAppointmentItem } from "@microdent/contracts";
+import type { ScheduleAppointmentItem, ScheduleRoomItem } from "@microdent/contracts";
 import { doctorDisplayLabel } from "./doctor-labels.js";
 import { procClassDisplayLabel, type ProcedureReferenceMaps } from "./procedure-reference.js";
 import { toLocalIsoDate } from "./patient-appointments-range.js";
+
+export type RoomLabelMap = ReadonlyMap<number, string>;
+
+/** `room` → display name from GET /v1/schedule/rooms (safe fields only). */
+export function buildRoomLabelMap(rooms: readonly ScheduleRoomItem[]): RoomLabelMap {
+  const map = new Map<number, string>();
+  for (const room of rooms) {
+    const name = room.displayName?.trim();
+    if (name && name.length > 0) {
+      map.set(room.room, name);
+    }
+  }
+  return map;
+}
+
+/** Room label with dictionary name when known; otherwise `Room n`. */
+export function roomDisplayLabel(roomId: number, roomMap: RoomLabelMap = new Map()): string {
+  const name = roomMap.get(roomId);
+  if (name !== undefined && name.length > 0) {
+    return name;
+  }
+  return `Room ${roomId}`;
+}
 
 /** Status codes exposed as patient appointment history filters (excludes open-slot code 0). */
 export const PATIENT_APPT_FILTER_STATUS_CODES = [1, 2, 3, 4, 5] as const;
@@ -20,6 +43,11 @@ export function patientApptStatusLabel(code: number): string {
     5: "No-show",
   };
   return map[code] ?? `Status ${code}`;
+}
+
+/** Accessible status label — always human text, never raw status code. */
+export function patientApptStatusSemanticLabel(code: number): string {
+  return `Visit status: ${patientApptStatusLabel(code)}`;
 }
 
 export function patientApptStatusBadgeVariant(
@@ -72,12 +100,27 @@ export function formatAppointmentStatusMix(
   return parts.join(" · ");
 }
 
-export function patientApptRowMeta(
+export type AppointmentVisitMetaOptions = {
+  includeDuration?: boolean;
+  includeRoom?: boolean;
+  roomLabel?: string;
+};
+
+/** Unified visit meta: room, optional duration, provider, procedure (safe reference labels). */
+export function appointmentVisitMeta(
   appt: ScheduleAppointmentItem,
   doctorLabels: ReadonlyMap<string, string> = new Map(),
   procedureMaps?: ProcedureReferenceMaps,
+  options: AppointmentVisitMetaOptions = {},
 ): string {
-  const parts: string[] = [`Room ${appt.room}`];
+  const { includeDuration = false, includeRoom = true, roomLabel } = options;
+  const parts: string[] = [];
+  if (includeRoom) {
+    parts.push(roomLabel ?? `Room ${appt.room}`);
+  }
+  if (includeDuration) {
+    parts.push(patientApptFormatDuration(appt));
+  }
   const doctor = doctorDisplayLabel(appt.docId, doctorLabels);
   if (doctor !== null) {
     parts.push(doctor);
@@ -87,6 +130,17 @@ export function patientApptRowMeta(
     parts.push(proc);
   }
   return parts.join(" · ");
+}
+
+export function patientApptRowMeta(
+  appt: ScheduleAppointmentItem,
+  doctorLabels: ReadonlyMap<string, string> = new Map(),
+  procedureMaps?: ProcedureReferenceMaps,
+  roomMap?: RoomLabelMap,
+): string {
+  return appointmentVisitMeta(appt, doctorLabels, procedureMaps, {
+    roomLabel: roomMap ? roomDisplayLabel(appt.room, roomMap) : undefined,
+  });
 }
 
 function currentLocalTimeHm(ref = new Date()): string {
@@ -115,21 +169,99 @@ export function patientApptUniqueRooms(appointments: readonly ScheduleAppointmen
   return [...rooms].sort((a, b) => a - b);
 }
 
+export function patientApptUniqueDocIds(appointments: readonly ScheduleAppointmentItem[]): number[] {
+  const ids = new Set<number>();
+  for (const a of appointments) {
+    ids.add(a.docId);
+  }
+  return [...ids].sort((a, b) => a - b);
+}
+
+export type PatientApptProviderFilterOption = {
+  docId: number;
+  label: string;
+};
+
+/** Safe provider chip labels for appointment filters (reference displayName when known). */
+export function patientApptProviderFilterOptions(
+  appointments: readonly ScheduleAppointmentItem[],
+  doctorLabels: ReadonlyMap<string, string> = new Map(),
+): PatientApptProviderFilterOption[] {
+  return patientApptUniqueDocIds(appointments).map((docId) => ({
+    docId,
+    label: doctorDisplayLabel(docId, doctorLabels) ?? `Doctor ${docId}`,
+  }));
+}
+
+export function sortPatientAppointmentsByTime(
+  a: ScheduleAppointmentItem,
+  b: ScheduleAppointmentItem,
+): number {
+  const d = a.date.localeCompare(b.date);
+  if (d !== 0) return d;
+  const ta = a.time.trim();
+  const tb = b.time.trim();
+  if (ta !== tb) return ta.localeCompare(tb, undefined, { numeric: true });
+  return a.id.localeCompare(b.id, undefined, { numeric: true });
+}
+
+function parseApptTimeToMinutes(t: string): number | null {
+  const s = t.trim();
+  const m = /^(\d{1,2}):(\d{2})$/.exec(s);
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (!Number.isFinite(h) || !Number.isFinite(min) || h > 23 || min > 59 || h < 0 || min < 0) return null;
+  return h * 60 + min;
+}
+
+/** Appointment in progress at `now` on today's local date within a loaded list. */
+export function findCurrentAppointmentInRange(
+  appointments: readonly ScheduleAppointmentItem[],
+  ref = new Date(),
+): ScheduleAppointmentItem | null {
+  const todayIso = toLocalIsoDate(ref);
+  const todaySorted = appointments.filter((a) => a.date === todayIso).sort(sortPatientAppointmentsByTime);
+  const nowM = ref.getHours() * 60 + ref.getMinutes();
+  for (const a of todaySorted) {
+    const start = parseApptTimeToMinutes(a.time);
+    if (start === null) continue;
+    const slotMin = a.periodMinutes ?? 30;
+    const end = start + a.durationSlots * slotMin;
+    if (start <= nowM && nowM < end) return a;
+  }
+  return null;
+}
+
+export function scheduleDayAppointmentCountLabel(count: number): string {
+  return count === 1 ? "1 appointment" : `${count} appointments`;
+}
+
 export function filterPatientAppointments(
   appointments: readonly ScheduleAppointmentItem[],
   options: {
     timeDirection?: PatientApptTimeDirection;
     statusFilter?: number | null;
     roomFilter?: number | null;
+    providerFilter?: number | null;
     ref?: Date;
   } = {},
 ): ScheduleAppointmentItem[] {
-  const { timeDirection = "all", statusFilter = null, roomFilter = null, ref = new Date() } = options;
+  const {
+    timeDirection = "all",
+    statusFilter = null,
+    roomFilter = null,
+    providerFilter = null,
+    ref = new Date(),
+  } = options;
   return appointments.filter((appt) => {
     if (statusFilter !== null && appt.status !== statusFilter) {
       return false;
     }
     if (roomFilter !== null && appt.room !== roomFilter) {
+      return false;
+    }
+    if (providerFilter !== null && appt.docId !== providerFilter) {
       return false;
     }
     if (timeDirection === "all") {

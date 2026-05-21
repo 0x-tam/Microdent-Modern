@@ -2269,6 +2269,7 @@ describe("PatientProfilePanel", () => {
 
       assertNoForbiddenDomTokens(container.textContent ?? "");
       expect(container.textContent).toMatch(/Amounts intentionally hidden/i);
+      expect(container.textContent).toMatch(/\d+ charge/i);
     });
   });
 

@@ -1,9 +1,11 @@
 import type { PatientChartEntry } from "@microdent/contracts";
 import { describe, expect, it } from "vitest";
 import {
+  chartSummaryStats,
   chartToothLabel,
   chartTreatedLabel,
   chartTypeLabel,
+  chartTypesFromEntries,
   filterChartEntriesForDisplay,
   groupChartEntriesByTooth,
   sortChartEntriesForDisplay,
@@ -45,6 +47,29 @@ describe("patient-chart-display", () => {
     ];
     expect(filterChartEntriesForDisplay(items, "treated").map((e) => e.chartEntryId)).toEqual(["a"]);
     expect(filterChartEntriesForDisplay(items, "all")).toHaveLength(2);
+  });
+
+  it("summarizes unique teeth and treated counts", () => {
+    const stats = chartSummaryStats([
+      entry({ toothNumber: 14, treated: true }),
+      entry({ chartEntryId: "14-2", toothNumber: 14, treated: false }),
+      entry({ chartEntryId: "32-1", toothNumber: 32, treated: true }),
+    ]);
+    expect(stats).toEqual({
+      totalEntries: 3,
+      uniqueTeeth: 2,
+      treatedCount: 2,
+      notTreatedCount: 1,
+    });
+  });
+
+  it("filters by chart type when multiple types exist", () => {
+    const items = [
+      entry({ chartEntryId: "a", chartType: 1 }),
+      entry({ chartEntryId: "b", chartType: 2 }),
+    ];
+    expect(chartTypesFromEntries(items)).toEqual([1, 2]);
+    expect(filterChartEntriesForDisplay(items, "all", 2).map((e) => e.chartEntryId)).toEqual(["b"]);
   });
 
   it("groups entries by tooth with counts", () => {

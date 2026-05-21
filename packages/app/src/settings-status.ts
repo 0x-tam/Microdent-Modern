@@ -43,11 +43,17 @@ import {
   FRONT_DESK_OVERVIEW_GUIDANCE_LABEL,
   FRONT_DESK_OVERVIEW_MIRROR_LABEL,
   FRONT_DESK_OVERVIEW_SELECTED_PATIENT_LABEL,
+  FRONT_DESK_OVERVIEW_SANDBOX_PILOT_LABEL,
+  FRONT_DESK_OVERVIEW_SESSION_RECENT_COUNT,
+  FRONT_DESK_OVERVIEW_SESSION_RECENT_LABEL,
+  FRONT_DESK_OVERVIEW_STATUS_MIX_LABEL,
   FRONT_DESK_OVERVIEW_TODAY_COUNT,
   FRONT_DESK_OVERVIEW_TODAY_LABEL,
   FRONT_DESK_OVERVIEW_TODAY_UNAVAILABLE,
   FRONT_DESK_OVERVIEW_WRITE_MODE_LABEL,
   FRONT_DESK_OVERVIEW_WRITE_MODE_UNKNOWN,
+  SETTINGS_SANDBOX_PILOT_OFF,
+  SETTINGS_SANDBOX_PILOT_ON,
   WRITE_MODE_CHIP_DISABLED,
   WRITE_MODE_CHIP_DRY_RUN,
   WRITE_MODE_CHIP_ENABLED,
@@ -222,6 +228,12 @@ export type FrontDeskOverviewOptions = {
   writeCapability: BridgeDevStatusResponse | null;
   /** null when today's count is unavailable (offline, loading, or error). */
   todayAppointmentCount: number | null;
+  /** Build-time sandbox write pilot flag (no paths). */
+  sandboxWritePilot?: boolean;
+  /** Patients opened this session (count only). */
+  sessionRecentPatientCount?: number;
+  /** Safe status mix one-liner when today's appointments are loaded. */
+  todayStatusMix?: string | null;
   selectedPatientId?: string | null;
   selectedPatientDisplayName?: string | null;
   selectedPatientChartNumber?: string | null;
@@ -244,6 +256,19 @@ function resolveFrontDeskWriteModeLabel(
     default:
       return { label: FRONT_DESK_OVERVIEW_WRITE_MODE_UNKNOWN, tone: "neutral" };
   }
+}
+
+function resolveFrontDeskSandboxPilotLabel(
+  sandboxWritePilot: boolean,
+  writeCapability: BridgeDevStatusResponse | null,
+): { label: string; tone: SettingsStatusTone } {
+  if (!sandboxWritePilot) {
+    return { label: SETTINGS_SANDBOX_PILOT_OFF, tone: "neutral" };
+  }
+  if (writeCapability?.writableSandbox && writeCapability.writesPermitted) {
+    return { label: SETTINGS_SANDBOX_PILOT_ON, tone: "ok" };
+  }
+  return { label: SETTINGS_SANDBOX_PILOT_ON, tone: "warn" };
 }
 
 function resolveFrontDeskMirrorLabel(
@@ -313,6 +338,17 @@ export function resolveFrontDeskOverview(options: FrontDeskOverviewOptions): Fro
     tone: writeMode.tone,
   });
 
+  const sandboxPilot = resolveFrontDeskSandboxPilotLabel(
+    options.sandboxWritePilot ?? false,
+    options.writeCapability,
+  );
+  items.push({
+    key: "sandbox-pilot",
+    label: FRONT_DESK_OVERVIEW_SANDBOX_PILOT_LABEL,
+    value: sandboxPilot.label,
+    tone: sandboxPilot.tone,
+  });
+
   items.push({
     key: "today",
     label: FRONT_DESK_OVERVIEW_TODAY_LABEL,
@@ -322,6 +358,25 @@ export function resolveFrontDeskOverview(options: FrontDeskOverviewOptions): Fro
         : FRONT_DESK_OVERVIEW_TODAY_COUNT(options.todayAppointmentCount),
     tone: options.todayAppointmentCount === null ? "neutral" : "ok",
   });
+
+  if (options.todayStatusMix) {
+    items.push({
+      key: "status-mix",
+      label: FRONT_DESK_OVERVIEW_STATUS_MIX_LABEL,
+      value: options.todayStatusMix,
+      tone: "neutral",
+    });
+  }
+
+  const recentCount = options.sessionRecentPatientCount ?? 0;
+  if (recentCount > 0) {
+    items.push({
+      key: "session-recent",
+      label: FRONT_DESK_OVERVIEW_SESSION_RECENT_LABEL,
+      value: FRONT_DESK_OVERVIEW_SESSION_RECENT_COUNT(recentCount),
+      tone: "neutral",
+    });
+  }
 
   if (options.selectedPatientId) {
     const trimmedName = options.selectedPatientDisplayName?.trim();

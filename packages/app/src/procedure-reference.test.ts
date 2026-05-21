@@ -3,6 +3,7 @@ import {
   buildProcedureReferenceMaps,
   normalizeProcedureCode,
   procClassDisplayLabel,
+  procedureReferenceLabelForCode,
 } from "./procedure-reference.js";
 
 const syntheticProcedures = [
@@ -98,6 +99,21 @@ describe("procClassDisplayLabel", () => {
       },
     ]);
     expect(procClassDisplayLabel(55, single)).toBe("Synthetic single class label");
+  });
+
+  it("prefers category when displayName equals procedure code", () => {
+    const maps = buildProcedureReferenceMaps([
+      {
+        procedureCode: "SYN77",
+        displayName: "SYN77",
+        category: "Synthetic restorative category",
+        categoryCode: null,
+        classId: 77,
+        chartRelevant: true,
+      },
+    ]);
+    expect(procClassDisplayLabel(77, maps)).toBe("Synthetic restorative category");
+    expect(procedureReferenceLabelForCode("SYN77", maps)).toBe("Synthetic restorative category");
   });
 });
 

@@ -87,6 +87,10 @@ describe("read-only app smoke", () => {
     });
 
     await waitForBridgeConnected(container);
+    expect(container.querySelector("#app-main-heading")?.textContent).toBe("Today");
+    expect(container.textContent).toMatch(/Clinic at a glance/i);
+    assertNoForbiddenDomTokens(container.textContent ?? "");
+
     const searchInput = container.querySelector("input#app-patient-search-input") as HTMLInputElement;
     expect(searchInput.disabled).toBe(false);
 
@@ -174,6 +178,12 @@ describe("read-only app smoke", () => {
       await flush();
     }
 
+    await clickPatientTab(container, "timeline");
+    await flush();
+    expect(container.querySelector('[data-testid="patient-panel-timeline"]')).toBeTruthy();
+    expect(container.textContent).toMatch(/Chart snapshot|Synthetic dictionary label/i);
+    assertNoForbiddenDomTokens(container.textContent ?? "");
+
     clickSidebarModule(container, "Settings");
     await flush();
     expect(container.querySelector("#app-main-heading")?.textContent).toBe("Settings");
@@ -189,6 +199,17 @@ describe("read-only app smoke", () => {
     expect(container.textContent).toContain("Synthetic Schedule Smoke Patient");
     expect(container.textContent).toContain("09:00");
     expect(container.textContent).toContain("Synthetic smoke bay");
+
+    const scheduledChip = [...container.querySelectorAll("button")].find((b) =>
+      b.textContent?.match(/\d+ Scheduled/i),
+    );
+    if (scheduledChip) {
+      await act(async () => {
+        scheduledChip.click();
+      });
+      await flush();
+      assertNoForbiddenDomTokens(container.textContent ?? "");
+    }
 
     expect(fetchImpl.mock.calls.some((c) => String(c[0]).includes("/health"))).toBe(true);
     expect(fetchImpl.mock.calls.some((c) => String(c[0]).includes("/patients/search"))).toBe(true);
@@ -285,10 +306,15 @@ describe("read-only app smoke", () => {
     });
     await flush();
 
-    for (const tabId of ["summary", "appointments", "medical", "treatments", "chart", "ledger"] as const) {
+    for (const tabId of ["summary", "appointments", "medical", "treatments", "chart", "ledger", "timeline"] as const) {
       await clickPatientTab(container, tabId);
       await flush();
     }
+
+    clickSidebarModule(container, "Today");
+    await flush();
+    expect(container.textContent).toMatch(/Clinic at a glance/i);
+    assertNoForbiddenDomTokens(container.textContent ?? "");
 
     clickSidebarModule(container, "Schedule");
     await flush();

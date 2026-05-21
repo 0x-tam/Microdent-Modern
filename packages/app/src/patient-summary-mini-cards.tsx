@@ -1,10 +1,14 @@
 import { Button } from "@microdent/ui";
 import type { ScheduleAppointmentItem } from "@microdent/contracts";
 import {
+  appointmentVisitMeta,
   formatPatientApptNextUpcoming,
   findNextUpcomingPatientAppointment,
   patientApptRangeCountLabel,
+  roomDisplayLabel,
+  type RoomLabelMap,
 } from "./patient-appointments-display.js";
+import type { ProcedureReferenceMaps } from "./procedure-reference.js";
 import {
   PATIENT_SUMMARY_CROSS_TAB_ARIA,
   PATIENT_SUMMARY_MINI_CARD_APPOINTMENTS,
@@ -12,6 +16,7 @@ import {
   PATIENT_SUMMARY_MINI_CARD_LEDGER,
   PATIENT_SUMMARY_MINI_CARD_MEDICAL,
   PATIENT_SUMMARY_MINI_CARD_TREATMENTS,
+  PATIENT_SUMMARY_MINI_CARD_TIMELINE,
   PATIENT_SUMMARY_MINI_EMPTY,
   PATIENT_SUMMARY_MINI_LOADING,
   PATIENT_SUMMARY_MINI_NO_RECORD,
@@ -21,7 +26,7 @@ import {
   patientSummaryViewTabLabel,
 } from "./read-only-ui-copy.js";
 
-export type ProfileTab = "summary" | "appointments" | "medical" | "treatments" | "chart" | "ledger";
+export type ProfileTab = "summary" | "timeline" | "appointments" | "medical" | "treatments" | "chart" | "ledger";
 
 const SUMMARY_CROSS_TABS: readonly { id: Exclude<ProfileTab, "summary">; label: string }[] = [
   { id: "appointments", label: "Appointments" },
@@ -57,6 +62,9 @@ export type PatientSummaryMiniCardsProps = {
   treatments: SummaryCountPrefetch;
   chart: SummaryCountPrefetch;
   ledger: SummaryCountPrefetch;
+  doctorLabels?: ReadonlyMap<string, string>;
+  procedureMaps?: ProcedureReferenceMaps;
+  roomMap?: RoomLabelMap;
   onOpenTab: (tab: ProfileTab) => void;
 };
 
@@ -95,7 +103,12 @@ function SummaryMiniCardButton({
   );
 }
 
-function appointmentsDetail(appt: SummaryApptPrefetch): string {
+function appointmentsDetail(
+  appt: SummaryApptPrefetch,
+  doctorLabels: ReadonlyMap<string, string>,
+  procedureMaps: ProcedureReferenceMaps | undefined,
+  roomMap: RoomLabelMap,
+): string {
   if (appt.phase === "loading" || appt.phase === "idle") {
     return PATIENT_SUMMARY_MINI_LOADING;
   }
@@ -108,7 +121,15 @@ function appointmentsDetail(appt: SummaryApptPrefetch): string {
   }
   const next = findNextUpcomingPatientAppointment(appt.appointments);
   if (next) {
-    return `${countLabel} · ${formatPatientApptNextUpcoming(next)}`;
+    const visitMeta = appointmentVisitMeta(next, doctorLabels, procedureMaps, {
+      includeRoom: false,
+      roomLabel: roomDisplayLabel(next.room, roomMap),
+    });
+    const nextLine = formatPatientApptNextUpcoming(next);
+    if (visitMeta.length > 0) {
+      return `${countLabel} · ${nextLine} · ${visitMeta}`;
+    }
+    return `${countLabel} · ${nextLine}`;
   }
   return countLabel;
 }
@@ -152,6 +173,9 @@ export function PatientSummaryMiniCards({
   treatments,
   chart,
   ledger,
+  doctorLabels = new Map(),
+  procedureMaps,
+  roomMap = new Map(),
   onOpenTab,
 }: PatientSummaryMiniCardsProps) {
   const crossTabs = SUMMARY_CROSS_TABS;
@@ -164,7 +188,7 @@ export function PatientSummaryMiniCards({
         ) : (
           <SummaryMiniCardButton
             title={PATIENT_SUMMARY_MINI_CARD_APPOINTMENTS}
-            detail={appointmentsDetail(appt)}
+            detail={appointmentsDetail(appt, doctorLabels, procedureMaps, roomMap)}
             tab="appointments"
             onOpenTab={onOpenTab}
           />
@@ -213,6 +237,13 @@ export function PatientSummaryMiniCards({
             onOpenTab={onOpenTab}
           />
         )}
+
+        <SummaryMiniCardButton
+          title={PATIENT_SUMMARY_MINI_CARD_TIMELINE}
+          detail="Merged safe events"
+          tab="timeline"
+          onOpenTab={onOpenTab}
+        />
       </div>
 
       <div className="app-patient-profile__summary-cross-tabs" role="group" aria-label={PATIENT_SUMMARY_CROSS_TAB_ARIA}>

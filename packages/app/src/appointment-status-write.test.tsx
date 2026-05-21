@@ -9,6 +9,7 @@ import {
   isAppointmentStatusWritePilotEnabled,
   isAppointmentStatusWriteReady,
 } from "./appointment-status-write.js";
+import { WRITE_POST_COMMIT_MIRROR_NUDGE } from "./read-only-ui-copy.js";
 import { assertNoForbiddenDomTokens } from "./read-only-smoke-fixtures.js";
 
 const syntheticAppointment = {
@@ -255,6 +256,7 @@ describe("AppointmentStatusWriteAction", () => {
     const text = container.textContent ?? "";
     expect(text).toContain("Committed: true");
     expect(text).toContain("status updated");
+    expect(text).toContain(WRITE_POST_COMMIT_MIRROR_NUDGE);
     expect(text).toContain(committedPlan.operationId);
     expect(text).toContain("Backup created");
     expect(text).toContain("Audit: operation found");

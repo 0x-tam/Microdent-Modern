@@ -4,18 +4,27 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge, Button, Card, CardBody, CardHeader, EmptyState } from "@microdent/ui";
 import type { BridgeHealthPhase } from "./bridge-health.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
-import { doctorDisplayLabel } from "./doctor-labels.js";
-import { procClassDisplayLabel } from "./procedure-reference.js";
+import {
+  appointmentVisitMeta,
+  patientApptStatusSemanticLabel,
+} from "./patient-appointments-display.js";
 import { useDoctorLabels } from "./useDoctorLabels.js";
 import { useProcedureReference } from "./useProcedureReference.js";
 import {
   CLINIC_SERVICE_CHECKING,
   CLINIC_SERVICE_CONNECT_SCHEDULE,
+  SCHEDULE_DAY_APPOINTMENT_COUNT,
   SCHEDULE_EMPTY_DESCRIPTION,
   SCHEDULE_EMPTY_TITLE,
+  SCHEDULE_FILTER_ALL_PROVIDERS,
+  SCHEDULE_FILTER_EMPTY_DESCRIPTION,
+  SCHEDULE_FILTER_EMPTY_TITLE,
+  SCHEDULE_FILTER_PROVIDER_ARIA,
   SCHEDULE_KEYBOARD_HINT,
   SCHEDULE_LOAD_ERROR,
   SCHEDULE_LOADING,
+  SCHEDULE_MIRROR_STALE_ADVISORY,
+  SCHEDULE_MIRROR_STALE_FILTER_NOTE,
   SCHEDULE_NAV_NEXT_DAY,
   SCHEDULE_NAV_NEXT_WEEK,
   SCHEDULE_NAV_PREV_DAY,
@@ -25,13 +34,14 @@ import {
   SCHEDULE_RANGE_APPOINTMENT_COUNT,
   SCHEDULE_RANGE_INCLUDES_TODAY,
   SCHEDULE_ROOM_ALL,
-  SCHEDULE_MIRROR_STALE_ADVISORY,
   SCHEDULE_OPEN_PATIENT,
   SCHEDULE_ROOM_FILTER_CONTEXT,
   SCHEDULE_ROOM_FILTER_LABEL,
   SCHEDULE_ROOM_FILTER_LOADING,
   SCHEDULE_ROOM_FILTER_EMPTY,
   SCHEDULE_SANDBOX_WRITE_PILOT_BANNER,
+  TODAY_APPT_ROW_CURRENT_LABEL,
+  SCHEDULE_WRITE_DISCOVERABILITY_HINT,
   READONLY_STATE_RETRY,
   SCHEDULE_VIEW_DAY,
   SCHEDULE_VIEW_LABEL,
@@ -44,6 +54,9 @@ import { resolveWriteModeChip } from "./shell-status-banners.js";
 import { isMirrorImportStale } from "./mirror-stale.js";
 import {
   countAppointmentsByStatus,
+  filterPatientAppointments,
+  findCurrentAppointmentInRange,
+  patientApptProviderFilterOptions,
   patientApptStatusBadgeVariant,
   patientApptStatusLabel,
 } from "./patient-appointments-display.js";
@@ -274,6 +287,8 @@ export function SchedulePanel({
   const [rangeFrom, setRangeFrom] = useState(() => defaultWeekRange().from);
   const [rangeTo, setRangeTo] = useState(() => defaultWeekRange().to);
   const [roomFilter, setRoomFilter] = useState<number | "">("");
+  const [statusFilter, setStatusFilter] = useState<number | null>(null);
+  const [providerFilter, setProviderFilter] = useState<number | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
   const [sandboxApplyEnabled, setSandboxApplyEnabled] = useState(false);
   const [writeCapability, setWriteCapability] = useState<BridgeDevStatusResponse | null>(null);
@@ -497,7 +512,29 @@ export function SchedulePanel({
     [rangeFrom, rangeTo, granularity],
   );
 
-  const grouped = useMemo(() => groupByDateThenRoom(appointments), [appointments]);
+  const displayAppointments = useMemo(
+    () =>
+      filterPatientAppointments(appointments, {
+        statusFilter,
+        providerFilter,
+      }),
+    [appointments, statusFilter, providerFilter],
+  );
+
+  const grouped = useMemo(() => groupByDateThenRoom(displayAppointments), [displayAppointments]);
+
+  const providerOptions = useMemo(
+    () => patientApptProviderFilterOptions(appointments, doctorLabels),
+    [appointments, doctorLabels],
+  );
+
+  const currentAppt = useMemo(
+    () => (includesToday ? findCurrentAppointmentInRange(displayAppointments) : null),
+    [displayAppointments, includesToday],
+  );
+
+  const clientFiltersActive =
+    statusFilter !== null || providerFilter !== null || roomFilter !== "";
 
   const roomOptions = useMemo(() => {
     const nums = [...new Set(rooms.map((r) => r.room))].sort((a, b) => a - b);
@@ -524,8 +561,13 @@ export function SchedulePanel({
 
   const roomFilterContext =
     roomFilter !== "" && !loading && !error && canLoad
-      ? SCHEDULE_ROOM_FILTER_CONTEXT(roomCopyLabel(rooms, roomFilter), appointments.length)
+      ? SCHEDULE_ROOM_FILTER_CONTEXT(roomCopyLabel(rooms, roomFilter), displayAppointments.length)
       : null;
+
+  const mirrorStaleMessage =
+    mirrorStale && clientFiltersActive
+      ? `${SCHEDULE_MIRROR_STALE_ADVISORY}${SCHEDULE_MIRROR_STALE_FILTER_NOTE}`
+      : SCHEDULE_MIRROR_STALE_ADVISORY;
 
   const openPatientFromAppt = useCallback(
     (appt: ScheduleAppointmentItem) => {
@@ -602,15 +644,6 @@ export function SchedulePanel({
             </Button>
           </div>
           <div className="app-schedule__toolbar-actions">
-            {writeModeChip ? (
-              <Badge
-                variant={writeModeChip.variant}
-                className="app-schedule__write-mode-chip"
-                semanticLabel={`Bridge write mode: ${writeModeChip.label}`}
-              >
-                {writeModeChip.label}
-              </Badge>
-            ) : null}
             {roomOptions.length > 0 ? (
               <label className="app-schedule__room-filter">
                 <span className="app-schedule__room-filter-label">{SCHEDULE_ROOM_FILTER_LABEL}</span>
@@ -668,7 +701,7 @@ export function SchedulePanel({
           {!loading && !error && canLoad ? (
             <>
               <p className="app-schedule__range-meta" role="status">
-                {SCHEDULE_RANGE_APPOINTMENT_COUNT(appointments.length)}
+                {SCHEDULE_RANGE_APPOINTMENT_COUNT(displayAppointments.length)}
                 {includesToday ? (
                   <span className="app-schedule__range-today-badge"> · {SCHEDULE_RANGE_INCLUDES_TODAY}</span>
                 ) : null}
@@ -677,16 +710,50 @@ export function SchedulePanel({
                 ) : null}
               </p>
               {statusBreakdown.length > 0 ? (
-                <div className="app-schedule__status-breakdown" role="status" aria-label="Status breakdown">
+                <div className="app-schedule__status-breakdown" role="group" aria-label="Status breakdown">
                   {statusBreakdown.map(({ code, count, label, variant }) => (
-                    <Badge
+                    <Button
                       key={code}
-                      variant={variant}
-                      className="app-schedule__status-chip"
-                      semanticLabel={`${count} ${label}`}
+                      type="button"
+                      size="compact"
+                      variant={statusFilter === code ? "primary" : "secondary"}
+                      className={`app-schedule__status-chip app-schedule__status-chip--${variant}`}
+                      aria-pressed={statusFilter === code}
+                      onClick={() => setStatusFilter((f) => (f === code ? null : code))}
                     >
                       {count} {label}
-                    </Badge>
+                    </Button>
+                  ))}
+                </div>
+              ) : null}
+              {providerOptions.length > 1 ? (
+                <div
+                  className="app-schedule__provider-filters"
+                  role="group"
+                  aria-label={SCHEDULE_FILTER_PROVIDER_ARIA}
+                >
+                  <Button
+                    type="button"
+                    size="compact"
+                    variant={providerFilter === null ? "primary" : "secondary"}
+                    className="ui-focusable app-schedule__provider-chip"
+                    aria-pressed={providerFilter === null}
+                    onClick={() => setProviderFilter(null)}
+                  >
+                    {SCHEDULE_FILTER_ALL_PROVIDERS}
+                  </Button>
+                  {providerOptions.map(({ docId, label }) => (
+                    <Button
+                      key={docId}
+                      type="button"
+                      size="compact"
+                      variant={providerFilter === docId ? "primary" : "secondary"}
+                      className="ui-focusable app-schedule__provider-chip"
+                      aria-pressed={providerFilter === docId}
+                      onClick={() => setProviderFilter((f) => (f === docId ? null : docId))}
+                    >
+                      {label}
+                    </Button>
                   ))}
                 </div>
               ) : null}
@@ -695,7 +762,7 @@ export function SchedulePanel({
         </div>
         {mirrorStale ? (
           <p className="app-schedule__mirror-advisory" role="note">
-            {SCHEDULE_MIRROR_STALE_ADVISORY}
+            {mirrorStaleMessage}
           </p>
         ) : null}
         <p className="app-schedule__privacy">{SCHEDULE_PRIVACY_LEDE}</p>
@@ -703,6 +770,11 @@ export function SchedulePanel({
         {sandboxPilotEnabled && canLoad ? (
           <p className="app-schedule__sandbox-write-banner" role="status">
             {SCHEDULE_SANDBOX_WRITE_PILOT_BANNER}
+          </p>
+        ) : null}
+        {sandboxPilotEnabled && canLoad ? (
+          <p className="app-schedule__write-discoverability-hint" role="note">
+            {SCHEDULE_WRITE_DISCOVERABILITY_HINT}
           </p>
         ) : null}
       </div>
@@ -744,13 +816,27 @@ export function SchedulePanel({
             description={SCHEDULE_EMPTY_DESCRIPTION}
           />
         </AppErrorBoundary>
+      ) : displayAppointments.length === 0 ? (
+        <AppErrorBoundary>
+          <EmptyState
+            className="ui-empty--start"
+            title={SCHEDULE_FILTER_EMPTY_TITLE}
+            description={SCHEDULE_FILTER_EMPTY_DESCRIPTION}
+          />
+        </AppErrorBoundary>
       ) : (
         <div className="app-schedule__days">
-          {[...grouped.entries()].map(([dateIso, byRoom]) => (
+          {[...grouped.entries()].map(([dateIso, byRoom]) => {
+            const dayCount = [...byRoom.values()].reduce((sum, list) => sum + list.length, 0);
+            return (
             <Card key={dateIso} className="app-schedule__day-card">
               <CardHeader>
                 <p className="ui-card__title app-card-title-lg app-schedule__day-title">
                   <time dateTime={dateIso}>{formatRangeHeading(dateIso, dateIso, "day")}</time>
+                  <span className="app-schedule__day-count">
+                    {" · "}
+                    {SCHEDULE_DAY_APPOINTMENT_COUNT(dayCount)}
+                  </span>
                 </p>
               </CardHeader>
               <CardBody>
@@ -766,7 +852,18 @@ export function SchedulePanel({
                         {list.map((appt) => {
                           const chart = schedulePatientChart(appt);
                           return (
-                          <li key={appt.id} className="app-schedule__appt-row">
+                          <li
+                            key={appt.id}
+                            className={[
+                              "app-schedule__appt-row",
+                              currentAppt?.id === appt.id ? "app-schedule__appt-row--current" : "",
+                            ]
+                              .filter(Boolean)
+                              .join(" ")}
+                            aria-label={
+                              currentAppt?.id === appt.id ? TODAY_APPT_ROW_CURRENT_LABEL : undefined
+                            }
+                          >
                             <div className="app-schedule__appt-time">{appt.time}</div>
                             <div className="app-schedule__appt-main">
                               <div className="app-schedule__appt-line1">
@@ -777,17 +874,15 @@ export function SchedulePanel({
                                     <span className="app-schedule__appt-patient-chart"> · {chart}</span>
                                   ) : null}
                                   {(() => {
-                                    const doc = doctorDisplayLabel(appt.docId, doctorLabels);
-                                    return doc !== null ? ` · ${doc}` : "";
-                                  })()}
-                                  {(() => {
-                                    const proc = procClassDisplayLabel(appt.procClass, procedureMaps);
-                                    return proc !== null ? ` · ${proc}` : "";
+                                    const meta = appointmentVisitMeta(appt, doctorLabels, procedureMaps, {
+                                      includeRoom: false,
+                                    });
+                                    return meta.length > 0 ? ` · ${meta}` : "";
                                   })()}
                                 </span>
                               </div>
                               <div className="app-schedule__appt-badges">
-                                <Badge variant={statusBadgeVariant(appt.status)} semanticLabel={`Visit status code ${appt.status}`}>
+                                <Badge variant={statusBadgeVariant(appt.status)} semanticLabel={patientApptStatusSemanticLabel(appt.status)}>
                                   {statusLabel(appt.status)}
                                 </Badge>
                                 {appt.missed ? (
@@ -840,11 +935,21 @@ export function SchedulePanel({
                   ))}
               </CardBody>
             </Card>
-          ))}
+          );
+          })}
         </div>
       )}
 
       <div className="app-schedule__footer">
+        {writeModeChip ? (
+          <Badge
+            variant={writeModeChip.variant}
+            className="app-schedule__write-mode-chip"
+            semanticLabel={`Bridge write mode: ${writeModeChip.label}`}
+          >
+            {writeModeChip.label}
+          </Badge>
+        ) : null}
         {bridgeBaseUrl && sandboxPilotEnabled && canLoad ? (
           <AppointmentCreateWriteAction
             bridgeBaseUrl={bridgeBaseUrl}

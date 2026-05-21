@@ -858,10 +858,11 @@ describe("DashboardHome (Today schedule)", () => {
 
   it("renders Clinic at a glance with safe overview rows when connected", async () => {
     vi.useFakeTimers({ now: new Date(2026, 5, 15, 10, 30, 0), toFake: ["Date"] });
+    const onOpenModule = vi.fn();
     const fetchImpl = vi.fn((input: RequestInfo | URL) => {
       const u = String(input);
       if (u.includes("/v1/schedule/appointments")) {
-        return Promise.resolve(jsonResponse({ appointments: [appt()] }));
+        return Promise.resolve(jsonResponse({ appointments: [appt({ status: 1 }), appt({ id: "2", status: 2 })] }));
       }
       return Promise.reject(new Error(`unexpected ${u}`));
     });
@@ -869,10 +870,12 @@ describe("DashboardHome (Today schedule)", () => {
     await act(async () => {
       root.render(
         <DashboardHome
-          onOpenModule={() => {}}
+          onOpenModule={onOpenModule}
           bridgePhase="connected"
           bridgeBaseUrl="http://127.0.0.1:17890"
           fetchImpl={fetchImpl}
+          sandboxWritePilot
+          sessionRecentPatientCount={2}
           writeCapability={{
             writeMode: "disabled",
             writesPermitted: false,
@@ -909,8 +912,17 @@ describe("DashboardHome (Today schedule)", () => {
     expect(container.textContent).toMatch(/Clinic at a glance/i);
     expect(container.textContent).toMatch(/Connected/i);
     expect(container.textContent).toMatch(/Writes off/i);
-    expect(container.textContent).toMatch(/1 appointment/i);
+    expect(container.textContent).toMatch(/Sandbox write pilot enabled/i);
+    expect(container.textContent).toMatch(/2 appointments/i);
+    expect(container.textContent).toMatch(/2 patients/i);
+    expect(container.textContent).toMatch(/scheduled · .*confirmed/i);
     expect(container.textContent).toMatch(/Overview Synth · Chart OV-42/i);
+    const settingsLink = container.querySelector(".app-dashboard-clinic-overview__settings-link");
+    expect(settingsLink?.textContent).toMatch(/Open Settings/i);
+    await act(async () => {
+      settingsLink?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(onOpenModule).toHaveBeenCalledWith("settings");
     assertNoForbiddenDomTokens(container.textContent ?? "");
   });
 

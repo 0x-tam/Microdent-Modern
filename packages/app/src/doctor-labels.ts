@@ -45,3 +45,11 @@ export function doctorDisplayLabel(
   }
   return labels.get(key) ?? `Doctor ${key}`;
 }
+
+/** Profile assigned provider — `Doctor {id}` when set, em dash when absent (matches appointment rows). */
+export function profileAssignedProviderLabel(
+  id: string | number | null | undefined,
+  labels: ReadonlyMap<string, string>,
+): string {
+  return doctorDisplayLabel(id, labels) ?? "—";
+}

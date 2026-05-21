@@ -10,6 +10,7 @@ import {
   APPOINTMENT_WRITE_TAB_MOVE,
   APPOINTMENT_WRITE_TAB_STATUS,
   SCHEDULE_SANDBOX_WRITE_PILOT_BANNER,
+  WRITE_POST_COMMIT_MIRROR_NUDGE,
 } from "./read-only-ui-copy.js";
 import { containsForbiddenWriteResultToken } from "./safe-write-plan-display.js";
 import { assertNoForbiddenDomTokens } from "./read-only-smoke-fixtures.js";
@@ -197,6 +198,7 @@ describe("AppointmentWriteActionsPanel", () => {
     expect(onCommitted).toHaveBeenCalledTimes(1);
     const text = container.textContent ?? "";
     expect(text).toContain("Committed: true");
+    expect(text).toContain(WRITE_POST_COMMIT_MIRROR_NUDGE);
     assertNoForbiddenDomTokens(text);
     expect(containsForbiddenWriteResultToken(text)).toBe(false);
   });

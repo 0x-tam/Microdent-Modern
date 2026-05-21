@@ -322,5 +322,78 @@ describe("settings-status", () => {
     expect(rows.some((r) => r.key === "selected-patient" && r.value.match(/Desk Overview Synth · Chart DO-55/))).toBe(
       true,
     );
+    expect(rows.some((r) => r.key === "sandbox-pilot" && r.value.match(/off in this build/i))).toBe(true);
+  });
+
+  it("resolveFrontDeskOverview includes sandbox pilot on, session recent count, and status mix", () => {
+    const rows = resolveFrontDeskOverview({
+      bridgePhase: "connected",
+      mirrorStatus: {
+        sqliteConfigured: true,
+        sqliteUsable: true,
+        importedTables: ["patients"],
+        latestImportRuns: [
+          {
+            tableName: "patients",
+            status: "success",
+            rowCount: 1,
+            errorCount: 0,
+            finishedAt: new Date().toISOString(),
+          },
+        ],
+      },
+      writeCapability: {
+        writeMode: "enabled",
+        writesPermitted: true,
+        writableSandbox: true,
+        dataRootConfigured: true,
+        backupDirConfigured: true,
+        sqlitePathConfigured: true,
+      },
+      todayAppointmentCount: 2,
+      sandboxWritePilot: true,
+      sessionRecentPatientCount: 3,
+      todayStatusMix: "1 scheduled · 1 confirmed",
+    });
+    expect(rows.some((r) => r.key === "sandbox-pilot" && r.value.match(/enabled in this app build/i))).toBe(true);
+    expect(rows.some((r) => r.key === "session-recent" && r.value === "3 patients")).toBe(true);
+    expect(rows.some((r) => r.key === "status-mix" && r.value === "1 scheduled · 1 confirmed")).toBe(true);
+    expect(rows.every((r) => !r.value.match(/C:\\\\|\/Users\//))).toBe(true);
+  });
+
+  it("resolveFrontDeskOverview rows never include forbidden PHI tokens", () => {
+    const rows = resolveFrontDeskOverview({
+      bridgePhase: "connected",
+      mirrorStatus: {
+        sqliteConfigured: true,
+        sqliteUsable: true,
+        importedTables: ["patients"],
+        latestImportRuns: [
+          {
+            tableName: "patients",
+            status: "success",
+            rowCount: 1,
+            errorCount: 0,
+            finishedAt: new Date().toISOString(),
+          },
+        ],
+      },
+      writeCapability: {
+        writeMode: "enabled",
+        writesPermitted: true,
+        writableSandbox: true,
+        dataRootConfigured: true,
+        backupDirConfigured: true,
+        sqlitePathConfigured: true,
+      },
+      todayAppointmentCount: 2,
+      sandboxWritePilot: true,
+      sessionRecentPatientCount: 3,
+      todayStatusMix: "1 scheduled · 1 confirmed",
+      selectedPatientDisplayName: "Desk Overview Synth",
+      selectedPatientChartNumber: "DO-55",
+    });
+    const text = rows.map((r) => r.value).join(" ");
+    expect(text).not.toMatch(/\bPAT_NAME\b|\bTELEPHONE\b|\bAMOUNT\b|\bSAMOUNT\b|\brawRow\b/i);
   });
 });

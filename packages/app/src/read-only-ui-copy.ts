@@ -120,13 +120,54 @@ export const PATIENT_TAB_DESC_CHART =
 export const PATIENT_TAB_DESC_LEDGER =
   "Charge and payment type codes. Amounts and memo text stay hidden.";
 
+export const PATIENT_TAB_DESC_TIMELINE =
+  "Merged safe dated events from appointments, procedures, ledger, and medical summary. Notes and amounts stay hidden.";
+
+export const PATIENT_TAB_TIMELINE_LEDE =
+  "Longitudinal read-only context grouped by date. Click a row to open the related section.";
+
+export const PATIENT_TAB_LOADING_TIMELINE = "Loading patient timeline…";
+
+export const PATIENT_TAB_OFFLINE_TIMELINE = "Connect the bridge to load the patient timeline.";
+
+export const PATIENT_TIMELINE_RANGE_BANNER_PREFIX = "Appointments in timeline range";
+
+export const PATIENT_TIMELINE_CHART_SNAPSHOT = "Chart snapshot";
+
+export const PATIENT_TIMELINE_EVENT_APPOINTMENT = "Appointment";
+
+export const PATIENT_TIMELINE_EVENT_TREATMENT = "Procedure";
+
+export const PATIENT_TIMELINE_EVENT_LEDGER = "Ledger line";
+
+export const PATIENT_TIMELINE_EVENT_MEDICAL = "Medical summary";
+
+export const PATIENT_TIMELINE_EVENT_PROFILE = "Profile";
+
+export const PATIENT_TIMELINE_ROW_ARIA = "Open related patient section";
+
+export const PATIENT_CHART_TOOTH_FILTER_LABEL = "Showing chart entries for";
+
+export const PATIENT_CHART_TOOTH_FILTER_CLEAR = "Show all teeth";
+
+export const PATIENT_SUMMARY_MINI_CARD_TIMELINE = "Timeline";
+
 export const PATIENT_TAB_HIDDEN_FIELDS_NOTE = `Sensitive fields stay ${HIDDEN_IN_READONLY_VIEWER}.`;
 
 export const SENSITIVE_MEDICAL_BANNER =
   "This patient has medical details on file in the legacy system. Problem descriptions, allergy text, and clinical notes stay hidden in this read-only viewer.";
 
-export const MEDICAL_SENSITIVE_STILL_SHOWN =
-  "You can still see questionnaire dates and the total count of screening flags marked yes — no free-text medical fields.";
+export const MEDICAL_SENSITIVE_STILL_HIDDEN = [
+  "Problem descriptions and clinical narrative text",
+  "Allergy free-text and reaction details",
+  "Medical notes and memo fields from the legacy record",
+  "Individual screening flag labels when sensitive details are on file",
+] as const;
+
+export const MEDICAL_SENSITIVE_STILL_SHOWN = [
+  "Questionnaire last-updated and last dental visit dates",
+  "Total count of screening flags marked yes",
+] as const;
 
 export const PATIENT_TAB_CHART_EXPLAINER =
   "Read-only chart preview grouped by tooth. Chart memos and decoded clinical legends stay hidden — only safe tooth numbers, opaque type codes, and treated/not-treated flags are shown.";
@@ -146,6 +187,17 @@ export const PATIENT_TAB_FILTER_ALL = "All";
 export const PATIENT_TAB_CHART_FILTER_ALL = "All entries";
 
 export const PATIENT_TAB_CHART_FILTER_TREATED = "Treated only";
+
+export function chartSummaryStripLabel(stats: {
+  totalEntries: number;
+  uniqueTeeth: number;
+  treatedCount: number;
+  notTreatedCount: number;
+}): string {
+  const entryWord = stats.totalEntries === 1 ? "entry" : "entries";
+  const toothWord = stats.uniqueTeeth === 1 ? "tooth" : "teeth";
+  return `${stats.totalEntries} chart ${entryWord} · ${stats.uniqueTeeth} unique ${toothWord} · ${stats.treatedCount} treated · ${stats.notTreatedCount} not treated`;
+}
 
 export const PATIENT_TAB_LEDGER_FILTER_CHARGE = "Charges";
 
@@ -169,6 +221,14 @@ export const treatmentsToolbarSummary = (
   return total === 1 ? "1 procedure" : `${total} procedures`;
 };
 
+/** Top provider counts for treatments toolbar — safe labels only, no PHI tokens. */
+export function treatmentsProviderStatsLine(
+  stats: readonly { label: string; count: number }[],
+): string | null {
+  if (stats.length === 0) return null;
+  return stats.map((s) => `${s.label} (${s.count})`).join(" · ");
+}
+
 export const ledgerToolbarSummary = (shown: number, total: number, filterActive: boolean): string => {
   if (filterActive && shown !== total) {
     return shown === 1
@@ -180,6 +240,15 @@ export const ledgerToolbarSummary = (shown: number, total: number, filterActive:
 
 export const PATIENT_TAB_SECTION_QUESTIONNAIRE = "Questionnaire summary";
 
+export const PATIENT_TAB_QUESTIONNAIRE_LAST_UPDATED = "Questionnaire last updated";
+
+export const PATIENT_TAB_QUESTIONNAIRE_DENTAL_VISIT = "Last dental visit";
+
+export const PATIENT_TAB_SECTION_GENERAL_SCREENING = "General screening";
+
+export const PATIENT_TAB_SECTION_ADDITIONAL_MARKERS = "Additional markers";
+
+/** @deprecated Use PATIENT_TAB_SECTION_GENERAL_SCREENING and PATIENT_TAB_SECTION_ADDITIONAL_MARKERS */
 export const PATIENT_TAB_SECTION_SCREENING = "Screening flags marked yes";
 
 export const PATIENT_TAB_SECTION_PROCEDURE_HISTORY = "Procedure history";
@@ -219,6 +288,8 @@ export const PATIENT_APPT_FILTER_STATUS_ARIA = "Filter by visit status";
 export const PATIENT_APPT_FILTER_ROOM_ARIA = "Filter by room";
 export const PATIENT_APPT_FILTER_ALL_STATUSES = "All statuses";
 export const PATIENT_APPT_FILTER_ALL_ROOMS = "All rooms";
+export const PATIENT_APPT_FILTER_PROVIDER_ARIA = "Filter by provider";
+export const PATIENT_APPT_FILTER_ALL_PROVIDERS = "All providers";
 export const PATIENT_APPT_OPEN_IN_SCHEDULE = "Open in Schedule";
 
 export const SCHEDULE_PRIVACY_LEDE =
@@ -357,6 +428,21 @@ export const SCHEDULE_ROOM_FILTER_EMPTY = "No rooms loaded";
 export const SCHEDULE_MIRROR_STALE_ADVISORY =
   "Local copy may be outdated — this range may not reflect the latest DBF changes until mirror import runs again.";
 
+export const SCHEDULE_MIRROR_STALE_FILTER_NOTE =
+  " Active room, status, or provider filters may hide rows that changed on the source system.";
+
+export const SCHEDULE_FILTER_PROVIDER_ARIA = "Filter by provider";
+
+export const SCHEDULE_FILTER_ALL_PROVIDERS = "All providers";
+
+export const SCHEDULE_DAY_APPOINTMENT_COUNT = (count: number): string =>
+  count === 1 ? "1 appointment" : `${count} appointments`;
+
+export const SCHEDULE_FILTER_EMPTY_TITLE = "No appointments match";
+
+export const SCHEDULE_FILTER_EMPTY_DESCRIPTION =
+  "Try clearing status or provider filters, another day or week, or a different room.";
+
 export const SCHEDULE_ROOM_FILTER_CONTEXT = (roomLabel: string, count: number): string =>
   count === 1 ? `${roomLabel} · 1 appointment` : `${roomLabel} · ${count} appointments`;
 
@@ -397,6 +483,23 @@ export const FRONT_DESK_OVERVIEW_TODAY_COUNT = (count: number): string =>
   count === 1 ? "1 appointment" : `${count} appointments`;
 
 export const FRONT_DESK_OVERVIEW_SELECTED_PATIENT_LABEL = "Selected patient";
+
+export const FRONT_DESK_OVERVIEW_SANDBOX_PILOT_LABEL = "Sandbox pilot";
+
+export const FRONT_DESK_OVERVIEW_SESSION_RECENT_LABEL = "Recent this session";
+
+export const FRONT_DESK_OVERVIEW_SESSION_RECENT_COUNT = (count: number): string =>
+  count === 1 ? "1 patient" : `${count} patients`;
+
+export const FRONT_DESK_OVERVIEW_STATUS_MIX_LABEL = "Status mix";
+
+export const FRONT_DESK_OVERVIEW_OPEN_SETTINGS = "Open Settings";
+
+/** One-line discoverability hint above schedule row write panels. */
+export const SCHEDULE_WRITE_DISCOVERABILITY_HINT =
+  "Expand row for sandbox write actions (pilot env required).";
+
+export const APPOINTMENT_CREATE_DOCTOR_NONE = "None (unassigned)";
 
 export const MODULE_PLACEHOLDER_TITLE = "Not available yet";
 

@@ -35,21 +35,55 @@ export const MEDICAL_CONDITION_LABELS: Record<string, string> = {
 /** Keys omitted from named lists — still counted via API `flaggedConditionCount`. */
 const OMIT_FROM_NAMED_LIST = new Set(["med1", "med2", "aids"]);
 
+/** Core intake screening — shown under “General screening”. */
+const GENERAL_SCREENING_KEYS = new Set([
+  "hospital",
+  "physician",
+  "medicine",
+  "ill",
+  "reaction",
+  "bleeding",
+  "allergic",
+]);
+
 export type MedicalConditionDisplayItem = { key: string; label: string };
+
+export type MedicalConditionSections = {
+  general: MedicalConditionDisplayItem[];
+  additional: MedicalConditionDisplayItem[];
+};
+
+function medicalConditionItem(key: string): MedicalConditionDisplayItem | null {
+  const label = MEDICAL_CONDITION_LABELS[key];
+  return label ? { key, label } : null;
+}
 
 /** Returns safe generic labels for flags that are `true`, excluding legacy/opaque keys. */
 export function medicalConditionItemsForDisplay(
   conditions: MedicalConditionFlags | null,
 ): MedicalConditionDisplayItem[] {
-  if (!conditions) return [];
-  const items: MedicalConditionDisplayItem[] = [];
+  const sections = medicalConditionSectionsForDisplay(conditions);
+  return [...sections.general, ...sections.additional];
+}
+
+/** Splits named screening flags into general intake vs additional markers. */
+export function medicalConditionSectionsForDisplay(
+  conditions: MedicalConditionFlags | null,
+): MedicalConditionSections {
+  const general: MedicalConditionDisplayItem[] = [];
+  const additional: MedicalConditionDisplayItem[] = [];
+  if (!conditions) return { general, additional };
+
   for (const [key, value] of Object.entries(conditions)) {
     if (value !== true || OMIT_FROM_NAMED_LIST.has(key)) continue;
-    const label = MEDICAL_CONDITION_LABELS[key];
-    if (label) items.push({ key, label });
+    const item = medicalConditionItem(key);
+    if (!item) continue;
+    if (GENERAL_SCREENING_KEYS.has(key)) general.push(item);
+    else additional.push(item);
   }
-  items.sort((a, b) => a.label.localeCompare(b.label));
-  return items;
+  general.sort((a, b) => a.label.localeCompare(b.label));
+  additional.sort((a, b) => a.label.localeCompare(b.label));
+  return { general, additional };
 }
 
 /** Questionnaire dates — same Intl style as treatments and ledger. */

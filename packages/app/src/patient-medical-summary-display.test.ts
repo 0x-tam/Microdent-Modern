@@ -3,6 +3,7 @@ import {
   formatMedicalQuestionnaireDate,
   MEDICAL_CONDITION_LABELS,
   medicalConditionItemsForDisplay,
+  medicalConditionSectionsForDisplay,
   medicalFlaggedCountNeedsPartialNote,
 } from "./patient-medical-summary-display.js";
 
@@ -140,6 +141,77 @@ describe("medicalConditionItemsForDisplay", () => {
     expect(medicalFlaggedCountNeedsPartialNote(3, 2)).toBe(true);
     expect(medicalFlaggedCountNeedsPartialNote(2, 2)).toBe(false);
     expect(medicalFlaggedCountNeedsPartialNote(0, 0)).toBe(false);
+  });
+
+  it("splits flags into general screening and additional markers", () => {
+    const sections = medicalConditionSectionsForDisplay({
+      hospital: true,
+      physician: null,
+      medicine: null,
+      ill: null,
+      reaction: null,
+      bleeding: null,
+      allergic: null,
+      heartTrouble: null,
+      congenitalHeart: null,
+      heartMurmur: null,
+      highBloodPressure: null,
+      lowBloodPressure: null,
+      anemia: null,
+      rheumaticFever: null,
+      jaundice: null,
+      asthma: true,
+      cough: null,
+      kidneyTrouble: null,
+      med1: null,
+      diabetes: null,
+      tuberculosis: null,
+      hepatitis: null,
+      arthritis: null,
+      stroke: null,
+      epilepsy: null,
+      psychiatric: null,
+      sinusTrouble: null,
+      pregnant: null,
+      ulcers: null,
+      aids: null,
+      med2: null,
+    });
+    expect(sections.general.map((i) => i.key)).toEqual(["hospital"]);
+    expect(sections.additional.map((i) => i.key)).toEqual(["asthma"]);
+    expect(medicalConditionItemsForDisplay({
+      hospital: true,
+      physician: null,
+      medicine: null,
+      ill: null,
+      reaction: null,
+      bleeding: null,
+      allergic: null,
+      heartTrouble: null,
+      congenitalHeart: null,
+      heartMurmur: null,
+      highBloodPressure: null,
+      lowBloodPressure: null,
+      anemia: null,
+      rheumaticFever: null,
+      jaundice: null,
+      asthma: true,
+      cough: null,
+      kidneyTrouble: null,
+      med1: null,
+      diabetes: null,
+      tuberculosis: null,
+      hepatitis: null,
+      arthritis: null,
+      stroke: null,
+      epilepsy: null,
+      psychiatric: null,
+      sinusTrouble: null,
+      pregnant: null,
+      ulcers: null,
+      aids: null,
+      med2: null,
+    })).toHaveLength(2);
   });
 
   it("sorts labels alphabetically for stable display", () => {

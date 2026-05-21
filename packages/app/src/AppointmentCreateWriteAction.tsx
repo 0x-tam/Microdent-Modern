@@ -1,6 +1,6 @@
 import { createBridgeClient, BridgeClientError } from "@microdent/bridge-client";
 import type { AppointmentCreateBody, BridgeDevStatusResponse } from "@microdent/contracts";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@microdent/ui";
 import {
   APPOINTMENT_CREATE_WRITE_CONFIRM,
@@ -8,11 +8,13 @@ import {
 } from "./appointment-create-write.js";
 import {
   APPOINTMENT_CREATE_APPLY_LABEL,
+  APPOINTMENT_CREATE_DOCTOR_NONE,
   APPOINTMENT_CREATE_PATIENT_ID_HINT,
   APPOINTMENT_CREATE_PREVIEW_LABEL,
   APPOINTMENT_CREATE_SUMMARY,
 } from "./read-only-ui-copy.js";
 import { isSandboxWritePilotEnabled, resolveSandboxWriteBlockReason } from "./sandbox-write-pilot.js";
+import { useDoctorLabels } from "./useDoctorLabels.js";
 import {
   SafeWritePlanResult,
   SandboxWriteBanner,
@@ -62,6 +64,16 @@ export function AppointmentCreateWriteAction({
   const [durationSlots, setDurationSlots] = useState("1");
   const [status, setStatus] = useState("1");
   const [state, setState] = useState<UiState>({ kind: "idle" });
+  const { labels: doctorLabels } = useDoctorLabels({
+    bridgePhase: "connected",
+    bridgeBaseUrl,
+    fetchImpl,
+  });
+  const doctorOptions = useMemo(() => {
+    return [...doctorLabels.entries()].sort(([a], [b]) =>
+      a.localeCompare(b, undefined, { numeric: true }),
+    );
+  }, [doctorLabels]);
 
   useEffect(() => {
     setDate(defaultDate);
@@ -242,10 +254,8 @@ export function AppointmentCreateWriteAction({
           />
         </label>
         <label className="app-sandbox-write__label">
-          <span>Doctor id</span>
-          <input
-            type="number"
-            min={0}
+          <span>Doctor</span>
+          <select
             className="ui-focusable"
             value={docId}
             disabled={loading}
@@ -253,7 +263,15 @@ export function AppointmentCreateWriteAction({
               setDocId(e.target.value);
               invalidatePreview();
             }}
-          />
+            aria-label="Doctor"
+          >
+            <option value="0">{APPOINTMENT_CREATE_DOCTOR_NONE}</option>
+            {doctorOptions.map(([id, name]) => (
+              <option key={id} value={id}>
+                {name}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="app-sandbox-write__label">
           <span>Duration slots</span>

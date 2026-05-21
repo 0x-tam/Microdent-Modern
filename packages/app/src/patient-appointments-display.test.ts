@@ -1,13 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { buildDoctorLabelMap } from "./doctor-labels.js";
 import { buildProcedureReferenceMaps, procClassDisplayLabel } from "./procedure-reference.js";
-import { patientApptRowMeta } from "./patient-appointments-display.js";
 import {
+  appointmentVisitMeta,
+  buildRoomLabelMap,
   comparePatientApptToNow,
   filterPatientAppointments,
+  findCurrentAppointmentInRange,
+  patientApptProviderFilterOptions,
   patientApptRangeCountLabel,
+  patientApptRowMeta,
   patientApptStatusLabel,
+  patientApptStatusSemanticLabel,
+  patientApptUniqueDocIds,
   patientApptUniqueRooms,
+  roomDisplayLabel,
+  scheduleDayAppointmentCountLabel,
 } from "./patient-appointments-display.js";
 import type { ScheduleAppointmentItem } from "@microdent/contracts";
 
@@ -82,6 +90,37 @@ describe("patientApptRowMeta privacy", () => {
   });
 });
 
+describe("appointmentVisitMeta", () => {
+  const roomMap = buildRoomLabelMap([{ room: 2, displayName: "Synthetic bay B", activeDays: 127, doctorId: 1 }]);
+
+  it("builds unified visit meta with duration and room dictionary label", () => {
+    const appt = { ...baseAppt, docId: 5, procClass: 44 };
+    const doctorLabels = buildDoctorLabelMap([
+      { doctorId: "5", displayName: "Synthetic Provider Appt", active: true },
+    ]);
+    const meta = appointmentVisitMeta(appt, doctorLabels, maps, {
+      includeDuration: true,
+      roomLabel: roomDisplayLabel(appt.room, roomMap),
+    });
+    expect(meta).toContain("Synthetic bay B");
+    expect(meta).toContain("30 min");
+    expect(meta).toContain("Synthetic Provider Appt");
+    expect(meta).toContain("Synthetic category only");
+  });
+
+  it("uses patientApptRowMeta with room map fallback", () => {
+    expect(patientApptRowMeta(baseAppt, new Map(), maps, roomMap)).toContain("Synthetic bay B");
+    expect(patientApptRowMeta(baseAppt, new Map(), maps)).toContain("Room 2");
+  });
+});
+
+describe("patientApptStatusSemanticLabel", () => {
+  it("uses human status text without raw code", () => {
+    expect(patientApptStatusSemanticLabel(2)).toBe("Visit status: Confirmed");
+    expect(patientApptStatusSemanticLabel(2)).not.toMatch(/\b2\b/);
+  });
+});
+
 describe("patient appointment filters", () => {
   const ref = new Date(2026, 4, 15, 12, 0, 0);
   const past = { ...baseAppt, id: "past", date: "2026-05-10", time: "10:00", status: 3, room: 1 };
@@ -101,12 +140,54 @@ describe("patient appointment filters", () => {
     ]);
   });
 
-  it("filters by status and room", () => {
+  it("filters by status, room, and provider", () => {
     expect(filterPatientAppointments(list, { statusFilter: 1, ref })).toHaveLength(1);
     expect(filterPatientAppointments(list, { roomFilter: 2, ref }).map((a) => a.id)).toEqual([
       "today-past",
       "today-future",
     ]);
+    const withProvider = [
+      ...list,
+      { ...baseAppt, id: "other-doc", docId: 9, date: "2026-05-16", time: "11:00" },
+    ];
+    expect(filterPatientAppointments(withProvider, { providerFilter: 9, ref }).map((a) => a.id)).toEqual([
+      "other-doc",
+    ]);
+  });
+
+  it("lists unique doc ids and provider chip labels", () => {
+    const doctorLabels = buildDoctorLabelMap([
+      { doctorId: "5", displayName: "Synthetic Provider Appt", active: true },
+    ]);
+    const withTwo = [
+      { ...baseAppt, id: "a", docId: 5 },
+      { ...baseAppt, id: "b", docId: 9 },
+    ];
+    expect(patientApptUniqueDocIds(withTwo)).toEqual([5, 9]);
+    expect(patientApptProviderFilterOptions(withTwo, doctorLabels)).toEqual([
+      { docId: 5, label: "Synthetic Provider Appt" },
+      { docId: 9, label: "Doctor 9" },
+    ]);
+  });
+
+  it("finds current appointment on today's date in range", () => {
+    const ref = new Date(2026, 4, 15, 10, 30, 0);
+    const current = {
+      ...baseAppt,
+      id: "now",
+      date: "2026-05-15",
+      time: "10:00",
+      durationSlots: 2,
+      periodMinutes: 30,
+    };
+    const later = { ...baseAppt, id: "later", date: "2026-05-15", time: "14:00" };
+    expect(findCurrentAppointmentInRange([past, later, current], ref)?.id).toBe("now");
+    expect(findCurrentAppointmentInRange([past, future], ref)).toBeNull();
+  });
+
+  it("formats per-day count copy", () => {
+    expect(scheduleDayAppointmentCountLabel(1)).toBe("1 appointment");
+    expect(scheduleDayAppointmentCountLabel(4)).toBe("4 appointments");
   });
 
   it("lists unique rooms sorted", () => {

@@ -958,6 +958,7 @@ describe("SchedulePanel", () => {
 
     expect(container.querySelectorAll(".app-schedule__sandbox-write-banner")).toHaveLength(1);
     expect(container.textContent).toMatch(/Sandbox write pilot/i);
+    expect(container.textContent).toMatch(/Expand row for sandbox write actions/i);
     const writePanels = container.querySelectorAll('[data-testid="appt-write-actions-panel"]');
     expect(writePanels).toHaveLength(1);
     expect((writePanels[0] as HTMLDetailsElement).open).toBe(false);
@@ -1481,6 +1482,28 @@ describe("SchedulePanel", () => {
     expect(container.textContent).toMatch(/1 Completed/i);
     expect(container.querySelector(".app-schedule__status-breakdown")).toBeTruthy();
 
+    const scheduledChip = [...container.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("1 Scheduled"),
+    );
+    expect(scheduledChip).toBeTruthy();
+    await act(async () => {
+      scheduledChip!.click();
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(container.textContent).toMatch(/1 appointment in this range/i);
+    expect(container.querySelectorAll(".app-schedule__appt-row")).toHaveLength(1);
+
+    await act(async () => {
+      scheduledChip!.click();
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
     const select = container.querySelector("select.app-schedule__select") as HTMLSelectElement;
     await act(async () => {
       select.value = "2";
@@ -1614,5 +1637,347 @@ describe("SchedulePanel", () => {
       displayName: "Open Patient Synth",
       chartNumber: "OP-1",
     });
+  });
+
+  it("filters by provider chips and shows per-day counts", async () => {
+    const fetchImpl = withReferenceDoctors((input: RequestInfo | URL) => {
+      const u = String(input);
+      if (u.includes("/v1/schedule/rooms")) {
+        return Promise.resolve(jsonResponse(sampleRooms));
+      }
+      if (u.includes("/v1/schedule/appointments")) {
+        const m = u.match(/from=([^&]+)/);
+        const fromQ = m ? decodeURIComponent(m[1]) : "";
+        return Promise.resolve(
+          jsonResponse({
+            appointments: [
+              { ...sampleAppointments(fromQ).appointments[0], id: "1", docId: 3, time: "09:00" },
+              {
+                ...sampleAppointments(fromQ).appointments[0],
+                id: "2",
+                docId: 99,
+                time: "11:00",
+                patId: "0",
+                patient: null,
+              },
+            ],
+          }),
+        );
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <SchedulePanel
+          isActive
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toMatch(/Synthetic Provider Sched/i);
+    expect(container.textContent).toMatch(/2 appointments/i);
+
+    const providerChip = [...container.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("Synthetic Provider Sched"),
+    );
+    await act(async () => {
+      providerChip?.click();
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(container.textContent).toMatch(/1 appointment in this range/i);
+    assertNoForbiddenDomTokens(container.textContent ?? "");
+  });
+
+  it("highlights the current appointment when today is in range", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 7, 10, 11, 15, 0));
+
+    const fetchImpl = withReferenceDoctors((input: RequestInfo | URL) => {
+      const u = String(input);
+      if (u.includes("/v1/schedule/rooms")) {
+        return Promise.resolve(jsonResponse({ rooms: [] }));
+      }
+      if (u.includes("/v1/schedule/appointments")) {
+        return Promise.resolve(
+          jsonResponse({
+            appointments: [
+              {
+                id: "current",
+                date: "2026-08-10",
+                time: "11:00",
+                durationSlots: 2,
+                periodMinutes: 30,
+                room: 1,
+                status: 2,
+                docId: 3,
+                patId: "1",
+                patient: null,
+                procClass: 0,
+                vacId: 0,
+                recall: 0,
+                unreason: 0,
+                missed: false,
+                hasComment: false,
+              },
+            ],
+          }),
+        );
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <SchedulePanel
+          isActive
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const dayBtn = [...container.querySelectorAll("button")].find((b) => b.textContent === "Day");
+    await act(async () => {
+      dayBtn?.click();
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector(".app-schedule__appt-row--current")).toBeTruthy();
+    vi.useRealTimers();
+  });
+
+  it("extends mirror stale copy when client filters are active", async () => {
+    const staleFinishedAt = new Date(Date.now() - 49 * 60 * 60 * 1000).toISOString();
+    const fetchImpl = withReferenceDoctors((input: RequestInfo | URL) => {
+      const u = String(input);
+      if (u.includes("/v1/schedule/rooms")) {
+        return Promise.resolve(jsonResponse(sampleRooms));
+      }
+      if (u.includes("/v1/schedule/appointments")) {
+        const m = u.match(/from=([^&]+)/);
+        const fromQ = m ? decodeURIComponent(m[1]) : "";
+        return Promise.resolve(
+          jsonResponse({
+            appointments: [
+              { ...sampleAppointments(fromQ).appointments[0], id: "1", status: 1 },
+              { ...sampleAppointments(fromQ).appointments[0], id: "2", status: 3, time: "11:00" },
+            ],
+          }),
+        );
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <SchedulePanel
+          isActive
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          mirrorStatus={{
+            sqliteConfigured: true,
+            sqliteUsable: true,
+            importedTables: ["patients"],
+            latestImportRuns: [
+              {
+                tableName: "patients",
+                status: "success",
+                rowCount: 1,
+                errorCount: 0,
+                finishedAt: staleFinishedAt,
+              },
+            ],
+          }}
+          onBackToday={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const scheduledChip = [...container.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("Scheduled"),
+    );
+    await act(async () => {
+      scheduledChip?.click();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toMatch(/Active room, status, or provider filters/i);
+  });
+
+  it("opens patient after status filter is applied", async () => {
+    const onOpenPatient = vi.fn();
+    const fetchImpl = withReferenceDoctors((input: RequestInfo | URL) => {
+      const u = String(input);
+      if (u.includes("/v1/schedule/rooms")) {
+        return Promise.resolve(jsonResponse({ rooms: [] }));
+      }
+      if (u.includes("/v1/schedule/appointments")) {
+        const m = u.match(/from=([^&]+)/);
+        const fromQ = m ? decodeURIComponent(m[1]) : "";
+        return Promise.resolve(
+          jsonResponse({
+            appointments: [
+              {
+                id: "501",
+                date: fromQ,
+                time: "09:00",
+                durationSlots: 1,
+                periodMinutes: 30,
+                room: 1,
+                status: 1,
+                docId: 0,
+                patId: "9001",
+                patient: {
+                  patientId: "9001",
+                  displayName: "Filtered Open Patient",
+                  chartNumber: "FOP-1",
+                },
+                procClass: 0,
+                vacId: 0,
+                recall: 0,
+                unreason: 0,
+                missed: false,
+                hasComment: false,
+              },
+              {
+                id: "502",
+                date: fromQ,
+                time: "10:00",
+                durationSlots: 1,
+                periodMinutes: 30,
+                room: 1,
+                status: 3,
+                docId: 0,
+                patId: "9002",
+                patient: null,
+                procClass: 0,
+                vacId: 0,
+                recall: 0,
+                unreason: 0,
+                missed: false,
+                hasComment: false,
+              },
+            ],
+          }),
+        );
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <SchedulePanel
+          isActive
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onOpenPatient={onOpenPatient}
+          onBackToday={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const scheduledChip = [...container.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("1 Scheduled"),
+    );
+    await act(async () => {
+      scheduledChip?.click();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const openBtn = Array.from(container.querySelectorAll("button")).find((b) =>
+      b.textContent?.includes("Open patient record"),
+    );
+    await act(async () => {
+      openBtn!.click();
+    });
+    expect(onOpenPatient).toHaveBeenCalledWith("9001", {
+      displayName: "Filtered Open Patient",
+      chartNumber: "FOP-1",
+    });
+  });
+
+  it("places write-mode chip in the footer near write panels", async () => {
+    const fetchImpl = withReferenceDoctors((input: RequestInfo | URL) => {
+      const u = String(input);
+      if (u.includes("/v1/meta/write-capability")) {
+        return Promise.resolve(
+          jsonResponse({
+            writeMode: "dry-run",
+            writesPermitted: false,
+            writableSandbox: true,
+            dataRootConfigured: true,
+            backupDirConfigured: true,
+            sqlitePathConfigured: true,
+          }),
+        );
+      }
+      if (u.includes("/v1/schedule/rooms")) {
+        return Promise.resolve(jsonResponse({ rooms: [] }));
+      }
+      if (u.includes("/v1/schedule/appointments")) {
+        return Promise.resolve(jsonResponse({ appointments: [] }));
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <SchedulePanel
+          isActive
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          sandboxWritePilot
+          onBackToday={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const footer = container.querySelector(".app-schedule__footer");
+    expect(footer?.querySelector(".app-schedule__write-mode-chip")).toBeTruthy();
+    expect(container.querySelector(".app-schedule__toolbar-actions .app-schedule__write-mode-chip")).toBeNull();
   });
 });

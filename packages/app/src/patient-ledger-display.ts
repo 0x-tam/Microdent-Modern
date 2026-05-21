@@ -109,6 +109,39 @@ export type LedgerMonthGroup = {
   items: LedgerEntryV1[];
 };
 
+export type LedgerTypeDistribution = Record<LedgerEntryKind, number>;
+
+export function ledgerTypeDistributionCounts(items: readonly LedgerEntryV1[]): LedgerTypeDistribution {
+  const counts: LedgerTypeDistribution = { charge: 0, adjustment: 0, payment: 0 };
+  for (const e of items) {
+    for (const kind of ledgerEntryKinds(e)) {
+      counts[kind]++;
+    }
+  }
+  return counts;
+}
+
+/** Count-only summary — no amounts or memo text. */
+export function formatLedgerTypeDistribution(counts: LedgerTypeDistribution): string | null {
+  const parts: string[] = [];
+  if (counts.charge > 0) {
+    parts.push(`${counts.charge} charge${counts.charge === 1 ? "" : "s"}`);
+  }
+  if (counts.payment > 0) {
+    parts.push(`${counts.payment} payment${counts.payment === 1 ? "" : "s"}`);
+  }
+  if (counts.adjustment > 0) {
+    parts.push(`${counts.adjustment} adjustment${counts.adjustment === 1 ? "" : "s"}`);
+  }
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+export function formatLedgerMonthGroupHeading(monthKey: string, entryCount: number): string {
+  const base = formatLedgerMonthHeading(monthKey);
+  if (entryCount === 1) return `${base} · 1 entry`;
+  return `${base} · ${entryCount} entries`;
+}
+
 export function groupLedgerEntriesByMonth(items: readonly LedgerEntryV1[]): LedgerMonthGroup[] {
   const sorted = sortLedgerEntriesForDisplay(items);
   const map = new Map<string, LedgerEntryV1[]>();

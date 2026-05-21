@@ -35,11 +35,38 @@ const dryRunPlan = {
 
 const committedPlan = { ...dryRunPlan, committed: true, mode: "enabled" as const };
 
+const syntheticDoctors = {
+  doctors: [
+    { doctorId: "3", displayName: "Synthetic Provider Create", active: true },
+    { doctorId: "7", displayName: "Second Provider", active: true },
+  ],
+};
+
+function withReferenceDoctors(
+  inner: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
+): ReturnType<typeof vi.fn> {
+  return vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+    const u = String(input);
+    if (u.includes("/v1/reference/doctors")) {
+      return Promise.resolve(jsonResponse(syntheticDoctors));
+    }
+    return inner(input, init);
+  });
+}
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { "Content-Type": "application/json" },
   });
+}
+
+function openCreateDetails(container: ParentNode) {
+  const details = container.querySelector('[data-testid="appt-create-write-pilot"]') as HTMLDetailsElement;
+  act(() => {
+    details.open = true;
+  });
+  return details;
 }
 
 describe("AppointmentCreateWriteAction", () => {
@@ -99,7 +126,7 @@ describe("AppointmentCreateWriteAction", () => {
   });
 
   it("dry-run preview then commit refreshes parent", async () => {
-    const fetchImpl = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+    const fetchImpl = withReferenceDoctors((input, init) => {
       const u = String(input);
       const intent = (init?.headers as Record<string, string> | undefined)?.["X-Write-Intent"];
       if (u.includes("/v1/schedule/appointments") && intent === "dry-run") {
@@ -139,6 +166,25 @@ describe("AppointmentCreateWriteAction", () => {
     assertNoForbiddenDomTokens(text);
     expect(containsForbiddenWriteResultToken(text)).toBe(false);
     expect(text).not.toMatch(/COMMENT/i);
+  });
+
+  it("populates doctor select from reference doctors", async () => {
+    const fetchImpl = withReferenceDoctors(() => Promise.reject(new Error("unexpected")));
+    renderPilot({ fetchImpl });
+    openCreateDetails(container);
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const doctorSelect = container.querySelector('select[aria-label="Doctor"]') as HTMLSelectElement;
+    expect(doctorSelect).toBeTruthy();
+    const options = [...doctorSelect.options].map((o) => ({ value: o.value, label: o.textContent }));
+    expect(options[0]).toEqual({ value: "0", label: "None (unassigned)" });
+    expect(options.some((o) => o.value === "3" && o.label === "Synthetic Provider Create")).toBe(true);
+    expect(options.some((o) => o.value === "7" && o.label === "Second Provider")).toBe(true);
+    expect(container.querySelector('input[aria-label="Patient id"]')).toBeTruthy();
+    assertNoForbiddenDomTokens(container.textContent ?? "");
   });
 
   it("re-disables Create after editing fields following preview", async () => {

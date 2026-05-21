@@ -36,6 +36,15 @@ export function capPatientApptRange(from: string, to: string): { from: string; t
 
 export type PatientApptRangePreset = "default" | "past90" | "upcoming90" | "thisYear";
 
+/** Timeline window: ±365 days from today, capped at the appointments API max span. */
+export function timelinePatientApptRange(ref = new Date()): { from: string; to: string } {
+  const today = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
+  return capPatientApptRange(
+    toLocalIsoDate(addDaysLocal(today, -365)),
+    toLocalIsoDate(addDaysLocal(today, 365)),
+  );
+}
+
 /** Default window: 90 days before today through 90 days after (181 inclusive days). */
 export function defaultPatientApptRange(ref = new Date()): { from: string; to: string } {
   const today = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
