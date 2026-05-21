@@ -1,5 +1,36 @@
-/* ----- Sandbox write panels (v2) ----- */
-.app-sandbox-write-zone {
+/* ----- Sandbox write panels (clinic workspace) ----- */
+
+.clinic-write-panel {
+  overflow: hidden;
+}
+
+.clinic-write-panel.app-sandbox-write-zone,
+.clinic-write-panel.app-sandbox-write.app-sandbox-write-zone {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+  margin-top: var(--ui-space-3);
+  padding: var(--clinic-panel-pad);
+  padding-top: 0;
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-status-sandbox-border);
+  border-left: 6px solid var(--ui-warning-600);
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--surface-amber) 55%, var(--surface)) 0%,
+    var(--surface) 72%
+  );
+  box-shadow: var(--shadow-card);
+}
+
+.clinic-write-panel.app-sandbox-write-zone--blocked,
+.clinic-write-panel.app-sandbox-write.app-sandbox-write-zone.app-sandbox-write--blocked {
+  border-left-color: var(--ui-border-strong);
+  background: var(--ui-bg-muted);
+  opacity: 0.92;
+}
+
+.app-sandbox-write-zone:not(.clinic-write-panel) {
   display: flex;
   flex-direction: column;
   gap: var(--ui-space-3);
@@ -16,8 +47,8 @@
   box-shadow: var(--ui-shadow-panel);
 }
 
-.app-sandbox-write-zone--blocked,
-.app-sandbox-write.app-sandbox-write-zone.app-sandbox-write--blocked {
+.app-sandbox-write-zone--blocked:not(.clinic-write-panel),
+.app-sandbox-write.app-sandbox-write-zone.app-sandbox-write--blocked:not(.clinic-write-panel) {
   border-left-color: var(--ui-border-strong);
   background: var(--ui-bg-muted);
   opacity: 0.92;
@@ -71,7 +102,24 @@
   background: var(--ui-success-50);
 }
 
-/* Full-width amber sandbox banner */
+/* Full-width amber sandbox banner inside clinic panel */
+.clinic-write-panel .app-sandbox-write-zone__header,
+.clinic-write-panel .app-sandbox-write__summary.app-sandbox-write-zone__header,
+.clinic-write-panel .app-sandbox-write__banner.app-sandbox-write-zone__header {
+  margin: 0 calc(-1 * var(--clinic-panel-pad)) var(--ui-space-1);
+  padding: var(--ui-space-3) var(--clinic-panel-pad);
+  border: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--ui-warning-600) 25%, var(--ui-status-sandbox-border));
+  border-radius: var(--ui-radius-md) var(--ui-radius-md) 0 0;
+  background: color-mix(in srgb, var(--surface-amber) 72%, var(--ui-status-sandbox-bg));
+  color: var(--ui-status-sandbox-text);
+  font-size: var(--app-text-meta);
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
 .app-sandbox-write-zone__header,
 .app-sandbox-write__summary.app-sandbox-write-zone__header,
 .app-sandbox-write__banner.app-sandbox-write-zone__header {
@@ -95,11 +143,13 @@
   font-weight: 600;
 }
 
+details.clinic-write-panel > summary.app-sandbox-write-zone__header,
 details.app-sandbox-write-zone > summary.app-sandbox-write-zone__header {
   cursor: pointer;
   list-style: none;
 }
 
+details.clinic-write-panel > summary.app-sandbox-write-zone__header::-webkit-details-marker,
 details.app-sandbox-write-zone > summary.app-sandbox-write-zone__header::-webkit-details-marker {
   display: none;
 }
@@ -122,7 +172,7 @@ details.app-sandbox-write-zone > summary.app-sandbox-write-zone__header::-webkit
   padding: var(--ui-space-1) var(--ui-space-3);
   border-radius: var(--ui-radius-sm);
   border: 1px solid var(--ui-border-subtle);
-  background: var(--ui-bg-surface);
+  background: var(--surface);
   color: var(--ui-text-muted);
   font-size: var(--app-text-meta);
   font-weight: 600;
@@ -144,27 +194,27 @@ details.app-sandbox-write-zone > summary.app-sandbox-write-zone__header::-webkit
 }
 
 .app-sandbox-write-zone__step--active {
-  border-color: var(--ui-primary-600);
-  background: var(--ui-primary-600);
+  border-color: var(--clinic-teal-600);
+  background: var(--clinic-teal-600);
   color: var(--ui-text-on-primary, #fff);
-  box-shadow: var(--ui-shadow-panel);
+  box-shadow: var(--shadow-card);
 }
 
 .app-sandbox-write-zone__step--active .app-sandbox-write-zone__step-num {
-  border-color: color-mix(in srgb, var(--ui-text-on-primary, #fff) 35%, var(--ui-primary-600));
-  background: color-mix(in srgb, var(--ui-text-on-primary, #fff) 18%, var(--ui-primary-600));
+  border-color: color-mix(in srgb, var(--ui-text-on-primary, #fff) 35%, var(--clinic-teal-600));
+  background: color-mix(in srgb, var(--ui-text-on-primary, #fff) 18%, var(--clinic-teal-600));
   color: inherit;
 }
 
 .app-sandbox-write-zone__step--done {
   border-color: color-mix(in srgb, var(--ui-success-600) 35%, var(--ui-border-subtle));
-  background: var(--ui-success-50);
+  background: color-mix(in srgb, var(--surface-green) 55%, var(--surface));
   color: var(--ui-success-600);
 }
 
 .app-sandbox-write-zone__step--done .app-sandbox-write-zone__step-num {
   border-color: color-mix(in srgb, var(--ui-success-600) 35%, var(--ui-border-subtle));
-  background: var(--ui-bg-surface);
+  background: var(--surface);
   color: var(--ui-success-600);
 }
 
@@ -175,8 +225,8 @@ details.app-sandbox-write-zone > summary.app-sandbox-write-zone__header::-webkit
   padding: var(--ui-space-3);
   border-radius: var(--ui-radius-md);
   border: 1px solid var(--ui-border-subtle);
-  background: var(--ui-bg-surface);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ui-bg-surface) 80%, var(--ui-border-subtle));
+  background: var(--surface);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface) 80%, var(--ui-border-subtle));
 }
 
 .app-sandbox-write__group:disabled {
@@ -236,33 +286,34 @@ details.app-sandbox-write-zone > summary.app-sandbox-write-zone__header::-webkit
   border: 1px solid var(--ui-border-subtle);
   font-size: var(--app-text-meta);
   line-height: 1.45;
+  background: var(--surface);
 }
 
 .app-sandbox-write__surface--preview {
-  border-color: color-mix(in srgb, var(--ui-accent-cyan) 35%, var(--ui-border-subtle));
-  background: var(--ui-status-readonly-bg);
+  border-color: color-mix(in srgb, var(--clinic-teal-400) 35%, var(--ui-border-subtle));
+  background: color-mix(in srgb, var(--surface-cyan) 45%, var(--surface));
 }
 
 .app-sandbox-write__surface--success {
   border-color: color-mix(in srgb, var(--ui-success-600) 40%, var(--ui-border-subtle));
-  background: var(--ui-success-50);
+  background: color-mix(in srgb, var(--surface-green) 55%, var(--surface));
 }
 
 .app-sandbox-write__surface--warning {
   border-color: var(--ui-status-mirror-stale-border);
-  background: var(--ui-status-mirror-stale-bg);
+  background: color-mix(in srgb, var(--surface-amber) 55%, var(--surface));
 }
 
 .app-sandbox-write__surface--danger {
   border-color: color-mix(in srgb, var(--ui-danger-600) 40%, var(--ui-border-subtle));
-  background: var(--ui-danger-50);
+  background: color-mix(in srgb, var(--surface-red) 50%, var(--surface));
   color: var(--ui-danger-600);
   font-weight: 600;
 }
 
 .app-sandbox-write__surface--blocked {
   border-color: var(--ui-status-sandbox-border);
-  background: color-mix(in srgb, var(--ui-status-sandbox-bg) 55%, var(--ui-bg-muted));
+  background: color-mix(in srgb, var(--surface-amber) 45%, var(--ui-bg-muted));
   color: var(--ui-status-sandbox-text);
   font-weight: 600;
 }

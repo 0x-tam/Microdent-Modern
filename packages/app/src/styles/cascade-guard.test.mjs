@@ -7,6 +7,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const stylesRoot = join(__dirname);
 const shellLayoutPath = join(stylesRoot, "shell-layout.css");
 const appShellPath = join(stylesRoot, "..", "app-shell.css");
+const clinicDesignSystemPath = join(stylesRoot, "clinic-design-system.css");
 
 const SHELL_LAYOUT_ONLY = /\.(app-shell|app-workspace-shell)\s*\{[^}]*\}/gs;
 const FORBIDDEN_SHELL_LAYOUT = /flex-direction\s*:\s*column/;
@@ -22,6 +23,24 @@ function collectCssFiles(dir, acc = []) {
     if (name.endsWith(".css")) acc.push(full);
   }
   return acc;
+}
+
+function extractImportPaths(hubText) {
+  const imports = [];
+  const re = /@import\s+"([^"]+)"/g;
+  let match;
+  while ((match = re.exec(hubText)) !== null) {
+    imports.push(match[1]);
+  }
+  return imports;
+}
+
+function contentAfterLastImport(hubText) {
+  const lastImportIdx = hubText.lastIndexOf("@import");
+  if (lastImportIdx === -1) return hubText;
+  const afterImportLine = hubText.indexOf("\n", lastImportIdx);
+  if (afterImportLine === -1) return "";
+  return hubText.slice(afterImportLine + 1);
 }
 
 describe("CSS cascade guard — shell layout ownership", () => {
@@ -53,6 +72,31 @@ describe("CSS cascade guard — shell layout ownership", () => {
     const redesignIdx = hub.indexOf('"./styles/workspace-redesign.css"');
     expect(writeIdx).toBeGreaterThan(-1);
     expect(redesignIdx).toBeGreaterThan(writeIdx);
-    expect(hub.lastIndexOf("@import")).toBe(hub.indexOf('@import "./styles/workspace-redesign.css"'));
+  });
+
+  it("imports clinic-design-system.css last in app-shell.css", () => {
+    const hub = readFileSync(appShellPath, "utf8");
+    const imports = extractImportPaths(hub);
+    expect(imports.at(-1)).toBe("./styles/clinic-design-system.css");
+    expect(hub.lastIndexOf("@import")).toBe(hub.indexOf('@import "./styles/clinic-design-system.css"'));
+  });
+
+  it("has no post-import layout overrides in app-shell.css", () => {
+    const hub = readFileSync(appShellPath, "utf8");
+    const tail = contentAfterLastImport(hub).replace(/\/\*[\s\S]*?\*\//g, "").trim();
+    expect(tail).toBe("");
+    expect(hub).not.toMatch(/@import[^;]+clinic-design-system\.css[^;]+;[\s\S]*\.app-shell\s*\{/);
+    expect(hub).not.toMatch(/@import[^;]+clinic-design-system\.css[^;]+;[\s\S]*\.app-workspace-shell\s*\{/);
+  });
+
+  it("clinic-design-system.css defines clinic page primitives", () => {
+    const design = readFileSync(clinicDesignSystemPath, "utf8");
+    expect(design).toMatch(/--clinic-bg:\s*#f5fafb/);
+    expect(design).toMatch(/\.clinic-page\b/);
+    expect(design).toMatch(/\.clinic-stat-card\b/);
+    expect(design).toMatch(/\.clinic-command-grid\b/);
+    expect(design).toMatch(/\.clinic-sidebar\b/);
+    expect(design).toMatch(/\.clinic-header-search\b/);
+    expect(design).toMatch(/\.clinic-workspace-main\b/);
   });
 });

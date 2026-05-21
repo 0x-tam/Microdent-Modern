@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   omitShellBannersDetailedInSettings,
   resolveContextualStatusForModule,
+  resolveShellCriticalStripBanners,
+  resolveShellHeaderMirrorPill,
   resolveBackupNotConfiguredBanner,
   resolveBridgeOfflineBanner,
   resolveEnabledNonSandboxBanner,
@@ -192,8 +194,17 @@ describe("omitShellBannersDetailedInSettings", () => {
   });
 });
 
+describe("resolveShellHeaderMirrorPill", () => {
+  it("returns stale, fallback, or OK labels when connected", () => {
+    expect(resolveShellHeaderMirrorPill("offline", mirrorActive)).toBeNull();
+    expect(resolveShellHeaderMirrorPill("connected", mirrorStale)?.label).toBe("Mirror stale");
+    expect(resolveShellHeaderMirrorPill("connected", mirrorFallback)?.label).toBe("Mirror: DBF fallback");
+    expect(resolveShellHeaderMirrorPill("connected", mirrorActive)?.label).toBe("Mirror OK");
+  });
+});
+
 describe("resolveContextualStatusForModule", () => {
-  it("shows only danger banners on Today (mirror/write info lives in stat strip)", () => {
+  it("shows only danger banners on Today (mirror/write info lives in header pills)", () => {
     const today = resolveContextualStatusForModule("today", "connected", mirrorFallback, capSandbox);
     expect(today.every((b) => b.tone === "danger")).toBe(true);
     expect(today.map((b) => b.key)).not.toContain("mirror-fallback");
@@ -204,6 +215,14 @@ describe("resolveContextualStatusForModule", () => {
     const keys = settings.map((b) => b.key);
     expect(keys).not.toContain("mirror-fallback");
     expect(keys).not.toContain("sandbox-write-warning");
+  });
+});
+
+describe("resolveShellCriticalStripBanners", () => {
+  it("matches danger-only contextual banners", () => {
+    const critical = resolveShellCriticalStripBanners("today", "connected", mirrorFallback, capSandbox);
+    const contextual = resolveContextualStatusForModule("today", "connected", mirrorFallback, capSandbox);
+    expect(critical).toEqual(contextual);
   });
 });
 

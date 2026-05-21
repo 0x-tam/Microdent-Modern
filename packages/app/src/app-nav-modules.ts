@@ -4,25 +4,27 @@ export const APP_SIDEBAR_MODULES = [
     id: "today",
     label: "Today",
     sublabel: "Front desk dashboard",
-    description: "Schedule overview, what's next, and quick actions.",
+    description: "Who is on the schedule, what is next, and where to go next.",
   },
   {
     id: "patients",
     label: "Patients",
     sublabel: "Search and open records",
-    description: "Search by name or chart number. Summary, visits, medical, treatments, chart, and ledger tabs are read-only.",
+    description: "Search by name or chart number when connected. Only query matches are shown.",
   },
   {
     id: "schedule",
     label: "Schedule",
     sublabel: "Day and week views",
-    description: "Day and week views from your copied schedule. Notes and phones stay hidden.",
+    description:
+      "Day and week views from your copied schedule. Patient names use a safe summary; notes and phones stay hidden.",
   },
   {
     id: "settings",
     label: "Settings",
     sublabel: "Operator control center",
-    description: "Bridge health, mirror import, write mode, and sandbox status.",
+    description:
+      "Bridge health, mirror import metadata, write mode, and sandbox status — operator-safe summaries only.",
   },
 ] as const;
 
@@ -109,5 +111,16 @@ export function formatSelectedPatientContextLabel({
 
 /** Sidebar note for modules that are intentionally hidden from the rail. */
 export function resolveSidebarNavHint(): string {
-  return "Chart, Treatments, and Ledger are under Patients. Payments and Reports are not available yet. See Settings for operator status.";
+  const underPatients = APP_NAV_UNSUPPORTED_MODULES.filter(
+    (module) => module.id === "dental-chart" || module.id === "treatments",
+  )
+    .map((module) => module.label)
+    .join(", ");
+  const unavailable = APP_NAV_UNSUPPORTED_MODULES.filter(
+    (module) => module.id === "payments" || module.id === "reports",
+  )
+    .map((module) => module.label)
+    .join(" and ");
+
+  return `${underPatients}, and Ledger preview are under Patients when you open a record. ${unavailable} are not available in this read-only viewer yet.`;
 }

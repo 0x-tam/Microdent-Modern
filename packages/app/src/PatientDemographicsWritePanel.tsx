@@ -187,15 +187,15 @@ export function PatientDemographicsWritePanel({
   }
 
   return (
-    <div
-      className="app-sandbox-write app-sandbox-write-zone app-patient-demographics-write"
+    <section
+      className="clinic-panel clinic-write-panel app-sandbox-write app-sandbox-write-zone app-patient-demographics-write"
       data-testid="patient-demographics-write-pilot"
       aria-labelledby="patient-demographics-write-heading"
     >
+      <SandboxWriteBanner />
       <h4 id="patient-demographics-write-heading" className="app-sandbox-write__heading">
         Edit allowlisted fields
       </h4>
-      <SandboxWriteBanner />
       <SandboxWriteStepIndicator step={resolveWriteStep(state)} />
       <p className="app-sandbox-write__hint">
         Preview runs a dry-run backup plan first. Apply stays disabled until preview succeeds. Only allowlisted
@@ -362,6 +362,6 @@ export function PatientDemographicsWritePanel({
           {state.message}
         </p>
       ) : null}
-    </div>
+    </section>
   );
 }

@@ -4,7 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge, Button } from "@microdent/ui";
 import type { BridgeHealthPhase } from "./bridge-health.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
-import { AppEmptyPanel, AppLoadingSkeleton } from "./app-empty-panel.js";
+import { AppLoadingSkeleton } from "./app-empty-panel.js";
+import { ClinicPage, ClinicPageHero } from "./clinic-page.js";
+import { ClinicStatCard } from "./clinic-stat-card.js";
+import { ClinicEmptyState } from "./clinic-empty-state.js";
 import {
   appointmentVisitMeta,
   buildRoomLabelMap,
@@ -180,6 +183,17 @@ function statusBadgeVariant(
 
 function statusBadgeClassName(code: number): string {
   return `app-schedule__status-badge app-schedule__status-badge--${statusBadgeVariant(code)}`;
+}
+
+function listCardStripeClass(code: number): string {
+  return `clinic-list-card--stripe-${statusBadgeVariant(code)}`;
+}
+
+function totalBookedMinutes(items: readonly ScheduleAppointmentItem[]): number {
+  return items.reduce((sum, a) => {
+    const slotMin = a.periodMinutes ?? 30;
+    return sum + a.durationSlots * slotMin;
+  }, 0);
 }
 
 function formatDuration(a: ScheduleAppointmentItem): string {
@@ -614,6 +628,58 @@ export function SchedulePanel({
       ? `${SCHEDULE_MIRROR_STALE_ADVISORY}${SCHEDULE_MIRROR_STALE_FILTER_NOTE}`
       : SCHEDULE_MIRROR_STALE_ADVISORY;
 
+  const slotsSummaryLabel = useMemo(() => {
+    if (!canLoad || loading || error || appointments.length === 0) {
+      return "—";
+    }
+    const minutes = totalBookedMinutes(appointments);
+    return `${minutes} min booked`;
+  }, [canLoad, loading, error, appointments]);
+
+  const roomsStatLabel = useMemo(() => {
+    if (!canLoad || loading || error) {
+      return "—";
+    }
+    if (roomFilterContext) {
+      return roomFilterContext;
+    }
+    if (operationalSummary.roomMix) {
+      return operationalSummary.roomMix;
+    }
+    if (roomsInUseCount !== null) {
+      return SCHEDULE_ROOMS_IN_USE(roomsInUseCount);
+    }
+    return roomOptions.length > 0 ? `${roomOptions.length} rooms` : "—";
+  }, [
+    canLoad,
+    loading,
+    error,
+    roomFilterContext,
+    operationalSummary.roomMix,
+    roomsInUseCount,
+    roomOptions.length,
+  ]);
+
+  const providersStatLabel = useMemo(() => {
+    if (!canLoad || loading || error) {
+      return "—";
+    }
+    if (operationalSummary.providerMix) {
+      return operationalSummary.providerMix;
+    }
+    if (providerOptions.length > 1) {
+      return `${providerOptions.length} providers`;
+    }
+    return providerOptions.length === 1 ? providerOptions[0].label : "—";
+  }, [canLoad, loading, error, operationalSummary.providerMix, providerOptions]);
+
+  const statusMixLabel = useMemo(() => {
+    if (!canLoad || loading || error) {
+      return "—";
+    }
+    return operationalSummary.statusMix ?? "—";
+  }, [canLoad, loading, error, operationalSummary.statusMix]);
+
   const openPatientFromAppt = useCallback(
     (appt: ScheduleAppointmentItem) => {
       if (!onOpenPatient || appt.patId === "0") return;
@@ -626,77 +692,20 @@ export function SchedulePanel({
   );
 
   return (
-    <div className="app-workspace-page app-schedule">
-      <header className="app-page-hero app-schedule__hero">
-        <div className="app-schedule__hero-top">
-          <div>
-            <h2 className="app-page-hero__title">{moduleTitle}</h2>
-            {moduleDescription ? <p className="app-page-hero__meta">{moduleDescription}</p> : null}
-          </div>
-        </div>
-        <div className="app-schedule__hero-band">
-          <div className="app-schedule__nav app-schedule__hero-nav" role="group" aria-label="Move schedule range">
-            <Button
-              type="button"
-              variant="secondary"
-              size="compact"
-              className="ui-focusable"
-              disabled={!canLoad || loading}
-              onClick={goPrev}
-              aria-label={granularity === "day" ? SCHEDULE_NAV_PREV_DAY : SCHEDULE_NAV_PREV_WEEK}
-            >
-              ← {granularity === "day" ? SCHEDULE_VIEW_DAY : SCHEDULE_VIEW_WEEK}
-            </Button>
-            <Button
-              type="button"
-              variant={viewingToday ? "primary" : "secondary"}
-              size="compact"
-              className={`ui-focusable app-schedule__nav-today${viewingToday ? " app-schedule__nav-today--active" : ""}`}
-              disabled={!canLoad || loading}
-              onClick={goToday}
-              aria-current={viewingToday ? "date" : undefined}
-            >
-              {SCHEDULE_NAV_TODAY}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              size="compact"
-              className="ui-focusable"
-              disabled={!canLoad || loading}
-              onClick={goNext}
-              aria-label={granularity === "day" ? SCHEDULE_NAV_NEXT_DAY : SCHEDULE_NAV_NEXT_WEEK}
-            >
-              {granularity === "day" ? SCHEDULE_VIEW_DAY : SCHEDULE_VIEW_WEEK} →
-            </Button>
-          </div>
-          <div className="app-schedule__hero-range">
-            <p
-              className="app-schedule__range app-schedule__range--display"
-              aria-live="polite"
-              aria-label={`Schedule range: ${rangeHeading}`}
-            >
-              <time dateTime={`${rangeFrom}/${rangeTo}`}>{rangeHeading}</time>
-            </p>
-            {!loading && !error && canLoad ? (
-              <span className="app-schedule__count-badge" role="status">
-                {SCHEDULE_RANGE_APPOINTMENT_COUNT(appointments.length)}
-              </span>
-            ) : null}
-            {includesToday && !loading && !error && canLoad ? (
-              <span className="app-schedule__today-badge">{SCHEDULE_RANGE_INCLUDES_TODAY}</span>
-            ) : null}
-          </div>
-        </div>
-      </header>
-        <div className="app-schedule__toolbar app-toolbar app-filter-bar">
-          <div className="app-schedule__toolbar-row app-filter-bar__group">
+    <ClinicPage className="clinic-schedule-page app-workspace-page app-schedule" testId="schedule-page">
+      <ClinicPageHero
+        title={moduleTitle}
+        subtitle={moduleDescription ?? "Day and week views from your copied schedule."}
+      />
+
+      <section className="clinic-schedule-hero-controls app-schedule__hero-band" aria-label="Schedule range controls">
+        <div className="clinic-schedule-hero-controls__row">
           <div className="app-schedule__granularity" role="group" aria-label={SCHEDULE_VIEW_LABEL}>
             <Button
               type="button"
               variant={granularity === "week" ? "primary" : "secondary"}
               size="compact"
-              className="ui-focusable app-schedule__granularity-chip"
+              className="ui-focusable app-schedule__granularity-chip clinic-chip"
               disabled={!canLoad}
               aria-pressed={granularity === "week"}
               onClick={() => onGranularityChange("week")}
@@ -707,7 +716,7 @@ export function SchedulePanel({
               type="button"
               variant={granularity === "day" ? "primary" : "secondary"}
               size="compact"
-              className="ui-focusable app-schedule__granularity-chip"
+              className="ui-focusable app-schedule__granularity-chip clinic-chip"
               disabled={!canLoad}
               aria-pressed={granularity === "day"}
               onClick={() => onGranularityChange("day")}
@@ -715,172 +724,211 @@ export function SchedulePanel({
               {SCHEDULE_VIEW_DAY}
             </Button>
           </div>
-          <div className="app-schedule__toolbar-actions">
-            {roomOptions.length > 0 ? (
-              <label className="app-schedule__room-filter">
-                <span className="app-schedule__room-filter-label">{SCHEDULE_ROOM_FILTER_LABEL}</span>
-                <select
-                  className="app-schedule__select ui-focusable"
-                  disabled={!canLoad || loading}
-                  value={roomFilter === "" ? "" : String(roomFilter)}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setRoomFilter(v === "" ? "" : Number.parseInt(v, 10));
-                  }}
-                  aria-label="Filter by room"
-                  aria-busy={loading && roomOptions.length === 0}
-                >
-                  <option value="">{SCHEDULE_ROOM_ALL}</option>
-                  {roomOptions.map((n) => (
-                    <option key={n} value={String(n)}>
-                      {roomCopyLabel(rooms, n)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : canLoad ? (
-              <span
-                className="app-schedule__room-filter app-schedule__room-filter--empty"
-                role="status"
-                aria-live="polite"
-              >
-                <span className="app-schedule__room-filter-label">{SCHEDULE_ROOM_FILTER_LABEL}</span>
-                <span className="app-schedule__room-filter-hint">
-                  {loading ? SCHEDULE_ROOM_FILTER_LOADING : SCHEDULE_ROOM_FILTER_EMPTY}
-                </span>
-              </span>
-            ) : null}
+          <div className="app-schedule__nav app-schedule__hero-nav" role="group" aria-label="Move schedule range">
             <Button
               type="button"
-              variant="ghost"
+              variant="secondary"
               size="compact"
-              className="ui-focusable"
+              className="ui-focusable clinic-chip"
               disabled={!canLoad || loading}
-              onClick={() => setRefreshTick((x) => x + 1)}
+              onClick={goPrev}
+              aria-label={granularity === "day" ? SCHEDULE_NAV_PREV_DAY : SCHEDULE_NAV_PREV_WEEK}
             >
-              Refresh
+              ← {granularity === "day" ? SCHEDULE_VIEW_DAY : SCHEDULE_VIEW_WEEK}
+            </Button>
+            <Button
+              type="button"
+              variant={viewingToday ? "primary" : "secondary"}
+              size="compact"
+              className={`ui-focusable app-schedule__nav-today clinic-chip${viewingToday ? " app-schedule__nav-today--active clinic-chip--active" : ""}`}
+              disabled={!canLoad || loading}
+              onClick={goToday}
+              aria-current={viewingToday ? "date" : undefined}
+            >
+              {SCHEDULE_NAV_TODAY}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="compact"
+              className="ui-focusable clinic-chip"
+              disabled={!canLoad || loading}
+              onClick={goNext}
+              aria-label={granularity === "day" ? SCHEDULE_NAV_NEXT_DAY : SCHEDULE_NAV_NEXT_WEEK}
+            >
+              {granularity === "day" ? SCHEDULE_VIEW_DAY : SCHEDULE_VIEW_WEEK} →
             </Button>
           </div>
+          <Button
+            type="button"
+            variant="secondary"
+            size="compact"
+            className="ui-focusable clinic-schedule-hero-controls__refresh"
+            disabled={!canLoad || loading}
+            onClick={() => setRefreshTick((x) => x + 1)}
+          >
+            Refresh
+          </Button>
         </div>
-        <div className="app-schedule__range-block">
+        <div className="app-schedule__hero-range clinic-schedule-hero-controls__range">
+          <p
+            className="app-schedule__range app-schedule__range--display clinic-schedule-range"
+            aria-live="polite"
+            aria-label={`Schedule range: ${rangeHeading}`}
+          >
+            <time dateTime={`${rangeFrom}/${rangeTo}`}>{rangeHeading}</time>
+          </p>
           {!loading && !error && canLoad ? (
-            <>
-              <div className="app-stat-strip app-schedule__stat-strip" role="status">
-                <div className="app-stat app-stat--emphasis">
-                  <p className="app-stat__label">Shown</p>
-                  <p className="app-stat__value">{operationalSummary.shownLabel}</p>
-                </div>
-                {operationalSummary.statusMix ? (
-                  <div className="app-stat">
-                    <p className="app-stat__label">Status</p>
-                    <p className="app-stat__value">{operationalSummary.statusMix}</p>
-                  </div>
-                ) : null}
-                {operationalSummary.providerMix ? (
-                  <div className="app-stat">
-                    <p className="app-stat__label">Providers</p>
-                    <p className="app-stat__value">{operationalSummary.providerMix}</p>
-                  </div>
-                ) : null}
-                {roomFilterContext || operationalSummary.roomMix ? (
-                  <div className="app-stat">
-                    <p className="app-stat__label">Rooms</p>
-                    <p className="app-stat__value">{roomFilterContext ?? operationalSummary.roomMix}</p>
-                  </div>
-                ) : null}
-              </div>
-              {operationalSummary.filterActiveLabel ? (
-                <p className="app-schedule__filter-active-label" role="status">
-                  {operationalSummary.filterActiveLabel}
-                </p>
-              ) : null}
-              {statusBreakdown.length > 0 || providerOptions.length > 1 ? (
-                <div className="app-schedule__filter-toolbar app-filter-bar">
-              {statusBreakdown.length > 0 ? (
-                <div className="app-schedule__status-breakdown" role="group" aria-label="Status breakdown">
-                  {statusBreakdown.map(({ code, count, label, variant }) => (
-                    <Button
-                      key={code}
-                      type="button"
-                      size="compact"
-                      variant={statusFilter === code ? "primary" : "secondary"}
-                      className={`app-schedule__status-chip app-schedule__status-chip--${variant}`}
-                      aria-pressed={statusFilter === code}
-                      onClick={() => setStatusFilter((f) => (f === code ? null : code))}
-                    >
-                      {count} {label}
-                    </Button>
-                  ))}
-                </div>
-              ) : null}
-              {providerOptions.length > 1 ? (
-                <div
-                  className="app-schedule__provider-filters"
-                  role="group"
-                  aria-label={SCHEDULE_FILTER_PROVIDER_ARIA}
-                >
-                  <Button
-                    type="button"
-                    size="compact"
-                    variant={providerFilter === null ? "primary" : "secondary"}
-                    className="ui-focusable app-schedule__provider-chip"
-                    aria-pressed={providerFilter === null}
-                    onClick={() => setProviderFilter(null)}
-                  >
-                    {SCHEDULE_FILTER_ALL_PROVIDERS}
-                  </Button>
-                  {providerOptions.map(({ docId, label }) => (
-                    <Button
-                      key={docId}
-                      type="button"
-                      size="compact"
-                      variant={providerFilter === docId ? "primary" : "secondary"}
-                      className="ui-focusable app-schedule__provider-chip"
-                      aria-pressed={providerFilter === docId}
-                      onClick={() => setProviderFilter((f) => (f === docId ? null : docId))}
-                    >
-                      {label}
-                    </Button>
-                  ))}
-                </div>
-              ) : null}
-              {(statusFilter !== null || providerFilter !== null || roomFilter !== "") ? (
-                <Button
-                  type="button"
-                  size="compact"
-                  variant="ghost"
-                  className="ui-focusable app-schedule__clear-filters"
-                  onClick={clearClientFilters}
-                >
-                  {FILTER_CLEAR_LABEL}
-                </Button>
-              ) : null}
-                </div>
-              ) : null}
-            </>
+            <span className="app-schedule__count-badge clinic-status-pill clinic-status-pill--info" role="status">
+              {SCHEDULE_RANGE_APPOINTMENT_COUNT(appointments.length)}
+            </span>
+          ) : null}
+          {includesToday && !loading && !error && canLoad ? (
+            <span className="app-schedule__today-badge clinic-status-pill clinic-status-pill--ok">
+              {SCHEDULE_RANGE_INCLUDES_TODAY}
+            </span>
           ) : null}
         </div>
+      </section>
+
+      <div className="clinic-stat-grid clinic-stat-grid--five clinic-schedule-stat-grid" role="status">
+        <ClinicStatCard
+          label="Shown"
+          value={canLoad && !loading && !error ? operationalSummary.shownLabel : "—"}
+          tone="teal"
+        />
+        <ClinicStatCard label="Slots" value={slotsSummaryLabel} hint="Booked time in range" tone="cyan" />
+        <ClinicStatCard label="Rooms" value={roomsStatLabel} tone="green" />
+        <ClinicStatCard label="Providers" value={providersStatLabel} tone="blue" />
+        <ClinicStatCard label="Status mix" value={statusMixLabel} tone="amber" />
+      </div>
+
+      <div className="clinic-toolbar clinic-schedule-toolbar app-schedule__filter-toolbar app-filter-bar">
+        {roomOptions.length > 0 ? (
+          <label className="app-schedule__room-filter clinic-schedule-toolbar__room">
+            <span className="app-schedule__room-filter-label">{SCHEDULE_ROOM_FILTER_LABEL}</span>
+            <select
+              className="app-schedule__select ui-focusable"
+              disabled={!canLoad || loading}
+              value={roomFilter === "" ? "" : String(roomFilter)}
+              onChange={(e) => {
+                const v = e.target.value;
+                setRoomFilter(v === "" ? "" : Number.parseInt(v, 10));
+              }}
+              aria-label="Filter by room"
+              aria-busy={loading && roomOptions.length === 0}
+            >
+              <option value="">{SCHEDULE_ROOM_ALL}</option>
+              {roomOptions.map((n) => (
+                <option key={n} value={String(n)}>
+                  {roomCopyLabel(rooms, n)}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : canLoad ? (
+          <span
+            className="app-schedule__room-filter app-schedule__room-filter--empty clinic-schedule-toolbar__room"
+            role="status"
+            aria-live="polite"
+          >
+            <span className="app-schedule__room-filter-label">{SCHEDULE_ROOM_FILTER_LABEL}</span>
+            <span className="app-schedule__room-filter-hint">
+              {loading ? SCHEDULE_ROOM_FILTER_LOADING : SCHEDULE_ROOM_FILTER_EMPTY}
+            </span>
+          </span>
+        ) : null}
+
+        {canLoad && !loading && !error && statusBreakdown.length > 0 ? (
+          <div className="app-schedule__status-breakdown clinic-schedule-chip-group" role="group" aria-label="Status breakdown">
+            {statusBreakdown.map(({ code, count, label, variant }) => (
+              <Button
+                key={code}
+                type="button"
+                size="compact"
+                variant={statusFilter === code ? "primary" : "secondary"}
+                className={`clinic-chip app-schedule__status-chip app-schedule__status-chip--${variant}${statusFilter === code ? " clinic-chip--active" : ""}`}
+                aria-pressed={statusFilter === code}
+                onClick={() => setStatusFilter((f) => (f === code ? null : code))}
+              >
+                {count} {label}
+              </Button>
+            ))}
+          </div>
+        ) : null}
+
+        {canLoad && !loading && !error && providerOptions.length > 1 ? (
+          <div
+            className="app-schedule__provider-filters clinic-schedule-chip-group"
+            role="group"
+            aria-label={SCHEDULE_FILTER_PROVIDER_ARIA}
+          >
+            <Button
+              type="button"
+              size="compact"
+              variant={providerFilter === null ? "primary" : "secondary"}
+              className={`ui-focusable clinic-chip app-schedule__provider-chip${providerFilter === null ? " clinic-chip--active" : ""}`}
+              aria-pressed={providerFilter === null}
+              onClick={() => setProviderFilter(null)}
+            >
+              {SCHEDULE_FILTER_ALL_PROVIDERS}
+            </Button>
+            {providerOptions.map(({ docId, label }) => (
+              <Button
+                key={docId}
+                type="button"
+                size="compact"
+                variant={providerFilter === docId ? "primary" : "secondary"}
+                className={`ui-focusable clinic-chip app-schedule__provider-chip${providerFilter === docId ? " clinic-chip--active" : ""}`}
+                aria-pressed={providerFilter === docId}
+                onClick={() => setProviderFilter((f) => (f === docId ? null : docId))}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
+        ) : null}
+
+        {(statusFilter !== null || providerFilter !== null || roomFilter !== "") ? (
+          <Button
+            type="button"
+            size="compact"
+            variant="ghost"
+            className="ui-focusable app-schedule__clear-filters clinic-chip"
+            onClick={clearClientFilters}
+          >
+            {FILTER_CLEAR_LABEL}
+          </Button>
+        ) : null}
+
         {mirrorStale ? (
-          <p className="app-schedule__mirror-advisory" role="note">
+          <span className="app-schedule__mirror-advisory clinic-status-pill clinic-status-pill--warn" role="note">
             {mirrorStaleMessage}
-          </p>
-        ) : null}
-        <p className="app-schedule__privacy">{SCHEDULE_PRIVACY_LEDE}</p>
-        {canLoad ? <p className="app-schedule__keyboard-hint">{SCHEDULE_KEYBOARD_HINT}</p> : null}
-        {sandboxPilotEnabled && canLoad ? (
-          <p className="app-schedule__sandbox-write-banner" role="status">
-            {SCHEDULE_SANDBOX_WRITE_PILOT_BANNER}
-          </p>
-        ) : null}
-        {sandboxPilotEnabled && canLoad ? (
-          <p className="app-schedule__write-discoverability-hint" role="note">
-            {SCHEDULE_WRITE_DISCOVERABILITY_HINT}
-          </p>
+          </span>
         ) : null}
       </div>
 
+      {operationalSummary.filterActiveLabel ? (
+        <p className="app-schedule__filter-active-label" role="status">
+          {operationalSummary.filterActiveLabel}
+        </p>
+      ) : null}
+
+      <p className="app-schedule__privacy clinic-schedule-privacy">{SCHEDULE_PRIVACY_LEDE}</p>
+      {canLoad ? <p className="app-schedule__keyboard-hint clinic-schedule-keyboard-hint">{SCHEDULE_KEYBOARD_HINT}</p> : null}
+      {sandboxPilotEnabled && canLoad ? (
+        <p className="app-schedule__sandbox-write-banner clinic-schedule-banner" role="status">
+          {SCHEDULE_SANDBOX_WRITE_PILOT_BANNER}
+        </p>
+      ) : null}
+      {sandboxPilotEnabled && canLoad ? (
+        <p className="app-schedule__write-discoverability-hint clinic-schedule-hint" role="note">
+          {SCHEDULE_WRITE_DISCOVERABILITY_HINT}
+        </p>
+      ) : null}
+
       {!canLoad ? (
-        <AppEmptyPanel
+        <ClinicEmptyState
           className="app-schedule__empty-panel"
           variant={bridgePhase === "checking" ? "default" : "offline"}
           title={bridgePhase === "checking" ? PATIENT_PROFILE_WAITING_TITLE : CLINIC_SERVICE_OFFLINE_TITLE}
@@ -906,9 +954,8 @@ export function SchedulePanel({
         </div>
       ) : appointments.length === 0 ? (
         <AppErrorBoundary>
-          <AppEmptyPanel
+          <ClinicEmptyState
             className="app-schedule__empty-panel"
-            variant="empty-schedule"
             title={SCHEDULE_EMPTY_TITLE}
             body={SCHEDULE_EMPTY_DESCRIPTION}
             actions={
@@ -932,9 +979,8 @@ export function SchedulePanel({
         </AppErrorBoundary>
       ) : displayAppointments.length === 0 ? (
         <AppErrorBoundary>
-          <AppEmptyPanel
+          <ClinicEmptyState
             className="app-schedule__empty-panel"
-            variant="empty-schedule"
             title={SCHEDULE_FILTER_EMPTY_TITLE}
             body={SCHEDULE_FILTER_EMPTY_DESCRIPTION}
             actions={
@@ -957,123 +1003,130 @@ export function SchedulePanel({
           />
         </AppErrorBoundary>
       ) : (
-        <div className="app-schedule__days">
+        <div className="clinic-schedule-board app-schedule__days">
           {[...grouped.entries()].map(([dateIso, byRoom]) => {
             const dayCount = [...byRoom.values()].reduce((sum, list) => sum + list.length, 0);
             return (
-            <section key={dateIso} className="app-schedule__day-card">
-              <h3 className="app-board-day-header app-schedule__day-title">
-                <time dateTime={dateIso}>{formatRangeHeading(dateIso, dateIso, "day")}</time>
-                <span className="app-board-day-header__count">{SCHEDULE_DAY_APPOINTMENT_COUNT(dayCount)}</span>
-              </h3>
-              <div className="app-schedule__day-body">
-                {[...byRoom.entries()]
-                  .sort(([a], [b]) => a - b)
-                  .map(([roomNum, list]) => (
-                    <section key={`${dateIso}-${roomNum}`} className="app-schedule__room-block">
-                      <h3 className="app-schedule__room-heading">{roomCopyLabel(rooms, roomNum)}</h3>
-                      <ul
-                        className="app-schedule__appt-list"
-                        aria-label={`Appointments on ${formatRangeHeading(dateIso, dateIso, "day")} in ${roomCopyLabel(rooms, roomNum)}`}
-                      >
-                        {list.map((appt) => {
-                          const chart = schedulePatientChart(appt);
-                          return (
-                          <li
-                            key={appt.id}
-                            className={[
-                              "app-schedule__appt-row",
-                              currentAppt?.id === appt.id ? "app-schedule__appt-row--current" : "",
-                            ]
-                              .filter(Boolean)
-                              .join(" ")}
-                            aria-label={
-                              currentAppt?.id === appt.id ? TODAY_APPT_ROW_CURRENT_LABEL : undefined
-                            }
-                          >
-                            <div className="app-schedule__appt-time">{appt.time}</div>
-                            <div className="app-schedule__appt-main">
-                              <div className="app-schedule__appt-line1">
-                                <span className="app-schedule__appt-duration">{formatDuration(appt)}</span>
-                                <span className="app-schedule__appt-meta">
-                                  <span className="app-schedule__appt-patient-primary">{schedulePatientPrimary(appt)}</span>
-                                  {chart !== null ? (
-                                    <span className="app-schedule__appt-patient-chart"> · {chart}</span>
+              <section key={dateIso} className="clinic-schedule-day-group app-schedule__day-card">
+                <header className="clinic-schedule-day-group__header app-board-day-header app-schedule__day-title">
+                  <h3 className="clinic-schedule-day-group__title">
+                    <time dateTime={dateIso}>{formatRangeHeading(dateIso, dateIso, "day")}</time>
+                  </h3>
+                  <span className="app-board-day-header__count clinic-chip">{SCHEDULE_DAY_APPOINTMENT_COUNT(dayCount)}</span>
+                </header>
+                <div className="app-schedule__day-body clinic-schedule-day-group__body">
+                  {[...byRoom.entries()]
+                    .sort(([a], [b]) => a - b)
+                    .map(([roomNum, list]) => (
+                      <section key={`${dateIso}-${roomNum}`} className="clinic-schedule-room-group app-schedule__room-block">
+                        <h4 className="clinic-schedule-room-group__heading app-schedule__room-heading">
+                          <span className="clinic-chip clinic-chip--active">{roomCopyLabel(rooms, roomNum)}</span>
+                        </h4>
+                        <ul
+                          className="clinic-schedule-room-group__list app-schedule__appt-list"
+                          aria-label={`Appointments on ${formatRangeHeading(dateIso, dateIso, "day")} in ${roomCopyLabel(rooms, roomNum)}`}
+                        >
+                          {list.map((appt) => {
+                            const chart = schedulePatientChart(appt);
+                            const stripe = listCardStripeClass(appt.status);
+                            return (
+                              <li
+                                key={appt.id}
+                                className={[
+                                  "clinic-list-card",
+                                  stripe,
+                                  "app-schedule__appt-row",
+                                  currentAppt?.id === appt.id ? "app-schedule__appt-row--current clinic-list-card--current" : "",
+                                ]
+                                  .filter(Boolean)
+                                  .join(" ")}
+                                aria-label={
+                                  currentAppt?.id === appt.id ? TODAY_APPT_ROW_CURRENT_LABEL : undefined
+                                }
+                              >
+                                <div className="clinic-list-card__time app-schedule__appt-time">{appt.time}</div>
+                                <div className="clinic-list-card__main app-schedule__appt-main">
+                                  <div className="app-schedule__appt-line1">
+                                    <span className="app-schedule__appt-duration">{formatDuration(appt)}</span>
+                                    <span className="app-schedule__appt-meta">
+                                      <span className="app-schedule__appt-patient-primary">{schedulePatientPrimary(appt)}</span>
+                                      {chart !== null ? (
+                                        <span className="app-schedule__appt-patient-chart"> · {chart}</span>
+                                      ) : null}
+                                      {(() => {
+                                        const meta = appointmentVisitMeta(appt, doctorLabels, procedureMaps, {
+                                          includeRoom: false,
+                                        });
+                                        return meta.length > 0 ? ` · ${meta}` : "";
+                                      })()}
+                                    </span>
+                                  </div>
+                                  <div className="app-schedule__appt-badges clinic-list-card__actions">
+                                    <Badge
+                                      variant={statusBadgeVariant(appt.status)}
+                                      className={statusBadgeClassName(appt.status)}
+                                      semanticLabel={patientApptStatusSemanticLabel(appt.status)}
+                                    >
+                                      {statusLabel(appt.status)}
+                                    </Badge>
+                                    {appt.missed ? (
+                                      <Badge variant="danger" semanticLabel="Missed appointment">
+                                        Missed
+                                      </Badge>
+                                    ) : null}
+                                    {appt.hasComment ? (
+                                      <Badge variant="neutral" semanticLabel="Internal note hidden">
+                                        Note hidden
+                                      </Badge>
+                                    ) : null}
+                                    {appt.patId !== "0" && onOpenPatient ? (
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="compact"
+                                        className="ui-focusable app-schedule__open-patient"
+                                        onClick={() => openPatientFromAppt(appt)}
+                                      >
+                                        {SCHEDULE_OPEN_PATIENT}
+                                      </Button>
+                                    ) : null}
+                                  </div>
+                                  {bridgeBaseUrl && sandboxPilotEnabled && canLoad ? (
+                                    <AppointmentWriteActionsPanel
+                                      appointment={appt}
+                                      bridgeBaseUrl={bridgeBaseUrl}
+                                      fetchImpl={fetchImpl}
+                                      writePilotEnabled={sandboxPilotEnabled}
+                                      writeCapability={writeCapability}
+                                      roomOptions={roomOptions}
+                                      roomMap={buildRoomLabelMap(rooms)}
+                                      onCommitted={() => setRefreshTick((x) => x + 1)}
+                                    />
                                   ) : null}
-                                  {(() => {
-                                    const meta = appointmentVisitMeta(appt, doctorLabels, procedureMaps, {
-                                      includeRoom: false,
-                                    });
-                                    return meta.length > 0 ? ` · ${meta}` : "";
-                                  })()}
-                                </span>
-                              </div>
-                              <div className="app-schedule__appt-badges">
-                                <Badge
-                                  variant={statusBadgeVariant(appt.status)}
-                                  className={statusBadgeClassName(appt.status)}
-                                  semanticLabel={patientApptStatusSemanticLabel(appt.status)}
-                                >
-                                  {statusLabel(appt.status)}
-                                </Badge>
-                                {appt.missed ? (
-                                  <Badge variant="danger" semanticLabel="Missed appointment">
-                                    Missed
-                                  </Badge>
-                                ) : null}
-                                {appt.hasComment ? (
-                                  <Badge variant="neutral" semanticLabel="Internal note hidden">
-                                    Note hidden
-                                  </Badge>
-                                ) : null}
-                                {appt.patId !== "0" && onOpenPatient ? (
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="compact"
-                                    className="ui-focusable app-schedule__open-patient"
-                                    onClick={() => openPatientFromAppt(appt)}
-                                  >
-                                    {SCHEDULE_OPEN_PATIENT}
-                                  </Button>
-                                ) : null}
-                              </div>
-                              {bridgeBaseUrl && sandboxPilotEnabled && canLoad ? (
-                                <AppointmentWriteActionsPanel
-                                  appointment={appt}
-                                  bridgeBaseUrl={bridgeBaseUrl}
-                                  fetchImpl={fetchImpl}
-                                  writePilotEnabled={sandboxPilotEnabled}
-                                  writeCapability={writeCapability}
-                                  roomOptions={roomOptions}
-                                  roomMap={buildRoomLabelMap(rooms)}
-                                  onCommitted={() => setRefreshTick((x) => x + 1)}
-                                />
-                              ) : null}
-                              {bridgeBaseUrl && devWriteActionsEnabled ? (
-                                <AppointmentStatusDryRunAction
-                                  appointment={appt}
-                                  bridgeBaseUrl={bridgeBaseUrl}
-                                  fetchImpl={fetchImpl}
-                                  writeDiagnosticsActions={devWriteActionsEnabled}
-                                  sandboxApplyEnabled={sandboxApplyEnabled}
-                                />
-                              ) : null}
-                            </div>
-                          </li>
-                          );
-                        })}
-                      </ul>
-                    </section>
-                  ))}
-              </div>
-            </section>
-          );
+                                  {bridgeBaseUrl && devWriteActionsEnabled ? (
+                                    <AppointmentStatusDryRunAction
+                                      appointment={appt}
+                                      bridgeBaseUrl={bridgeBaseUrl}
+                                      fetchImpl={fetchImpl}
+                                      writeDiagnosticsActions={devWriteActionsEnabled}
+                                      sandboxApplyEnabled={sandboxApplyEnabled}
+                                    />
+                                  ) : null}
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </section>
+                    ))}
+                </div>
+              </section>
+            );
           })}
         </div>
       )}
 
-      <div className="app-schedule__footer">
+      <div className="app-schedule__footer clinic-schedule-footer">
         {writeModeChip ? (
           <Badge
             variant={writeModeChip.variant}
@@ -1104,6 +1157,7 @@ export function SchedulePanel({
           Back to Today
         </Button>
       </div>
-    </div>
+    </ClinicPage>
   );
 }
+

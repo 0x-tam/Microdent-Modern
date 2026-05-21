@@ -8,7 +8,13 @@ import {
   READ_ONLY_CONNECTED_LABEL,
   READ_ONLY_VIEWER_LABEL,
 } from "./read-only-ui-copy.js";
-import { resolveContextualStatusForModule, resolveWriteModeChip } from "./shell-status-banners.js";
+import {
+  resolveShellCriticalStripBanners,
+  resolveShellHeaderMirrorPill,
+  resolveWriteModeChip,
+  SIDEBAR_RECENT_PATIENTS_MAX,
+} from "./shell-status-banners.js";
+import { formatSessionRecentPatientMeta } from "./session-recent-patients.js";
 
 export function resolveMirrorDiagnosticLabel(
   enabled: boolean,
@@ -334,8 +340,18 @@ export function AppShell({
   }, [bridgeBaseUrl, bridgePhase, fetchImpl]);
 
   const shellStatusBanners = useMemo(
-    () => resolveContextualStatusForModule(active, bridgePhase, mirrorStatus, writeCapability),
+    () => resolveShellCriticalStripBanners(active, bridgePhase, mirrorStatus, writeCapability),
     [active, bridgePhase, mirrorStatus, writeCapability],
+  );
+
+  const mirrorHeaderPill = useMemo(
+    () => resolveShellHeaderMirrorPill(bridgePhase, mirrorStatus),
+    [bridgePhase, mirrorStatus],
+  );
+
+  const sidebarRecentPatients = useMemo(
+    () => recentPatients.slice(0, SIDEBAR_RECENT_PATIENTS_MAX),
+    [recentPatients],
   );
 
   const activeModule = useMemo(() => getAppSidebarModule(active), [active]);
@@ -348,13 +364,6 @@ export function AppShell({
       chartNumber: selectedPatientChartNumber,
     });
   }, [selectedPatientChartNumber, selectedPatientDisplayName, selectedPatientId]);
-
-  const selectedPatientInitial = useMemo(() => {
-    const name = selectedPatientDisplayName?.trim();
-    if (!name) return "?";
-    return name.charAt(0).toUpperCase();
-  }, [selectedPatientDisplayName]);
-
   const railConnectionLabel = useMemo(() => {
     if (bridgePhase === "connected") return "Connected";
     if (bridgePhase === "checking") return "Checking…";
@@ -370,35 +379,33 @@ export function AppShell({
 
   const writeModeChip = useMemo(() => resolveWriteModeChip(writeCapability), [writeCapability]);
 
-  const bridgeStatusChipClass =
-    bridgePhase === "connected"
-      ? "app-chip--success"
-      : bridgePhase === "checking"
-        ? "app-chip--info"
-        : "app-chip--offline";
 
-  const writeModeChipClass =
-    writeModeChip?.variant === "warning" || writeModeChip?.variant === "danger"
-      ? "app-chip--sandbox"
-      : "app-chip--neutral";
+  const writeModeChipTone =
+    writeModeChip?.variant === "danger"
+      ? "danger"
+      : writeModeChip?.variant === "warning"
+        ? "warn"
+        : "neutral";
+
+  const bridgeStatusPillTone =
+    bridgePhase === "connected" ? "ok" : bridgePhase === "checking" ? "info" : "neutral";
 
   const sidebar = useMemo(
     () => (
-      <ul className="app-sidebar__nav">
+      <ul className="clinic-sidebar__nav app-sidebar__nav">
         {APP_SIDEBAR_MODULES.map((m) => (
           <li key={m.id}>
             <button
               type="button"
-              className={`app-sidebar__btn ui-focusable app-sidebar__btn--${m.id}`}
+              className={`clinic-sidebar__nav-btn app-sidebar__btn ui-focusable clinic-sidebar__nav-btn--${m.id} app-sidebar__btn--${m.id}`}
               aria-current={active === m.id ? "true" : undefined}
               aria-controls="app-main-region"
               title={m.sublabel}
               onClick={() => setActive(m.id)}
             >
-              <span className={`app-sidebar__btn-dot app-sidebar__btn-dot--${m.id}`} aria-hidden />
-              <span className="app-sidebar__btn-copy">
-                <span className="app-sidebar__btn-label">{m.label}</span>
-                <span className="app-sidebar__btn-sublabel">{m.sublabel}</span>
+              <span className="clinic-sidebar__nav-copy app-sidebar__btn-copy">
+                <span className="clinic-sidebar__nav-label app-sidebar__btn-label">{m.label}</span>
+                <span className="clinic-sidebar__nav-sublabel app-sidebar__btn-sublabel">{m.sublabel}</span>
               </span>
             </button>
           </li>
@@ -410,10 +417,11 @@ export function AppShell({
 
   return (
     <div className="app-workspace-shell app-shell">
-      <aside className="app-rail app-sidebar" aria-labelledby="sidebar-nav-label">
-        <div className="app-rail__brand">
-          <h1 className="app-brand">Microdent</h1>
-          <span className="app-rail__clinic app-topbar__clinic">{displayClinicLabel}</span>
+      <aside className="clinic-sidebar app-rail app-sidebar" aria-labelledby="sidebar-nav-label">
+        <div className="clinic-sidebar__brand app-rail__brand">
+          <h1 className="clinic-sidebar__title app-brand">Microdent</h1>
+          <p className="clinic-sidebar__subtitle">Modern clinic workspace</p>
+          <p className="clinic-sidebar__viewer-line app-rail__clinic app-topbar__clinic">{displayClinicLabel}</p>
         </div>
         <p id="sidebar-nav-label" className="app-sr-only">
           Main navigation
@@ -423,30 +431,23 @@ export function AppShell({
         </nav>
 
         <div
-          className={`app-rail__patient${selectedPatientContextLabel ? " app-rail__patient--selected" : ""}`}
+          className={`clinic-sidebar__patient app-rail__patient${selectedPatientContextLabel ? " clinic-sidebar__patient--selected app-rail__patient--selected" : ""}`}
           role="region"
           aria-label="Selected patient"
         >
+          <span className="clinic-sidebar__patient-label app-rail__patient-label">Selected patient</span>
           {selectedPatientContextLabel ? (
             <>
-              <span className="app-rail__patient-label">Patient</span>
-              <div className="app-rail__patient-card">
-                <span className="app-rail__patient-avatar" aria-hidden>
-                  {selectedPatientInitial}
-                </span>
-                <div className="app-rail__patient-details">
-                  <button
-                    type="button"
-                    className="app-rail__patient-chip app-main__patient-context-chip ui-focusable"
-                    onClick={() => setActive("patients")}
-                  >
-                    {selectedPatientContextLabel}
-                  </button>
-                  {selectedPatientChartNumber ? (
-                    <span className="app-rail__patient-chart">Chart {selectedPatientChartNumber}</span>
-                  ) : null}
-                </div>
-              </div>
+              <button
+                type="button"
+                className="clinic-sidebar__patient-name app-rail__patient-chip app-main__patient-context-chip ui-focusable"
+                onClick={() => setActive("patients")}
+              >
+                {selectedPatientDisplayName ?? selectedPatientContextLabel}
+              </button>
+              {selectedPatientChartNumber ? (
+                <span className="clinic-sidebar__patient-chart app-rail__patient-chart">Chart {selectedPatientChartNumber}</span>
+              ) : null}
               <Button
                 type="button"
                 variant="ghost"
@@ -458,44 +459,55 @@ export function AppShell({
               </Button>
             </>
           ) : (
-            <>
-              <span className="app-rail__patient-label">Patient</span>
-              <div className="app-rail__patient-card app-rail__patient-card--empty">
-                <span className="app-rail__patient-avatar app-rail__patient-avatar--empty" aria-hidden>
-                  ?
-                </span>
-                <p className="app-rail__patient-empty">No patient selected</p>
-              </div>
-            </>
+            <p className="clinic-sidebar__patient-empty app-rail__patient-empty">No patient selected</p>
           )}
         </div>
 
-        <div className="app-rail__footer">
-          <div className="app-rail__footer-meta">
-            <span className="app-rail__version">v{APP_SHELL_VERSION}</span>
-            <span
-              className={`app-rail__connection-pill${railStatusTone ? ` app-rail__connection-pill--${railStatusTone}` : ""}`}
-              role="status"
-            >
-              {railConnectionLabel}
-            </span>
+        {sidebarRecentPatients.length > 0 ? (
+          <div className="clinic-sidebar__recent" role="navigation" aria-label="Recent patients this session">
+            <p className="clinic-sidebar__recent-label">Recent</p>
+            <ul className="clinic-sidebar__recent-list">
+              {sidebarRecentPatients.map((entry) => (
+                <li key={entry.patientId}>
+                  <button
+                    type="button"
+                    className="clinic-sidebar__recent-btn ui-focusable"
+                    onClick={() => handleRecentPatientSelect(entry)}
+                  >
+                    {entry.displayName}
+                    <span className="clinic-sidebar__recent-meta">{formatSessionRecentPatientMeta(entry)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
           </div>
+        ) : null}
+
+        <div className="clinic-sidebar__footer app-rail__footer">
+          <span
+            className={`clinic-sidebar__service-pill app-rail__connection-pill${railStatusTone ? ` clinic-sidebar__service-pill--${railStatusTone} app-rail__connection-pill--${railStatusTone}` : ""}`}
+            role="status"
+            aria-live="polite"
+          >
+            {railConnectionLabel}
+          </span>
+          <span className="app-rail__version">Read-only · v{APP_SHELL_VERSION}</span>
           <button
             type="button"
-            className="app-rail__settings-link ui-focusable"
+            className="clinic-sidebar__settings-link app-rail__settings-link ui-focusable"
             onClick={() => setActive("settings")}
           >
             Settings
           </button>
-          <p className="app-sidebar__hint" role="note">
+          <p className="clinic-sidebar__hint app-sidebar__hint" role="note">
             {sidebarNavHint}
           </p>
         </div>
       </aside>
 
-      <div className="app-workspace">
-        <header className="app-workspace-header app-topbar" role="banner">
-          <div className="app-workspace-header__search app-topbar__search" role="search">
+      <div className="clinic-workspace app-workspace">
+        <header className="clinic-workspace-header app-workspace-header app-topbar" role="banner">
+          <div className="clinic-header-search app-workspace-header__search app-topbar__search" role="search">
             <PatientSearchBar
               bridgePhase={bridgePhase}
               bridgeBaseUrl={bridgeBaseUrl}
@@ -509,21 +521,21 @@ export function AppShell({
             />
           </div>
 
-          <div className="app-workspace-header__actions">
+          <div className="clinic-workspace-header__actions app-workspace-header__actions">
             <div
-              className="app-workspace-header__status-cluster"
+              className="clinic-workspace-header__status-cluster app-workspace-header__status-cluster"
               role="group"
               aria-label="Clinic service status"
             >
               <span
-                className="app-chip app-chip--readonly app-workspace-header__status-chip"
+                className="clinic-status-pill clinic-status-pill--info"
                 title={READ_ONLY_BANNER_BODY}
                 aria-label={`${READ_ONLY_VIEWER_LABEL}. ${READ_ONLY_BANNER_BODY}`}
               >
                 {READ_ONLY_VIEWER_LABEL}
               </span>
               <span
-                className={`app-chip app-workspace-header__status-chip ${bridgeStatusChipClass}`}
+                className={`clinic-status-pill clinic-status-pill--${bridgeStatusPillTone}`}
                 role="status"
                 aria-live="polite"
                 aria-label={
@@ -540,9 +552,18 @@ export function AppShell({
                     ? "Checking…"
                     : "Offline"}
               </span>
+              {mirrorHeaderPill ? (
+                <span
+                  className={`clinic-status-pill clinic-status-pill--${mirrorHeaderPill.tone}`}
+                  role="status"
+                  aria-label={`Mirror data: ${mirrorHeaderPill.label}`}
+                >
+                  {mirrorHeaderPill.label}
+                </span>
+              ) : null}
               {writeModeChip && bridgePhase === "connected" ? (
                 <span
-                  className={`app-chip app-workspace-header__status-chip ${writeModeChipClass}`}
+                  className={`clinic-status-pill clinic-status-pill--${writeModeChipTone}`}
                   role="status"
                   aria-label={`Bridge write mode: ${writeModeChip.label}`}
                 >
@@ -551,7 +572,7 @@ export function AppShell({
               ) : null}
               {sandboxWritePilot ? (
                 <span
-                  className="app-chip app-chip--sandbox app-workspace-header__status-chip"
+                  className="clinic-status-pill clinic-status-pill--warn"
                   role="status"
                   aria-label="Sandbox write pilot enabled in this build"
                 >
@@ -610,7 +631,7 @@ export function AppShell({
         {topSlot}
 
         <main
-          className="app-workspace-main app-main"
+          className="clinic-workspace-main app-workspace-main app-main"
           id="app-main-region"
           role="main"
           aria-labelledby={mainHeadingId}

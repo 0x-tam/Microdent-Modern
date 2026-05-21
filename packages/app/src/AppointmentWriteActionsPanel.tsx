@@ -67,7 +67,7 @@ export function AppointmentWriteActionsPanel({
   };
 
   return (
-    <details className="app-appt-write-actions app-sandbox-write-zone" data-testid="appt-write-actions-panel">
+    <details className="clinic-panel clinic-write-panel app-appt-write-actions app-sandbox-write-zone" data-testid="appt-write-actions-panel">
       <summary className="app-appt-write-actions__summary">{APPOINTMENT_WRITE_ACTIONS_SUMMARY}</summary>
       <div className="app-appt-write-actions__body">
         <div

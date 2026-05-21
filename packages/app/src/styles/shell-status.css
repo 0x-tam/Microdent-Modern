@@ -1,12 +1,43 @@
-/* ----- Compact status strip (replaces stacked banners) ----- */
+/* ----- Header status pills (global; not full-width strips) ----- */
+.clinic-workspace-header__status-cluster .clinic-status-pill,
+.app-workspace-header__status-cluster .clinic-status-pill {
+  min-height: 2rem;
+}
+
+.clinic-workspace-header__status-cluster .clinic-status-pill::before,
+.app-workspace-header__status-cluster .clinic-status-pill::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  margin-right: var(--ui-space-1);
+  background: currentColor;
+  opacity: 0.75;
+}
+
+/* Legacy chip aliases map to clinic pills in the workspace header */
+.app-workspace-header__status-chip.app-chip--readonly {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0 var(--ui-space-3);
+  border-radius: var(--ui-radius-full, 999px);
+  border: 1px solid var(--ui-status-readonly-border);
+  background: var(--ui-status-readonly-bg);
+  font-size: var(--clinic-text-meta, 0.875rem);
+  font-weight: 600;
+  color: var(--ui-status-readonly-text);
+}
+
+/* ----- Critical-only compact strip (danger; no mirror/write info duplicates) ----- */
 .app-status-strip {
   display: flex;
   flex-wrap: wrap;
   align-items: stretch;
   gap: var(--ui-space-2);
-  padding: var(--ui-space-2) var(--app-workspace-pad);
+  padding: var(--ui-space-2) clamp(var(--ui-space-3), 2vw, var(--ui-space-5));
   border-bottom: 1px solid var(--ui-border-subtle);
-  background: var(--ui-bg-surface-raised);
+  background: color-mix(in srgb, var(--surface-red) 18%, var(--surface));
   flex-shrink: 0;
 }
 
@@ -17,12 +48,11 @@
   gap: var(--ui-space-2);
   padding: var(--ui-space-2) var(--ui-space-3);
   border-radius: var(--ui-radius-sm);
-  font-size: var(--app-text-meta);
+  font-size: var(--clinic-text-meta, 0.875rem);
   line-height: 1.4;
   max-width: 100%;
 }
 
-/* Critical — danger left bar + soft red surface */
 .app-status-strip__item--critical,
 .app-status-strip__item--danger {
   border: 1px solid var(--ui-border-danger);
@@ -32,26 +62,10 @@
   font-weight: 500;
 }
 
-/* Warning — amber compact strip */
-.app-status-strip__item--warning {
-  border: 1px solid var(--ui-status-sandbox-border);
-  border-left: 3px solid var(--ui-warning-600);
-  background: var(--ui-status-sandbox-bg);
-  color: var(--ui-status-sandbox-text);
-}
-
-/* Info — cyan quiet chip */
-.app-status-strip__item--info {
-  border: 1px solid var(--ui-status-readonly-border);
-  background: var(--ui-status-readonly-bg);
-  color: var(--ui-status-readonly-text);
-}
-
-/* Healthy — small green/neutral chip (mirror fresh, writes off) */
+.app-status-strip__item--warning,
+.app-status-strip__item--info,
 .app-status-strip__item--healthy {
-  border: 1px solid color-mix(in srgb, var(--ui-success-600) 30%, transparent);
-  background: var(--ui-success-50);
-  color: var(--ui-success-600);
+  display: none;
 }
 
 .app-status-strip__label {
@@ -63,42 +77,36 @@
   color: inherit;
 }
 
-/* Header status cluster — readonly cyan pill */
-.app-workspace-header__readonly-pill,
-.app-workspace-header__status-chip.app-chip--readonly {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--ui-space-1);
-  padding: var(--ui-space-1) var(--ui-space-3);
-  border-radius: 999px;
-  border: 1px solid var(--ui-status-readonly-border);
-  background: var(--ui-status-readonly-bg);
-  font-size: var(--app-text-meta);
-  font-weight: 600;
-  color: var(--ui-status-readonly-text);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.app-workspace-header__readonly-pill::before,
-.app-workspace-header__status-chip.app-chip--readonly::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--ui-accent-cyan);
-  opacity: 0.85;
-}
-
-/* Legacy banner classes — hidden in workspace shell */
-.app-workspace-shell .app-shell__banner {
-  display: none;
-}
-
-.app-shell__status-row {
+/* Hide legacy full-width read-only + stacked status banners in workspace shell */
+.app-workspace-shell .app-shell__banner,
+.app-workspace-shell .app-shell__status-banner,
+.app-workspace-shell .app-shell__status-row {
   display: none;
 }
 
 .app-workspace-shell .app-patient-context-bar {
   display: none;
+}
+
+/* Side-column ops (non-critical stale / dry-run) */
+.clinic-side-ops {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+}
+
+.clinic-side-ops__item {
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-radius: var(--ui-radius-sm);
+  border: 1px solid var(--ui-border-subtle);
+  background: color-mix(in srgb, var(--surface-amber) 35%, var(--surface));
+  font-size: var(--clinic-text-meta, 0.875rem);
+  line-height: 1.4;
+  color: var(--ui-text-secondary);
+}
+
+.clinic-side-ops__label {
+  display: block;
+  font-weight: 600;
+  color: var(--ui-text-primary);
 }

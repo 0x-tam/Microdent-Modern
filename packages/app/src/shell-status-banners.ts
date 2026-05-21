@@ -216,8 +216,93 @@ export function resolveSandboxWriteWarningBanner(
 
 export type AppShellModuleId = "today" | "patients" | "schedule" | "settings";
 
+/** Sidebar recent-patient mini-list cap (session store may hold more). */
+export const SIDEBAR_RECENT_PATIENTS_MAX = 4;
+
+export type ShellHeaderMirrorPill = {
+  label: string;
+  tone: "ok" | "warn" | "neutral";
+};
+
 /**
- * Banners for the global status strip — page-specific warning/info moves to Today stat strip or Settings.
+ * Compact mirror label for the workspace header pill cluster (not a full-width strip).
+ */
+export function resolveShellHeaderMirrorPill(
+  phase: BridgeHealthPhase,
+  mirrorStatus: MirrorStatusResponse | null,
+  nowMs: number = Date.now(),
+): ShellHeaderMirrorPill | null {
+  if (phase !== "connected" || mirrorStatus === null) return null;
+  if (isMirrorImportStale(mirrorStatus, nowMs)) {
+    return { label: "Mirror stale", tone: "warn" };
+  }
+  if (!mirrorStatus.sqliteUsable) {
+    return { label: "Mirror: DBF fallback", tone: "warn" };
+  }
+  return { label: "Mirror OK", tone: "ok" };
+}
+
+/**
+ * Critical-only banners for the optional compact strip (bridge down, writes blocked, sandbox danger).
+ * Warning/info mirror and write-mode copy live in header pills or page panels — not duplicate strips.
+ */
+export function resolveShellCriticalStripBanners(
+  active: AppShellModuleId,
+  phase: BridgeHealthPhase,
+  mirrorStatus: MirrorStatusResponse | null,
+  writeCapability: BridgeDevStatusResponse | null,
+  nowMs: number = Date.now(),
+): ShellStatusBanner[] {
+  const contextual = resolveContextualStatusForModule(active, phase, mirrorStatus, writeCapability, nowMs);
+  return contextual.filter((b) => b.tone === "danger");
+}
+
+/**
+ * Non-critical banners for `clinic-panel` inner surfaces (pages render these inside panels).
+ */
+export function resolveShellPanelBanners(
+  active: AppShellModuleId,
+  phase: BridgeHealthPhase,
+  mirrorStatus: MirrorStatusResponse | null,
+  writeCapability: BridgeDevStatusResponse | null,
+  nowMs: number = Date.now(),
+): ShellStatusBanner[] {
+  const stripKeys = new Set(
+    resolveShellCriticalStripBanners(active, phase, mirrorStatus, writeCapability, nowMs).map((b) => b.key),
+  );
+  let banners = resolveShellStatusBanners(phase, mirrorStatus, writeCapability, nowMs).filter(
+    (b) => b.tone !== "danger" && !stripKeys.has(b.key),
+  );
+  if (active === "settings") {
+    banners = omitShellBannersDetailedInSettings(banners, phase, mirrorStatus, writeCapability, nowMs);
+  }
+  return banners;
+}
+
+/**
+ * Side-column ops hints (stale mirror, dry-run writes) — not shown as global strips.
+ */
+export function resolveShellSideOpsBanners(
+  phase: BridgeHealthPhase,
+  mirrorStatus: MirrorStatusResponse | null,
+  writeCapability: BridgeDevStatusResponse | null,
+  nowMs: number = Date.now(),
+): ShellStatusBanner[] {
+  const banners: ShellStatusBanner[] = [];
+  const mirror = resolveMirrorConnectionBanner(phase, mirrorStatus, nowMs);
+  if (mirror && (mirror.tone === "warning" || mirror.key === "mirror-stale")) {
+    banners.push(mirror);
+  }
+  const writeMode = resolveWriteModeBanner(phase, writeCapability);
+  if (writeMode && writeMode.tone === "warning") {
+    banners.push(writeMode);
+  }
+  return banners;
+}
+
+/**
+ * @deprecated Prefer {@link resolveShellCriticalStripBanners} for the shell strip.
+ * Returns danger-only banners for the global status strip.
  */
 export function resolveContextualStatusForModule(
   active: AppShellModuleId,
@@ -227,13 +312,11 @@ export function resolveContextualStatusForModule(
   nowMs: number = Date.now(),
 ): ShellStatusBanner[] {
   const all = resolveShellStatusBanners(phase, mirrorStatus, writeCapability, nowMs);
+  const dangerOnly = all.filter((b) => b.tone === "danger");
   if (active === "settings") {
-    return omitShellBannersDetailedInSettings(all, phase, mirrorStatus, writeCapability, nowMs);
+    return omitShellBannersDetailedInSettings(dangerOnly, phase, mirrorStatus, writeCapability, nowMs);
   }
-  if (active === "today") {
-    return all.filter((b) => b.tone === "danger");
-  }
-  return all.filter((b) => b.tone === "danger" || b.key === "mirror-stale");
+  return dangerOnly;
 }
 
 /** Ordered production banners (read-only banner is rendered separately in AppShell). */

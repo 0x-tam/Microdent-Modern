@@ -1,0 +1,231 @@
+/* Today page — clinic command center layout (Wave 2 D). */
+
+.clinic-today-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--clinic-page-gap);
+}
+
+.clinic-today-hero__date {
+  margin: 0;
+  font-size: var(--clinic-text-body);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ui-text-primary);
+  white-space: nowrap;
+}
+
+.clinic-today-hero__chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--ui-space-2);
+}
+
+.clinic-today-hero__chip--warn {
+  border-color: color-mix(in srgb, var(--ui-warning-600) 35%, var(--ui-border-subtle));
+  background: color-mix(in srgb, var(--surface-amber) 55%, var(--surface));
+  color: var(--ui-warning-700, #9a6700);
+}
+
+.clinic-today-appt-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+}
+
+.clinic-today-appt-list .clinic-list-card {
+  flex-wrap: wrap;
+}
+
+.clinic-today-appt-list .clinic-list-card--current {
+  border-left-color: var(--clinic-teal-600);
+  background: color-mix(in srgb, var(--surface-teal) 35%, var(--surface));
+}
+
+.clinic-today-appt-list .clinic-list-card--next {
+  border-left-color: var(--clinic-teal-400);
+  background: color-mix(in srgb, var(--surface-cyan) 30%, var(--surface));
+}
+
+.clinic-today-appt-list .clinic-list-card--status-success {
+  border-left-color: var(--ui-success-600);
+}
+
+.clinic-today-appt-list .clinic-list-card--status-warning {
+  border-left-color: var(--ui-warning-600);
+}
+
+.clinic-today-appt-list .clinic-list-card--status-danger {
+  border-left-color: var(--ui-danger-600);
+}
+
+.clinic-today-appt-list .clinic-list-card--status-info {
+  border-left-color: var(--clinic-teal-500);
+}
+
+.clinic-today-appt__time {
+  margin: 0 0 var(--ui-space-1);
+  font-size: var(--clinic-text-meta);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ui-text-secondary);
+}
+
+.clinic-today-appt__patient {
+  margin: 0;
+  font-size: var(--clinic-text-body);
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--ui-text-primary);
+}
+
+.clinic-today-appt__patient--muted {
+  color: var(--ui-text-muted);
+}
+
+.clinic-today-appt__meta {
+  margin: var(--ui-space-1) 0 0;
+  font-size: var(--clinic-text-meta);
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+.clinic-today-appt__badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-2);
+  margin-top: var(--ui-space-2);
+}
+
+.clinic-today-appt__row-label {
+  margin: 0 0 var(--ui-space-1);
+  font-size: var(--clinic-text-meta);
+  font-weight: 600;
+  color: var(--clinic-teal-700);
+}
+
+.clinic-today-panel-note {
+  margin: 0 0 var(--ui-space-3);
+  font-size: var(--clinic-text-meta);
+  line-height: 1.5;
+  color: var(--ui-text-secondary);
+}
+
+.clinic-today-panel-note--advisory {
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid color-mix(in srgb, var(--ui-warning-600) 25%, var(--ui-border-subtle));
+  background: color-mix(in srgb, var(--surface-amber) 40%, var(--surface));
+  color: var(--ui-warning-800, #7a5200);
+}
+
+.clinic-today-readonly-state {
+  margin: 0;
+  font-size: var(--clinic-text-body);
+  line-height: 1.5;
+  color: var(--ui-text-secondary);
+}
+
+.clinic-today-readonly-state--error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--ui-space-3);
+}
+
+.clinic-today-now__highlight {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+}
+
+.clinic-today-now__label {
+  margin: 0;
+  font-size: var(--clinic-text-meta);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ui-text-muted);
+}
+
+.clinic-today-now__time {
+  margin: 0;
+  font-size: var(--clinic-text-stat);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ui-text-primary);
+}
+
+.clinic-today-now__patient {
+  margin: 0;
+  font-size: var(--clinic-text-body);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ui-text-primary);
+}
+
+.clinic-today-now__detail {
+  margin: 0;
+  font-size: var(--clinic-text-meta);
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+.clinic-today-now__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  margin-top: var(--ui-space-2);
+}
+
+.clinic-today-selected-patient {
+  margin-top: var(--ui-space-4);
+  padding-top: var(--ui-space-4);
+  border-top: 1px solid var(--ui-border-subtle);
+}
+
+.clinic-today-selected-patient__name {
+  margin: 0;
+  font-size: var(--clinic-text-body);
+  font-weight: 600;
+  color: var(--ui-text-primary);
+}
+
+.clinic-today-selected-patient__chart {
+  margin: var(--ui-space-1) 0 var(--ui-space-2);
+  font-size: var(--clinic-text-meta);
+  color: var(--ui-text-secondary);
+}
+
+.clinic-today-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+}
+
+.clinic-today-pilot-notes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+}
+
+.clinic-today-pilot-notes p {
+  margin: 0;
+  font-size: var(--clinic-text-meta);
+  line-height: 1.5;
+  color: var(--ui-text-secondary);
+}
+
+.clinic-today-panel--compact .clinic-panel__body {
+  padding-top: var(--ui-space-3);
+  padding-bottom: var(--ui-space-3);
+}
+
+.clinic-today-appt-count {
+  font-size: var(--clinic-text-meta);
+  font-weight: 600;
+  color: var(--ui-text-secondary);
+}

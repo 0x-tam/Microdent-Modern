@@ -188,7 +188,7 @@ export function AppointmentTimeMoveWriteAction({
   const previewOk = state.kind === "preview";
   const rootClass = embedded
     ? "app-appt-time-move-write app-appt-time-move-write--embedded"
-    : "app-sandbox-write app-sandbox-write-zone app-appt-time-move-write";
+    : "clinic-panel clinic-write-panel app-sandbox-write app-sandbox-write-zone app-appt-time-move-write";
 
   const effectiveRoomOptions = roomOptions.length > 0 ? roomOptions : [appointment.room];
 

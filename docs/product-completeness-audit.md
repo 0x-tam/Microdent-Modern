@@ -1,10 +1,10 @@
-# Product completeness audit — clinic visual identity batch
+# Product completeness audit — clinic workspace UI rebuild
 
-**Purpose:** Gap report after the **clinic visual identity & command-center color pass** (Waves 0–4 complete). Guides bugfix-only Mac work until Windows Tier 3 field execution.
+**Purpose:** Gap report after the **clinic workspace UI rebuild** (Waves 0–4: `clinic-*` layout system, cascade fix, shell + five key pages, browser layout proof). Guides bugfix-only Mac work until Windows Tier 3 field execution.
 
-**Reviewed:** `packages/app/src/` after visual identity batch (tokens, shell chrome, page surfaces, microcopy, empty/offline panels, a11y polish, safety regression, checkpoint). **Mac visual identity pass complete** at audit time.
+**Reviewed:** `packages/app/src/` after rebuild batch (`clinic-design-system.css`, `ClinicPage`/`ClinicPanel` primitives, Today/Patients/Schedule/Profile/Settings DOM, microcopy, a11y, forbidden-token tests, checkpoint). **Mac layout rebuild complete** at audit time; `browser_matches_spec: yes` per [visual-qa-checklist.md](./visual-qa-checklist.md) and [qa-runs/2026-06-03-clinic-workspace-ui-batch-report.md](../qa-runs/2026-06-03-clinic-workspace-ui-batch-report.md).
 
-**Baseline:** `e862976` — `feat: rebuild clinic app layout and command center UX` (command-center structure). This batch adds teal-forward identity without layout restructure.
+**Baseline:** `5cd3d13` — prior `feat: redesign clinic app into modern visual workspace`. This batch replaces incremental `app-*` layering with the `clinic-*` system and removes the inline hub CSS block that caused pale-admin regressions.
 
 **Related guardrails:** [out-of-scope-guardrails.md](./out-of-scope-guardrails.md) · **Windows field test entry:** [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md)
 
@@ -18,10 +18,10 @@
 
 | Area | Daily-use ready? | Notes |
 | --- | --- | --- |
-| **Today** | Yes (connected bridge) | Teal stat tones, clinical wash hero, ops highlight card, semantic status accents; unified visit meta unchanged |
-| **Patients** | Yes | Search hero + recent grid tinting; profile hero chips; segmented tabs; timeline rail accents — **Seven tabs** including Timeline |
-| **Schedule** | Yes | Status-colored rows/badges, date header accent, room inset grouping — interactive filters unchanged |
-| **Settings** | Yes | Tone-colored status hero tiles; section cards with severity accents; Windows execution **Deferred / not yet run** |
+| **Today** | Yes (connected bridge) | `clinic-page-hero` + 5-up `clinic-stat-grid` + `clinic-command-grid` (2/3 appointments \| 1/3 glance/now/actions); status chips not `<dl>` |
+| **Patients** | Yes | `clinic-command-grid` workflow (search panel, results, aside cards); profile uses clinic hero + 6 stat cards + pill tabs |
+| **Schedule** | Yes | Clinic hero + stat summary row + filter toolbar + date/room `clinic-list-card` board (empty states when no data) |
+| **Settings** | Yes | 7-card `clinic-settings-readiness-grid` + `clinic-panel` detail sections; Windows execution **Deferred / not yet run** |
 | **Writes (4 routes)** | Sandbox + pilot flag only | Doctor `<select>` from reference on create; discoverability hint above write panels; preview invalidation; blocked notice; mirror lag nudge |
 | **Payments / memos / clinical writes** | Blocked by design | See [out-of-scope-guardrails.md](./out-of-scope-guardrails.md) |
 | **Windows clinic PC** | **Not yet run — deferred** | **Next strategic gate**; no NSIS until field log exists |
@@ -261,4 +261,4 @@ Optional follow-ups **after field log:** decoded status/chart/ledger catalogs (i
 
 ---
 
-*Audit author: Agent ProductAudit (Workstream R). Mac visual identity pass complete; Windows deferred.*
+*Audit author: Agent ProductAudit (Workstream R+S). Clinic workspace UI rebuild complete; browser layout proof passed; Windows deferred.*

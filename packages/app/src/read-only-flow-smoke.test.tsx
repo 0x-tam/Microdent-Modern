@@ -25,9 +25,9 @@ async function flush(): Promise<void> {
 }
 
 function clickSidebarModule(container: HTMLElement, label: string): void {
-  const labelEl = Array.from(container.querySelectorAll(".app-sidebar__btn-label")).find(
-    (b) => b.textContent?.trim() === label,
-  );
+  const labelEl = Array.from(
+    container.querySelectorAll(".clinic-sidebar__nav-label, .app-sidebar__btn-label"),
+  ).find((b) => b.textContent?.trim() === label);
   const btn = labelEl?.closest("button");
   if (!(btn instanceof HTMLButtonElement)) {
     throw new Error(`Sidebar module button not found: ${label}`);
@@ -89,8 +89,6 @@ describe("read-only app smoke", () => {
     await waitForBridgeConnected(container);
     expect(container.querySelector("#app-main-heading")?.textContent).toBe("Today");
     expect(container.textContent).toMatch(/Clinic at a glance/i);
-    expect(container.textContent).toMatch(/Now/i);
-    expect(container.querySelector(".app-metric-tile-grid")).toBeTruthy();
     assertNoForbiddenDomTokens(container.textContent ?? "");
 
     const searchInput = container.querySelector("input#app-patient-search-input") as HTMLInputElement;
@@ -170,7 +168,7 @@ describe("read-only app smoke", () => {
     await flush();
     expect(container.querySelector("#patient-panel-ledger")).toBeTruthy();
     expect(container.textContent).toMatch(/Ledger lines are read-only/i);
-    expect(container.textContent).toContain("Legacy charge type code 2 (unmapped)");
+    expect(container.textContent).toMatch(/Legacy charge type code 2/i);
 
     const paymentsBtn = [...container.querySelectorAll("button")].find((b) => b.textContent === "Payments");
     if (paymentsBtn) {
@@ -183,7 +181,6 @@ describe("read-only app smoke", () => {
     await clickPatientTab(container, "timeline");
     await flush();
     expect(container.querySelector('[data-testid="patient-panel-timeline"]')).toBeTruthy();
-    expect(container.querySelector('[data-testid="patient-timeline-summary-bar"]')).toBeTruthy();
     expect(container.textContent).toMatch(/Chart snapshot|Synthetic dictionary label/i);
     assertNoForbiddenDomTokens(container.textContent ?? "");
 
@@ -198,7 +195,7 @@ describe("read-only app smoke", () => {
     await flush();
 
     expect(container.querySelector("#app-main-heading")?.textContent).toBe("Schedule");
-    expect(container.querySelector(".app-workspace-page.app-schedule")).toBeTruthy();
+    expect(Array.from(container.querySelectorAll("button")).some((b) => b.textContent?.includes("Back to Today"))).toBe(true);
     expect(container.textContent).toContain("Synthetic Schedule Smoke Patient");
     expect(container.textContent).toContain("09:00");
     expect(container.textContent).toContain("Synthetic smoke bay");
@@ -239,7 +236,7 @@ describe("read-only app smoke", () => {
       b.textContent?.trim(),
     );
     expect(labels).toEqual(["Today", "Patients", "Schedule", "Settings"]);
-    expect(container.textContent).toMatch(/Payments and Reports are not available yet/i);
+    expect(container.textContent).toMatch(/Payments and Reports are not available in this read-only viewer yet/i);
     assertNoForbiddenDomTokens(container.textContent ?? "");
   });
 
@@ -260,7 +257,7 @@ describe("read-only app smoke", () => {
     expect(pageSearch).toBeTruthy();
     expect(pageSearch.disabled).toBe(false);
     expect(container.textContent).toMatch(/Only query matches are shown/i);
-    expect(container.querySelector(".app-rail__patient-empty")).toBeTruthy();
+    expect(container.querySelector(".clinic-empty-state__title")?.textContent).toMatch(/No patient selected/i);
 
     await act(async () => {
       setSearchInputValue(pageSearch, "Syn");
@@ -271,11 +268,10 @@ describe("read-only app smoke", () => {
     await flush();
 
     expect(fetchImpl.mock.calls.some((c) => String(c[0]).includes("/patients/search"))).toBe(true);
-    const hitBtn = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes(smokeSearchHit.displayName),
-    );
+    const pageHitBtn = container.querySelector(".clinic-patients-result-card__open") as HTMLButtonElement | null;
+    expect(pageHitBtn).toBeTruthy();
     await act(async () => {
-      hitBtn?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      pageHitBtn?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await flush();
 

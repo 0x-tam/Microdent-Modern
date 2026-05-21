@@ -1,0 +1,214 @@
+/* Wave 2 G — Patient profile clinic workspace layout. */
+
+.clinic-profile-page {
+  gap: var(--clinic-page-gap);
+}
+
+.clinic-profile-module-hero {
+  margin-bottom: 0;
+}
+
+.clinic-profile-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-2);
+}
+
+.clinic-profile-readonly-note {
+  margin: 0;
+  font-size: var(--clinic-text-meta);
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+/* ----- Patient hero ----- */
+.clinic-profile-hero {
+  align-items: flex-start;
+}
+
+.clinic-profile-hero__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  margin: var(--ui-space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.clinic-profile-hero__chips .clinic-chip,
+.clinic-profile-hero__chips .clinic-status-pill {
+  font-size: var(--clinic-text-meta);
+}
+
+.clinic-profile-hero__actions {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--ui-space-2);
+}
+
+@media (min-width: 720px) {
+  .clinic-profile-hero__actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+}
+
+.clinic-profile-hero__refreshed {
+  margin: 0;
+  width: 100%;
+  text-align: right;
+}
+
+@media (min-width: 720px) {
+  .clinic-profile-hero__refreshed {
+    width: auto;
+    margin-right: auto;
+  }
+}
+
+/* ----- At-a-glance stat strip (6 cards) ----- */
+.clinic-profile-at-glance {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+}
+
+.clinic-profile-at-glance__title {
+  margin: 0;
+  font-size: var(--clinic-text-section);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ui-text-primary);
+}
+
+.clinic-profile-stat-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 9rem), 1fr));
+}
+
+@media (min-width: 960px) {
+  .clinic-profile-stat-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+/* ----- 44px segmented pill tabs ----- */
+.clinic-profile-tabs.app-patient-profile__tabs--pills {
+  margin-top: 0;
+}
+
+.clinic-profile-tabs .app-patient-profile__tablist {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  min-height: 44px;
+  padding: 3px;
+  gap: 3px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--clinic-teal-600) 16%, var(--ui-border-subtle));
+  background: color-mix(in srgb, var(--clinic-bg-soft) 70%, var(--surface));
+  box-shadow: var(--shadow-soft);
+}
+
+.clinic-profile-tabs .app-patient-profile__tab {
+  min-height: 44px;
+  padding: var(--ui-space-2) var(--ui-space-4);
+  border: none;
+  border-radius: 999px;
+  font-size: var(--clinic-text-meta);
+  font-weight: 600;
+  color: var(--ui-text-secondary);
+  background: transparent;
+  transition:
+    background-color var(--ui-duration-hover) var(--ui-ease-out),
+    color var(--ui-duration-hover) var(--ui-ease-out),
+    box-shadow var(--ui-duration-hover) var(--ui-ease-out);
+}
+
+.clinic-profile-tabs .app-patient-profile__tab:hover:not(.app-patient-profile__tab--active) {
+  color: var(--ui-text-primary);
+  background: color-mix(in srgb, var(--surface-teal) 45%, transparent);
+}
+
+.clinic-profile-tabs .app-patient-profile__tab--active,
+.clinic-profile-tabs .app-patient-profile__tab[aria-selected="true"] {
+  border: none;
+  color: #fff;
+  background: var(--clinic-teal-600);
+  box-shadow: var(--shadow-soft);
+}
+
+.clinic-profile-tabs .app-patient-profile__tab:focus-visible {
+  outline: 2px solid var(--clinic-teal-600);
+  outline-offset: 2px;
+}
+
+.clinic-profile-tabs .app-patient-profile__tab-desc {
+  margin: var(--ui-space-2) 0 0;
+  font-size: var(--clinic-text-meta);
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+/* ----- Summary two-column workspace grid ----- */
+.clinic-profile-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+}
+
+.clinic-profile-summary-grid {
+  align-items: stretch;
+}
+
+.clinic-profile-summary-activity-panel .app-patient-profile__summary-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+}
+
+.clinic-profile-summary-activity-panel .app-patient-profile__summary-cross-tabs {
+  display: none;
+}
+
+.clinic-profile-summary-clinical {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+  min-width: 0;
+}
+
+.clinic-profile-summary-clinical-panel .app-patient-profile__summary-metrics {
+  margin-bottom: 0;
+}
+
+.clinic-profile-summary-cross-tabs {
+  margin-top: auto;
+}
+
+.clinic-profile-summary .app-patient-profile__tab-hidden-note {
+  margin: 0;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid color-mix(in srgb, var(--clinic-teal-600) 12%, var(--ui-border-subtle));
+  background: color-mix(in srgb, var(--surface-teal) 35%, var(--surface));
+  font-size: var(--clinic-text-meta);
+  line-height: 1.45;
+}
+
+.clinic-profile-summary-activity-body .app-patient-profile__summary-mini-grid {
+  gap: var(--clinic-stat-gap);
+}
+
+.clinic-profile-summary-activity-body .app-patient-profile__summary-mini-card {
+  min-height: 5.5rem;
+  border-left-width: 4px;
+  box-shadow: var(--shadow-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clinic-profile-tabs .app-patient-profile__tab {
+    transition: none;
+  }
+}

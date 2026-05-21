@@ -3,17 +3,12 @@ import {
   SANDBOX_WRITE_BLOCKED_SANDBOX,
   SANDBOX_WRITE_BLOCKED_WRITE_MODE,
   SANDBOX_WRITE_PILOT_PANEL_BANNER,
-  WRITE_BLOCKED_PANEL_TITLE,
-  WRITE_FLOW_STEP_APPLY,
-  WRITE_FLOW_STEP_EDIT,
-  WRITE_FLOW_STEP_PREVIEW,
   WRITE_PLAN_LABEL_RECORD_ID,
   WRITE_PLAN_LABEL_WORKFLOW,
   WRITE_POST_COMMIT_COMBINED_NUDGE,
   writeResultCommittedHeadline,
   writeResultUncommittedHeadline,
 } from "./read-only-ui-copy.js";
-import { AppEmptyPanel } from "./app-empty-panel.js";
 import type { SandboxWriteBlockReason } from "./sandbox-write-pilot.js";
 
 export type WritePlanResultSummary = {
@@ -70,7 +65,7 @@ export type SandboxWriteStep = "edit" | "preview" | "result";
 
 export function SandboxWriteStepIndicator({ step }: { step: SandboxWriteStep }) {
   const steps: SandboxWriteStep[] = ["edit", "preview", "result"];
-  const labels = [WRITE_FLOW_STEP_EDIT, WRITE_FLOW_STEP_PREVIEW, WRITE_FLOW_STEP_APPLY];
+  const labels = ["Edit", "Preview", "Apply"];
   const activeIdx = steps.indexOf(step);
   return (
     <ol className="app-sandbox-write-zone__steps" aria-label="Sandbox write flow">
@@ -159,13 +154,15 @@ function sandboxWriteBlockedMessage(reason: SandboxWriteBlockReason): string {
 
 export function SandboxWriteBlockedNotice({ reason, className, testId }: SandboxWriteBlockedNoticeProps) {
   return (
-    <AppEmptyPanel
-      variant="blocked-write"
-      className={className ?? "app-sandbox-write app-sandbox-write--blocked"}
-      title={WRITE_BLOCKED_PANEL_TITLE}
-      body={sandboxWriteBlockedMessage(reason)}
-      testId={testId}
-    />
+    <div
+      className={className ?? "clinic-panel clinic-write-panel app-sandbox-write app-sandbox-write--blocked"}
+      role="status"
+      data-testid={testId}
+    >
+      <p className="app-sandbox-write__blocked app-sandbox-write__surface app-sandbox-write__surface--blocked">
+        {sandboxWriteBlockedMessage(reason)}
+      </p>
+    </div>
   );
 }
 

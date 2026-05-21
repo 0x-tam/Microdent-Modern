@@ -236,7 +236,7 @@ export function AppointmentCreateWriteAction({
   const previewOk = state.kind === "preview";
 
   return (
-    <details className="app-sandbox-write app-sandbox-write-zone app-appt-create-write" data-testid="appt-create-write-pilot">
+    <details className="clinic-panel clinic-write-panel app-sandbox-write app-sandbox-write-zone app-appt-create-write" data-testid="appt-create-write-pilot">
       <summary className="app-sandbox-write__summary app-sandbox-write-zone__header">{APPOINTMENT_CREATE_SUMMARY}</summary>
       <SandboxWriteBanner />
       <SandboxWriteStepIndicator step={resolveWriteStep(state)} />

@@ -46,7 +46,8 @@ describe("AppShell", () => {
     expect(html).toContain("Read-only");
     expect(html).toContain("Offline");
     expect(html).toContain("app-workspace-shell");
-    expect(html).toContain("app-rail");
+    expect(html).toContain("clinic-sidebar");
+    expect(html).toContain("Modern clinic workspace");
   });
 
   it("renders dev-only Today aside panels only when import.meta.env.DEV", () => {
@@ -82,13 +83,13 @@ describe("AppShell", () => {
     expect(html).toContain("Settings");
     expect(html).not.toMatch(/app-sidebar__btn-label">Dental Chart/);
     expect(html).toContain("app-sidebar__btn-sublabel");
-    expect(html).toMatch(/Payments and Reports are not available yet/i);
+    expect(html).toMatch(/Payments and Reports are not available in this read-only viewer yet/i);
   });
 
   it("renders page title and module description from nav metadata", () => {
     const html = renderToStaticMarkup(<AppShell />);
     expect(html).toContain('id="app-main-heading"');
-    expect(html).toMatch(/Schedule overview.*quick actions/);
+    expect(html).toContain("Schedule overview, next steps, and clinic readiness.");
     expect(html).toContain("Front desk dashboard");
   });
 
@@ -99,7 +100,7 @@ describe("AppShell", () => {
 
   it("shows patient context in the rail when a patient would be selected (class present in shell markup)", () => {
     const html = renderToStaticMarkup(<AppShell />);
-    expect(html).toContain("app-rail__patient");
+    expect(html).toContain("clinic-sidebar__patient");
     expect(html).not.toContain("app-patient-context-bar");
   });
 
@@ -124,8 +125,9 @@ describe("AppShell", () => {
 
   it("shows read-only viewer pill with privacy note in header", () => {
     const html = renderToStaticMarkup(<AppShell />);
-    expect(html).toContain("app-workspace-header__status-cluster");
-    expect(html).toContain("app-chip--readonly");
+    expect(html).toContain("clinic-workspace-header__status-cluster");
+    expect(html).toContain("clinic-status-pill");
+    expect(html).toContain("clinic-header-search");
     expect(html).toContain("payment amounts stay hidden");
   });
 

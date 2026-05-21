@@ -1,0 +1,190 @@
+/* Wave 2 E — Patients clinic workflow layout */
+.clinic-patients-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--clinic-page-gap);
+}
+
+.clinic-patients-search-panel .clinic-panel__body {
+  padding-block: var(--ui-space-4);
+}
+
+.clinic-patients-search {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+  width: 100%;
+}
+
+.clinic-patients-search__input {
+  min-height: clamp(44px, 2.75rem + 0.5vw, 52px);
+  font-size: var(--clinic-text-body, 1rem);
+}
+
+.clinic-patients-search__submit {
+  min-height: clamp(44px, 2.75rem + 0.5vw, 52px);
+  padding-inline: var(--ui-space-5);
+}
+
+.clinic-patients-search__hint,
+.clinic-patients-search__status {
+  max-width: min(62ch, 100%);
+}
+
+.clinic-patients-offline-inline {
+  margin: 0;
+}
+
+.clinic-patients-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+}
+
+.clinic-patients-results__empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-2) 0;
+}
+
+.clinic-patients-results__empty-lede {
+  margin: 0;
+  font-size: var(--clinic-text-body);
+  line-height: 1.5;
+  color: var(--ui-text-primary);
+}
+
+.clinic-patients-results__empty-list {
+  margin: 0;
+  padding-left: var(--ui-space-5);
+  font-size: var(--clinic-text-meta);
+  line-height: 1.55;
+  color: var(--ui-text-secondary);
+}
+
+.clinic-patients-results__empty-list li + li {
+  margin-top: var(--ui-space-2);
+}
+
+.clinic-patients-results__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+}
+
+.clinic-patients-results__status {
+  margin: 0;
+  font-size: var(--clinic-text-body);
+  line-height: 1.5;
+  color: var(--ui-text-secondary);
+}
+
+.clinic-patients-results__status--error {
+  color: var(--ui-text-primary);
+}
+
+.clinic-patients-results__cap {
+  margin: 0;
+  font-size: var(--clinic-text-meta);
+  line-height: 1.45;
+  color: var(--ui-text-muted);
+}
+
+.clinic-patients-result-card {
+  align-items: center;
+}
+
+.clinic-patients-result-card--selected {
+  border-left-color: var(--clinic-teal-700);
+  background: color-mix(in srgb, var(--surface-teal) 35%, var(--surface));
+}
+
+.clinic-patients-result-card--active {
+  outline: 2px solid color-mix(in srgb, var(--clinic-teal-600) 45%, transparent);
+  outline-offset: 2px;
+}
+
+.clinic-patients-result-card__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-1);
+}
+
+.clinic-patients-result-card__name {
+  margin: 0;
+  font-size: var(--clinic-text-body);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--ui-text-primary);
+}
+
+.clinic-patients-result-card__meta {
+  margin: 0;
+  font-size: var(--clinic-text-meta);
+  line-height: 1.4;
+  color: var(--ui-text-secondary);
+}
+
+.clinic-patients-aside-copy {
+  margin: 0;
+  font-size: var(--clinic-text-meta);
+  line-height: 1.55;
+  color: var(--ui-text-secondary);
+}
+
+.clinic-patients-aside-empty {
+  margin: 0;
+  font-size: var(--clinic-text-meta);
+  line-height: 1.45;
+  color: var(--ui-text-muted);
+}
+
+.clinic-patients-recent-list {
+  list-style: none;
+  margin: var(--ui-space-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+}
+
+.clinic-patients-recent-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--ui-space-1);
+  width: 100%;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.clinic-patients-recent-btn:hover {
+  border-color: color-mix(in srgb, var(--clinic-teal-600) 25%, var(--ui-border-subtle));
+  background: color-mix(in srgb, var(--surface-teal) 40%, var(--surface));
+}
+
+.clinic-patients-recent-btn--selected {
+  border-color: color-mix(in srgb, var(--clinic-teal-600) 35%, var(--ui-border-subtle));
+  background: color-mix(in srgb, var(--surface-teal) 55%, var(--surface));
+}
+
+.clinic-patients-recent-btn__name {
+  font-size: var(--clinic-text-body);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ui-text-primary);
+}
+
+.clinic-patients-recent-btn__meta {
+  font-size: var(--clinic-text-meta);
+  line-height: 1.35;
+  color: var(--ui-text-secondary);
+}

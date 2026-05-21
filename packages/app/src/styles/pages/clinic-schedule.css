@@ -1,0 +1,203 @@
+/* Wave 2 — Schedule board clinic layout */
+
+.clinic-schedule-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--clinic-page-gap);
+}
+
+.clinic-schedule-hero-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-4);
+  border-radius: var(--ui-radius-lg);
+  border: 1px solid var(--ui-border-subtle);
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--surface-teal) 55%, var(--surface)) 0%,
+    var(--surface) 72%
+  );
+  box-shadow: var(--shadow-soft);
+}
+
+.clinic-schedule-hero-controls__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-2) var(--ui-space-3);
+}
+
+.clinic-schedule-hero-controls__range {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--ui-space-2) var(--ui-space-3);
+}
+
+.clinic-schedule-range {
+  margin: 0;
+  font-size: clamp(1.35rem, 2.4vw, 1.85rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--ui-text-primary);
+}
+
+.clinic-schedule-range time {
+  font: inherit;
+}
+
+.clinic-schedule-hero-controls__refresh {
+  margin-left: auto;
+}
+
+.clinic-schedule-stat-grid {
+  margin: 0;
+}
+
+.clinic-schedule-toolbar {
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-border-subtle);
+  box-shadow: var(--shadow-soft);
+}
+
+.clinic-schedule-toolbar__room {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  margin-right: var(--ui-space-2);
+}
+
+.clinic-schedule-chip-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-2);
+}
+
+.clinic-schedule-privacy,
+.clinic-schedule-keyboard-hint,
+.clinic-schedule-banner,
+.clinic-schedule-hint {
+  margin: 0;
+  font-size: var(--clinic-text-meta);
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+.clinic-schedule-board {
+  display: flex;
+  flex-direction: column;
+  gap: var(--clinic-page-gap);
+  width: 100%;
+}
+
+.clinic-schedule-day-group {
+  border-radius: var(--ui-radius-lg);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.clinic-schedule-day-group__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-2);
+  margin: 0;
+  padding: var(--ui-space-3) var(--clinic-panel-pad);
+  border-bottom: 1px solid var(--ui-border-subtle);
+  background: color-mix(in srgb, var(--clinic-bg-soft) 40%, var(--surface));
+}
+
+.clinic-schedule-day-group__title {
+  margin: 0;
+  font-size: var(--clinic-text-section);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.clinic-schedule-day-group__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-4);
+  padding: var(--clinic-panel-pad);
+}
+
+.clinic-schedule-room-group__heading {
+  margin: 0 0 var(--ui-space-2);
+  font-size: var(--clinic-text-meta);
+  font-weight: 600;
+}
+
+.clinic-schedule-room-group__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.clinic-schedule-page .clinic-list-card {
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+.clinic-schedule-page .clinic-list-card__time {
+  flex-shrink: 0;
+  min-width: 3.5rem;
+  font-size: var(--clinic-text-section);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  color: var(--clinic-teal-700);
+}
+
+.clinic-schedule-page .clinic-list-card--stripe-success {
+  border-left-color: var(--ui-success-600);
+}
+
+.clinic-schedule-page .clinic-list-card--stripe-info {
+  border-left-color: var(--ui-accent-blue, #2563eb);
+}
+
+.clinic-schedule-page .clinic-list-card--stripe-warning {
+  border-left-color: var(--ui-warning-600);
+}
+
+.clinic-schedule-page .clinic-list-card--stripe-danger {
+  border-left-color: var(--ui-danger-600);
+}
+
+.clinic-schedule-page .clinic-list-card--stripe-neutral {
+  border-left-color: var(--ui-border-strong);
+}
+
+.clinic-schedule-page .clinic-list-card--current {
+  border-color: color-mix(in srgb, var(--clinic-teal-500) 45%, var(--ui-border-subtle));
+  background: color-mix(in srgb, var(--surface-teal) 35%, var(--surface));
+  box-shadow: var(--shadow-card);
+}
+
+.clinic-schedule-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-2);
+  padding-top: var(--ui-space-2);
+}
+
+@media (max-width: 720px) {
+  .clinic-schedule-hero-controls__refresh {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .clinic-schedule-page .clinic-list-card {
+    flex-direction: column;
+  }
+}

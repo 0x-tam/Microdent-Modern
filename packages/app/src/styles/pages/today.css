@@ -732,3 +732,265 @@
 .app-dashboard-clinic-overview__settings-link {
   margin-top: var(--ui-space-2);
 }
+
+
+/* ----- Migrated from app-shell.css hub block (Wave 0 cascade fix) ----- */
+@media (min-width: 1200px) {
+  .app-dashboard__layout {
+    gap: var(--app-dashboard-gap);
+  }
+
+  .app-settings__grid {
+    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  }
+
+  .app-patient-profile__summary-mini-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .app-schedule__range-block {
+    max-width: min(52rem, 100%);
+  }
+}
+
+@media (min-width: 1600px) {
+  .app-dashboard__layout {
+    --app-dashboard-col-aside: minmax(248px, min(320px, 26vw));
+  }
+
+  .app-patient-profile__summary-mini-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+/* Clinic workflow polish — unified filter chips, timeline kind filters, write hints */
+.app-patient-profile__timeline-kind-filters,
+.app-patient-profile__appts-filters,
+.app-schedule__status-breakdown,
+.app-schedule__provider-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-1);
+}
+
+/* Filter chip min-height/font-size — v2 scale in workspace-redesign.css */
+
+.app-patient-profile__timeline-row-action {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--ui-primary-600);
+}
+
+.app-patient-profile__appt-row--current {
+  border-left: 3px solid var(--ui-primary-500);
+  padding-left: calc(var(--ui-space-2) - 3px);
+  background: color-mix(in srgb, var(--ui-primary-50) 35%, var(--ui-bg-surface));
+}
+
+.app-patient-profile__appts-status-mix,
+.app-patient-profile__appts-cap-banner {
+  margin: 0 0 var(--ui-space-2);
+  font-size: var(--app-text-meta);
+  color: var(--ui-text-secondary);
+}
+
+.app-schedule__write-discoverability-hint {
+  margin: var(--ui-space-2) 0 0;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-radius: var(--ui-radius-md);
+  background: color-mix(in srgb, var(--ui-primary-50) 45%, var(--ui-bg-surface));
+  font-size: var(--app-text-meta);
+  color: var(--ui-text-secondary);
+}
+
+.app-schedule__range-rooms-in-use {
+  color: var(--ui-text-secondary);
+}
+
+.app-dashboard-recent-patients__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-1);
+}
+
+.app-dashboard-recent-patients__btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: var(--ui-space-2);
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-dashboard-recent-patients__btn:hover {
+  border-color: rgba(27, 111, 122, 0.35);
+}
+
+.app-dashboard-recent-patients__chart {
+  font-size: var(--app-text-meta);
+  color: var(--ui-text-secondary);
+}
+
+.app-sandbox-write__refresh-nudge {
+  margin: var(--ui-space-2) 0 0;
+  font-size: var(--app-text-meta);
+  color: var(--ui-text-secondary);
+}
+
+/* Wave K — UX cohesion: search recent, summary at-a-glance, timeline, schedule ops, write forms */
+
+.app-patient-search__recent {
+  margin-top: var(--ui-space-3);
+  padding: var(--ui-space-2);
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-surface);
+}
+
+.app-patient-search__recent-title {
+  margin: 0 0 var(--ui-space-1);
+  font-size: var(--app-text-meta);
+  font-weight: 600;
+}
+
+.app-patient-search__recent-hint {
+  margin: 0 0 var(--ui-space-2);
+  font-size: var(--app-text-meta);
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-search__recent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-1);
+}
+
+.app-patient-search__recent-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: var(--ui-space-2);
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-patient-search__recent-btn:hover,
+.app-patient-search__recent-btn:focus-visible {
+  border-color: rgba(27, 111, 122, 0.35);
+}
+
+.app-patient-search__recent-btn--selected {
+  border-color: var(--ui-accent);
+  background: rgba(27, 111, 122, 0.06);
+}
+
+.app-patient-search__recent-name {
+  font-weight: 500;
+}
+
+.app-patient-search__recent-meta {
+  font-size: var(--app-text-meta);
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__summary-at-glance {
+  margin-top: var(--ui-space-3);
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-muted);
+}
+
+.app-patient-profile__summary-at-glance-title {
+  margin: 0 0 var(--ui-space-1);
+  font-size: var(--app-text-meta);
+  font-weight: 600;
+}
+
+.app-patient-profile__summary-at-glance-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  font-size: var(--app-text-meta);
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__timeline-summary-bar,
+.app-patient-profile__timeline-limitations {
+  margin: var(--ui-space-2) 0;
+  font-size: var(--app-text-meta);
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__timeline-temporal-section {
+  margin-top: var(--ui-space-3);
+}
+
+.app-schedule__status-mix-line,
+.app-schedule__filter-active-label,
+.app-schedule__range-provider-mix {
+  margin: var(--ui-space-1) 0 0;
+  font-size: var(--app-text-meta);
+  color: var(--ui-text-secondary);
+}
+
+.app-sandbox-write__context-panel {
+  margin-bottom: var(--ui-space-2);
+  padding: var(--ui-space-2);
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-muted);
+}
+
+.app-sandbox-write__context-title {
+  margin: 0 0 var(--ui-space-1);
+  font-size: var(--app-text-meta);
+  font-weight: 600;
+}
+
+.app-sandbox-write__context-line,
+.app-sandbox-write__patient-context {
+  margin: 0;
+  font-size: var(--app-text-meta);
+  color: var(--ui-text-secondary);
+}
+
+.app-dashboard-selected-patient__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  margin-top: var(--ui-space-2);
+}
+
+.app-settings__today-hint {
+  margin: var(--ui-space-2) 0 0;
+  font-size: var(--app-text-meta);
+  color: var(--ui-text-secondary);
+}
+
+/* Shared filter chip active states — schedule, timeline, clinical tabs */
+.app-patient-profile__timeline-kind-chip[aria-pressed="true"],
+.app-schedule__status-chip[aria-pressed="true"],
+.app-schedule__provider-chip[aria-pressed="true"],
+.app-patient-profile__clinical-filter-row .ui-btn--primary {
+  box-shadow: inset 0 0 0 1px var(--app-primary-alpha-40);
+}

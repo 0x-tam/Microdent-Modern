@@ -153,7 +153,7 @@ export function AppointmentStatusWriteAction({
   const previewOk = state.kind === "preview";
   const rootClass = embedded
     ? "app-appt-status-write app-appt-status-write--embedded"
-    : "app-sandbox-write app-sandbox-write-zone app-appt-status-write";
+    : "clinic-panel clinic-write-panel app-sandbox-write app-sandbox-write-zone app-appt-status-write";
 
   return (
     <div className={rootClass} data-testid="appt-status-write-pilot">

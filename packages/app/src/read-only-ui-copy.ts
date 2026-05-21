@@ -972,6 +972,14 @@ export const PATIENT_TAB_HIDDEN_MEDICAL = "Clinical free text and allergy detail
 
 export const PATIENT_TAB_HIDDEN_CHART = "Chart memos and decoded legends stay hidden in this preview.";
 
+/** Patients page workflow (Wave 3). */
+export const PATIENTS_PAGE_RESULTS_TITLE = "Search results";
+
+export const PATIENTS_OPEN_WORKSPACE_LABEL = "Open workspace";
+
+export const PATIENTS_EMPTY_FOCUS_HINT =
+  "Focus the search field above and enter at least 2 characters.";
+
 /** Profile / tab empty-state titles (Wave 3). */
 export const PATIENT_NOT_FOUND_TITLE = "Patient not found";
 

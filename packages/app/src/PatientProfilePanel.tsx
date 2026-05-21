@@ -8,12 +8,18 @@ import type {
   ScheduleAppointmentItem,
 } from "@microdent/contracts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Badge, Button, Card, CardBody, CardHeader, EmptyState } from "@microdent/ui";
+import { Badge, Button, Card, CardBody, CardHeader } from "@microdent/ui";
 import type { BridgeDevStatusResponse } from "@microdent/contracts";
 import type { BridgeHealthPhase } from "./bridge-health.js";
 import { PatientDemographicsWritePanel } from "./PatientDemographicsWritePanel.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
 import { AppMetricTile } from "./app-metric-tile.js";
+import { ClinicPage } from "./clinic-page.js";
+import { ClinicEmptyState } from "./clinic-empty-state.js";
+import { ClinicLoadingSkeleton } from "./clinic-loading-skeleton.js";
+import { ClinicPanel } from "./clinic-panel.js";
+import { ClinicStatCard } from "./clinic-stat-card.js";
+import { patientWorkspaceAtGlance, type PatientWorkspacePrefetches } from "./patient-workspace-intelligence.js";
 import {
   buildRoomLabelMap,
   filterPatientAppointments,
@@ -117,6 +123,23 @@ import {
   PATIENT_NO_SELECTION_TITLE,
   PATIENT_PAGE_SEARCH_EXAMPLE,
   PATIENT_PAGE_SEARCH_LEDE,
+  PATIENT_NOT_FOUND_DESCRIPTION,
+  PATIENT_NOT_FOUND_TITLE,
+  PATIENT_TAB_EMPTY_APPOINTMENTS_BODY,
+  PATIENT_TAB_EMPTY_APPOINTMENTS_FILTERED_BODY,
+  PATIENT_TAB_EMPTY_APPOINTMENTS_FILTERED_TITLE,
+  PATIENT_TAB_EMPTY_APPOINTMENTS_TITLE,
+  PATIENT_TAB_EMPTY_CHART,
+  PATIENT_TAB_EMPTY_CHART_FILTERED,
+  PATIENT_TAB_EMPTY_CHART_TITLE,
+  PATIENT_TAB_EMPTY_LEDGER,
+  PATIENT_TAB_EMPTY_LEDGER_FILTERED,
+  PATIENT_TAB_EMPTY_LEDGER_TITLE,
+  PATIENT_TAB_EMPTY_MEDICAL,
+  PATIENT_TAB_EMPTY_MEDICAL_TITLE,
+  PATIENT_TAB_EMPTY_TREATMENTS,
+  PATIENT_TAB_EMPTY_TREATMENTS_FILTERED,
+  PATIENT_TAB_EMPTY_TREATMENTS_TITLE,
   PATIENT_MODULE_TABS_HINT,
   PATIENT_PAGE_SEARCH_TITLE,
   PATIENT_RECENT_SESSION_EMPTY,
@@ -160,6 +183,9 @@ import {
   PATIENT_APPT_TIME_PAST,
   PATIENT_APPT_TIME_UPCOMING,
   PATIENT_PROFILE_LAST_REFRESHED,
+  PATIENT_SUMMARY_AT_GLANCE_TITLE,
+  PATIENT_SUMMARY_CROSS_TAB_ARIA,
+  patientSummaryCrossTabWithCount,
   READONLY_STATE_RETRY,
   SENSITIVE_MEDICAL_BANNER,
   TRUNCATED_LIST_BANNER,
@@ -356,36 +382,200 @@ function ProfileReadonlyError({ message, onRetry }: { message: string; onRetry: 
   );
 }
 
-function ProfileHeaderStrip({
+const SUMMARY_CROSS_TABS: readonly { id: Exclude<ProfileTab, "summary">; label: string }[] = [
+  { id: "timeline", label: "Timeline" },
+  { id: "appointments", label: "Appointments" },
+  { id: "medical", label: "Medical" },
+  { id: "treatments", label: "Treatments" },
+  { id: "chart", label: "Chart" },
+  { id: "ledger", label: "Ledger preview" },
+];
+
+function summaryCrossTabCount(
+  tabId: Exclude<ProfileTab, "summary">,
+  props: PatientWorkspacePrefetches,
+): number | null {
+  switch (tabId) {
+    case "appointments":
+      return props.appt.phase === "loaded" ? props.appt.appointments.length : null;
+    case "treatments":
+      return props.treatments.phase === "loaded" ? props.treatments.count : null;
+    case "chart":
+      return props.chart.phase === "loaded" ? props.chart.count : null;
+    case "ledger":
+      return props.ledger.phase === "loaded" ? props.ledger.count : null;
+    case "medical":
+      return props.medical.phase === "loaded" && props.medical.hasMedicalRecord ? 1 : null;
+    default:
+      return null;
+  }
+}
+
+function glancePrefetchLoading(prefetches: PatientWorkspacePrefetches): boolean {
+  return (
+    prefetches.appt.phase === "loading" ||
+    prefetches.appt.phase === "idle" ||
+    prefetches.medical.phase === "loading" ||
+    prefetches.medical.phase === "idle" ||
+    prefetches.treatments.phase === "loading" ||
+    prefetches.treatments.phase === "idle" ||
+    prefetches.chart.phase === "loading" ||
+    prefetches.chart.phase === "idle" ||
+    prefetches.ledger.phase === "loading" ||
+    prefetches.ledger.phase === "idle"
+  );
+}
+
+function glanceStatValue(value: string | null, loading: boolean): string {
+  if (value) return value;
+  if (loading) return "Loading…";
+  return "—";
+}
+
+function ProfileClinicHero({
   profile,
   activeLabel,
   doctorLabels,
+  lastLoadedAt,
+  onRefresh,
+  onBackToday,
+  onToggleChangePatient,
+  changePatientSearchOpen,
 }: {
   profile: PatientProfileResponse;
   activeLabel: string | null;
   doctorLabels: ReadonlyMap<string, string>;
+  lastLoadedAt: number | null;
+  onRefresh: () => void;
+  onBackToday: () => void;
+  onToggleChangePatient: () => void;
+  changePatientSearchOpen: boolean;
 }) {
   const provider = profileAssignedProviderLabel(profile.doctorId, doctorLabels);
 
   return (
-    <div
-      className="app-hero-band app-patient-hero app-patient-profile__header-strip"
+    <header
+      className="clinic-page-hero clinic-profile-hero app-hero-band app-patient-hero app-patient-profile__header-strip"
       role="region"
       aria-label="Patient record context"
     >
-      <h2 className="app-hero-band__title app-patient-hero__name app-patient-profile__header-name">
-        {profile.displayName}
-      </h2>
-      {profile.reverseName ? <p className="app-patient-profile__header-reverse">{profile.reverseName}</p> : null}
-      <ul className="app-patient-hero__chips app-patient-profile__header-chips">
-        <li className="app-patient-hero__chip app-patient-hero__chip--chart">Chart {profile.chartNumber ?? "—"}</li>
-        <li className="app-patient-hero__chip app-patient-hero__chip--provider">{provider}</li>
-        <li
-          className={`app-patient-hero__chip app-patient-hero__chip--status${profile.active ? " app-patient-hero__chip--status-active" : ""}`}
+      <div className="clinic-page-hero__main">
+        <h1 className="clinic-page-hero__title app-patient-profile__header-name">{profile.displayName}</h1>
+        {profile.reverseName ? (
+          <p className="clinic-page-hero__subtitle app-patient-profile__header-reverse">{profile.reverseName}</p>
+        ) : null}
+        <ul className="clinic-profile-hero__chips app-patient-hero__chips app-patient-profile__header-chips">
+          <li className="app-patient-hero__chip app-patient-hero__chip--chart">
+            <span className="clinic-chip">Chart {profile.chartNumber ?? "—"}</span>
+          </li>
+          <li className="app-patient-hero__chip app-patient-hero__chip--provider">
+            <span className="clinic-chip">{provider}</span>
+          </li>
+          <li
+            className={`app-patient-hero__chip app-patient-hero__chip--status${profile.active ? " app-patient-hero__chip--status-active" : ""}`}
+          >
+            <span
+              className={`clinic-status-pill${profile.active ? " clinic-status-pill--ok" : " clinic-status-pill--neutral"}`}
+            >
+              {activeLabel ?? "—"}
+            </span>
+          </li>
+        </ul>
+      </div>
+      <div className="clinic-page-hero__meta clinic-profile-hero__actions">
+        {lastLoadedAt !== null ? (
+          <p className="app-patient-profile__toolbar-refreshed clinic-profile-hero__refreshed" role="status" aria-live="polite">
+            {PATIENT_PROFILE_LAST_REFRESHED}: {formatProfileLastRefreshed(lastLoadedAt)}
+          </p>
+        ) : null}
+        <Button type="button" variant="secondary" className="ui-focusable" onClick={onRefresh}>
+          Refresh
+        </Button>
+        <Button type="button" variant="secondary" className="ui-focusable" onClick={onBackToday}>
+          Back to Today
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          className="ui-focusable"
+          onClick={onToggleChangePatient}
+          aria-expanded={changePatientSearchOpen}
         >
-          {activeLabel ?? "—"}
-        </li>
-      </ul>
+          {PATIENT_CHANGE_PATIENT_LABEL}
+        </Button>
+      </div>
+    </header>
+  );
+}
+
+function ProfileAtGlanceRow({ prefetches }: { prefetches: PatientWorkspacePrefetches }) {
+  const glance = useMemo(() => patientWorkspaceAtGlance(prefetches), [prefetches]);
+  const loading = glancePrefetchLoading(prefetches);
+
+  return (
+    <section className="clinic-profile-at-glance" aria-label={PATIENT_SUMMARY_AT_GLANCE_TITLE}>
+      <h2 className="clinic-profile-at-glance__title">{PATIENT_SUMMARY_AT_GLANCE_TITLE}</h2>
+      <div className="clinic-stat-grid clinic-profile-stat-grid">
+        <ClinicStatCard
+          label="Next appt"
+          value={glanceStatValue(glance.upcomingStatus, loading)}
+          tone="teal"
+        />
+        <ClinicStatCard
+          label="Recent activity"
+          value={glanceStatValue(glance.recentStatus, loading)}
+          tone="cyan"
+        />
+        <ClinicStatCard
+          label="Treatments"
+          value={glanceStatValue(glance.treatmentCount, loading)}
+          tone="green"
+        />
+        <ClinicStatCard
+          label="Chart"
+          value={glanceStatValue(glance.chartCount, loading)}
+          tone="blue"
+        />
+        <ClinicStatCard
+          label="Ledger metadata"
+          value={glanceStatValue(glance.ledgerCount, loading)}
+          tone="amber"
+        />
+        <ClinicStatCard
+          label="Medical status"
+          value={glanceStatValue(glance.medicalScreening, loading)}
+          tone="neutral"
+        />
+      </div>
+    </section>
+  );
+}
+
+function ProfileSummaryCrossTabs({
+  prefetches,
+  onOpenTab,
+}: {
+  prefetches: PatientWorkspacePrefetches;
+  onOpenTab: (tab: ProfileTab) => void;
+}) {
+  return (
+    <div
+      className="app-patient-profile__summary-cross-tabs clinic-profile-summary-cross-tabs"
+      role="group"
+      aria-label={PATIENT_SUMMARY_CROSS_TAB_ARIA}
+    >
+      {SUMMARY_CROSS_TABS.map((tab) => (
+        <Button
+          key={tab.id}
+          type="button"
+          variant="secondary"
+          size="compact"
+          className="ui-focusable app-patient-profile__summary-cross-tab"
+          onClick={() => onOpenTab(tab.id)}
+        >
+          {patientSummaryCrossTabWithCount(tab.label, summaryCrossTabCount(tab.id, prefetches))}
+        </Button>
+      ))}
     </div>
   );
 }
@@ -1298,6 +1488,7 @@ function PatientPageSearchBlock({
       ) : null}
       <PatientSearchBar
         instanceId="page"
+        patientsWorkflowLayout={false}
         bridgePhase={bridgePhase}
         bridgeBaseUrl={bridgeBaseUrl}
         selectedPatientId={patientId}
@@ -1987,130 +2178,105 @@ export function PatientProfilePanel({
     }
   }, [activeTab]);
 
+  const summaryPrefetches = useMemo<PatientWorkspacePrefetches>(
+    () => ({
+      appt: summaryAppt,
+      medical: summaryMed,
+      treatments: summaryTx,
+      chart: summaryChart,
+      ledger: summaryLedger,
+    }),
+    [summaryAppt, summaryMed, summaryTx, summaryChart, summaryLedger],
+  );
+
   const applyRangePreset = (preset: PatientApptRangePreset) => {
     setRangePreset(preset);
     setApptRange(patientApptRangeForPreset(preset));
   };
 
-  return (
-    <div className="app-workspace-page app-patient-profile">
-      <header className="app-page-hero">
-        <div>
-          <h2 className="app-page-hero__title">{moduleTitle}</h2>
-          {moduleDescription ? <p className="app-page-hero__meta">{moduleDescription}</p> : null}
-        </div>
-      </header>
-      <div className="app-patient-profile__toolbar">
-        <Button type="button" variant="secondary" className="ui-focusable" onClick={onBackToday}>
-          Back to Today
-        </Button>
-        {patientId !== null ? (
-          <>
-            {state.phase === "loaded" ? (
-              <Button type="button" variant="secondary" className="ui-focusable" onClick={refreshOpenRecord}>
-                Refresh
-              </Button>
-            ) : null}
-            <Button
-              type="button"
-              variant="ghost"
-              className="ui-focusable"
-              onClick={() => {
-                setChangePatientSearchOpen((open) => !open);
-              }}
-              aria-expanded={changePatientSearchOpen}
-            >
-              {PATIENT_CHANGE_PATIENT_LABEL}
-            </Button>
-          </>
-        ) : null}
-        {patientId !== null && lastLoadedAt !== null ? (
-          <p className="app-patient-profile__toolbar-refreshed" role="status" aria-live="polite">
-            {PATIENT_PROFILE_LAST_REFRESHED}: {formatProfileLastRefreshed(lastLoadedAt)}
-          </p>
-        ) : null}
-      </div>
+  if (patientId === null) {
+    return (
+      <AppErrorBoundary>
+        <PatientSearchBar
+          instanceId="page"
+          patientsWorkflowLayout
+          pageTitle={moduleTitle}
+          pageSubtitle={moduleDescription ?? PATIENT_PAGE_SEARCH_LEDE}
+          bridgePhase={bridgePhase}
+          bridgeBaseUrl={bridgeBaseUrl}
+          selectedPatientId={null}
+          recentPatients={recentPatients}
+          fetchImpl={fetchImpl}
+          clearSelectionOnQueryChange
+          onPatientRecordSelect={onPatientRecordSelect}
+          onRecentPatientSelect={onRecentPatientSelect}
+          onPatientSelectionClear={onClearPatient}
+        />
+      </AppErrorBoundary>
+    );
+  }
 
-      <p className="app-patient-profile__readonly-note" role="note">
-        {PATIENT_PROFILE_READONLY_NOTE}
-      </p>
+  return (
+    <ClinicPage className="app-workspace-page app-patient-profile clinic-profile-page">
+      {patientId !== null && state.phase !== "loaded" ? (
+        <div className="app-patient-profile__toolbar clinic-profile-toolbar">
+          <Button type="button" variant="secondary" className="ui-focusable" onClick={onBackToday}>
+            Back to Today
+          </Button>
+        </div>
+      ) : null}
+
+      {patientId === null || state.phase !== "loaded" ? (
+        <header className="app-page-hero clinic-profile-module-hero">
+          <div>
+            <h2 className="app-page-hero__title">{moduleTitle}</h2>
+            {moduleDescription ? <p className="app-page-hero__meta">{moduleDescription}</p> : null}
+          </div>
+        </header>
+      ) : null}
+
+      {patientId === null || state.phase !== "loaded" ? (
+        <p className="app-patient-profile__readonly-note clinic-profile-readonly-note" role="note">
+          {PATIENT_PROFILE_READONLY_NOTE}
+        </p>
+      ) : null}
 
       <AppErrorBoundary>
-        {patientId === null ? (
-          <div className="app-patient-profile__open">
-            <p className="app-patient-profile__open-lede">{PATIENT_PAGE_SEARCH_LEDE}</p>
-            <p className="app-patient-profile__open-example">{PATIENT_PAGE_SEARCH_EXAMPLE}</p>
-            <p className="app-patient-profile__open-hint">{PATIENT_MODULE_TABS_HINT}</p>
-            <section
-              className="app-patient-profile__recent"
-              aria-labelledby="app-patients-recent-heading"
-              data-testid="patients-page-recent"
-            >
-              <h3 id="app-patients-recent-heading" className="app-patient-profile__recent-title">
-                {PATIENT_RECENT_SESSION_TITLE}
-              </h3>
-              <p className="app-patient-profile__recent-hint">{PATIENT_RECENT_SESSION_HINT}</p>
-              {recentPatients.length > 0 && onRecentPatientSelect ? (
-                <ul className="app-patient-profile__recent-list" aria-label={PATIENT_RECENT_SESSION_TITLE}>
-                  {recentPatients.map((entry) => (
-                    <li key={entry.patientId}>
-                      <button
-                        type="button"
-                        className="app-patient-profile__recent-btn ui-focusable"
-                        onClick={() => onRecentPatientSelect(entry)}
-                      >
-                        <span className="app-patient-profile__recent-name">{entry.displayName}</span>
-                        <span className="app-patient-profile__recent-meta">
-                          {formatSessionRecentPatientMeta(entry)}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="app-patient-profile__recent-empty" role="status">
-                  {PATIENT_RECENT_SESSION_EMPTY}
-                </p>
-              )}
-            </section>
-            <PatientPageSearchBlock
-              patientId={null}
-              bridgePhase={bridgePhase}
-              bridgeBaseUrl={bridgeBaseUrl}
-              fetchImpl={fetchImpl}
-              clearSelectionOnQueryChange
-              title={PATIENT_PAGE_SEARCH_TITLE}
-              recentPatients={recentPatients}
-              onPatientRecordSelect={onPatientRecordSelect}
-              onRecentPatientSelect={onRecentPatientSelect}
-              onPatientSelectionClear={onClearPatient}
-            />
-          </div>
-        ) : state.phase === "offline" ? (
-          <EmptyState
-            className="ui-empty--start app-patient-profile__empty"
+        {state.phase === "offline" ? (
+          <ClinicEmptyState
+            variant={bridgePhase === "checking" ? "default" : "offline"}
+            className="app-patient-profile__empty"
             title={bridgePhase === "checking" ? PATIENT_PROFILE_WAITING_TITLE : CLINIC_SERVICE_OFFLINE_TITLE}
-            description={bridgePhase === "checking" ? CLINIC_SERVICE_CHECKING : CLINIC_SERVICE_OFFLINE_PANEL}
+            body={bridgePhase === "checking" ? CLINIC_SERVICE_CHECKING : CLINIC_SERVICE_OFFLINE_PANEL}
           />
         ) : state.phase === "loading" ? (
-          <p className="app-patient-profile__status app-readonly-state app-readonly-state--loading" role="status" aria-live="polite" aria-busy="true">
-            {PATIENT_PROFILE_LOADING}
-          </p>
+          <ClinicLoadingSkeleton lines={4} label={PATIENT_PROFILE_LOADING} />
         ) : state.phase === "not_found" ? (
-          <EmptyState
-            className="ui-empty--start app-patient-profile__empty"
-            title="Patient not found"
-            description="That record may have been removed from the copy, or the list was out of date. Search again."
+          <ClinicEmptyState
+            className="app-patient-profile__empty"
+            title={PATIENT_NOT_FOUND_TITLE}
+            body={PATIENT_NOT_FOUND_DESCRIPTION}
           />
         ) : state.phase === "error" ? (
           <ProfileReadonlyError message={state.message} onRetry={() => setRetryNonce((n) => n + 1)} />
         ) : state.phase === "loaded" ? (
           <>
-            <ProfileHeaderStrip
+            <ProfileClinicHero
               profile={state.profile}
               activeLabel={activeLabel}
               doctorLabels={doctorLabels}
+              lastLoadedAt={lastLoadedAt}
+              onRefresh={refreshOpenRecord}
+              onBackToday={onBackToday}
+              onToggleChangePatient={() => setChangePatientSearchOpen((open) => !open)}
+              changePatientSearchOpen={changePatientSearchOpen}
             />
+
+            <ProfileAtGlanceRow prefetches={summaryPrefetches} />
+
+            <p className="app-patient-profile__readonly-note clinic-profile-readonly-note" role="note">
+              {PATIENT_PROFILE_READONLY_NOTE}
+            </p>
 
             {changePatientSearchOpen ? (
               <PatientPageSearchBlock
@@ -2129,7 +2295,10 @@ export function PatientProfilePanel({
               />
             ) : null}
 
-            <nav className="app-patient-profile__tabs app-patient-profile__tabs--pills" aria-label="Patient sections">
+            <nav
+              className="app-patient-profile__tabs app-patient-profile__tabs--pills clinic-profile-tabs"
+              aria-label="Patient sections"
+            >
               <ul className="app-patient-profile__tablist" role="tablist">
                 {PROFILE_TAB_ORDER.map((tab) => (
                   <li key={tab.id} role="presentation">
@@ -2159,27 +2328,38 @@ export function PatientProfilePanel({
                 id="patient-panel-summary"
                 role="tabpanel"
                 aria-labelledby="patient-tab-summary"
-                className="app-patient-profile__summary"
+                className="app-patient-profile__summary clinic-profile-summary"
               >
                 <p className="app-patient-profile__summary-lede">{PATIENT_TAB_SUMMARY_LEDE}</p>
-                <h3 className="app-patient-profile__tab-section-title app-patient-profile__tab-section-title--summary">
-                  Record summary
-                </h3>
-                <ProfileSummaryMetricGrid profile={state.profile} doctorLabels={doctorLabels} />
-                <h3 className="app-patient-profile__tab-section-title app-patient-profile__tab-section-title--overview">
-                  Record overview
-                </h3>
-                <PatientSummaryMiniCards
-                  appt={summaryAppt}
-                  medical={summaryMed}
-                  treatments={summaryTx}
-                  chart={summaryChart}
-                  ledger={summaryLedger}
-                  doctorLabels={doctorLabels}
-                  procedureMaps={procedureMaps}
-                  roomMap={roomMap}
-                  onOpenTab={setActiveTab}
-                />
+                <ProfileTabHiddenNote />
+
+                <div className="clinic-workspace-grid clinic-profile-summary-grid">
+                  <ClinicPanel
+                    title="Activity preview"
+                    className="clinic-profile-summary-activity-panel"
+                    bodyClassName="clinic-profile-summary-activity-body"
+                  >
+                    <PatientSummaryMiniCards
+                      appt={summaryAppt}
+                      medical={summaryMed}
+                      treatments={summaryTx}
+                      chart={summaryChart}
+                      ledger={summaryLedger}
+                      doctorLabels={doctorLabels}
+                      procedureMaps={procedureMaps}
+                      roomMap={roomMap}
+                      onOpenTab={setActiveTab}
+                    />
+                  </ClinicPanel>
+
+                  <div className="clinic-profile-summary-clinical">
+                    <ClinicPanel title="Clinical summary" className="clinic-profile-summary-clinical-panel">
+                      <ProfileSummaryMetricGrid profile={state.profile} doctorLabels={doctorLabels} />
+                    </ClinicPanel>
+                    <ProfileSummaryCrossTabs prefetches={summaryPrefetches} onOpenTab={setActiveTab} />
+                  </div>
+                </div>
+
                 {base && patientId && sandboxWritePilot ? (
                   <section
                     className="app-patient-profile__sandbox-demographics"
@@ -2229,20 +2409,14 @@ export function PatientProfilePanel({
                 </div>
 
                 {timelineState.phase === "offline" ? (
-                  <EmptyState
-                    className="ui-empty--start app-patient-profile__empty"
+                  <ClinicEmptyState
+                    variant="offline"
+                    className="app-patient-profile__empty"
                     title={CLINIC_SERVICE_OFFLINE_TITLE}
-                    description={PATIENT_TAB_OFFLINE_TIMELINE}
+                    body={PATIENT_TAB_OFFLINE_TIMELINE}
                   />
                 ) : timelineState.phase === "loading" ? (
-                  <p
-                    className="app-patient-profile__status app-readonly-state app-readonly-state--loading"
-                    role="status"
-                    aria-live="polite"
-                    aria-busy="true"
-                  >
-                    {PATIENT_TAB_LOADING_TIMELINE}
-                  </p>
+                  <ClinicLoadingSkeleton lines={5} label={PATIENT_TAB_LOADING_TIMELINE} />
                 ) : timelineState.phase === "error" ? (
                   <ProfileReadonlyError
                     message={timelineState.message}
@@ -2446,32 +2620,31 @@ export function PatientProfilePanel({
                 </p>
 
                 {apptState.phase === "offline" ? (
-                  <EmptyState
-                    className="ui-empty--start app-patient-profile__empty"
+                  <ClinicEmptyState
+                    variant="offline"
+                    className="app-patient-profile__empty"
                     title={CLINIC_SERVICE_OFFLINE_TITLE}
-                    description={CLINIC_SERVICE_OFFLINE_SECTION}
+                    body={CLINIC_SERVICE_OFFLINE_SECTION}
                   />
                 ) : apptState.phase === "loading" ? (
-                  <p className="app-patient-profile__status app-readonly-state app-readonly-state--loading" role="status" aria-live="polite" aria-busy="true">
-                    {PATIENT_TAB_LOADING_APPOINTMENTS}
-                  </p>
+                  <ClinicLoadingSkeleton lines={4} label={PATIENT_TAB_LOADING_APPOINTMENTS} />
                 ) : apptState.phase === "error" ? (
                   <ProfileReadonlyError
                     message={apptState.message}
                     onRetry={() => setApptRefreshNonce((n) => n + 1)}
                   />
                 ) : apptState.phase === "empty" ? (
-                  <EmptyState
-                    className="ui-empty--start app-patient-profile__empty"
-                    title="No appointments found"
-                    description="Nothing is scheduled in this date range. Try another preset or refresh after the bridge loads data."
+                  <ClinicEmptyState
+                    className="app-patient-profile__empty"
+                    title={PATIENT_TAB_EMPTY_APPOINTMENTS_TITLE}
+                    body={PATIENT_TAB_EMPTY_APPOINTMENTS_BODY}
                   />
                 ) : apptState.phase === "loaded" ? (
                   filteredAppts.length === 0 ? (
-                    <EmptyState
-                      className="ui-empty--start app-patient-profile__empty"
-                      title="No appointments match"
-                      description="Try clearing filters or choosing a wider date preset."
+                    <ClinicEmptyState
+                      className="app-patient-profile__empty"
+                      title={PATIENT_TAB_EMPTY_APPOINTMENTS_FILTERED_TITLE}
+                      body={PATIENT_TAB_EMPTY_APPOINTMENTS_FILTERED_BODY}
                     />
                   ) : (
                   <div className="app-patient-profile__appt-days">
@@ -2551,25 +2724,24 @@ export function PatientProfilePanel({
                 <ProfileTabHiddenNote variant="medical" />
 
                 {medState.phase === "offline" ? (
-                  <EmptyState
-                    className="ui-empty--start app-patient-profile__empty"
+                  <ClinicEmptyState
+                    variant="offline"
+                    className="app-patient-profile__empty"
                     title={CLINIC_SERVICE_OFFLINE_TITLE}
-                    description={PATIENT_TAB_OFFLINE_MEDICAL}
+                    body={PATIENT_TAB_OFFLINE_MEDICAL}
                   />
                 ) : medState.phase === "loading" ? (
-                  <p className="app-patient-profile__status app-readonly-state app-readonly-state--loading" role="status" aria-live="polite" aria-busy="true">
-                    {PATIENT_TAB_LOADING_MEDICAL}
-                  </p>
+                  <ClinicLoadingSkeleton lines={4} label={PATIENT_TAB_LOADING_MEDICAL} />
                 ) : medState.phase === "error" ? (
                   <ProfileReadonlyError
                     message={medState.message}
                     onRetry={() => setMedRefreshNonce((n) => n + 1)}
                   />
                 ) : medState.phase === "no_record" ? (
-                  <EmptyState
-                    className="ui-empty--start app-patient-profile__empty"
-                    title="No medical record found for this patient."
-                    description="The read-only copy has no medical questionnaire on file for this patient."
+                  <ClinicEmptyState
+                    className="app-patient-profile__empty"
+                    title={PATIENT_TAB_EMPTY_MEDICAL_TITLE}
+                    body={PATIENT_TAB_EMPTY_MEDICAL}
                   />
                 ) : medState.phase === "loaded" ? (
                   <MedicalSummaryBody summary={medState.summary} />
@@ -2599,25 +2771,24 @@ export function PatientProfilePanel({
                 </div>
 
                 {txState.phase === "offline" ? (
-                  <EmptyState
-                    className="ui-empty--start app-patient-profile__empty"
+                  <ClinicEmptyState
+                    variant="offline"
+                    className="app-patient-profile__empty"
                     title={CLINIC_SERVICE_OFFLINE_TITLE}
-                    description={PATIENT_TAB_OFFLINE_TREATMENTS}
+                    body={PATIENT_TAB_OFFLINE_TREATMENTS}
                   />
                 ) : txState.phase === "loading" ? (
-                  <p className="app-patient-profile__status app-readonly-state app-readonly-state--loading" role="status" aria-live="polite" aria-busy="true">
-                    {PATIENT_TAB_LOADING_TREATMENTS}
-                  </p>
+                  <ClinicLoadingSkeleton lines={4} label={PATIENT_TAB_LOADING_TREATMENTS} />
                 ) : txState.phase === "error" ? (
                   <ProfileReadonlyError
                     message={txState.message}
                     onRetry={() => setTxRefreshNonce((n) => n + 1)}
                   />
                 ) : txState.phase === "empty" ? (
-                  <EmptyState
-                    className="ui-empty--start app-patient-profile__empty"
-                    title="No treatments found"
-                    description="This patient has no procedure lines in the read-only copy, or none match the current bridge scan."
+                  <ClinicEmptyState
+                    className="app-patient-profile__empty"
+                    title={PATIENT_TAB_EMPTY_TREATMENTS_TITLE}
+                    body={PATIENT_TAB_EMPTY_TREATMENTS}
                   />
                 ) : txState.phase === "loaded" ? (
                   <TreatmentsBody
@@ -2674,25 +2845,24 @@ export function PatientProfilePanel({
                 ) : null}
 
                 {chartState.phase === "offline" ? (
-                  <EmptyState
-                    className="ui-empty--start app-patient-profile__empty"
+                  <ClinicEmptyState
+                    variant="offline"
+                    className="app-patient-profile__empty"
                     title={CLINIC_SERVICE_OFFLINE_TITLE}
-                    description={PATIENT_TAB_OFFLINE_CHART}
+                    body={PATIENT_TAB_OFFLINE_CHART}
                   />
                 ) : chartState.phase === "loading" ? (
-                  <p className="app-patient-profile__status app-readonly-state app-readonly-state--loading" role="status" aria-live="polite" aria-busy="true">
-                    {PATIENT_TAB_LOADING_CHART}
-                  </p>
+                  <ClinicLoadingSkeleton lines={4} label={PATIENT_TAB_LOADING_CHART} />
                 ) : chartState.phase === "error" ? (
                   <ProfileReadonlyError
                     message={chartState.message}
                     onRetry={() => setChartRefreshNonce((n) => n + 1)}
                   />
                 ) : chartState.phase === "empty" ? (
-                  <EmptyState
-                    className="ui-empty--start app-patient-profile__empty"
-                    title="No chart entries found"
-                    description="This patient has no chart rows in the read-only copy, or none match the current bridge scan."
+                  <ClinicEmptyState
+                    className="app-patient-profile__empty"
+                    title={PATIENT_TAB_EMPTY_CHART_TITLE}
+                    body={PATIENT_TAB_EMPTY_CHART}
                   />
                 ) : chartState.phase === "loaded" ? (
                   chartEntriesForDisplay.length === 0 && chartToothFilter !== null ? (
@@ -2735,25 +2905,24 @@ export function PatientProfilePanel({
                 </div>
 
                 {ledgerState.phase === "offline" ? (
-                  <EmptyState
-                    className="ui-empty--start app-patient-profile__empty"
+                  <ClinicEmptyState
+                    variant="offline"
+                    className="app-patient-profile__empty"
                     title={CLINIC_SERVICE_OFFLINE_TITLE}
-                    description={PATIENT_TAB_OFFLINE_LEDGER}
+                    body={PATIENT_TAB_OFFLINE_LEDGER}
                   />
                 ) : ledgerState.phase === "loading" ? (
-                  <p className="app-patient-profile__status app-readonly-state app-readonly-state--loading" role="status" aria-live="polite" aria-busy="true">
-                    {PATIENT_TAB_LOADING_LEDGER}
-                  </p>
+                  <ClinicLoadingSkeleton lines={4} label={PATIENT_TAB_LOADING_LEDGER} />
                 ) : ledgerState.phase === "error" ? (
                   <ProfileReadonlyError
                     message={ledgerState.message}
                     onRetry={() => setLedgerRefreshNonce((n) => n + 1)}
                   />
                 ) : ledgerState.phase === "empty" ? (
-                  <EmptyState
-                    className="ui-empty--start app-patient-profile__empty"
-                    title="No ledger entries found"
-                    description="This patient has no billing lines in the read-only copy, or none match the current bridge scan."
+                  <ClinicEmptyState
+                    className="app-patient-profile__empty"
+                    title={PATIENT_TAB_EMPTY_LEDGER_TITLE}
+                    body={PATIENT_TAB_EMPTY_LEDGER}
                   />
                 ) : ledgerState.phase === "loaded" ? (
                   <LedgerBody
@@ -2766,9 +2935,9 @@ export function PatientProfilePanel({
             ) : null}
           </>
         ) : (
-          <EmptyState className="ui-empty--start" title="Nothing to show" description="Unexpected state." />
+          <ClinicEmptyState title="Nothing to show" body="Unexpected state." variant="blocked" />
         )}
       </AppErrorBoundary>
-    </div>
+    </ClinicPage>
   );
 }

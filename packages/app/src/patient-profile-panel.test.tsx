@@ -404,7 +404,7 @@ describe("PatientProfilePanel", () => {
     expect(container.querySelector("input#app-patients-page-search-input")).toBeTruthy();
     expect(container.textContent).toMatch(/Find a patient/i);
     expect(container.textContent).toMatch(/Only query matches are shown/i);
-    expect(container.textContent).not.toMatch(/No patient selected/i);
+    expect(container.querySelector(".clinic-empty-state__title")?.textContent).toMatch(/No patient selected/i);
     expect(container.textContent).not.toContain("Synthetic Profile Patient");
   });
 
@@ -479,9 +479,8 @@ describe("PatientProfilePanel", () => {
     expect(fetchImpl.mock.calls.some((c) => String(c[0]).includes("/v1/patients/search"))).toBe(true);
     expect(container.textContent).toContain("Synthetic Profile Patient");
 
-    const hitBtn = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes("Synthetic Profile Patient"),
-    );
+    const hitBtn = container.querySelector(".clinic-patients-result-card__open") as HTMLButtonElement | null;
+    expect(hitBtn).toBeTruthy();
     await act(async () => {
       hitBtn?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
@@ -863,7 +862,7 @@ describe("PatientProfilePanel", () => {
     await flush();
     await clickAppointmentsTab(container);
     await flush();
-    expect(container.textContent).toMatch(/No appointments found/i);
+    expect(container.textContent).toMatch(/No appointments in range/i);
   });
 
   it("shows error state when appointments cannot be loaded", async () => {
@@ -1355,7 +1354,7 @@ describe("PatientProfilePanel", () => {
     await flush();
     await clickTreatmentsTab(container);
     await flush();
-    expect(container.textContent).toMatch(/No treatments found/i);
+    expect(container.textContent).toMatch(/No procedures found/i);
   });
 
   it("shows error state when treatments cannot be loaded", async () => {
