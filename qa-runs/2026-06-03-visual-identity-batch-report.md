@@ -124,7 +124,7 @@ Updated `docs/product-completeness-audit.md`: Mac visual identity pass complete;
 
 ## Auto-commit conditions (17)
 
-All checkpoint gates green; no unsafe staged paths; no new write domains; no PHI exposure in changed UI modules. **Eligible for auto-commit.**
+All checkpoint gates green; no unsafe staged paths; no new write domains; no PHI exposure in changed UI modules. **Committed:** `e5f6a23`.
 
 ---
 
