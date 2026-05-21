@@ -11,6 +11,7 @@ import {
 import {
   APPOINTMENT_STATUS_APPLY_LABEL,
   APPOINTMENT_STATUS_PREVIEW_LABEL,
+  WRITE_REFRESH_NUDGE,
 } from "./read-only-ui-copy.js";
 import { isSandboxWritePilotEnabled, resolveSandboxWriteBlockReason } from "./sandbox-write-pilot.js";
 import {
@@ -199,15 +200,22 @@ export function AppointmentStatusWriteAction({
         <SafeWritePlanResult summary={state.summary} testId="appt-status-write-plan" />
       ) : null}
       {state.kind === "result" ? (
-        <WriteOperationResult
-          committed={state.committed}
-          successLabel="status updated"
-          feedbackLines={state.feedbackLines}
-          mode={state.mode}
-          className="app-appt-status-write__result"
-          headlineClassName="app-appt-status-write__result-summary"
-          testId="appt-status-write-result"
-        />
+        <>
+          <WriteOperationResult
+            committed={state.committed}
+            successLabel="status updated"
+            feedbackLines={state.feedbackLines}
+            mode={state.mode}
+            className="app-appt-status-write__result"
+            headlineClassName="app-appt-status-write__result-summary"
+            testId="appt-status-write-result"
+          />
+          {state.committed ? (
+            <p className="app-sandbox-write__refresh-nudge" role="note">
+              {WRITE_REFRESH_NUDGE}
+            </p>
+          ) : null}
+        </>
       ) : null}
       {state.kind === "error" ? (
         <p className="app-appt-status-write__error" role="alert">

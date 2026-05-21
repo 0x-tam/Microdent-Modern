@@ -1493,7 +1493,7 @@ describe("SchedulePanel", () => {
       await Promise.resolve();
       await Promise.resolve();
     });
-    expect(container.textContent).toMatch(/1 appointment in this range/i);
+    expect(container.textContent).toMatch(/1 of 2 appointments shown/i);
     expect(container.querySelectorAll(".app-schedule__appt-row")).toHaveLength(1);
 
     await act(async () => {
@@ -1515,7 +1515,7 @@ describe("SchedulePanel", () => {
     });
 
     expect(container.textContent).toMatch(/Synthetic bay B \(Room 2\)/i);
-    expect(container.textContent).toMatch(/2 appointments in this range/i);
+    expect(container.textContent).toMatch(/2 appointments shown/i);
     assertNoForbiddenDomTokens(container.textContent ?? "");
   });
 
@@ -1697,7 +1697,7 @@ describe("SchedulePanel", () => {
       await Promise.resolve();
       await Promise.resolve();
     });
-    expect(container.textContent).toMatch(/1 appointment in this range/i);
+    expect(container.textContent).toMatch(/1 of 2 appointments shown/i);
     assertNoForbiddenDomTokens(container.textContent ?? "");
   });
 

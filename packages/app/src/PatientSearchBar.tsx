@@ -135,8 +135,10 @@ export function PatientSearchBar({
   const [lastFinishedQuery, setLastFinishedQuery] = useState<string | null>(null);
   const [isResultsPanelOpen, setIsResultsPanelOpen] = useState(false);
   const [activeOptionIndex, setActiveOptionIndex] = useState(-1);
+  const [activeRecentIndex, setActiveRecentIndex] = useState(-1);
 
   const rootRef = useRef<HTMLDivElement>(null);
+  const recentButtonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const showDevDiagnostics = (() => {
     const m = import.meta as { env?: { DEV?: boolean; MODE?: string } };
@@ -297,6 +299,9 @@ export function PatientSearchBar({
       results.length > 0 ||
       (lastFinishedQuery === trimmed && !searching && results.length === 0));
 
+  const showRecentSession =
+    canSearch && trimmed.length < 2 && recentPatients.length > 0 && onRecentPatientSelect !== undefined;
+
   const onKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "Escape") {
@@ -319,6 +324,10 @@ export function PatientSearchBar({
             if (i < 0) return 0;
             return Math.min(i + 1, results.length - 1);
           });
+        } else if (showRecentSession && recentPatients.length > 0) {
+          e.preventDefault();
+          setActiveRecentIndex(0);
+          recentButtonRefs.current[0]?.focus();
         } else if (hasDropdownContent) {
           setIsResultsPanelOpen(true);
         }
@@ -358,8 +367,35 @@ export function PatientSearchBar({
       hasDropdownContent,
       isResultsPanelOpen,
       results,
+      recentPatients,
       selectPatientHit,
+      showRecentSession,
     ],
+  );
+
+  const onRecentKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        const next = Math.min(index + 1, recentPatients.length - 1);
+        setActiveRecentIndex(next);
+        recentButtonRefs.current[next]?.focus();
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const prev = Math.max(index - 1, 0);
+        setActiveRecentIndex(prev);
+        recentButtonRefs.current[prev]?.focus();
+        return;
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const entry = recentPatients[index];
+        if (entry) onRecentPatientSelect?.(entry);
+      }
+    },
+    [onRecentPatientSelect, recentPatients],
   );
 
   const showOfflineBanner = Boolean(base) && bridgePhase !== "connected";
@@ -395,9 +431,6 @@ export function PatientSearchBar({
   const showDropdown = hasDropdownContent && isResultsPanelOpen;
 
   const cappedList = results.length >= 20;
-
-  const showRecentSession =
-    canSearch && trimmed.length < 2 && recentPatients.length > 0 && onRecentPatientSelect !== undefined;
 
   const rootClassName = ["app-patient-search", instanceId === "page" ? "app-patient-search--page" : null, className]
     .filter(Boolean)
@@ -500,18 +533,24 @@ export function PatientSearchBar({
           <ul className="app-patient-search__recent-list" aria-label={PATIENT_RECENT_SESSION_TITLE}>
             {recentPatients.map((entry) => {
               const isProfileMatch = selectedPatientId !== null && selectedPatientId === entry.patientId;
+              const recentIndex = recentPatients.indexOf(entry);
               return (
                 <li key={entry.patientId} className="app-patient-search__recent-wrap">
                   <button
                     type="button"
+                    ref={(el) => {
+                      recentButtonRefs.current[recentIndex] = el;
+                    }}
                     className={[
                       "app-patient-search__recent-btn",
                       "ui-focusable",
                       isProfileMatch ? "app-patient-search__recent-btn--selected" : null,
+                      activeRecentIndex === recentIndex ? "app-patient-search__recent-btn--focused" : null,
                     ]
                       .filter(Boolean)
                       .join(" ")}
                     onClick={() => onRecentPatientSelect(entry)}
+                    onKeyDown={(e) => onRecentKeyDown(e, recentIndex)}
                   >
                     <span className="app-patient-search__recent-name">{entry.displayName}</span>
                     <span className="app-patient-search__recent-meta">

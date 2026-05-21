@@ -24,6 +24,9 @@ import {
   PATIENT_SUMMARY_MINI_TRUNCATED,
   PATIENT_SUMMARY_MINI_UNAVAILABLE,
   patientSummaryViewTabLabel,
+  patientSummaryCrossTabWithCount,
+  PATIENT_SUMMARY_TIMELINE_ABOUT_COUNT,
+  PATIENT_SUMMARY_TIMELINE_EXACT_COUNT,
 } from "./read-only-ui-copy.js";
 
 export type ProfileTab = "summary" | "timeline" | "appointments" | "medical" | "treatments" | "chart" | "ledger";
@@ -64,6 +67,8 @@ export type PatientSummaryMiniCardsProps = {
   chart: SummaryCountPrefetch;
   ledger: SummaryCountPrefetch;
   timeline?: SummaryCountPrefetch;
+  /** Exact timeline count when Timeline tab has loaded; otherwise about-count from prefetches. */
+  timelineExactCount?: number | null;
   doctorLabels?: ReadonlyMap<string, string>;
   procedureMaps?: ProcedureReferenceMaps;
   roomMap?: RoomLabelMap;
@@ -169,7 +174,10 @@ function countDetail(prefetch: SummaryCountPrefetch, emptyLabel: string): string
   return `${prefetch.count} entr${prefetch.count === 1 ? "y" : "ies"}${suffix}`;
 }
 
-function timelineDetail(timeline: SummaryCountPrefetch | undefined): string {
+function timelineDetail(timeline: SummaryCountPrefetch | undefined, exactCount: number | null | undefined): string {
+  if (exactCount !== null && exactCount !== undefined) {
+    return PATIENT_SUMMARY_TIMELINE_EXACT_COUNT(exactCount);
+  }
   if (!timeline || timeline.phase === "loading" || timeline.phase === "idle") {
     return PATIENT_SUMMARY_MINI_LOADING;
   }
@@ -180,7 +188,35 @@ function timelineDetail(timeline: SummaryCountPrefetch | undefined): string {
     return "No merged events yet";
   }
   const suffix = timeline.truncated ? ` · ${PATIENT_SUMMARY_MINI_TRUNCATED}` : "";
-  return `${timeline.count} safe event${timeline.count === 1 ? "" : "s"}${suffix}`;
+  return `${PATIENT_SUMMARY_TIMELINE_ABOUT_COUNT(timeline.count)}${suffix}`;
+}
+
+function crossTabCount(
+  tabId: Exclude<ProfileTab, "summary">,
+  props: Pick<
+    PatientSummaryMiniCardsProps,
+    "appt" | "medical" | "treatments" | "chart" | "ledger" | "timeline" | "timelineExactCount"
+  >,
+): number | null {
+  switch (tabId) {
+    case "appointments":
+      return props.appt.phase === "loaded" ? props.appt.appointments.length : null;
+    case "treatments":
+      return props.treatments.phase === "loaded" ? props.treatments.count : null;
+    case "chart":
+      return props.chart.phase === "loaded" ? props.chart.count : null;
+    case "ledger":
+      return props.ledger.phase === "loaded" ? props.ledger.count : null;
+    case "timeline":
+      if (props.timelineExactCount !== null && props.timelineExactCount !== undefined) {
+        return props.timelineExactCount;
+      }
+      return props.timeline?.phase === "loaded" ? props.timeline.count : null;
+    case "medical":
+      return props.medical.phase === "loaded" && props.medical.hasMedicalRecord ? 1 : null;
+    default:
+      return null;
+  }
 }
 
 export function PatientSummaryMiniCards({
@@ -190,12 +226,14 @@ export function PatientSummaryMiniCards({
   chart,
   ledger,
   timeline,
+  timelineExactCount = null,
   doctorLabels = new Map(),
   procedureMaps,
   roomMap = new Map(),
   onOpenTab,
 }: PatientSummaryMiniCardsProps) {
   const crossTabs = SUMMARY_CROSS_TABS;
+  const crossTabProps = { appt, medical, treatments, chart, ledger, timeline, timelineExactCount };
 
   return (
     <div className="app-patient-profile__summary-workspace">
@@ -260,7 +298,7 @@ export function PatientSummaryMiniCards({
         ) : (
           <SummaryMiniCardButton
             title={PATIENT_SUMMARY_MINI_CARD_TIMELINE}
-            detail={timelineDetail(timeline)}
+            detail={timelineDetail(timeline, timelineExactCount)}
             tab="timeline"
             onOpenTab={onOpenTab}
           />
@@ -277,7 +315,7 @@ export function PatientSummaryMiniCards({
             className="ui-focusable app-patient-profile__summary-cross-tab"
             onClick={() => onOpenTab(tab.id)}
           >
-            {patientSummaryViewTabLabel(tab.label)}
+            {patientSummaryCrossTabWithCount(tab.label, crossTabCount(tab.id, crossTabProps))}
           </Button>
         ))}
       </div>

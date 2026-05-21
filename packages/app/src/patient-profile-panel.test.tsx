@@ -14,7 +14,7 @@ import {
   safePatientTreatmentsError,
 } from "./PatientProfilePanel.js";
 import { PATIENT_DEMOGRAPHICS_WRITE_CONFIRM } from "./patient-demographics-write.js";
-import { PATIENT_TAB_HIDDEN_FIELDS_NOTE } from "./read-only-ui-copy.js";
+import { PATIENT_TAB_HIDDEN_MEDICAL, PATIENT_TAB_HIDDEN_TREATMENTS } from "./read-only-ui-copy.js";
 import { defaultPatientApptRange, inclusiveDayCount } from "./patient-appointments-range.js";
 import { assertNoForbiddenDomTokens } from "./read-only-smoke-fixtures.js";
 import { wrapFetchWithSummaryPrefetchFallback } from "./read-only-summary-prefetch-mock.js";
@@ -1136,7 +1136,7 @@ describe("PatientProfilePanel", () => {
     await flush();
 
     const t = container.textContent ?? "";
-    expect(t).toMatch(/Sensitive fields stay hidden in this read-only viewer/i);
+    expect(t).toMatch(/Clinical free text and allergy details stay hidden/i);
     expect(t).toContain("3");
     expect(t).not.toContain("Asthma (screening)");
     expect(t).not.toContain("Diabetes (screening)");
@@ -1886,7 +1886,7 @@ describe("PatientProfilePanel", () => {
     await flush();
     await clickTreatmentsTab(container);
     await flush();
-    expect(container.textContent).toContain(PATIENT_TAB_HIDDEN_FIELDS_NOTE);
+    expect(container.textContent).toContain(PATIENT_TAB_HIDDEN_TREATMENTS);
   });
 
   it("keeps selection when typing in change-patient search", async () => {

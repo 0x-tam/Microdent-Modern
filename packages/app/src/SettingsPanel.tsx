@@ -45,6 +45,7 @@ import {
   SETTINGS_SANDBOX_PILOT_ON,
   SETTINGS_SANDBOX_SECTION,
   SETTINGS_SQLITE_MIRROR_SECTION,
+  SETTINGS_TODAY_OVERVIEW_HINT,
   SETTINGS_WRITE_SECTION,
 } from "./read-only-ui-copy.js";
 import {
@@ -299,6 +300,9 @@ export function SettingsPanel({
               </li>
             ))}
           </ul>
+          <p className="app-settings__today-hint" role="note">
+            {SETTINGS_TODAY_OVERVIEW_HINT}
+          </p>
         </div>
       ) : null}
 

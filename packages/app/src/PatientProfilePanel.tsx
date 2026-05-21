@@ -110,6 +110,20 @@ import {
   PATIENT_TAB_QUESTIONNAIRE_DENTAL_VISIT,
   PATIENT_TAB_QUESTIONNAIRE_LAST_UPDATED,
   chartSummaryStripLabel,
+  chartToolbarSummary,
+  medicalToolbarSummary,
+  PATIENT_SUMMARY_AT_GLANCE_TITLE,
+  PATIENT_TAB_EMPTY_CHART,
+  PATIENT_TAB_EMPTY_CHART_FILTERED,
+  PATIENT_TAB_EMPTY_LEDGER,
+  PATIENT_TAB_EMPTY_LEDGER_FILTERED,
+  PATIENT_TAB_EMPTY_MEDICAL,
+  PATIENT_TAB_EMPTY_TREATMENTS,
+  PATIENT_TAB_EMPTY_TREATMENTS_FILTERED,
+  PATIENT_TAB_HIDDEN_CHART,
+  PATIENT_TAB_HIDDEN_LEDGER,
+  PATIENT_TAB_HIDDEN_MEDICAL,
+  PATIENT_TAB_HIDDEN_TREATMENTS,
   medicalFlaggedCountPartialNote,
   treatmentsProviderStatsLine,
   treatmentsToolbarSummary,
@@ -181,6 +195,7 @@ import {
   type TreatmentDisplayFilters,
 } from "./patient-treatments-display.js";
 import { PatientSummaryMiniCards, type SummaryApptPrefetch, type SummaryCountPrefetch, type SummaryMedPrefetch } from "./patient-summary-mini-cards.js";
+import { patientWorkspaceAtGlance } from "./patient-workspace-intelligence.js";
 import { PatientTimeline } from "./patient-timeline.js";
 import {
   buildTimelineDisplayModel,
@@ -312,10 +327,24 @@ function formatApptDayHeading(dateIso: string): string {
   }
 }
 
-function ProfileTabHiddenNote() {
+function ProfileTabHiddenNote({
+  variant = "default",
+}: {
+  variant?: "default" | "treatments" | "ledger" | "medical" | "chart" | "timeline";
+}) {
+  const note =
+    variant === "treatments"
+      ? PATIENT_TAB_HIDDEN_TREATMENTS
+      : variant === "ledger"
+        ? PATIENT_TAB_HIDDEN_LEDGER
+        : variant === "medical"
+          ? PATIENT_TAB_HIDDEN_MEDICAL
+          : variant === "chart"
+            ? PATIENT_TAB_HIDDEN_CHART
+            : PATIENT_TAB_HIDDEN_FIELDS_NOTE;
   return (
     <p className="app-patient-profile__tab-hidden-note" role="note">
-      {PATIENT_TAB_HIDDEN_FIELDS_NOTE}
+      {note}
     </p>
   );
 }
@@ -768,7 +797,7 @@ function TreatmentsBody({
 
       {filtered.length === 0 ? (
         <p className="app-patient-profile__clinical-empty-filtered" role="status">
-          No procedures match the current filters.
+          {filterActive ? PATIENT_TAB_EMPTY_TREATMENTS_FILTERED : PATIENT_TAB_EMPTY_TREATMENTS}
         </p>
       ) : (
         monthGroups.map((group) => (
@@ -842,6 +871,8 @@ function ChartBody({
   const showTypeFilter = typeOptions.length > 1;
   const showFilterToolbar = showTreatedFilter || showTypeFilter;
   const chartFiltersActive = treatedFilter !== "all" || chartTypeFilter !== null;
+  const statsLine = chartSummaryStripLabel(summary);
+  const toolbarLine = chartToolbarSummary(filtered.length, entries.length, chartFiltersActive, statsLine);
 
   return (
     <div className="app-patient-profile__chart-body">
@@ -859,11 +890,12 @@ function ChartBody({
         {chartSummaryStripLabel(summary)}
       </p>
 
-      {showFilterToolbar ? (
-        <div className="app-patient-profile__clinical-toolbar">
-          <p className="app-patient-profile__clinical-toolbar-summary" aria-live="polite">
-            {filtered.length === 1 ? "1 chart entry" : `${filtered.length} chart entries`}
-          </p>
+      <div className="app-patient-profile__clinical-toolbar">
+        <p className="app-patient-profile__clinical-toolbar-summary" aria-live="polite">
+          {toolbarLine}
+        </p>
+        {showFilterToolbar ? (
+          <>
           <div className="app-patient-profile__clinical-filters" role="group" aria-label="Chart entry filters">
             {showTreatedFilter ? (
               <div className="app-patient-profile__clinical-filter-row" role="group" aria-label="Treated status">
@@ -923,16 +955,13 @@ function ChartBody({
               {FILTER_CLEAR_LABEL}
             </Button>
           ) : null}
-        </div>
-      ) : (
-        <p className="app-patient-profile__clinical-toolbar-summary" aria-live="polite">
-          {filtered.length === 1 ? "1 chart entry" : `${filtered.length} chart entries`}
-        </p>
-      )}
+          </>
+        ) : null}
+      </div>
 
       {filtered.length === 0 ? (
         <p className="app-patient-profile__clinical-empty-filtered" role="status">
-          No chart entries match the current filter.
+          {chartFiltersActive ? PATIENT_TAB_EMPTY_CHART_FILTERED : PATIENT_TAB_EMPTY_CHART}
         </p>
       ) : (
         toothGroups.map((group) => (
@@ -1124,7 +1153,7 @@ function LedgerBody({
 
       {filtered.length === 0 ? (
         <p className="app-patient-profile__clinical-empty-filtered" role="status">
-          No ledger lines match the current filter.
+          {filterActive ? PATIENT_TAB_EMPTY_LEDGER_FILTERED : PATIENT_TAB_EMPTY_LEDGER}
         </p>
       ) : (
         monthGroups.map((group) => (
@@ -1182,9 +1211,19 @@ function MedicalSummaryBody({ summary }: { summary: PatientMedicalSummaryRespons
     summary.flaggedConditionCount,
     visibleNamedCount,
   );
+  const sectionCount =
+    (conditionSections.general.length > 0 ? 1 : 0) +
+    (conditionSections.additional.length > 0 ? 1 : 0) +
+    1;
+  const toolbarLine = medicalToolbarSummary(summary.flaggedConditionCount, sectionCount);
 
   return (
     <div className="app-patient-profile__medical-body">
+      <div className="app-patient-profile__clinical-toolbar">
+        <p className="app-patient-profile__clinical-toolbar-summary" aria-live="polite">
+          {toolbarLine}
+        </p>
+      </div>
       {sensitive ? (
         <>
           <p className="app-patient-profile__medical-banner" role="note">
@@ -1909,6 +1948,7 @@ export function PatientProfilePanel({
       setChartState({ phase: "idle" });
       setLedgerState({ phase: "idle" });
       setTimelineState({ phase: "idle" });
+      setTimelineKindFilter("all");
     }
   }, [patientId]);
 
@@ -2022,6 +2062,21 @@ export function PatientProfilePanel({
     procedureMaps,
     roomMap,
   ]);
+
+  const summaryAtGlance = useMemo(
+    () =>
+      patientWorkspaceAtGlance({
+        appt: summaryAppt,
+        medical: summaryMed,
+        treatments: summaryTx,
+        chart: summaryChart,
+        ledger: summaryLedger,
+      }),
+    [summaryAppt, summaryMed, summaryTx, summaryChart, summaryLedger],
+  );
+
+  const timelineExactCount =
+    timelineState.phase === "loaded" && timelineModel ? timelineModel.eventCount : null;
 
   const apptClientFiltersActive =
     apptStatusFilter !== null ||
@@ -2258,11 +2313,40 @@ export function PatientProfilePanel({
                   chart={summaryChart}
                   ledger={summaryLedger}
                   timeline={summaryTimeline}
+                  timelineExactCount={timelineExactCount}
                   doctorLabels={doctorLabels}
                   procedureMaps={procedureMaps}
                   roomMap={roomMap}
                   onOpenTab={setActiveTab}
                 />
+                <div
+                  className="app-patient-profile__summary-at-glance"
+                  role="region"
+                  aria-label={PATIENT_SUMMARY_AT_GLANCE_TITLE}
+                  data-testid="patient-summary-at-glance"
+                >
+                  <p className="app-patient-profile__summary-at-glance-title">{PATIENT_SUMMARY_AT_GLANCE_TITLE}</p>
+                  <ul className="app-patient-profile__summary-at-glance-list">
+                    {summaryAtGlance.upcomingStatus ? (
+                      <li>{summaryAtGlance.upcomingStatus}</li>
+                    ) : null}
+                    {summaryAtGlance.recentStatus ? (
+                      <li>{summaryAtGlance.recentStatus}</li>
+                    ) : null}
+                    {summaryAtGlance.treatmentCount ? (
+                      <li>{summaryAtGlance.treatmentCount}</li>
+                    ) : null}
+                    {summaryAtGlance.chartCount ? (
+                      <li>{summaryAtGlance.chartCount}</li>
+                    ) : null}
+                    {summaryAtGlance.ledgerCount ? (
+                      <li>{summaryAtGlance.ledgerCount}</li>
+                    ) : null}
+                    {summaryAtGlance.medicalScreening ? (
+                      <li>{summaryAtGlance.medicalScreening}</li>
+                    ) : null}
+                  </ul>
+                </div>
                 {base && patientId && sandboxWritePilot ? (
                   <section
                     className="app-patient-profile__sandbox-demographics"
@@ -2298,7 +2382,7 @@ export function PatientProfilePanel({
                 data-testid="patient-panel-timeline"
               >
                 <p className="app-patient-profile__timeline-lede">{PATIENT_TAB_TIMELINE_LEDE}</p>
-                <ProfileTabHiddenNote />
+                <ProfileTabHiddenNote variant="default" />
 
                 <div className="app-patient-profile__timeline-controls">
                   <Button
@@ -2663,7 +2747,18 @@ export function PatientProfilePanel({
                 className="app-patient-profile__medical"
               >
                 <p className="app-patient-profile__medical-lede">{PATIENT_TAB_MEDICAL_LEDE}</p>
-                <ProfileTabHiddenNote />
+                <ProfileTabHiddenNote variant="medical" />
+
+                <div className="app-patient-profile__medical-controls">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="ui-focusable"
+                    onClick={() => setMedRefreshNonce((n) => n + 1)}
+                  >
+                    Refresh
+                  </Button>
+                </div>
 
                 {medState.phase === "offline" ? (
                   <EmptyState
@@ -2684,7 +2779,7 @@ export function PatientProfilePanel({
                   <EmptyState
                     className="ui-empty--start app-patient-profile__empty"
                     title="No medical record found for this patient."
-                    description="The read-only copy has no medical questionnaire on file for this patient."
+                    description={PATIENT_TAB_EMPTY_MEDICAL}
                   />
                 ) : medState.phase === "loaded" ? (
                   <MedicalSummaryBody summary={medState.summary} />
@@ -2700,7 +2795,7 @@ export function PatientProfilePanel({
                 className="app-patient-profile__treatments"
               >
                 <p className="app-patient-profile__treatments-lede">{PATIENT_TAB_TREATMENTS_LEDE}</p>
-                <ProfileTabHiddenNote />
+                <ProfileTabHiddenNote variant="treatments" />
 
                 <div className="app-patient-profile__treatments-controls">
                   <Button
@@ -2732,7 +2827,7 @@ export function PatientProfilePanel({
                   <EmptyState
                     className="ui-empty--start app-patient-profile__empty"
                     title="No treatments found"
-                    description="This patient has no procedure lines in the read-only copy, or none match the current bridge scan."
+                    description={PATIENT_TAB_EMPTY_TREATMENTS}
                   />
                 ) : txState.phase === "loaded" ? (
                   <TreatmentsBody
@@ -2754,7 +2849,7 @@ export function PatientProfilePanel({
                 className="app-patient-profile__chart"
               >
                 <p className="app-patient-profile__chart-lede">{PATIENT_TAB_CHART_LEDE}</p>
-                <ProfileTabHiddenNote />
+                <ProfileTabHiddenNote variant="chart" />
 
                 <div className="app-patient-profile__chart-controls">
                   <Button
@@ -2807,7 +2902,7 @@ export function PatientProfilePanel({
                   <EmptyState
                     className="ui-empty--start app-patient-profile__empty"
                     title="No chart entries found"
-                    description="This patient has no chart rows in the read-only copy, or none match the current bridge scan."
+                    description={PATIENT_TAB_EMPTY_CHART}
                   />
                 ) : chartState.phase === "loaded" ? (
                   chartEntriesForDisplay.length === 0 && chartToothFilter !== null ? (
@@ -2833,7 +2928,7 @@ export function PatientProfilePanel({
                 className="app-patient-profile__ledger"
               >
                 <p className="app-patient-profile__ledger-lede">{PATIENT_TAB_LEDGER_LEDE}</p>
-                <ProfileTabHiddenNote />
+                <ProfileTabHiddenNote variant="ledger" />
                 <p className="app-patient-profile__ledger-amounts-note" role="note">
                   {PATIENT_TAB_LEDGER_AMOUNTS_HIDDEN}
                 </p>
@@ -2868,7 +2963,7 @@ export function PatientProfilePanel({
                   <EmptyState
                     className="ui-empty--start app-patient-profile__empty"
                     title="No ledger entries found"
-                    description="This patient has no billing lines in the read-only copy, or none match the current bridge scan."
+                    description={PATIENT_TAB_EMPTY_LEDGER}
                   />
                 ) : ledgerState.phase === "loaded" ? (
                   <LedgerBody

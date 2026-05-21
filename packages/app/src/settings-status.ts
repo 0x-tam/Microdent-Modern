@@ -44,6 +44,7 @@ import {
   FRONT_DESK_OVERVIEW_MIRROR_LABEL,
   FRONT_DESK_OVERVIEW_SELECTED_PATIENT_LABEL,
   FRONT_DESK_OVERVIEW_SANDBOX_PILOT_LABEL,
+  FRONT_DESK_OVERVIEW_BACKUP_LABEL,
   FRONT_DESK_OVERVIEW_SESSION_RECENT_COUNT,
   FRONT_DESK_OVERVIEW_SESSION_RECENT_LABEL,
   FRONT_DESK_OVERVIEW_STATUS_MIX_LABEL,
@@ -336,6 +337,14 @@ export function resolveFrontDeskOverview(options: FrontDeskOverviewOptions): Fro
     label: FRONT_DESK_OVERVIEW_WRITE_MODE_LABEL,
     value: writeMode.label,
     tone: writeMode.tone,
+  });
+
+  const backup = resolveBackupConfiguredStatus(options.writeCapability);
+  items.push({
+    key: "backup",
+    label: FRONT_DESK_OVERVIEW_BACKUP_LABEL,
+    value: backup.label,
+    tone: backup.tone,
   });
 
   const sandboxPilot = resolveFrontDeskSandboxPilotLabel(

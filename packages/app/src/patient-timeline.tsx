@@ -11,10 +11,16 @@ import {
   timelineSourceTabLabel,
 } from "./patient-timeline-display.js";
 import {
+  partitionTimelineEventsByTemporal,
+  timelineSummaryBarLine,
+  timelineTemporalCounts,
+} from "./patient-workspace-intelligence.js";
+import {
   FILTER_CLEAR_LABEL,
   PATIENT_TIMELINE_EMPTY_FILTER,
   PATIENT_TIMELINE_EMPTY_RANGE,
   PATIENT_TIMELINE_KIND_FILTER_ARIA,
+  PATIENT_TIMELINE_LIMITATIONS,
   PATIENT_TIMELINE_ROW_ARIA,
   PATIENT_TIMELINE_UNDATED_ONLY,
   PATIENT_TIMELINE_VIEW_IN_TAB,
@@ -26,6 +32,8 @@ export type PatientTimelineProps = {
   kindFilter: TimelineKindFilter;
   onKindFilterChange: (filter: TimelineKindFilter) => void;
   onRowClick: (sourceTab: TimelineSourceTab, hint?: TimelineNavigateHint) => void;
+  /** When true, show exact temporal summary from loaded model. */
+  showExactCounts?: boolean;
 };
 
 function timelineKindIcon(kind: TimelineEvent["kind"]): string {
@@ -83,10 +91,18 @@ function TimelineRow({
   );
 }
 
-export function PatientTimeline({ model, kindFilter, onKindFilterChange, onRowClick }: PatientTimelineProps) {
+export function PatientTimeline({
+  model,
+  kindFilter,
+  onKindFilterChange,
+  onRowClick,
+  showExactCounts = true,
+}: PatientTimelineProps) {
   const hasDatedEvents = model.monthGroups.some((g) => g.dayGroups.some((d) => d.events.length > 0));
   const hasFilteredContent = hasDatedEvents || model.snapshotEvents.length > 0;
   const kindFilterActive = kindFilter !== "all";
+  const temporalGroups = hasDatedEvents ? partitionTimelineEventsByTemporal(model) : [];
+  const temporalCounts = showExactCounts ? timelineTemporalCounts(model) : null;
 
   return (
     <div className="app-patient-profile__timeline-body" data-testid="patient-timeline-body">
@@ -121,11 +137,20 @@ export function PatientTimeline({ model, kindFilter, onKindFilterChange, onRowCl
         ) : null}
       </div>
 
+      {temporalCounts ? (
+        <p className="app-patient-profile__timeline-summary-bar" role="status" data-testid="patient-timeline-summary-bar">
+          {timelineSummaryBarLine(temporalCounts)}
+        </p>
+      ) : null}
+
       {model.rangeBanner ? (
         <p className="app-patient-profile__timeline-banner" role="note">
           {model.rangeBanner}
         </p>
       ) : null}
+      <p className="app-patient-profile__timeline-limitations" role="note">
+        {PATIENT_TIMELINE_LIMITATIONS}
+      </p>
       {model.truncatedBanner ? (
         <p className="app-patient-profile__timeline-banner app-patient-profile__timeline-banner--truncated" role="note">
           {model.truncatedBanner}
@@ -143,39 +168,55 @@ export function PatientTimeline({ model, kindFilter, onKindFilterChange, onRowCl
         </section>
       ) : null}
 
-      {hasDatedEvents ? (
-        model.monthGroups.map((monthGroup) => (
-          <section
-            key={monthGroup.monthKey}
-            className="app-patient-profile__timeline-month-group"
-            aria-label={monthGroup.heading}
-          >
-            <h4 className="app-patient-profile__tab-section-title">{monthGroup.heading}</h4>
-            {monthGroup.dayGroups.map((dayGroup) => (
-              <div key={`${monthGroup.monthKey}-${dayGroup.dayKey}`} className="app-patient-profile__timeline-day-group">
-                <h5 className="app-patient-profile__timeline-day-heading">{dayGroup.heading}</h5>
-                <ul className="app-patient-profile__timeline-list">
-                  {dayGroup.events.map((event) => (
-                    <TimelineRow key={event.eventId} event={event} onRowClick={onRowClick} />
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </section>
-        ))
-      ) : model.eventCount === 0 ? (
-        <p className="app-patient-profile__timeline-empty" role="status">
-          {PATIENT_TIMELINE_EMPTY_RANGE}
-        </p>
-      ) : !hasFilteredContent && kindFilterActive ? (
-        <p className="app-patient-profile__timeline-empty" role="status">
-          {PATIENT_TIMELINE_EMPTY_FILTER}
-        </p>
-      ) : !hasDatedEvents && model.snapshotEvents.length === 0 && model.eventCount > 0 ? (
-        <p className="app-patient-profile__timeline-empty" role="status">
-          {PATIENT_TIMELINE_UNDATED_ONLY}
-        </p>
-      ) : null}
+      {temporalGroups.length > 0
+        ? temporalGroups.map((group) => (
+            <section
+              key={group.section}
+              className="app-patient-profile__timeline-temporal-section"
+              aria-label={group.heading}
+              data-testid={`patient-timeline-section-${group.section}`}
+            >
+              <h4 className="app-patient-profile__tab-section-title">{group.heading}</h4>
+              <ul className="app-patient-profile__timeline-list">
+                {group.events.map((event) => (
+                  <TimelineRow key={event.eventId} event={event} onRowClick={onRowClick} />
+                ))}
+              </ul>
+            </section>
+          ))
+        : hasDatedEvents
+          ? model.monthGroups.map((monthGroup) => (
+              <section
+                key={monthGroup.monthKey}
+                className="app-patient-profile__timeline-month-group"
+                aria-label={monthGroup.heading}
+              >
+                <h4 className="app-patient-profile__tab-section-title">{monthGroup.heading}</h4>
+                {monthGroup.dayGroups.map((dayGroup) => (
+                  <div key={`${monthGroup.monthKey}-${dayGroup.dayKey}`} className="app-patient-profile__timeline-day-group">
+                    <h5 className="app-patient-profile__timeline-day-heading">{dayGroup.heading}</h5>
+                    <ul className="app-patient-profile__timeline-list">
+                      {dayGroup.events.map((event) => (
+                        <TimelineRow key={event.eventId} event={event} onRowClick={onRowClick} />
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </section>
+            ))
+          : model.eventCount === 0 ? (
+              <p className="app-patient-profile__timeline-empty" role="status">
+                {PATIENT_TIMELINE_EMPTY_RANGE}
+              </p>
+            ) : !hasFilteredContent && kindFilterActive ? (
+              <p className="app-patient-profile__timeline-empty" role="status">
+                {PATIENT_TIMELINE_EMPTY_FILTER}
+              </p>
+            ) : !hasDatedEvents && model.snapshotEvents.length === 0 && model.eventCount > 0 ? (
+              <p className="app-patient-profile__timeline-empty" role="status">
+                {PATIENT_TIMELINE_UNDATED_ONLY}
+              </p>
+            ) : null}
     </div>
   );
 }

@@ -12,4 +12,10 @@ describe("legacyCodeLabel", () => {
     expect(unknownProviderLabel("7")).toBe("Unknown provider 7");
     expect(unknownProcedureLabel("D0120")).toBe("Unknown procedure D0120");
   });
+
+  it("handles null-like and padded edge codes safely", () => {
+    expect(legacyCodeLabel("status", 0)).toBe("Legacy status code 0 (unmapped)");
+    expect(legacyCodeLabel("payment type", 99)).toBe("Legacy payment type code 99 (unmapped)");
+    expect(legacyCodeLabel("status", Number.NaN)).toBe("Legacy status code — (unmapped)");
+  });
 });

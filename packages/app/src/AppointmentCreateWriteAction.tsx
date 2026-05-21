@@ -9,10 +9,14 @@ import {
 import {
   APPOINTMENT_CREATE_APPLY_LABEL,
   APPOINTMENT_CREATE_DOCTOR_NONE,
+  APPOINTMENT_CREATE_PATIENT_CONTEXT,
   APPOINTMENT_CREATE_PATIENT_ID_HINT,
   APPOINTMENT_CREATE_PREVIEW_LABEL,
   APPOINTMENT_CREATE_SUMMARY,
+  WRITE_BLOCKED_INVALID_HINT,
+  WRITE_REFRESH_NUDGE,
 } from "./read-only-ui-copy.js";
+import { roomDisplayLabel, type RoomLabelMap } from "./patient-appointments-display.js";
 import { isSandboxWritePilotEnabled, resolveSandboxWriteBlockReason } from "./sandbox-write-pilot.js";
 import { useDoctorLabels } from "./useDoctorLabels.js";
 import {
@@ -37,6 +41,11 @@ export type AppointmentCreateWriteActionProps = {
   /** Default date for new rows (YYYY-MM-DD). */
   defaultDate: string;
   defaultRoom?: number;
+  roomOptions?: readonly number[];
+  roomMap?: RoomLabelMap;
+  selectedPatientId?: string | null;
+  selectedPatientDisplayName?: string | null;
+  selectedPatientChartNumber?: string | null;
   onCommitted?: () => void;
 };
 
@@ -54,12 +63,17 @@ export function AppointmentCreateWriteAction({
   writeCapability,
   defaultDate,
   defaultRoom = 1,
+  roomOptions = [],
+  roomMap = new Map(),
+  selectedPatientId = null,
+  selectedPatientDisplayName = null,
+  selectedPatientChartNumber = null,
   onCommitted,
 }: AppointmentCreateWriteActionProps) {
   const [date, setDate] = useState(defaultDate);
   const [time, setTime] = useState("09:00");
   const [room, setRoom] = useState(String(defaultRoom));
-  const [patId, setPatId] = useState("0");
+  const [patId, setPatId] = useState(selectedPatientId && selectedPatientId !== "0" ? selectedPatientId : "0");
   const [docId, setDocId] = useState("0");
   const [durationSlots, setDurationSlots] = useState("1");
   const [status, setStatus] = useState("1");
@@ -82,6 +96,29 @@ export function AppointmentCreateWriteAction({
   useEffect(() => {
     setRoom(String(defaultRoom));
   }, [defaultRoom]);
+
+  useEffect(() => {
+    if (selectedPatientId && selectedPatientId !== "0") {
+      setPatId(selectedPatientId);
+    }
+  }, [selectedPatientId]);
+
+  const selectedPatientHeadline = useMemo(() => {
+    if (!selectedPatientId || selectedPatientId === "0") return null;
+    const name = selectedPatientDisplayName?.trim();
+    const chart =
+      selectedPatientChartNumber && selectedPatientChartNumber.length > 0
+        ? ` · Chart ${selectedPatientChartNumber}`
+        : "";
+    if (name && name.length > 0) return `${name}${chart} · ID ${selectedPatientId}`;
+    return `Patient ID ${selectedPatientId}${chart}`;
+  }, [selectedPatientChartNumber, selectedPatientDisplayName, selectedPatientId]);
+
+  const effectiveRoomOptions = useMemo(() => {
+    if (roomOptions.length > 0) return roomOptions;
+    const n = Number(room);
+    return Number.isFinite(n) && n >= 1 ? [n] : [1];
+  }, [room, roomOptions]);
 
   const buildBody = useCallback((): AppointmentCreateBody | null => {
     const roomNum = Number(room);
@@ -106,7 +143,7 @@ export function AppointmentCreateWriteAction({
   const runPreview = useCallback(async () => {
     const body = buildBody();
     if (!body) {
-      setState({ kind: "error", message: "Enter date, time, room, and patient id before preview." });
+      setState({ kind: "error", message: `${WRITE_BLOCKED_INVALID_HINT} Enter date, time, room, and patient id.` });
       return;
     }
     setState({ kind: "loading", action: "preview" });
@@ -195,6 +232,11 @@ export function AppointmentCreateWriteAction({
     <details className="app-sandbox-write app-appt-create-write" data-testid="appt-create-write-pilot">
       <summary className="app-sandbox-write__summary">{APPOINTMENT_CREATE_SUMMARY}</summary>
       <SandboxWriteBanner />
+      {selectedPatientHeadline ? (
+        <p className="app-sandbox-write__patient-context" role="status">
+          {APPOINTMENT_CREATE_PATIENT_CONTEXT}: {selectedPatientHeadline}
+        </p>
+      ) : null}
       <p className="app-sandbox-write__hint">{APPOINTMENT_CREATE_PATIENT_ID_HINT}</p>
       <div className="app-sandbox-write__fields app-sandbox-write__fields--grid">
         <label className="app-sandbox-write__label">
@@ -226,10 +268,7 @@ export function AppointmentCreateWriteAction({
         </label>
         <label className="app-sandbox-write__label">
           <span>Room</span>
-          <input
-            type="number"
-            min={1}
-            max={99}
+          <select
             className="ui-focusable"
             value={room}
             disabled={loading}
@@ -237,7 +276,14 @@ export function AppointmentCreateWriteAction({
               setRoom(e.target.value);
               invalidatePreview();
             }}
-          />
+            aria-label="Room"
+          >
+            {effectiveRoomOptions.map((n) => (
+              <option key={n} value={String(n)}>
+                {roomDisplayLabel(n, roomMap)}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="app-sandbox-write__label">
           <span>Patient id</span>
@@ -333,12 +379,19 @@ export function AppointmentCreateWriteAction({
         <SafeWritePlanResult summary={state.summary} testId="appt-create-plan" />
       ) : null}
       {state.kind === "result" ? (
-        <WriteOperationResult
-          committed={state.committed}
-          successLabel="appointment created"
-          feedbackLines={state.feedbackLines}
-          testId="appt-create-write-result"
-        />
+        <>
+          <WriteOperationResult
+            committed={state.committed}
+            successLabel="appointment created"
+            feedbackLines={state.feedbackLines}
+            testId="appt-create-write-result"
+          />
+          {state.committed ? (
+            <p className="app-sandbox-write__refresh-nudge" role="note">
+              {WRITE_REFRESH_NUDGE}
+            </p>
+          ) : null}
+        </>
       ) : null}
       {state.kind === "error" ? (
         <p className="app-sandbox-write__error" role="alert">

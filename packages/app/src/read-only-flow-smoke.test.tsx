@@ -120,6 +120,7 @@ describe("read-only app smoke", () => {
     );
     expect(container.querySelector("#patient-panel-summary")).toBeTruthy();
     expect(container.querySelector(".app-patient-profile__summary-mini-grid")).toBeTruthy();
+    expect(container.querySelector('[data-testid="patient-summary-at-glance"]')).toBeTruthy();
 
     for (let i = 0; i < 15; i++) {
       if (container.textContent?.match(/appointment in range|No appointments|screening flag/i)) {
@@ -181,6 +182,7 @@ describe("read-only app smoke", () => {
     await clickPatientTab(container, "timeline");
     await flush();
     expect(container.querySelector('[data-testid="patient-panel-timeline"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="patient-timeline-summary-bar"]')).toBeTruthy();
     expect(container.textContent).toMatch(/Chart snapshot|Synthetic dictionary label/i);
     assertNoForbiddenDomTokens(container.textContent ?? "");
 

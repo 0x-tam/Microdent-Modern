@@ -9,7 +9,15 @@ import {
 import {
   APPOINTMENT_TIME_MOVE_APPLY_LABEL,
   APPOINTMENT_TIME_MOVE_PREVIEW_LABEL,
+  APPOINTMENT_MOVE_CONTEXT_TITLE,
+  WRITE_BLOCKED_INVALID_HINT,
+  WRITE_REFRESH_NUDGE,
 } from "./read-only-ui-copy.js";
+import {
+  patientApptStatusLabel,
+  roomDisplayLabel,
+  type RoomLabelMap,
+} from "./patient-appointments-display.js";
 import { isSandboxWritePilotEnabled, resolveSandboxWriteBlockReason } from "./sandbox-write-pilot.js";
 import {
   SafeWritePlanResult,
@@ -31,6 +39,8 @@ export type AppointmentTimeMoveWriteActionProps = {
   writePilotEnabled: boolean;
   writeCapability: BridgeDevStatusResponse | null;
   embedded?: boolean;
+  roomOptions?: readonly number[];
+  roomMap?: RoomLabelMap;
   onCommitted?: () => void;
 };
 
@@ -63,6 +73,8 @@ export function AppointmentTimeMoveWriteAction({
   writePilotEnabled,
   writeCapability,
   embedded = false,
+  roomOptions = [],
+  roomMap = new Map(),
   onCommitted,
 }: AppointmentTimeMoveWriteActionProps) {
   const [date, setDate] = useState(appointment.date);
@@ -86,7 +98,7 @@ export function AppointmentTimeMoveWriteAction({
   const runPreview = useCallback(async () => {
     const roomNum = Number(room);
     if (!date || !time || !Number.isFinite(roomNum) || roomNum < 1) {
-      setState({ kind: "error", message: "Enter date, time, and room before preview." });
+      setState({ kind: "error", message: `${WRITE_BLOCKED_INVALID_HINT} Enter date, time, and room.` });
       return;
     }
     setState({ kind: "loading", action: "preview" });
@@ -171,8 +183,17 @@ export function AppointmentTimeMoveWriteAction({
     ? "app-appt-time-move-write app-appt-time-move-write--embedded"
     : "app-sandbox-write app-appt-time-move-write";
 
+  const effectiveRoomOptions = roomOptions.length > 0 ? roomOptions : [appointment.room];
+
   const fields = (
     <>
+      <div className="app-sandbox-write__context-panel" role="note" data-testid="appt-move-context">
+        <p className="app-sandbox-write__context-title">{APPOINTMENT_MOVE_CONTEXT_TITLE}</p>
+        <p className="app-sandbox-write__context-line">
+          {appointment.date} · {appointment.time} · {roomDisplayLabel(appointment.room, roomMap)} ·{" "}
+          {patientApptStatusLabel(appointment.status)}
+        </p>
+      </div>
       <div className="app-sandbox-write__fields">
         <label className="app-sandbox-write__label">
           <span>Date</span>
@@ -204,10 +225,7 @@ export function AppointmentTimeMoveWriteAction({
         </label>
         <label className="app-sandbox-write__label">
           <span>Room</span>
-          <input
-            type="number"
-            min={1}
-            max={99}
+          <select
             className="ui-focusable"
             value={room}
             disabled={loading}
@@ -215,7 +233,14 @@ export function AppointmentTimeMoveWriteAction({
               setRoom(e.target.value);
               invalidatePreview();
             }}
-          />
+            aria-label="Room"
+          >
+            {effectiveRoomOptions.map((n) => (
+              <option key={n} value={String(n)}>
+                {roomDisplayLabel(n, roomMap)}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="app-sandbox-write__label">
           <span>Duration slots</span>
@@ -263,12 +288,19 @@ export function AppointmentTimeMoveWriteAction({
         <SafeWritePlanResult summary={state.summary} testId="appt-time-move-plan" />
       ) : null}
       {state.kind === "result" ? (
-        <WriteOperationResult
-          committed={state.committed}
-          successLabel="appointment time updated"
-          feedbackLines={state.feedbackLines}
-          testId="appt-time-move-write-result"
-        />
+        <>
+          <WriteOperationResult
+            committed={state.committed}
+            successLabel="appointment time updated"
+            feedbackLines={state.feedbackLines}
+            testId="appt-time-move-write-result"
+          />
+          {state.committed ? (
+            <p className="app-sandbox-write__refresh-nudge" role="note">
+              {WRITE_REFRESH_NUDGE}
+            </p>
+          ) : null}
+        </>
       ) : null}
       {state.kind === "error" ? (
         <p className="app-sandbox-write__error" role="alert">

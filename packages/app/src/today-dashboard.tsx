@@ -64,6 +64,11 @@ import {
   TODAY_STATUS_MIRROR_STALE,
   TODAY_STATUS_MIRROR_TITLE,
   TODAY_STATUS_MIRROR_UNKNOWN,
+  TODAY_OPEN_SCHEDULE_FOR_TODAY,
+  TODAY_OPEN_PATIENT_APPOINTMENTS,
+  TODAY_SCHEDULE_READINESS_OFFLINE,
+  TODAY_SCHEDULE_READINESS_STALE,
+  TODAY_SCHEDULE_READINESS_READY,
 } from "./read-only-ui-copy.js";
 
 function toLocalIsoDate(d: Date): string {
@@ -367,6 +372,16 @@ export function DashboardHome({
     if (error || sorted.length === 0) return null;
     return formatAppointmentStatusMix(sorted);
   }, [base, bridgePhase, loading, error, sorted]);
+
+  const scheduleReadinessLine = useMemo((): string => {
+    if (!base || bridgePhase === "offline") return TODAY_SCHEDULE_READINESS_OFFLINE;
+    if (bridgePhase === "checking" || loading) return CLINIC_SERVICE_CHECKING;
+    if (error) return TODAY_SCHEDULE_UNAVAILABLE;
+    if (mirrorStatus && isMirrorImportStale(mirrorStatus, Date.now())) {
+      return TODAY_SCHEDULE_READINESS_STALE;
+    }
+    return TODAY_SCHEDULE_READINESS_READY;
+  }, [base, bridgePhase, loading, error, mirrorStatus]);
 
   const clinicOverview = useMemo(
     () =>
@@ -784,6 +799,10 @@ export function DashboardHome({
                     <dd className="app-dashboard-clinic-overview__value">{row.value}</dd>
                   </div>
                 ))}
+                <div className="app-dashboard-clinic-overview__row app-dashboard-clinic-overview__row--neutral">
+                  <dt className="app-dashboard-clinic-overview__label">Schedule readiness</dt>
+                  <dd className="app-dashboard-clinic-overview__value">{scheduleReadinessLine}</dd>
+                </div>
               </dl>
               {canLoad ? (
                 <Button
@@ -828,6 +847,27 @@ export function DashboardHome({
                 >
                   {TODAY_SELECTED_PATIENT_OPEN}
                 </Button>
+                <div className="app-dashboard-selected-patient__actions">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="compact"
+                    className="ui-focusable"
+                    disabled={!canLoad}
+                    onClick={openScheduleToday}
+                  >
+                    {TODAY_OPEN_SCHEDULE_FOR_TODAY}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="compact"
+                    className="ui-focusable"
+                    onClick={() => onOpenModule("patients")}
+                  >
+                    {TODAY_OPEN_PATIENT_APPOINTMENTS}
+                  </Button>
+                </div>
               </CardBody>
             </Card>
           ) : null}
@@ -873,6 +913,16 @@ export function DashboardHome({
                     onClick={() => onRecentPatientSelect(recentPatients[0]!)}
                   >
                     {TODAY_REOPEN_RECENT}
+                  </Button>
+                ) : null}
+                {selectedPatientId ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="ui-focusable app-quick-actions__btn"
+                    onClick={() => onOpenModule("patients")}
+                  >
+                    {TODAY_OPEN_PATIENT_APPOINTMENTS}
                   </Button>
                 ) : null}
                 <Button

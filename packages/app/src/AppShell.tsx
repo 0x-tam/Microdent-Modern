@@ -558,6 +558,9 @@ export function AppShell({
                   onBackToday={() => setActive("today")}
                   onOpenPatient={handleOpenPatient}
                   mirrorStatus={mirrorStatus}
+                  selectedPatientId={selectedPatientId}
+                  selectedPatientDisplayName={selectedPatientDisplayName}
+                  selectedPatientChartNumber={selectedPatientChartNumber}
                 />
               ) : active === "settings" ? (
                 <SettingsPanel

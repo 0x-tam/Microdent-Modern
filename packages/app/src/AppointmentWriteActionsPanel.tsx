@@ -11,12 +11,16 @@ import {
 import { isSandboxWritePilotEnabled, resolveSandboxWriteBlockReason } from "./sandbox-write-pilot.js";
 import { SandboxWriteBlockedNotice } from "./safe-write-plan-display.js";
 
+import type { RoomLabelMap } from "./patient-appointments-display.js";
+
 export type AppointmentWriteActionsPanelProps = {
   appointment: ScheduleAppointmentItem;
   bridgeBaseUrl: string;
   fetchImpl?: typeof fetch;
   writePilotEnabled: boolean;
   writeCapability: BridgeDevStatusResponse | null;
+  roomOptions?: readonly number[];
+  roomMap?: RoomLabelMap;
   onCommitted?: () => void;
 };
 
@@ -28,6 +32,8 @@ export function AppointmentWriteActionsPanel({
   fetchImpl,
   writePilotEnabled,
   writeCapability,
+  roomOptions = [],
+  roomMap = new Map(),
   onCommitted,
 }: AppointmentWriteActionsPanelProps) {
   const [tab, setTab] = useState<WriteTab>("status");
@@ -106,6 +112,8 @@ export function AppointmentWriteActionsPanel({
               writePilotEnabled={writePilotEnabled}
               writeCapability={writeCapability}
               embedded
+              roomOptions={roomOptions}
+              roomMap={roomMap}
               onCommitted={onCommitted}
             />
           )}

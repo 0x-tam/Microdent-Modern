@@ -6,6 +6,7 @@ import type { BridgeHealthPhase } from "./bridge-health.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
 import {
   appointmentVisitMeta,
+  buildRoomLabelMap,
   patientApptStatusSemanticLabel,
 } from "./patient-appointments-display.js";
 import { useDoctorLabels } from "./useDoctorLabels.js";
@@ -48,6 +49,7 @@ import {
   SCHEDULE_VIEW_DAY,
   SCHEDULE_VIEW_LABEL,
   SCHEDULE_VIEW_WEEK,
+  SCHEDULE_WRITE_MODE_CHIP_OFFLINE,
 } from "./read-only-ui-copy.js";
 import { AppointmentCreateWriteAction } from "./AppointmentCreateWriteAction.js";
 import { AppointmentStatusDryRunAction } from "./AppointmentStatusDryRunAction.js";
@@ -62,6 +64,7 @@ import {
   patientApptStatusBadgeVariant,
   patientApptStatusLabel,
 } from "./patient-appointments-display.js";
+import { scheduleOperationalSummary } from "./patient-workspace-intelligence.js";
 import type { DashboardPatientSummary } from "./today-dashboard.js";
 
 export type SchedulePanelProps = {
@@ -88,6 +91,10 @@ export type SchedulePanelProps = {
   /** When set, switches to day view focused on this date (YYYY-MM-DD) once active. */
   initialDate?: string | null;
   onInitialDateApplied?: () => void;
+  /** Pre-fill create appointment with selected patient from shell. */
+  selectedPatientId?: string | null;
+  selectedPatientDisplayName?: string | null;
+  selectedPatientChartNumber?: string | null;
 };
 
 type Granularity = "day" | "week";
@@ -266,6 +273,9 @@ export function SchedulePanel({
   mirrorStatus = null,
   initialDate = null,
   onInitialDateApplied,
+  selectedPatientId = null,
+  selectedPatientDisplayName = null,
+  selectedPatientChartNumber = null,
 }: SchedulePanelProps) {
   const sandboxPilotEnabled = sandboxWritePilot || appointmentStatusWritePilot;
   const devWriteActionsEnabled =
@@ -538,6 +548,17 @@ export function SchedulePanel({
   const clientFiltersActive =
     statusFilter !== null || providerFilter !== null || roomFilter !== "";
 
+  const operationalSummary = useMemo(
+    () =>
+      scheduleOperationalSummary(
+        appointments,
+        displayAppointments,
+        { statusFilter, providerFilter, roomFilter },
+        doctorLabels,
+      ),
+    [appointments, displayAppointments, statusFilter, providerFilter, roomFilter, doctorLabels],
+  );
+
   const roomsInUseCount = useMemo(() => {
     if (roomFilter !== "" || appointments.length === 0) return null;
     return new Set(appointments.map((a) => a.room)).size;
@@ -546,6 +567,7 @@ export function SchedulePanel({
   const clearClientFilters = useCallback(() => {
     setStatusFilter(null);
     setProviderFilter(null);
+    setRoomFilter("");
   }, []);
 
   const roomOptions = useMemo(() => {
@@ -713,17 +735,32 @@ export function SchedulePanel({
           {!loading && !error && canLoad ? (
             <>
               <p className="app-schedule__range-meta" role="status">
-                {SCHEDULE_RANGE_APPOINTMENT_COUNT(displayAppointments.length)}
+                {operationalSummary.shownLabel}
                 {includesToday ? (
                   <span className="app-schedule__range-today-badge"> · {SCHEDULE_RANGE_INCLUDES_TODAY}</span>
                 ) : null}
                 {roomFilterContext ? (
                   <span className="app-schedule__range-room-context"> · {roomFilterContext}</span>
+                ) : operationalSummary.roomMix ? (
+                  <span className="app-schedule__range-room-context"> · {operationalSummary.roomMix}</span>
                 ) : null}
                 {roomsInUseCount !== null && roomsInUseCount > 0 ? (
                   <span className="app-schedule__range-rooms-in-use"> · {SCHEDULE_ROOMS_IN_USE(roomsInUseCount)}</span>
                 ) : null}
+                {operationalSummary.providerMix ? (
+                  <span className="app-schedule__range-provider-mix"> · {operationalSummary.providerMix}</span>
+                ) : null}
               </p>
+              {operationalSummary.statusMix ? (
+                <p className="app-schedule__status-mix-line" role="status" aria-label="Status mix in range">
+                  {operationalSummary.statusMix}
+                </p>
+              ) : null}
+              {operationalSummary.filterActiveLabel ? (
+                <p className="app-schedule__filter-active-label" role="status">
+                  {operationalSummary.filterActiveLabel}
+                </p>
+              ) : null}
               {statusBreakdown.length > 0 ? (
                 <div className="app-schedule__status-breakdown" role="group" aria-label="Status breakdown">
                   {statusBreakdown.map(({ code, count, label, variant }) => (
@@ -772,7 +809,7 @@ export function SchedulePanel({
                   ))}
                 </div>
               ) : null}
-              {(statusFilter !== null || providerFilter !== null) ? (
+              {(statusFilter !== null || providerFilter !== null || roomFilter !== "") ? (
                 <Button
                   type="button"
                   size="compact"
@@ -940,6 +977,8 @@ export function SchedulePanel({
                                   fetchImpl={fetchImpl}
                                   writePilotEnabled={sandboxPilotEnabled}
                                   writeCapability={writeCapability}
+                                  roomOptions={roomOptions}
+                                  roomMap={buildRoomLabelMap(rooms)}
                                   onCommitted={() => setRefreshTick((x) => x + 1)}
                                 />
                               ) : null}
@@ -972,6 +1011,7 @@ export function SchedulePanel({
             variant={writeModeChip.variant}
             className="app-schedule__write-mode-chip"
             semanticLabel={`Bridge write mode: ${writeModeChip.label}`}
+            title={!sandboxPilotEnabled ? SCHEDULE_WRITE_MODE_CHIP_OFFLINE : undefined}
           >
             {writeModeChip.label}
           </Badge>
@@ -984,6 +1024,11 @@ export function SchedulePanel({
             writeCapability={writeCapability}
             defaultDate={rangeFrom}
             defaultRoom={roomFilter === "" ? 1 : roomFilter}
+            roomOptions={roomOptions}
+            roomMap={buildRoomLabelMap(rooms)}
+            selectedPatientId={selectedPatientId}
+            selectedPatientDisplayName={selectedPatientDisplayName}
+            selectedPatientChartNumber={selectedPatientChartNumber}
             onCommitted={() => setRefreshTick((x) => x + 1)}
           />
         ) : null}

@@ -905,3 +905,136 @@ export const SETTINGS_PILOT_BUILD_COMMIT = "Commit";
 export const SETTINGS_PILOT_BUILD_CHANNEL = "Channel";
 
 export const SETTINGS_PILOT_BUILD_BUILT = "Built";
+
+/** Patient workspace at-a-glance strip (Workstream A). */
+export const PATIENT_SUMMARY_AT_GLANCE_TITLE = "At a glance";
+
+export const PATIENT_SUMMARY_AT_GLANCE_APPT_UPCOMING = "Next visit";
+
+export const PATIENT_SUMMARY_AT_GLANCE_APPT_RECENT = "Latest visit";
+
+export const PATIENT_SUMMARY_AT_GLANCE_APPT_NONE = "No upcoming visits in range";
+
+export const PATIENT_SUMMARY_AT_GLANCE_TREATMENTS = (count: number): string =>
+  count === 1 ? "1 procedure" : `${count} procedures`;
+
+export const PATIENT_SUMMARY_AT_GLANCE_CHART = (count: number): string =>
+  count === 1 ? "1 chart entry" : `${count} chart entries`;
+
+export const PATIENT_SUMMARY_AT_GLANCE_LEDGER = (count: number): string =>
+  count === 1 ? "1 ledger line" : `${count} ledger lines`;
+
+export const PATIENT_SUMMARY_AT_GLANCE_MEDICAL = (state: string): string => `Screening: ${state}`;
+
+export const PATIENT_SUMMARY_TIMELINE_ABOUT_COUNT = (count: number): string =>
+  count === 1 ? "About 1 event" : `About ${count} events`;
+
+export const PATIENT_SUMMARY_TIMELINE_EXACT_COUNT = (count: number): string =>
+  count === 1 ? "1 event loaded" : `${count} events loaded`;
+
+/** Per-tab hidden-field one-liners (Workstream A). */
+export const PATIENT_TAB_HIDDEN_TREATMENTS = "Procedure descriptions and fees stay hidden in this preview.";
+
+export const PATIENT_TAB_HIDDEN_LEDGER = "Dollar amounts and memo text stay hidden in this preview.";
+
+export const PATIENT_TAB_HIDDEN_MEDICAL = "Clinical free text and allergy details stay hidden in this preview.";
+
+export const PATIENT_TAB_HIDDEN_CHART = "Chart memos and decoded legends stay hidden in this preview.";
+
+/** Sparse-data guided empty states (Workstream A). */
+export const PATIENT_TAB_EMPTY_TREATMENTS = "No procedures in the loaded preview range.";
+
+export const PATIENT_TAB_EMPTY_TREATMENTS_FILTERED = "No procedures match the active filters.";
+
+export const PATIENT_TAB_EMPTY_CHART = "No chart entries in the loaded preview.";
+
+export const PATIENT_TAB_EMPTY_CHART_FILTERED = "No chart entries match the active filters.";
+
+export const PATIENT_TAB_EMPTY_LEDGER = "No ledger lines in the loaded preview.";
+
+export const PATIENT_TAB_EMPTY_LEDGER_FILTERED = "No ledger lines match the active type filter.";
+
+export const PATIENT_TAB_EMPTY_MEDICAL = "No medical questionnaire on file for this patient.";
+
+export function patientSummaryCrossTabWithCount(tabLabel: string, count: number | null): string {
+  if (count === null || count === 0) {
+    return patientSummaryViewTabLabel(tabLabel);
+  }
+  return `View ${count} ${tabLabel.toLowerCase()}`;
+}
+
+/** Timeline temporal grouping (Workstream B). */
+export const PATIENT_TIMELINE_TEMPORAL_UPCOMING = "Upcoming";
+
+export const PATIENT_TIMELINE_TEMPORAL_RECENT = "Recent (last 30 days)";
+
+export const PATIENT_TIMELINE_TEMPORAL_OLDER = "Older";
+
+export const PATIENT_TIMELINE_SUMMARY_BAR = (total: number, upcoming: number, recent: number): string => {
+  const parts = [`${total} event${total === 1 ? "" : "s"} loaded`];
+  if (upcoming > 0) parts.push(`${upcoming} upcoming`);
+  if (recent > 0) parts.push(`${recent} recent`);
+  return parts.join(" · ");
+};
+
+export const PATIENT_TIMELINE_LIMITATIONS =
+  "Appointments are limited to ±365 days. Undated chart snapshot rows appear separately.";
+
+/** Schedule operational summary (Workstream C). */
+export const SCHEDULE_FILTER_ACTIVE_PREFIX = "Filters active";
+
+export const SCHEDULE_WRITE_MODE_CHIP_OFFLINE =
+  "Write pilots require sandbox pilot build and bridge write mode — see Settings.";
+
+/** Today command center (Workstream G). */
+export const TODAY_OPEN_SCHEDULE_FOR_TODAY = "Open schedule for today";
+
+export const TODAY_OPEN_PATIENT_APPOINTMENTS = "Open patient appointments";
+
+export const TODAY_SCHEDULE_READINESS_OFFLINE = "Schedule unavailable until the clinic service connects.";
+
+export const TODAY_SCHEDULE_READINESS_STALE =
+  "Mirror may be stale — today's list might not reflect the latest import.";
+
+export const TODAY_SCHEDULE_READINESS_READY = "Schedule ready from your copied data.";
+
+export const FRONT_DESK_OVERVIEW_BACKUP_LABEL = "Backup";
+
+/** Settings cross-link (Workstream J). */
+export const SETTINGS_TODAY_OVERVIEW_HINT =
+  "Front-desk overview on Today shows bridge, mirror, and write readiness at a glance.";
+
+/** Medical clinical toolbar (Workstream F). */
+export function medicalToolbarSummary(flaggedCount: number, sectionCount: number): string {
+  const flagPart =
+    flaggedCount === 0
+      ? "No screening flags marked yes"
+      : flaggedCount === 1
+        ? "1 screening flag marked yes"
+        : `${flaggedCount} screening flags marked yes`;
+  const sectionPart = sectionCount === 1 ? "1 section" : `${sectionCount} sections`;
+  return `${flagPart} · ${sectionPart}`;
+}
+
+/** Chart clinical toolbar (Workstream F). */
+export function chartToolbarSummary(
+  shown: number,
+  total: number,
+  filterActive: boolean,
+  statsLine: string | null,
+): string {
+  let base: string;
+  if (filterActive && shown !== total) {
+    base = shown === 1 ? `1 of ${total} entries shown (filtered)` : `${shown} of ${total} entries shown (filtered)`;
+  } else {
+    base = total === 1 ? "1 chart entry" : `${total} chart entries`;
+  }
+  return statsLine ? `${base} · ${statsLine}` : base;
+}
+
+/** Write context panels (Workstream D). */
+export const APPOINTMENT_MOVE_CONTEXT_TITLE = "Current appointment";
+
+export const APPOINTMENT_CREATE_PATIENT_CONTEXT = "Creating for selected patient";
+
+export const WRITE_BLOCKED_INVALID_HINT = "Check required fields before preview.";
