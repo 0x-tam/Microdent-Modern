@@ -8,6 +8,10 @@
 
 **Index:** [PILOT-START-HERE.md](./PILOT-START-HERE.md) · [pilot-issue-template.md](./pilot-issue-template.md) · [windows-pilot-packaging-gap-report.md](./windows-pilot-packaging-gap-report.md) · [windows-dev-dry-run.md](./windows-dev-dry-run.md)
 
+**Field execution on clinic PCs:** [windows-pilot-field-execution-script.md](./windows-pilot-field-execution-script.md) (**how** — linear EXEC steps) · [windows-pilot-field-result-form.md](./windows-pilot-field-result-form.md) (**results** — PHI-safe form) · [TEMPLATE-windows-field-run.md](../qa-runs/TEMPLATE-windows-field-run.md) (qa-runs copy)
+
+This file is the **matrix** (what to prove). Follow the execution script for day-0 order; do not treat section order alone as the runbook.
+
 ---
 
 ## Package unpack location (IT)
@@ -33,7 +37,7 @@ Use **synthetic** examples only when recording field results.
 | **Dev dry-run** | Runnable on a build machine (macOS/Linux or Windows dev box) via `pnpm`, staged smoke, or vitest — see [windows-dev-dry-run.md](./windows-dev-dry-run.md) |
 | **Requires Windows PC** | Must be executed on a clinic Windows 10/11 machine with operator profile, AV, and real `%AppData%` behavior |
 
-Record pass/fail in the **Field execution log** at the bottom. Do not paste PHI, real DBF paths, or live `config.json` into shared tickets.
+Record pass/fail in [windows-pilot-field-result-form.md](./windows-pilot-field-result-form.md) (preferred) or file a copy from [TEMPLATE-windows-field-run.md](../qa-runs/TEMPLATE-windows-field-run.md). The embedded log template at the bottom of this file is **legacy** — use the result form for new runs. Do not paste PHI, real DBF paths, or live `config.json` into shared tickets.
 
 For defects or blockers, copy [pilot-issue-template.md](./pilot-issue-template.md) — redaction rules and manifest `packageVersion` fields are defined there.
 
@@ -181,7 +185,7 @@ Runbook: [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md).
 | Reboot / longevity | 0 | 4 |
 | Logs / locations | 1 | 4 |
 
-**Rule of thumb:** Green dev dry-run + distribution checkpoint is necessary but **not sufficient** for clinic sign-off. Complete all **Requires Windows PC** rows before production pilot.
+**Rule of thumb:** Green dev dry-run + distribution checkpoint is necessary but **not sufficient** for clinic go-live. Complete all **Requires Windows PC** rows and file a PHI-safe field log before treating the pilot as clinic go-live ready.
 
 ---
 
@@ -199,9 +203,11 @@ Escalation index: [PILOT-START-HERE.md § Issue report template](./PILOT-START-H
 
 ---
 
-## Field execution log (synthetic template)
+## Field execution log (legacy — prefer result form)
 
-Copy to `qa-runs/` after field testing. Use fictional machine and clinic identifiers only. For structured defects, prefer [pilot-issue-template.md](./pilot-issue-template.md).
+**Preferred:** [windows-pilot-field-result-form.md](./windows-pilot-field-result-form.md) + [TEMPLATE-windows-field-run.md](../qa-runs/TEMPLATE-windows-field-run.md), filled while following [windows-pilot-field-execution-script.md](./windows-pilot-field-execution-script.md).
+
+Legacy inline template (synthetic example only):
 
 ```markdown
 # Windows pilot field log — EXAMPLE ONLY
@@ -241,6 +247,9 @@ Copy to `qa-runs/` after field testing. Use fictional machine and clinic identif
 
 | Doc | Use when |
 | --- | --- |
+| [windows-pilot-field-execution-script.md](./windows-pilot-field-execution-script.md) | Linear day-0 steps on clinic Windows PC |
+| [windows-pilot-field-result-form.md](./windows-pilot-field-result-form.md) | PHI-safe pass/fail after field run |
+| [TEMPLATE-windows-field-run.md](../qa-runs/TEMPLATE-windows-field-run.md) | Slim qa-runs filing copy |
 | [pilot-issue-template.md](./pilot-issue-template.md) | PHI-safe defect report (manifest version, redaction rules) |
 | [windows-dev-dry-run.md](./windows-dev-dry-run.md) | Build-machine checkpoint before shipping zip |
 | [windows-pilot-data-locations.md](./windows-pilot-data-locations.md) | Layer 1/2/3 path rules |

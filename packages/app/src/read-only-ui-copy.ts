@@ -210,13 +210,16 @@ export const SANDBOX_WRITE_WARNING_BANNER_LABEL = "Disposable sandbox";
 export const SANDBOX_WRITE_WARNING_BANNER_BODY =
   "Writable sandbox is active. Commits change disposable DATA only — never production legacy folders.";
 
+/** Shared sandbox write pilot warning — panels and schedule header stay aligned. */
+export const SANDBOX_WRITE_PILOT_BANNER =
+  "Sandbox write pilot — commits change disposable Write-Sandbox DATA only (never production legacy). Capture operation id and backup lines; use legacy-restore on sandbox DATA only if rollback is needed.";
+
 /** Per-row / panel sandbox write pilot warning (schedule + patient). */
-export const SANDBOX_WRITE_PILOT_PANEL_BANNER =
-  "Sandbox write pilot — commits change disposable DATA only. Capture operation id and backup lines for IT feedback.";
+export const SANDBOX_WRITE_PILOT_PANEL_BANNER = SANDBOX_WRITE_PILOT_BANNER;
 
 /** Once per schedule view when sandbox write pilots are active. */
 export const SCHEDULE_SANDBOX_WRITE_PILOT_BANNER =
-  "Sandbox write pilot — status and time changes affect disposable data only. Preview each row before applying; restore from backup if needed.";
+  `${SANDBOX_WRITE_PILOT_BANNER} Preview each row before applying.`;
 
 export const APPOINTMENT_WRITE_ACTIONS_SUMMARY = "Sandbox write";
 
@@ -408,6 +411,12 @@ export const SETTINGS_READINESS_BACKUP_NOT_CONFIGURED = "Backup not configured �
 export const SETTINGS_READINESS_READONLY_QA_HINT = "Read-only QA: run pnpm test + build:web";
 
 export const SETTINGS_READINESS_SANDBOX_QA_HINT = "Sandbox QA: run phase-7 runbook (pnpm qa:sandbox)";
+
+export const SETTINGS_READINESS_WINDOWS_EXECUTION_DEFERRED =
+  "Windows execution: Deferred / not yet run";
+
+export const SETTINGS_READINESS_FIELD_TEST_DOC_HINT =
+  "Windows field test pack ready when scheduled — start at docs/FIELD-TEST-START-HERE.md in your staged package (not Mac signoff alone).";
 
 export const SETTINGS_PILOT_CHECKLIST_TITLE = "Pilot checklist";
 

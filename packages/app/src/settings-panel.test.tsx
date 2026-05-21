@@ -196,4 +196,21 @@ describe("SettingsPanel", () => {
     expect(html).toContain("Loading build metadata");
     assertNoForbiddenDomTokens(html);
   });
+
+  it("shows Windows execution deferred and field test doc in pilot readiness strip", () => {
+    const html = renderToStaticMarkup(
+      <SettingsPanel
+        bridgePhase="connected"
+        writeCapability={{
+          ...writeCapBase,
+          writeMode: "disabled",
+        }}
+        mirrorStatus={mirrorWithRuns}
+        onMirrorStatusChange={() => {}}
+      />,
+    );
+    expect(html).toContain("Windows execution: Deferred");
+    expect(html).toContain("FIELD-TEST-START-HERE.md");
+    assertNoForbiddenDomTokens(html);
+  });
 });

@@ -136,7 +136,7 @@ describe("AppointmentStatusWriteAction", () => {
   it("shows sandbox write banner when pilot is active and not embedded", () => {
     renderPilot();
     expect(container.textContent).toContain("Sandbox write pilot");
-    expect(container.textContent).toContain("disposable DATA only");
+    expect(container.textContent).toContain("disposable Write-Sandbox DATA only");
   });
 
   it("hides sandbox write banner when embedded", () => {

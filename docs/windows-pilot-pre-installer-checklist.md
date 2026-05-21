@@ -70,9 +70,11 @@
 
 ---
 
-## Pre-go-live sign-off (operator)
+## Pre-go-live sign-off (operator — Windows clinic PC)
 
-Before clinic pilot day:
+**Not clinic go-live:** This checklist prepares a **Windows clinic PC** for pilot day. Mac build-machine signoff alone does **not** mean clinic go-live ready — tier 3 (Windows field execution) must be logged before go/no-go.
+
+Before clinic pilot day on **Windows**:
 
 - [ ] `pnpm pilot-checkpoint` passes on the target machine (or `pnpm pilot:full-checkpoint` with sandbox env)
 - [ ] First-run setup saves sandbox paths; **Settings → Pilot readiness** checklist green where expected
@@ -85,6 +87,6 @@ Before clinic pilot day:
 
 ## Recommended next batch
 
-1. Configure `origin` + Windows CI running `pnpm pilot-checkpoint` and sandbox QA.
-2. Electron-builder / NSIS spike (still no new write domains).
+1. **Windows field test first** — execute field script on clinic PC; file PHI-safe log; complete go/no-go (tier 3). **Clinic go-live blocked** until done.
+2. Mac-first completion checklist M1–M7 per [windows-pilot-installer-decision-record.md](./windows-pilot-installer-decision-record.md) — then NSIS spike (no new write domains).
 3. Optional bundled Node 22 for bridge supervisor.

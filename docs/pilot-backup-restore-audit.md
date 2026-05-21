@@ -103,7 +103,27 @@ After restore, re-run mirror import if search/schedule must match DBF again.
 
 ## QA proof
 
-`pnpm qa:sandbox` runs backup → commit → restore → hash revert per workflow. DBF readback (`source=dbf`) is the write proof — not mirror SQLite queries.
+### Mac sandbox QA (build machine — tier 1 proof)
+
+`pnpm qa:sandbox` on a Mac (or bash host) with a disposable Write-Sandbox runs backup → commit → restore → hash revert per workflow. DBF readback (`source=dbf`) is the write proof — not mirror SQLite queries.
+
+**What this proves:** sandbox write safety, backup/restore CLI, and bridge commit paths on a developer-controlled disposable environment.
+
+**What this does not prove:** real Windows clinic PC paths, desktop first-run setup on Windows, `%AppData%` config, or operator field workflow. Mac sandbox QA is **not** a substitute for Windows field execution.
+
+### Windows field execution (clinic PC — tier 3 proof, deferred until scheduled)
+
+When IT schedules a clinic Windows PC run, operators follow **`docs/FIELD-TEST-START-HERE.md`** in the staged package → execution script → result form → go/no-go checklist.
+
+**What this proves:** packaged portable layout, Windows paths, desktop supervision, and PHI-safe field logging on the target OS.
+
+Until tier 3 is completed with a PHI-safe field log, clinic go-live stays **blocked** — even when Mac signoff and `pnpm qa:sandbox` are green.
+
+| Proof | Command / entry | Tier | Substitutes for Windows field? |
+| --- | --- | --- | --- |
+| Mac sandbox QA | `pnpm qa:sandbox` | Mac-side release readiness | **No** |
+| Mac release signoff | `pnpm pilot:release-signoff` | Mac-side release readiness | **No** |
+| Windows field test | `docs/FIELD-TEST-START-HERE.md` on clinic PC | Windows execution | **Yes** (required for go-live) |
 
 ---
 

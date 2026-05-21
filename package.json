@@ -33,6 +33,7 @@
     "pilot:verify-manifest": "node scripts/verify-pilot-manifest.mjs",
     "pilot:release-signoff": "bash scripts/pilot-release-signoff.sh",
     "pilot:release-check": "bash scripts/pilot-release-check.sh",
+    "pilot:mac-release-status": "node scripts/pilot-mac-release-status.mjs",
     "test:pilot-artifacts": "vitest run scripts/pilot-release-artifacts.test.mjs"
   },
   "engines": {

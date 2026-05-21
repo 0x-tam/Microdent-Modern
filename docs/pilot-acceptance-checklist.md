@@ -163,6 +163,8 @@ Template: [pilot-tester-guide.md](./pilot-tester-guide.md#issue-report-template)
 
 ## Sign-off
 
+**Clinic go-live:** **BLOCKED** until tier 3 — a real Windows clinic PC field run is logged and [windows-pilot-go-no-go-checklist.md](./windows-pilot-go-no-go-checklist.md) records **GO**. Mac build-machine acceptance (sections 0–7) is **Windows-test readiness** only.
+
 | Role | Name | Date | Signature |
 | --- | --- | --- | --- |
 | IT / operator lead | | | |

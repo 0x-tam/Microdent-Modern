@@ -1,14 +1,28 @@
 # Windows pilot packaging gap report
 
-**Date:** 2026-05-20  
-**Baseline:** Microdent-Modern `main` @ `1b67d2b`  
+**Date:** 2026-05-21 (updated Mac-first batch)  
+**Baseline:** Microdent-Modern portable pilot RC  
 **Scope:** Honest assessment of what works in the pilot RC vs what remains manual or unimplemented.
 
-**Actionable checklist:** [windows-pilot-pre-installer-checklist.md](./windows-pilot-pre-installer-checklist.md) — installer, signing, shortcuts, `%AppData%`, logs, backups, SmartScreen.
+---
+
+## Pilot readiness status (three tiers)
+
+| Tier | Question | Current state |
+| --- | --- | --- |
+| **1. Mac-side release readiness** | Build, stage, verify, sign off on Mac? | **READY** after `pnpm pilot:release-signoff` (or distribution checkpoint when sandbox env set) |
+| **2. Windows-test readiness** | Handoff pack complete for a **scheduled** Windows field test? | **READY** — field pack docs in staged `MicrodentModern/`; see [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md) |
+| **3. Windows execution status** | Real Windows clinic PC run logged? | **Deferred / Not yet run** |
+
+**Clinic go-live:** **BLOCKED** until tier 3 shows a completed PHI-safe field log and [windows-pilot-go-no-go-checklist.md](./windows-pilot-go-no-go-checklist.md) **GO**.
+
+**Installer / NSIS:** **Deferred until after Windows field test** — tier 1–2 green does **not** authorize NSIS or `electron-builder` work. See [windows-pilot-installer-decision-record.md](./windows-pilot-installer-decision-record.md) Mac-first completion checklist.
+
+**Actionable checklist:** [windows-pilot-pre-installer-checklist.md](./windows-pilot-pre-installer-checklist.md) — manual IT steps until installer exists (installer itself is not in scope until tier 3).
 
 **Field test matrix:** [windows-pilot-real-machine-checklist.md](./windows-pilot-real-machine-checklist.md) — each scenario marked **dev dry-run** vs **requires Windows PC** (synthetic paths only).
 
-**Installer decision:** [windows-pilot-installer-decision-record.md](./windows-pilot-installer-decision-record.md) — portable zip for pilot RC; NSIS + signing as next phase (no installer dep in this batch).
+**Installer decision:** [windows-pilot-installer-decision-record.md](./windows-pilot-installer-decision-record.md) — portable zip for pilot RC; NSIS deferred until after Windows field test (Mac-first checklist M1–M7).
 
 **Issue reporting:** [pilot-issue-template.md](./pilot-issue-template.md) — PHI-safe template with manifest `packageVersion`.
 
@@ -49,7 +63,7 @@
 
 ## Installer / signing / auto-update gaps
 
-**Decision record:** [windows-pilot-installer-decision-record.md](./windows-pilot-installer-decision-record.md) — **recommendation: portable zip now**; NSIS via electron-builder spike after real-Windows field sign-off.
+**Decision record:** [windows-pilot-installer-decision-record.md](./windows-pilot-installer-decision-record.md) — **recommendation: portable zip now**; NSIS via electron-builder spike **deferred until after Windows field test** (tier 3 complete + Mac-first checklist M1–M7).
 
 From [phase-3-desktop-packaging-plan.md](./phase-3-desktop-packaging-plan.md) — **still planning only**:
 
@@ -82,11 +96,16 @@ Per-scenario **dev dry-run** vs **requires Windows PC** markers: [windows-pilot-
 
 ## Recommended next batch
 
-1. Execute [windows-pilot-real-machine-checklist.md](./windows-pilot-real-machine-checklist.md) on a clinic PC; file issues with [pilot-issue-template.md](./pilot-issue-template.md).
-2. NSIS spike per [windows-pilot-installer-decision-record.md](./windows-pilot-installer-decision-record.md) (document before adding `electron-builder`).
-3. Configure `origin` + Windows CI running `pnpm test`, `build:web`, `qa:sandbox`.
-4. Shared `@microdent/operator-path` for desktop + web path masking.
-5. Cross-platform `qa-sandbox-run.mjs` (replace bash-only orchestrator on Windows).
+| Priority | Action | Tier |
+| --- | --- | --- |
+| **1** | Execute [windows-pilot-field-execution-script.md](./windows-pilot-field-execution-script.md) on a clinic PC; file [TEMPLATE-windows-field-run.md](../qa-runs/TEMPLATE-windows-field-run.md); complete go/no-go | Tier 3 — **blocks clinic go-live** |
+| **2** | Mac-first completion checklist M1–M7 in installer decision record | After tier 3 GO |
+| **3** | NSIS spike (document-only acceptance criteria — **no** `electron-builder` dep until spike approved) | After M1–M7 |
+| **4** | Configure `origin` + Windows CI running `pnpm test`, `build:web`, `qa:sandbox` | Mac / CI |
+| **5** | Shared `@microdent/operator-path` for desktop + web path masking | Mac dev |
+| **6** | Cross-platform `qa-sandbox-run.mjs` (replace bash-only orchestrator on Windows) | Mac dev |
+
+**Not now:** NSIS installer, Authenticode signing, bundled Node — all deferred until Windows field test completes.
 
 ---
 

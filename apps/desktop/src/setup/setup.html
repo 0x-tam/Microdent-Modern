@@ -143,14 +143,19 @@
   </head>
   <body>
     <h1>Microdent desktop setup</h1>
+    <div class="production-warn" role="note">
+      <strong>Mac build machine vs Windows clinic PC:</strong> use this window on a Mac for local build/QA only.
+      Clinic operators run the staged package on Windows — path examples below are for Windows targets, not Mac paths.
+    </div>
     <div class="setup-steps" role="doc-subtitle">
-      <strong>First-run flow:</strong>
+      <strong>First-run flow (Windows-test readiness — tier 2):</strong>
       <ol>
         <li>Enter DATA_ROOT, SQLITE_PATH, and optional BACKUP_DIR (Windows examples below)</li>
-        <li>Save — config writes to <code>%AppData%\Microdent\config.json</code></li>
+        <li>Save — config writes to <code>%AppData%\Microdent\config.json</code> on the target PC</li>
         <li>Run mirror import from the command line (CLI only — see package <code>docs/</code>)</li>
-        <li>Open the app → Settings → confirm read-only Today / Patients / Schedule</li>
+        <li>Open the app → Settings → Pilot checklist — confirm read-only Today / Patients / Schedule</li>
         <li>Sandbox write pilot (optional) — follow <code>docs/PILOT-HANDOFF-PACK.md</code> when IT approves</li>
+        <li>Windows field execution (tier 3) — deferred until IT schedules a clinic PC run (<code>docs/FIELD-TEST-START-HERE.md</code>)</li>
       </ol>
     </div>
     <p>
@@ -409,7 +414,7 @@
             successEl.textContent = result.summary;
             successEl.insertAdjacentHTML(
               "afterend",
-              '<p class="next-step-hint" role="note">Next: mirror import CLI → Settings Pilot checklist → optional sandbox QA (see docs/PILOT-HANDOFF-PACK.md).</p>',
+              '<p class="next-step-hint" role="note">Next: mirror import CLI → Settings Pilot checklist → optional sandbox QA (docs/PILOT-HANDOFF-PACK.md). Windows field test deferred — docs/FIELD-TEST-START-HERE.md when IT schedules a clinic PC.</p>',
             );
           }
         } catch {

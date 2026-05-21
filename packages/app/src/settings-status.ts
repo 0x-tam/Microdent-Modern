@@ -19,7 +19,9 @@ import {
   SETTINGS_READINESS_MIRROR_STALE,
   SETTINGS_READINESS_MIRROR_UNKNOWN,
   SETTINGS_READINESS_DISTRIBUTION_HINT,
+  SETTINGS_READINESS_FIELD_TEST_DOC_HINT,
   SETTINGS_READINESS_READONLY_QA_HINT,
+  SETTINGS_READINESS_WINDOWS_EXECUTION_DEFERRED,
   SETTINGS_READINESS_READ_ONLY,
   SETTINGS_READINESS_SANDBOX_NOT_READY,
   SETTINGS_READINESS_SANDBOX_QA_HINT,
@@ -176,6 +178,17 @@ export function resolvePilotReadinessSummary(
       tone: "neutral",
     });
   }
+
+  chips.push({
+    key: "windows-execution-deferred",
+    label: SETTINGS_READINESS_WINDOWS_EXECUTION_DEFERRED,
+    tone: "neutral",
+  });
+  chips.push({
+    key: "field-test-doc-hint",
+    label: SETTINGS_READINESS_FIELD_TEST_DOC_HINT,
+    tone: "neutral",
+  });
 
   return chips;
 }

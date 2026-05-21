@@ -39,9 +39,37 @@ Path rules: [windows-pilot-data-locations.md](./windows-pilot-data-locations.md)
 | Field | Your notes |
 | --- | --- |
 | **Title** | One line — symptom only (no patient names) |
-| **Severity** | Blocker / major / minor / question |
-| **Screen / area** | Today / Patients / Schedule / Profile tab / Settings / setup / bridge / import CLI / write panel |
+| **Severity** | See [Severity guide](#severity-guide) — Blocker / Major / Minor / Question |
+| **Screen / area** | Exact route — see [Screen / area guide](#screen--area-guide) |
 | **First seen** | Date (UTC or local) |
+
+### Severity guide
+
+| Level | Use when | Examples |
+| --- | --- | --- |
+| **Blocker** | Cannot proceed with pilot script; data safety concern; app unusable | App will not launch; bridge never connects after IT steps; sandbox write committed without backup; restore failed with no rollback |
+| **Major** | Core workflow broken but workaround exists | Mirror import fails repeatedly; one sandbox write workflow fails; Settings checklist red on required row |
+| **Minor** | Cosmetic, confusing copy, or non-blocking warn | Tooltip wrong; partial mirror warn-only when documented; SmartScreen extra click |
+| **Question** | Scope, policy, or “is this expected?” | Unsupported feature prompt; UNC warning on valid share; installer not bundled |
+
+Before filing: check [windows-pilot-troubleshooting-pack.md](./windows-pilot-troubleshooting-pack.md) for the matching symptom — note which section you tried.
+
+### Screen / area guide
+
+Record the **exact** surface where the issue appeared (pick one primary; add sub-area in notes):
+
+| Area | What to record |
+| --- | --- |
+| **Setup** | First-run window — which field (DATA_ROOT / SQLITE_PATH / BACKUP_DIR / writeMode) |
+| **Today** | Dashboard / day view — not patient row content |
+| **Patients** | List vs detail vs search — **crop lists** in screenshots |
+| **Schedule** | Calendar / time grid — **crop appointment rows** |
+| **Profile tab** | Which sub-tab (demographics, chart, etc.) — no PHI in title |
+| **Settings** | Pilot readiness / Pilot build card / checklist row name |
+| **Write panel** | Workflow: status update / time move / create / demographics |
+| **Bridge / health** | Offline, timeout, port — from Settings only |
+| **Import CLI** | Mirror import step — category only (stale / partial / failed) |
+| **Desktop shell** | Blank UI, crash on launch, Re-open setup |
 
 ---
 
@@ -59,8 +87,49 @@ Use **sandbox** paths in steps, e.g. `C:\ClinicData\PilotSandbox\DATA`, not prod
 
 | | |
 | --- | --- |
-| **Expected** | What should have happened (from handoff pack or checklist row) |
-| **Actual** | What happened — error **category** only (e.g. “bridge offline after 60s”) |
+| **Expected** | What should have happened (from handoff pack, execution script step, or checklist row #) |
+| **Actual** | What happened — error **category** only (e.g. “bridge offline after 60s”, “EPERM on backup folder”) |
+
+Include **one** checklist or script step ID when applicable (e.g. `EXEC-7`, checklist §5.4).
+
+---
+
+## Safe screenshots (PHI-safe)
+
+Screenshots help IT and engineering when they show **UI chrome and status**, not clinic data.
+
+| Do | Do not |
+| --- | --- |
+| Crop to Settings pilot checklist, build card, bridge status, setup fields | Full Patients or Schedule grids with names |
+| Blur or omit patient list columns before saving | Profile tab with demographics visible |
+| Capture error **category** text from dialogs (no stack dumps with paths) | Window titles that include patient search terms |
+| Use fictional machine labels in filename — e.g. `CLINIC-PC-01-settings-checklist.png` | Attach screenshots to public channels without IT review |
+
+**How to crop (Windows):**
+
+1. **Snipping Tool** or **Win+Shift+S** — select only the checklist panel or setup form.
+2. Open in **Photos** or **Paint** — crop again if any name column is visible.
+3. If you must show a list row for layout bugs, replace names with `Patient A` / `Patient B` in notes instead of capturing real rows.
+
+More symptom-specific steps: [windows-pilot-troubleshooting-pack.md § Safe logs and support hygiene](./windows-pilot-troubleshooting-pack.md#safe-logs-and-support-hygiene).
+
+---
+
+## Safe log export (PHI-safe)
+
+Export **summaries** for internal tickets — not raw files with paths or row data.
+
+| Source | Safe export steps | Never attach |
+| --- | --- | --- |
+| **Settings → Pilot build card** | Copy `packageVersion`, `appVersion`, `gitCommit` (or screenshot cropped to card only) | Full desktop window with patient data behind modal |
+| **`RELEASE-MANIFEST.json`** | Copy `packageVersion`, `releaseChannel`, `unsupportedFeatures` keys only | Entire manifest in public ticket if it embeds local paths |
+| **Bridge / launch console** | Copy last 20 lines; redact `C:\…` paths → `C:\ClinicData\…\DATA` pattern only | Full console scrollback with import row errors |
+| **`%AppData%\Microdent\config.json`** | IT local review only — note `writeMode` and path **class** (local / UNC / spaced) | File attachment or paste of full JSON in shared tracker |
+| **`%AppData%\Microdent\logs\`** (if folder exists) | IT exports to secure share; redact per [phase-8-log-redaction-review.md](./phase-8-log-redaction-review.md) | Log zip in email or public repo |
+
+Open config folder locally: **Win+R** → `%AppData%\Microdent`
+
+Redaction rules: [Redaction rules](#redaction-rules) below · full policy [phase-8-log-redaction-review.md](./phase-8-log-redaction-review.md).
 
 ---
 
@@ -104,8 +173,8 @@ Machine label:
 Unpack: C:\Microdent\MicrodentModern\  (example)
 
 Title:
-Severity:
-Screen/area:
+Severity: (Blocker / Major / Minor / Question)
+Screen/area: (exact route — see template guide)
 
 Steps:
 1.
@@ -114,6 +183,7 @@ Steps:
 Expected:
 Actual:
 
+Troubleshooting pack section tried: (e.g. Bridge offline)
 Settings checklist rows (warn/fail):
 Bridge:
 Mirror:
@@ -130,7 +200,27 @@ Build-machine checks (if known):
   qa:sandbox / release-signoff:
 
 Attachments: none (no DBF/sqlite/config)
+Screenshot: (yes — cropped / no)
+Log summary: (build card fields only / none)
+Contact: (internal ticket # or IT email — fictional OK)
 ```
+
+---
+
+## Contact / escalation (placeholder)
+
+Replace with your clinic’s real queue before field test. **Fictional example only:**
+
+| Channel | Example (do not use as-is) |
+| --- | --- |
+| **Internal IT email** | `it-helpdesk@example-clinic.local` |
+| **Ticket queue** | ServiceNow / Jira project `CLINIC-PILOT` |
+| **Pilot coordinator** | `pilot-coordinator@example-clinic.local` |
+| **Urgent blocker** | IT desk extension `x5500` — app won’t launch or data path concern |
+
+**Include in every ticket:** severity, screen/area, steps, expected vs actual, package version, machine label (fictional OK). Attach nothing from [Safe log export](#safe-log-export-phi-safe) redaction list.
+
+After a full field run, also file pass/fail on [windows-pilot-field-result-form.md](./windows-pilot-field-result-form.md) (or `qa-runs/TEMPLATE-windows-field-run.md` copy) — defects go here; the result form is the run summary.
 
 ---
 
@@ -138,8 +228,12 @@ Attachments: none (no DBF/sqlite/config)
 
 | Doc | Use when |
 | --- | --- |
+| [windows-pilot-troubleshooting-pack.md](./windows-pilot-troubleshooting-pack.md) | Try operator actions before filing; map symptom to section |
+| [windows-pilot-field-result-form.md](./windows-pilot-field-result-form.md) | PHI-safe pass/fail after full field script (separate from defects) |
+| [windows-pilot-field-execution-script.md](./windows-pilot-field-execution-script.md) | Step IDs for reproduce steps |
 | [PILOT-START-HERE.md](./PILOT-START-HERE.md) | Operator index |
 | [PILOT-HANDOFF-PACK.md](./PILOT-HANDOFF-PACK.md) | Staged package walkthrough |
 | [windows-pilot-real-machine-checklist.md](./windows-pilot-real-machine-checklist.md) | Field matrix + execution log |
+| [windows-pilot-permission-and-path-risks.md](./windows-pilot-permission-and-path-risks.md) | ACL, UNC, drive letters, backup writability |
 | [pilot-tester-guide.md](./pilot-tester-guide.md) | Guided day 1–3 script |
 | [out-of-scope-guardrails.md](./out-of-scope-guardrails.md) | Unsupported features |

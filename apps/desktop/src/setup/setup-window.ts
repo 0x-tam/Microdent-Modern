@@ -90,8 +90,10 @@ export function collectSetupPathWarnings(payload: SetupSavePayload): string[] {
 
 export function formatSetupSaveSummary(warnings: string[]): string {
   const lines = [
-    "Saved. Next: run mirror import from the command line (see docs/phase-4-mirror-import-operator.md in your package).",
-    "Then open Settings → Pilot checklist for read-only QA, and follow docs/PILOT-HANDOFF-PACK.md for sandbox QA when approved.",
+    "Saved. Mac build machine: local QA only — clinic PCs are Windows; path examples in setup target Windows targets.",
+    "Next: run mirror import from the command line (see docs/phase-4-mirror-import-operator.md in your package).",
+    "Then open Settings → Pilot checklist for read-only QA; sandbox QA follows docs/PILOT-HANDOFF-PACK.md when IT approves.",
+    "Windows field execution is deferred until IT schedules a clinic PC run — see docs/FIELD-TEST-START-HERE.md in the staged package.",
     "Write mode stays disabled until you change config manually for sandbox pilot work.",
   ];
   if (warnings.length > 0) {

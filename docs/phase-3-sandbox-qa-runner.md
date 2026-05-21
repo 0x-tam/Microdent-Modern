@@ -147,3 +147,24 @@ bash scripts/qa-sandbox-write-smoke.sh
 ```
 
 Bridge must already have `WRITE_MODE=enabled`, sandbox ack, and `BACKUP_DIR` configured.
+
+---
+
+## Spike — cross-platform `qa-sandbox-run.mjs` (plan only)
+
+**Status:** Not implemented in this batch. Bash runner [`scripts/qa-sandbox-run.sh`](../scripts/qa-sandbox-run.sh) remains the Mac signoff path inside `pnpm pilot:release-signoff`.
+
+**Goal:** A Node orchestrator (`scripts/qa-sandbox-run.mjs`) that replaces bash+curl+jq for Windows field-adjacent QA without changing write semantics.
+
+| Phase | Deliverable | Notes |
+| --- | --- | --- |
+| **P0 — contract** | Same env as bash runner (`DATA_ROOT`, `SQLITE_PATH`, `BACKUP_DIR`, `BRIDGE_URL`) | Exit codes match today: `0` = pass, non-zero = fail |
+| **P1 — lifecycle** | `child_process.spawn` bridge `node services/bridge/dist/server.js`, health poll, invoke smoke subprocess | Reuse [`qa-sandbox-write-smoke.sh`](../scripts/qa-sandbox-write-smoke.sh) initially — no duplicate workflow HTTP |
+| **P2 — smoke in Node** | Port curl/jq steps from smoke script to `fetch` + JSON parse | PHI-safe logging only (workflow, http, operationId prefix) |
+| **P3 — Windows** | Document PowerShell entry: `node scripts/qa-sandbox-run.mjs` after `pnpm --filter @microdent/bridge run build` | Git Bash optional; aligns with [mac-pilot-qa-runbook.md](./mac-pilot-qa-runbook.md) tier 1 vs tier 3 split |
+
+**Non-goals:** New write routes, live legacy DATA_ROOT, in-app mirror import, NSIS installer.
+
+**Acceptance (when implemented):** `pnpm qa:sandbox` delegates to `.mjs` on all platforms; `pnpm pilot:release-signoff` unchanged behavior; Vitest `sandbox:validate` band still separate fast CI check.
+
+**Tracking:** Listed as “Needs replacement” in [scripts/README.md](../scripts/README.md) until P1 ships.

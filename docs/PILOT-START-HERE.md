@@ -8,6 +8,24 @@
 
 ---
 
+## Pilot readiness status (three tiers)
+
+Use this table in batch reports and sponsor conversations. **Mac signoff alone does not mean clinic go-live.**
+
+| Tier | Question | Expected state (this release) |
+| --- | --- | --- |
+| **1. Mac-side release readiness** | Can we build, stage, verify, and sign off on the build machine? | **READY** after `pnpm pilot:release-signoff` passes (or distribution checkpoint + verify when sandbox env is set) |
+| **2. Windows-test readiness** | Is the handoff pack complete for a **scheduled** Windows field test? | **READY** — field pack docs ship in staged `MicrodentModern/`; see [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md) |
+| **3. Windows execution status** | Has a real Windows clinic PC run been logged? | **Deferred / Not yet run** — do **not** treat this package as clinic go-live ready |
+
+**Clinic go-live:** **BLOCKED** until tier 3 shows a completed PHI-safe field log and [windows-pilot-go-no-go-checklist.md](./windows-pilot-go-no-go-checklist.md) GO.
+
+**Field pack:** Ready when you **schedule** a Windows test — not “run now” from the Mac build machine. Start on the clinic PC: [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md) → [windows-pilot-field-execution-script.md](./windows-pilot-field-execution-script.md).
+
+**Quick tier print (dev):** `pnpm pilot:mac-release-status`
+
+---
+
 ## Data locations (three layers)
 
 Full reference: **[windows-pilot-data-locations.md](./windows-pilot-data-locations.md)** — install vs `%AppData%` vs clinic paths, logs, QA reports, mirror/backups outside install.
@@ -164,15 +182,19 @@ Full template: [pilot-tester-guide.md](./pilot-tester-guide.md#issue-report-temp
 
 ## Troubleshooting
 
+**Full Windows pack:** [windows-pilot-troubleshooting-pack.md](./windows-pilot-troubleshooting-pack.md) — app launch, bridge, port 17890, SmartScreen/AV, permissions, DATA_ROOT, mirror, sandbox QA, restore, safe logs.
+
 | Symptom | What to check |
 | --- | --- |
-| **Bridge offline** in Settings | Desktop config paths; `services\bridge\dist\server.js` built; port **17890** free |
-| **Missing web dist** / blank UI | Run `pnpm build:web` — desktop loads `apps/web/dist/index.html` |
+| **Bridge offline** in Settings | Desktop config paths; `bridge\server.js` in staged package; port **17890** free — [troubleshooting pack § Bridge offline](./windows-pilot-troubleshooting-pack.md#bridge-offline--health-timeout) |
+| **Missing web dist** / blank UI | Confirm `web/index.html` in staged package — [troubleshooting pack § Blank UI](./windows-pilot-troubleshooting-pack.md#app-does-not-open--blank-ui) |
 | **Port 17890 in use** | Close other bridge processes; or change `bridgePort` in `%AppData%\Microdent\config.json` |
-| **Mirror stale** vs DBF | Re-run `pnpm mirror:import-safe`; DBF is write source of truth — mirror does not auto-refresh on commit |
+| **Mirror stale** vs DBF | Re-run CLI mirror import; DBF is write source of truth — [troubleshooting pack § Mirror import](./windows-pilot-troubleshooting-pack.md#mirror-import-failed) |
 | **Setup closed** without save | Restart desktop; choose **Re-open setup** if offered |
-| **Write blocked** | Sandbox marker, `writeMode`, `ALLOW_LEGACY_WRITES` ack — see phase-7 runbook |
+| **Write blocked** | Sandbox marker, `writeMode`, `ALLOW_LEGACY_WRITES` ack — [troubleshooting pack § Sandbox QA](./windows-pilot-troubleshooting-pack.md#sandbox-qa-failed) |
 | **Unsupported feature** | [out-of-scope-guardrails.md](./out-of-scope-guardrails.md) |
+
+**IT — verify package before operators start (no pnpm):** [windows-pilot-package-verify-on-windows.md](./windows-pilot-package-verify-on-windows.md)
 
 ---
 

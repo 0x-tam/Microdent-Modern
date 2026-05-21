@@ -107,5 +107,8 @@ describe("validateSetupPayload", () => {
     expect(summary).toMatch(/mirror import/i);
     expect(summary).toMatch(/legacy/i);
     expect(summary).toMatch(/disabled/i);
+    expect(summary).toMatch(/Mac build machine/i);
+    expect(summary).toMatch(/FIELD-TEST-START-HERE/i);
+    expect(summary).toMatch(/Windows field execution is deferred/i);
   });
 });

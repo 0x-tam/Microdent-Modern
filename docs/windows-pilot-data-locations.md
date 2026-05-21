@@ -158,6 +158,8 @@ Setup accepts `\\server\share\…` with an inline warning. Network shares can be
 - **Warn only** — valid clinic setups may use UNC; prefer local drive letters when IT allows.
 - Document share latency in pilot feedback if mirror import or bridge health is flaky.
 
+Detail: [windows-pilot-permission-and-path-risks.md § UNC network paths](./windows-pilot-permission-and-path-risks.md#unc-network-paths) · [§ SQLite on network drives](./windows-pilot-permission-and-path-risks.md#sqlite-on-network-drives).
+
 ---
 
 ## Permissions and antivirus
@@ -165,6 +167,8 @@ Setup accepts `\\server\share\…` with an inline warning. Network shares can be
 - Run desktop and bridge with write access to **sandbox DATA_ROOT** and **BACKUP_DIR** only.
 - Exclude heavy scanning on mirror SQLite during import if IT policy allows (file locking).
 - **SmartScreen** may warn on unsigned Electron — expected until code signing ([windows-pilot-pre-installer-checklist.md](./windows-pilot-pre-installer-checklist.md)).
+
+Full Windows risk guide: [windows-pilot-permission-and-path-risks.md](./windows-pilot-permission-and-path-risks.md) (drive letters, spaces, UNC, ACLs, `%AppData%`, backup writability, SQLite on network drives).
 
 ---
 
@@ -201,5 +205,6 @@ Acceptance flows: [pilot-acceptance-checklist.md](./pilot-acceptance-checklist.m
 | [pilot-acceptance-checklist.md](./pilot-acceptance-checklist.md) | IT sign-off |
 | [phase-4-mirror-import-operator.md](./phase-4-mirror-import-operator.md) | Mirror import CLI |
 | [pilot-backup-restore-audit.md](./pilot-backup-restore-audit.md) | Backup/restore after writes |
+| [windows-pilot-permission-and-path-risks.md](./windows-pilot-permission-and-path-risks.md) | ACL, UNC, SmartScreen, backup writability |
 
 Canonical location categories (tests/docs): `apps/desktop/src/operator-data-locations.ts`.

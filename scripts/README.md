@@ -102,14 +102,19 @@ Operator flow: [docs/phase-6-windows-mvp-operator-guide.md](../docs/phase-6-wind
 | `pnpm pilot-checkpoint` | test + `build:web` + `desktop:release-smoke` | Cross-platform Node | Quick handoff gate — **does not** run `qa:sandbox` |
 | `pnpm pilot:full-checkpoint` | `scripts/pilot-full-checkpoint.sh` | Cross-platform bash | Test + web + optional `qa:sandbox` + desktop smoke — **no** stage/verify |
 | `pnpm pilot:distribution-checkpoint` | `scripts/pilot-distribution-checkpoint.sh` | Cross-platform bash | Distribution RC: test, build, stage, verify, `PILOT_STAGED_RELEASE=1` smoke; **warns** when sandbox skipped |
-| `pnpm pilot:release-check` | `scripts/pilot-release-check.sh` | Cross-platform bash | **Dev only** — distribution checkpoint with loud not-signoff banner |
-| `pnpm pilot:release-signoff` | `scripts/pilot-release-signoff.sh` | Cross-platform bash | **Strict** signoff: 8 sections, sandbox required, prints `PILOT RELEASE SIGNOFF: READY` or `BLOCKED` |
+| `pnpm pilot:release-check` | `scripts/pilot-release-check.sh` | Cross-platform bash | **Dev iteration** — distribution checkpoint; loud not-signoff banner; **does not** prove Windows field execution |
+| `pnpm pilot:release-signoff` | `scripts/pilot-release-signoff.sh` | Cross-platform bash | **Mac full gate** — test, artifacts, build, stage, verify, manifest, smoke, **requires** sandbox env (`pnpm qa:sandbox`); prints signoff + **3-tier summary** |
+| `pnpm pilot:mac-release-status` | `scripts/pilot-mac-release-status.mjs` | Cross-platform Node | **Tiers only** — read-only status labels; no build, no verify, no deps |
 | `pnpm pilot:stage-release` | alias → `stage:pilot-release` | Cross-platform Node | Same as `pnpm stage:pilot-release` |
 | `pnpm stage:pilot-release` | `scripts/stage-pilot-release.mjs` | Cross-platform Node | Stage `dist/pilot-release/` from dist artifacts only |
 | `pnpm pilot:verify-release` | `scripts/verify-pilot-release.mjs` | Cross-platform Node | Validate staged layout + sensitive-file guards + manifest |
 | `pnpm pilot:verify-manifest` | `scripts/verify-pilot-manifest.mjs` | Cross-platform Node | Hash check on `RELEASE-MANIFEST.json` only |
 | `pnpm test:pilot-artifacts` | `scripts/pilot-release-artifacts.test.mjs` | Cross-platform Node | Synthetic good/bad trees + manifest fixtures |
 | `bash scripts/dev-windows-dry-run.sh` | *(manual)* | Cross-platform bash | Desktop test + release-smoke + stage + verify; optional `qa:sandbox` if env set |
+
+**Mac QA sequence (before IT zip):** [docs/mac-pilot-qa-runbook.md](../docs/mac-pilot-qa-runbook.md).
+
+**None of the `pilot:*` commands substitute for Windows field execution** (tier 3). Clinic go-live stays **BLOCKED** until a PHI-safe field log and go/no-go are filed on a clinic PC.
 | `bash scripts/qa-sandbox-write-smoke.sh` | smoke only | macOS-oriented bash | Bridge must already be up |
 | `pnpm --filter @microdent/desktop run start` | Electron | Cross-platform Node | `%AppData%\Microdent\config.json` |
 | `node services/bridge/dist/server.js` | production bridge | Windows production-ready | Set env in PowerShell first |

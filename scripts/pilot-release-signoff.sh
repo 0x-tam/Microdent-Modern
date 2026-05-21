@@ -115,9 +115,23 @@ if ! pnpm qa:sandbox; then
   block "pnpm qa:sandbox failed — check BACKUP_DIR is writable (EPERM = not signoff-ready)"
 fi
 
+print_tier_summary() {
+  local tier1="$1"
+  echo ""
+  echo "========== Pilot readiness status (3-tier) =========="
+  echo "Tier 1 — Mac-side release readiness:     ${tier1}"
+  echo "Tier 2 — Windows-test readiness:         READY (field pack in staged tree)"
+  echo "Tier 3 — Windows execution status:       Deferred / Not yet run"
+  echo "Clinic go-live:                          BLOCKED (until tier 3 complete + go/no-go)"
+  echo ""
+  echo "Mac signoff does not substitute for Windows field execution."
+  echo "Field pack: docs/FIELD-TEST-START-HERE.md — schedule clinic PC test when ready."
+}
+
 echo ""
 if [[ ${#BLOCKED_REASONS[@]} -eq 0 ]]; then
   echo "PILOT RELEASE SIGNOFF: READY"
+  print_tier_summary "READY"
   exit 0
 fi
 
@@ -125,4 +139,5 @@ echo "PILOT RELEASE SIGNOFF: BLOCKED"
 for reason in "${BLOCKED_REASONS[@]}"; do
   echo "  - ${reason}"
 done
+print_tier_summary "NOT READY"
 exit 1

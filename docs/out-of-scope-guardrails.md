@@ -186,4 +186,24 @@ Complete before clinic staff receive a **staged** `MicrodentModern/` folder. Dev
 | C5 | Strict release signoff | `pnpm pilot:release-signoff` prints **`PILOT RELEASE SIGNOFF: READY`** (not `BLOCKED`) with sandbox QA green | ☐ |
 | C6 | Real Windows field test | [windows-pilot-real-machine-checklist.md](./windows-pilot-real-machine-checklist.md) executed on a clinic PC — dev macOS checkpoint is not clinic acceptance | ☐ |
 
-**Clinic production readiness:** Portable sandbox handoff may be **READY** per C5; **clinic production** (live legacy writes, payments, chart edits) remains **out of scope** until C6 is complete.
+**Clinic production readiness:** Tier 1 portable sandbox handoff may be **READY** per C5; **clinic go-live** and **clinic production** (live legacy writes, payments, chart edits) remain **BLOCKED** until tier 3 (C6) shows a completed Windows field log + go/no-go GO — Mac signoff alone is **not** clinic go-live ready.
+
+---
+
+## Mac-first sign-off (build machine — tiers 1–2 only)
+
+Complete on the **Mac build machine** before zipping `MicrodentModern/` for IT. These rows prove **Mac-side release readiness** and **Windows-test readiness** only — **not** clinic go-live.
+
+| # | Gate | Pass |
+| --- | --- | --- |
+| MF1 | **Tier 1:** `pnpm pilot:release-signoff` prints **`PILOT RELEASE SIGNOFF: READY`** (or distribution checkpoint + verify when sandbox env set) | ☐ |
+| MF2 | **Tier 2:** Staged tree includes field pack docs — `FIELD-TEST-START-HERE.md`, execution script, result form, go/no-go, verify-on-Windows | ☐ |
+| MF3 | `pnpm pilot:verify-release` + `pnpm pilot:verify-manifest` exit 0 on staged tree | ☐ |
+| MF4 | **Tier 3 status documented:** batch reports and Mac-only QA logs state **Windows execution: Deferred / Not yet run** | ☐ |
+| MF5 | **No go-live language** in Mac-only batch reports — do not write “clinic go-live ready” without Windows field log + go/no-go | ☐ |
+| MF6 | **Clinic go-live:** explicitly **BLOCKED** in report status table until tier 3 **Completed** | ☐ |
+| MF7 | Installer / NSIS **not** promised — [windows-pilot-installer-decision-record.md](./windows-pilot-installer-decision-record.md) Mac-first checklist reviewed | ☐ |
+
+**Rule:** MF1–MF7 passing does **not** change tier 3 from **Deferred**. Tier 3 must stay **Deferred / Not yet run** until a PHI-safe Windows field log exists in `qa-runs/`.
+
+**Three-tier reference:** [PILOT-START-HERE.md](./PILOT-START-HERE.md) · **Windows field test:** [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md)

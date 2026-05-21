@@ -87,6 +87,7 @@ describe("formatWriteOperationFeedbackLines", () => {
     expect(text).toContain("Backup created");
     expect(text).toContain("legacy-restore");
     expect(text).toContain("sandbox pilot only");
+    expect(text).toContain("never production legacy");
     expect(text).not.toMatch(/DATA_ROOT|manifest|before|after|PAT_NAME/i);
     expect(text).not.toMatch(/C:\\\\|\/Users\//);
   });

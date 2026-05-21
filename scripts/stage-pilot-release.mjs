@@ -291,6 +291,7 @@ mkdirSync(docsDir, { recursive: true });
 for (const name of [
   "PILOT-START-HERE.md",
   "PILOT-HANDOFF-PACK.md",
+  "FIELD-TEST-START-HERE.md",
   "pilot-tester-guide.md",
   "pilot-acceptance-checklist.md",
   "pilot-backup-restore-audit.md",
@@ -301,6 +302,13 @@ for (const name of [
   "windows-pilot-data-locations.md",
   "windows-pilot-release-layout.md",
   "phase-4-mirror-import-operator.md",
+  "windows-pilot-field-execution-script.md",
+  "windows-pilot-field-result-form.md",
+  "windows-pilot-troubleshooting-pack.md",
+  "windows-pilot-package-verify-on-windows.md",
+  "windows-pilot-permission-and-path-risks.md",
+  "windows-pilot-go-no-go-checklist.md",
+  "windows-pilot-release-notes.md",
 ]) {
   const src = join(repoRoot, "docs", name);
   if (existsSync(src)) {
@@ -384,9 +392,10 @@ writeFileSync(
   [
     "# Microdent Modern — pilot start",
     "",
-    "1. Open **docs/PILOT-HANDOFF-PACK.md** for the full tester walkthrough.",
-    "2. Verify package integrity on the build machine: `pnpm pilot:verify-manifest` (hash check on RELEASE-MANIFEST.json).",
-    "3. **Safety:** This folder has no clinic DBF, mirror SQLite, backups, or `.env` secrets. Sandbox writes require explicit operator setup.",
+    "1. **Field test on Windows:** open **docs/FIELD-TEST-START-HERE.md** → execution script.",
+    "2. **Scope:** **docs/windows-pilot-release-notes.md** · **Full walkthrough:** **docs/PILOT-HANDOFF-PACK.md**.",
+    "3. Verify package integrity on the build machine: `pnpm pilot:verify-manifest` (hash check on RELEASE-MANIFEST.json).",
+    "4. **Safety:** This folder has no clinic DBF, mirror SQLite, backups, or `.env` secrets. Sandbox writes require explicit operator setup.",
     "",
     "Full index: docs/PILOT-START-HERE.md",
     "",
