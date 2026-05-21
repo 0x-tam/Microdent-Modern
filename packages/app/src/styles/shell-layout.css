@@ -3,7 +3,7 @@
   --app-gutter-x: clamp(12px, 2.2vw, 24px);
   --app-workspace-pad: clamp(16px, 2vw, 24px);
   --app-main-pad-y: clamp(14px, 1.8vw, 24px);
-  --app-rail-w: 280px;
+  --app-rail-w: 300px;
   --app-stat-strip-gap: 12px;
   --app-board-row-height: 56px;
   --app-text-label: 14px;
@@ -55,7 +55,7 @@
     --app-gutter-x: clamp(10px, 2vw, 20px);
     --app-workspace-pad: clamp(14px, 1.8vw, 20px);
     --app-main-pad-y: clamp(12px, 1.6vw, 20px);
-    --app-rail-w: 260px;
+    --app-rail-w: 272px;
     --app-topbar-gap: clamp(8px, 1.4vw, 16px);
     --app-card-pad-compact: var(--ui-space-3);
   }

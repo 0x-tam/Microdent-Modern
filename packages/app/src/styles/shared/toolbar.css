@@ -22,11 +22,11 @@
 .app-patient-profile__timeline-kind-chip[aria-pressed="true"],
 .app-schedule__status-chip[aria-pressed="true"],
 .app-schedule__provider-chip[aria-pressed="true"] {
-  border-color: var(--ui-primary-alpha-40);
-  background: var(--ui-primary-50);
-  color: var(--ui-primary-700);
+  border-color: var(--ui-primary-600);
+  background: var(--ui-primary-600);
+  color: var(--ui-text-inverse);
   font-weight: 600;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ui-primary-600) 18%, transparent);
+  box-shadow: var(--ui-shadow-card);
 }
 
 .app-filter-bar button:focus-visible,

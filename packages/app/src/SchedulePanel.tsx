@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge, Button } from "@microdent/ui";
 import type { BridgeHealthPhase } from "./bridge-health.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
-import { AppEmptyPanel } from "./app-empty-panel.js";
+import { AppEmptyPanel, AppLoadingSkeleton } from "./app-empty-panel.js";
 import {
   appointmentVisitMeta,
   buildRoomLabelMap,
@@ -628,42 +628,17 @@ export function SchedulePanel({
   return (
     <div className="app-workspace-page app-schedule">
       <header className="app-page-hero app-schedule__hero">
-        <div>
-          <h2 className="app-page-hero__title">{moduleTitle}</h2>
-          {moduleDescription ? <p className="app-page-hero__meta">{moduleDescription}</p> : null}
-        </div>
-        <p className="app-page-hero__meta app-schedule__hero-date">{rangeHeading}</p>
-      </header>
-        <div className="app-schedule__toolbar app-toolbar app-filter-bar">
-          <div className="app-schedule__toolbar-row app-filter-bar__group">
-          <div className="app-schedule__granularity" role="group" aria-label={SCHEDULE_VIEW_LABEL}>
-            <Button
-              type="button"
-              variant={granularity === "week" ? "secondary" : "ghost"}
-              size="compact"
-              className="ui-focusable"
-              disabled={!canLoad}
-              aria-pressed={granularity === "week"}
-              onClick={() => onGranularityChange("week")}
-            >
-              {SCHEDULE_VIEW_WEEK}
-            </Button>
-            <Button
-              type="button"
-              variant={granularity === "day" ? "secondary" : "ghost"}
-              size="compact"
-              className="ui-focusable"
-              disabled={!canLoad}
-              aria-pressed={granularity === "day"}
-              onClick={() => onGranularityChange("day")}
-            >
-              {SCHEDULE_VIEW_DAY}
-            </Button>
+        <div className="app-schedule__hero-top">
+          <div>
+            <h2 className="app-page-hero__title">{moduleTitle}</h2>
+            {moduleDescription ? <p className="app-page-hero__meta">{moduleDescription}</p> : null}
           </div>
-          <div className="app-schedule__nav" role="group" aria-label="Move schedule range">
+        </div>
+        <div className="app-schedule__hero-band">
+          <div className="app-schedule__nav app-schedule__hero-nav" role="group" aria-label="Move schedule range">
             <Button
               type="button"
-              variant="ghost"
+              variant="secondary"
               size="compact"
               className="ui-focusable"
               disabled={!canLoad || loading}
@@ -674,7 +649,7 @@ export function SchedulePanel({
             </Button>
             <Button
               type="button"
-              variant={viewingToday ? "secondary" : "ghost"}
+              variant={viewingToday ? "primary" : "secondary"}
               size="compact"
               className={`ui-focusable app-schedule__nav-today${viewingToday ? " app-schedule__nav-today--active" : ""}`}
               disabled={!canLoad || loading}
@@ -685,7 +660,7 @@ export function SchedulePanel({
             </Button>
             <Button
               type="button"
-              variant="ghost"
+              variant="secondary"
               size="compact"
               className="ui-focusable"
               disabled={!canLoad || loading}
@@ -693,6 +668,51 @@ export function SchedulePanel({
               aria-label={granularity === "day" ? SCHEDULE_NAV_NEXT_DAY : SCHEDULE_NAV_NEXT_WEEK}
             >
               {granularity === "day" ? SCHEDULE_VIEW_DAY : SCHEDULE_VIEW_WEEK} →
+            </Button>
+          </div>
+          <div className="app-schedule__hero-range">
+            <p
+              className="app-schedule__range app-schedule__range--display"
+              aria-live="polite"
+              aria-label={`Schedule range: ${rangeHeading}`}
+            >
+              <time dateTime={`${rangeFrom}/${rangeTo}`}>{rangeHeading}</time>
+            </p>
+            {!loading && !error && canLoad ? (
+              <span className="app-schedule__count-badge" role="status">
+                {SCHEDULE_RANGE_APPOINTMENT_COUNT(appointments.length)}
+              </span>
+            ) : null}
+            {includesToday && !loading && !error && canLoad ? (
+              <span className="app-schedule__today-badge">{SCHEDULE_RANGE_INCLUDES_TODAY}</span>
+            ) : null}
+          </div>
+        </div>
+      </header>
+        <div className="app-schedule__toolbar app-toolbar app-filter-bar">
+          <div className="app-schedule__toolbar-row app-filter-bar__group">
+          <div className="app-schedule__granularity" role="group" aria-label={SCHEDULE_VIEW_LABEL}>
+            <Button
+              type="button"
+              variant={granularity === "week" ? "primary" : "secondary"}
+              size="compact"
+              className="ui-focusable app-schedule__granularity-chip"
+              disabled={!canLoad}
+              aria-pressed={granularity === "week"}
+              onClick={() => onGranularityChange("week")}
+            >
+              {SCHEDULE_VIEW_WEEK}
+            </Button>
+            <Button
+              type="button"
+              variant={granularity === "day" ? "primary" : "secondary"}
+              size="compact"
+              className="ui-focusable app-schedule__granularity-chip"
+              disabled={!canLoad}
+              aria-pressed={granularity === "day"}
+              onClick={() => onGranularityChange("day")}
+            >
+              {SCHEDULE_VIEW_DAY}
             </Button>
           </div>
           <div className="app-schedule__toolbar-actions">
@@ -743,13 +763,6 @@ export function SchedulePanel({
           </div>
         </div>
         <div className="app-schedule__range-block">
-          <p
-            className="app-schedule__range"
-            aria-live="polite"
-            aria-label={`Schedule range: ${rangeHeading}`}
-          >
-            <time dateTime={`${rangeFrom}/${rangeTo}`}>{rangeHeading}</time>
-          </p>
           {!loading && !error && canLoad ? (
             <>
               <div className="app-stat-strip app-schedule__stat-strip" role="status">
@@ -757,12 +770,6 @@ export function SchedulePanel({
                   <p className="app-stat__label">Shown</p>
                   <p className="app-stat__value">{operationalSummary.shownLabel}</p>
                 </div>
-                {includesToday ? (
-                  <div className="app-stat app-stat--info">
-                    <p className="app-stat__label">Range</p>
-                    <p className="app-stat__value">{SCHEDULE_RANGE_INCLUDES_TODAY}</p>
-                  </div>
-                ) : null}
                 {operationalSummary.statusMix ? (
                   <div className="app-stat">
                     <p className="app-stat__label">Status</p>
@@ -787,6 +794,8 @@ export function SchedulePanel({
                   {operationalSummary.filterActiveLabel}
                 </p>
               ) : null}
+              {statusBreakdown.length > 0 || providerOptions.length > 1 ? (
+                <div className="app-schedule__filter-toolbar app-filter-bar">
               {statusBreakdown.length > 0 ? (
                 <div className="app-schedule__status-breakdown" role="group" aria-label="Status breakdown">
                   {statusBreakdown.map(({ code, count, label, variant }) => (
@@ -846,6 +855,8 @@ export function SchedulePanel({
                   {FILTER_CLEAR_LABEL}
                 </Button>
               ) : null}
+                </div>
+              ) : null}
             </>
           ) : null}
         </div>
@@ -871,19 +882,15 @@ export function SchedulePanel({
       {!canLoad ? (
         <AppEmptyPanel
           className="app-schedule__empty-panel"
-          offline={bridgePhase !== "checking"}
+          variant={bridgePhase === "checking" ? "default" : "offline"}
           title={bridgePhase === "checking" ? PATIENT_PROFILE_WAITING_TITLE : CLINIC_SERVICE_OFFLINE_TITLE}
           body={offlineMessage}
         />
       ) : loading ? (
-        <p
+        <AppLoadingSkeleton
           className="app-readonly-state app-readonly-state--loading app-schedule__state app-schedule__state--muted"
-          role="status"
-          aria-live="polite"
-          aria-busy="true"
-        >
-          {SCHEDULE_LOADING}
-        </p>
+          label={SCHEDULE_LOADING}
+        />
       ) : error ? (
         <div className="app-readonly-state app-readonly-state--error app-schedule__state app-schedule__state--error" role="alert">
           <p>{error}</p>
@@ -899,47 +906,55 @@ export function SchedulePanel({
         </div>
       ) : appointments.length === 0 ? (
         <AppErrorBoundary>
-          <div className="app-empty-panel app-schedule__empty-panel" role="status">
-            <h3 className="app-empty-panel__title">{SCHEDULE_EMPTY_TITLE}</h3>
-            <p className="app-empty-panel__body">{SCHEDULE_EMPTY_DESCRIPTION}</p>
-            <div className="app-empty-panel__actions">
-              <Button type="button" variant="secondary" size="compact" className="ui-focusable" disabled={!canLoad || loading} onClick={goToday}>
-                {SCHEDULE_NAV_TODAY}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="compact"
-                className="ui-focusable"
-                disabled={!canLoad || loading}
-                onClick={() => setRefreshTick((x) => x + 1)}
-              >
-                Refresh
-              </Button>
-            </div>
-          </div>
+          <AppEmptyPanel
+            className="app-schedule__empty-panel"
+            variant="empty-schedule"
+            title={SCHEDULE_EMPTY_TITLE}
+            body={SCHEDULE_EMPTY_DESCRIPTION}
+            actions={
+              <>
+                <Button type="button" variant="secondary" size="compact" className="ui-focusable" disabled={!canLoad || loading} onClick={goToday}>
+                  {SCHEDULE_NAV_TODAY}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="compact"
+                  className="ui-focusable"
+                  disabled={!canLoad || loading}
+                  onClick={() => setRefreshTick((x) => x + 1)}
+                >
+                  Refresh
+                </Button>
+              </>
+            }
+          />
         </AppErrorBoundary>
       ) : displayAppointments.length === 0 ? (
         <AppErrorBoundary>
-          <div className="app-empty-panel app-schedule__empty-panel" role="status">
-            <h3 className="app-empty-panel__title">{SCHEDULE_FILTER_EMPTY_TITLE}</h3>
-            <p className="app-empty-panel__body">{SCHEDULE_FILTER_EMPTY_DESCRIPTION}</p>
-            <div className="app-empty-panel__actions">
-              <Button type="button" variant="secondary" size="compact" className="ui-focusable" onClick={clearClientFilters}>
-                {FILTER_CLEAR_LABEL}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="compact"
-                className="ui-focusable"
-                disabled={loading}
-                onClick={() => setRefreshTick((x) => x + 1)}
-              >
-                Refresh
-              </Button>
-            </div>
-          </div>
+          <AppEmptyPanel
+            className="app-schedule__empty-panel"
+            variant="empty-schedule"
+            title={SCHEDULE_FILTER_EMPTY_TITLE}
+            body={SCHEDULE_FILTER_EMPTY_DESCRIPTION}
+            actions={
+              <>
+                <Button type="button" variant="secondary" size="compact" className="ui-focusable" onClick={clearClientFilters}>
+                  {FILTER_CLEAR_LABEL}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="compact"
+                  className="ui-focusable"
+                  disabled={loading}
+                  onClick={() => setRefreshTick((x) => x + 1)}
+                >
+                  Refresh
+                </Button>
+              </>
+            }
+          />
         </AppErrorBoundary>
       ) : (
         <div className="app-schedule__days">

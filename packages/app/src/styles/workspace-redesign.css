@@ -1,0 +1,700 @@
+/**
+ * v2 visual workspace — loaded LAST in app-shell.css.
+ * Wins over hub + page sheets for canvas, rail, heroes, metric tiles, status grids, chip scale.
+ */
+
+:root {
+  --app-v2-canvas: var(--ui-bg-workspace);
+  --app-v2-rail: var(--ui-bg-rail-v2);
+  --app-v2-hero: var(--ui-bg-hero);
+  --app-v2-metric-bg: var(--ui-bg-metric);
+  --app-v2-chip-min-h: 36px;
+  --app-v2-chip-font: var(--ui-text-meta, 14px);
+}
+
+/* ----- Canvas + rail ----- */
+.app-workspace-shell,
+.app-shell {
+  background-color: var(--app-v2-canvas);
+  background-image: linear-gradient(
+    152deg,
+    color-mix(in srgb, var(--ui-bg-workspace) 88%, var(--ui-bg-clinical-wash)) 0%,
+    var(--app-v2-canvas) 48%,
+    color-mix(in srgb, var(--app-v2-canvas) 92%, var(--ui-bg-shell-fade)) 100%
+  );
+}
+
+.app-rail,
+.app-sidebar,
+.app-workspace-shell .app-sidebar {
+  background: var(--app-v2-rail);
+  box-shadow: var(--ui-shadow-rail);
+}
+
+.app-workspace-main,
+.app-main {
+  background: transparent;
+}
+
+/* ----- Hero bands ----- */
+.app-page-hero,
+.app-hero-band,
+.app-dashboard__hero {
+  background: var(--app-v2-hero);
+  border-color: color-mix(in srgb, var(--ui-primary-600) 18%, var(--ui-border-subtle));
+  box-shadow: var(--ui-shadow-panel);
+}
+
+.app-page-hero__title,
+.app-hero-band__title,
+.app-dashboard__hero-title {
+  font-size: var(--ui-text-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.app-hero-band {
+  padding: var(--ui-space-4) var(--ui-space-5);
+  border-radius: var(--ui-radius-lg);
+  border: 1px solid color-mix(in srgb, var(--ui-primary-600) 14%, var(--ui-border-subtle));
+}
+
+.app-hero-band__kicker {
+  margin: 0 0 var(--ui-space-1);
+  font-size: var(--ui-text-meta);
+  font-weight: 600;
+  color: var(--ui-primary-700);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ----- Metric tiles (AppMetricTile) ----- */
+.app-metric-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-1);
+  min-height: 5.5rem;
+  padding: var(--ui-space-4);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-border-subtle);
+  border-left: 4px solid var(--ui-border-strong);
+  background: var(--app-v2-metric-bg);
+  box-shadow: var(--ui-shadow-metric);
+}
+
+.app-metric-tile__label {
+  margin: 0;
+  font-size: var(--ui-text-meta);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ui-text-secondary);
+}
+
+.app-metric-tile__value {
+  margin: 0;
+  font-size: clamp(1.5rem, 1.2rem + 1vw, 1.875rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  color: var(--ui-text-primary);
+}
+
+.app-metric-tile__hint {
+  margin: 0;
+  font-size: var(--ui-text-meta);
+  line-height: 1.4;
+  color: var(--ui-text-muted);
+}
+
+.app-metric-tile--emphasis,
+.app-metric-tile--success {
+  border-left-color: var(--ui-success-600);
+  background: color-mix(in srgb, var(--ui-success-50) 35%, var(--app-v2-metric-bg));
+}
+
+.app-metric-tile--emphasis .app-metric-tile__value,
+.app-metric-tile--success .app-metric-tile__value {
+  color: var(--ui-success-600);
+}
+
+.app-metric-tile--info {
+  border-left-color: var(--ui-accent-cyan);
+  background: color-mix(in srgb, var(--ui-status-readonly-bg) 55%, var(--app-v2-metric-bg));
+}
+
+.app-metric-tile--info .app-metric-tile__value {
+  color: var(--ui-status-readonly-text);
+}
+
+.app-metric-tile--warning {
+  border-left-color: var(--ui-warning-600);
+  background: color-mix(in srgb, var(--ui-warning-50) 45%, var(--app-v2-metric-bg));
+}
+
+.app-metric-tile--warning .app-metric-tile__value {
+  color: var(--ui-warning-600);
+}
+
+.app-metric-tile--danger {
+  border-left-color: var(--ui-danger-600);
+  background: color-mix(in srgb, var(--ui-danger-50) 40%, var(--app-v2-metric-bg));
+}
+
+.app-metric-tile--danger .app-metric-tile__value {
+  color: var(--ui-danger-600);
+}
+
+.app-metric-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: var(--ui-space-3);
+}
+
+/* ----- Status grid (AppStatusGrid) ----- */
+.app-status-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--ui-space-2);
+  margin: 0;
+  padding: var(--ui-space-3);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-border-subtle);
+  background: color-mix(in srgb, var(--app-v2-hero) 35%, var(--ui-bg-surface));
+}
+
+@media (min-width: 720px) {
+  .app-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--ui-space-2) var(--ui-space-3);
+  }
+}
+
+.app-status-grid__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--ui-space-2);
+  align-items: center;
+  min-height: 2.75rem;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-bg-surface);
+  border: 1px solid var(--ui-border-subtle);
+}
+
+.app-status-grid__row--action {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.app-status-grid__label {
+  margin: 0;
+  font-size: var(--ui-text-meta);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ui-text-secondary);
+}
+
+.app-status-grid__chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--app-v2-chip-min-h);
+  padding: var(--ui-space-1) var(--ui-space-3);
+  border-radius: var(--ui-radius-sm);
+  border: 1px solid var(--ui-border-subtle);
+  font-size: var(--app-v2-chip-font);
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  color: var(--ui-text-primary);
+  background: var(--ui-bg-muted);
+}
+
+.app-status-grid__chip--ok,
+.app-status-grid__chip--healthy {
+  border-color: color-mix(in srgb, var(--ui-success-600) 35%, var(--ui-border-subtle));
+  background: var(--ui-success-50);
+  color: var(--ui-success-600);
+}
+
+.app-status-grid__chip--warn,
+.app-status-grid__chip--warning {
+  border-color: var(--ui-status-mirror-stale-border);
+  background: var(--ui-status-mirror-stale-bg);
+  color: var(--ui-status-mirror-stale-text);
+}
+
+.app-status-grid__chip--danger,
+.app-status-grid__chip--critical {
+  border-color: color-mix(in srgb, var(--ui-danger-600) 35%, var(--ui-border-subtle));
+  background: var(--ui-danger-50);
+  color: var(--ui-danger-600);
+}
+
+.app-status-grid__chip--info {
+  border-color: var(--ui-status-readonly-border);
+  background: var(--ui-status-readonly-bg);
+  color: var(--ui-status-readonly-text);
+}
+
+.app-status-grid__chip--neutral {
+  border-color: var(--ui-status-offline-border);
+  background: var(--ui-status-offline-bg);
+  color: var(--ui-status-offline-text);
+}
+
+.app-status-grid__action {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--ui-text-meta);
+  font-weight: 600;
+  color: var(--ui-primary-600);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.app-status-grid__action:hover {
+  color: var(--ui-primary-700);
+}
+
+.app-status-grid__action:focus-visible {
+  outline: var(--ui-focus-ring-width) solid var(--ui-focus-ring-color);
+  outline-offset: var(--ui-focus-ring-offset);
+  border-radius: var(--ui-radius-sm);
+}
+
+/* Legacy clinic overview dl — v2 chip treatment until Wave 2 TSX swap */
+.app-dashboard-clinic-overview__list {
+  padding: var(--ui-space-3);
+  background: color-mix(in srgb, var(--app-v2-hero) 35%, var(--ui-bg-surface));
+  border-color: color-mix(in srgb, var(--ui-primary-600) 12%, var(--ui-border-subtle));
+}
+
+.app-dashboard-clinic-overview__row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  font-size: var(--ui-text-meta);
+}
+
+.app-dashboard-clinic-overview__value {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--app-v2-chip-min-h);
+  padding: var(--ui-space-1) var(--ui-space-3);
+  border-radius: var(--ui-radius-sm);
+  border: 1px solid var(--ui-border-subtle);
+  font-size: var(--app-v2-chip-font);
+  font-weight: 600;
+  text-align: right;
+  background: var(--ui-bg-muted);
+}
+
+.app-dashboard-clinic-overview__row--ok .app-dashboard-clinic-overview__value {
+  border-color: color-mix(in srgb, var(--ui-success-600) 35%, var(--ui-border-subtle));
+  background: var(--ui-success-50);
+  color: var(--ui-success-600);
+}
+
+.app-dashboard-clinic-overview__row--warn .app-dashboard-clinic-overview__value {
+  border-color: var(--ui-status-mirror-stale-border);
+  background: var(--ui-status-mirror-stale-bg);
+  color: var(--ui-status-mirror-stale-text);
+}
+
+.app-dashboard-clinic-overview__row--danger .app-dashboard-clinic-overview__value {
+  border-color: color-mix(in srgb, var(--ui-danger-600) 35%, var(--ui-border-subtle));
+  background: var(--ui-danger-50);
+  color: var(--ui-danger-600);
+}
+
+/* ----- Schedule v2 (Wave 2 G) ----- */
+.app-schedule__hero {
+  background: var(--app-v2-hero);
+}
+
+.app-schedule__nav-today--active.ui-btn--primary {
+  box-shadow:
+    0 2px 8px rgba(20, 90, 99, 0.22),
+    inset 0 0 0 1px color-mix(in srgb, var(--ui-primary-600) 20%, transparent);
+}
+
+.app-schedule .app-filter-bar .ui-btn--primary,
+.app-schedule__filter-toolbar .ui-btn--primary,
+.app-schedule__granularity-chip.ui-btn--primary,
+.app-schedule__status-chip.ui-btn--primary,
+.app-schedule__provider-chip.ui-btn--primary {
+  min-height: var(--app-v2-chip-min-h);
+  font-size: var(--app-v2-chip-font);
+  background: var(--ui-primary-600);
+  color: var(--ui-text-inverse);
+  border-color: var(--ui-primary-600);
+  font-weight: 600;
+}
+
+.app-schedule .app-filter-bar .ui-btn--primary:hover:not(:disabled),
+.app-schedule__filter-toolbar .ui-btn--primary:hover:not(:disabled),
+.app-schedule__granularity-chip.ui-btn--primary:hover:not(:disabled),
+.app-schedule__status-chip.ui-btn--primary:hover:not(:disabled),
+.app-schedule__provider-chip.ui-btn--primary:hover:not(:disabled) {
+  background: var(--ui-primary-500);
+  border-color: var(--ui-primary-500);
+}
+
+.app-schedule__appt-row {
+  min-height: 56px;
+  background: var(--ui-bg-surface);
+}
+
+.app-schedule__appt-time {
+  font-size: var(--ui-text-body, 16px);
+  font-weight: 700;
+}
+
+.app-schedule__status-badge {
+  min-height: var(--app-v2-chip-min-h);
+  padding: var(--ui-space-1) var(--ui-space-2);
+  font-size: var(--app-v2-chip-font);
+  font-weight: 600;
+  border-radius: var(--ui-radius-sm);
+  border: 1px solid var(--ui-border-subtle);
+}
+
+.app-schedule__empty-panel {
+  padding: var(--ui-space-5);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid color-mix(in srgb, var(--ui-primary-600) 14%, var(--ui-border-subtle));
+  background: color-mix(in srgb, var(--app-v2-hero) 40%, var(--ui-bg-surface));
+}
+
+/* v2 chip scale — overrides legacy 11–13px hub rules */
+.app-schedule__status-chip,
+.app-schedule__provider-chip,
+.app-schedule__granularity-chip,
+.app-patient-profile__timeline-kind-chip,
+.app-patient-profile__timeline-clear-filters,
+.app-patient-profile__appts-clear-filters,
+.app-patient-profile__clinical-clear-filters,
+.app-schedule__clear-filters {
+  min-height: var(--app-v2-chip-min-h);
+  font-size: var(--app-v2-chip-font);
+}
+
+.app-sidebar__btn-sublabel,
+.app-rail__clinic {
+  font-size: var(--ui-text-meta);
+}
+
+.app-stat-strip {
+  background: color-mix(in srgb, var(--app-v2-hero) 55%, var(--ui-bg-clinical));
+}
+
+/* Today v2 — hero + metric strip + glance grid */
+.app-workspace-page.app-dashboard .app-dashboard__hero {
+  background: var(--app-v2-hero);
+}
+
+.app-workspace-page.app-dashboard .app-dashboard__metrics .app-metric-tile {
+  min-height: 6.25rem;
+}
+
+.app-workspace-page.app-dashboard .app-dashboard__glance .app-status-grid {
+  margin-top: var(--ui-space-2);
+}
+
+.app-command-grid .app-board-panel,
+.app-command-grid .app-ops-panel {
+  padding: var(--ui-space-5);
+}
+/* ----- Shell v2 overrides (Wave 1) ----- */
+.app-rail,
+.app-workspace-shell .app-sidebar {
+  width: var(--app-rail-w, 300px);
+}
+
+.app-rail__brand {
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--ui-primary-600) 10%, transparent);
+}
+
+.app-workspace-header {
+  box-shadow: var(--ui-shadow-panel);
+}
+
+.app-workspace-header__status-cluster .app-chip,
+.app-workspace-header__status-chip {
+  min-height: var(--app-v2-chip-min-h);
+  padding: var(--ui-space-1) var(--ui-space-3);
+  font-size: var(--app-v2-chip-font);
+}
+
+.app-patient-search--header .app-patient-search__row {
+  box-shadow: var(--ui-shadow-elevated);
+  border-radius: var(--ui-radius-md);
+}
+
+.app-patient-search--header .app-topbar-search__input {
+  min-height: 48px;
+  height: 48px;
+  box-shadow: none;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.app-patient-search--header .app-patient-search__submit {
+  min-height: 48px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.app-patient-search--header .app-patient-search__hint,
+.app-patient-search--header .app-patient-search__status,
+.app-rail__version,
+.app-rail__connection-pill,
+.app-rail__settings-link,
+.app-sidebar__hint {
+  font-size: var(--ui-text-meta, 14px);
+}
+
+.app-sidebar__btn[aria-current="true"] .app-sidebar__btn-dot {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--ui-primary-600) 18%, transparent),
+    0 0 0 4px color-mix(in srgb, var(--ui-primary-600) 12%, transparent);
+}
+
+/* ----- Wave 2 F — Patients search hero + results (v2 wins) ----- */
+.app-patients-search-hero {
+  box-shadow: var(--ui-shadow-elevated);
+}
+
+.app-patient-search--hero .app-patient-search__input--page {
+  min-height: 48px;
+  font-size: 16px;
+}
+
+.app-patient-search--hero .app-patient-search__submit {
+  min-height: 48px;
+}
+
+.app-patient-search__hit-name {
+  font-size: 16px;
+}
+
+.app-patient-search__hit-chevron {
+  color: color-mix(in srgb, var(--ui-primary-600) 55%, var(--ui-text-muted));
+}
+
+.app-patient-search__recent-list {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.app-patient-search__recent-card {
+  box-shadow: var(--ui-shadow-metric);
+}
+
+@media (max-width: 720px) {
+  .app-patient-search__recent-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ----- Wave 2 I: Clinical + timeline v2 overrides ----- */
+.app-patient-profile__timeline-row-action {
+  font-size: var(--ui-text-meta, 14px);
+}
+
+.app-clinical-badge,
+.app-clinical-badge.app-clinical-badge--hidden-sensitive,
+.app-clinical-badge.app-clinical-badge--description-hidden,
+.app-clinical-badge.app-clinical-badge--amount-hidden {
+  min-height: var(--app-v2-chip-min-h, 36px);
+  font-size: var(--app-v2-chip-font, var(--ui-text-meta, 14px));
+}
+
+.app-clinical-group-card {
+  box-shadow: var(--ui-shadow-metric, var(--ui-shadow-panel));
+}
+
+.app-patient-profile__timeline-event-card {
+  box-shadow: var(--ui-shadow-metric, var(--ui-shadow-panel));
+}
+
+/* ----- Wave H: Patient profile workspace ----- */
+.app-patient-profile__header-strip.app-hero-band {
+  width: 100%;
+  margin-inline: 0;
+  padding: var(--ui-space-5);
+  background: var(--app-v2-hero);
+  border-color: color-mix(in srgb, var(--ui-primary-600) 18%, var(--ui-border-subtle));
+}
+
+.app-patient-profile .app-patient-profile__header-name {
+  font-size: var(--ui-text-display);
+}
+
+.app-patient-profile__header-chips .app-patient-hero__chip {
+  min-height: var(--app-v2-chip-min-h);
+  font-size: var(--app-v2-chip-font);
+}
+
+.app-patient-profile__summary-metrics.app-metric-tile-grid {
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+}
+
+.app-patient-profile__tabs--pills .app-patient-profile__tablist {
+  min-height: 44px;
+  padding: 3px;
+  border-radius: var(--ui-radius-md);
+  background: color-mix(in srgb, var(--ui-bg-muted) 85%, var(--ui-bg-surface));
+}
+
+.app-patient-profile__tabs--pills .app-patient-profile__tab {
+  min-height: 44px;
+  font-size: var(--ui-text-meta);
+  font-weight: 600;
+}
+
+.app-patient-profile__tabs--pills .app-patient-profile__tab--active {
+  background: var(--ui-primary-600);
+  color: #fff;
+  box-shadow: var(--ui-shadow-panel);
+}
+
+.app-patient-profile .app-patient-profile__tab-section-title {
+  border-left-width: 6px;
+  font-size: var(--ui-text-section);
+}
+
+.app-patient-profile .app-clinical-section-header--medical {
+  border-left-color: var(--ui-accent-cyan);
+}
+
+.app-patient-profile .app-clinical-section-header--treatments {
+  border-left-color: var(--ui-accent-blue);
+}
+
+.app-patient-profile .app-clinical-section-header--chart {
+  border-left-color: var(--ui-success-600);
+}
+
+.app-patient-profile .app-clinical-section-header--ledger {
+  border-left-color: var(--ui-status-offline-text);
+}
+
+.app-patient-profile__summary-mini-grid {
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+  gap: var(--ui-space-3);
+}
+
+.app-patient-profile__summary-mini-card {
+  background: var(--app-v2-metric-bg);
+  box-shadow: var(--ui-shadow-metric);
+  border-left-width: 4px;
+}
+
+.app-patient-profile__summary-mini-card--tone-upcoming {
+  border-left-color: var(--ui-primary-600);
+}
+
+.app-patient-profile__summary-mini-card--tone-neutral {
+  border-left-color: var(--ui-border-strong);
+}
+
+.app-patient-profile__summary-mini-card-detail {
+  font-size: clamp(1.25rem, 1.05rem + 0.6vw, 1.5rem);
+  font-weight: 700;
+}
+
+.app-patient-profile__summary-cross-tab {
+  min-height: var(--app-v2-chip-min-h);
+  font-size: var(--app-v2-chip-font);
+}
+
+/* ----- Wave 3 L: Empty panel variants ----- */
+.app-empty-panel--offline {
+  border-color: var(--ui-status-offline-border);
+  background: var(--ui-status-offline-bg);
+}
+
+.app-empty-panel--empty-schedule {
+  border-color: color-mix(in srgb, var(--ui-primary-600) 22%, var(--ui-border-subtle));
+  background: color-mix(in srgb, var(--app-v2-hero) 48%, var(--ui-bg-surface));
+  text-align: left;
+}
+
+.app-empty-panel--empty-schedule .app-empty-panel__body {
+  margin-inline: 0;
+  text-align: left;
+}
+
+.app-empty-panel--no-patient {
+  border-color: color-mix(in srgb, var(--ui-primary-600) 16%, var(--ui-border-subtle));
+  background: color-mix(in srgb, var(--ui-bg-clinical-wash) 55%, var(--ui-bg-surface));
+  text-align: left;
+}
+
+.app-empty-panel--no-patient .app-empty-panel__body {
+  margin-inline: 0;
+  text-align: left;
+}
+
+.app-empty-panel--blocked-write {
+  border-color: color-mix(in srgb, var(--ui-warning-600) 35%, var(--ui-border-subtle));
+  background: color-mix(in srgb, var(--ui-warning-50) 55%, var(--ui-bg-surface));
+  text-align: left;
+}
+
+.app-empty-panel--blocked-write .app-empty-panel__title {
+  color: var(--ui-warning-600);
+}
+
+.app-empty-panel--blocked-write .app-empty-panel__body {
+  margin-inline: 0;
+  text-align: left;
+}
+
+/* ----- Wave 3 L: Loading skeleton shimmer (no deps) ----- */
+@keyframes app-skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.app-loading-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-3) 0;
+}
+
+.app-skeleton {
+  border-radius: var(--ui-radius-sm);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--ui-bg-muted) 88%, var(--ui-bg-surface)) 0%,
+    color-mix(in srgb, var(--ui-bg-surface) 70%, var(--ui-bg-clinical-wash)) 45%,
+    color-mix(in srgb, var(--ui-bg-muted) 88%, var(--ui-bg-surface)) 90%
+  );
+  background-size: 200% 100%;
+  animation: app-skeleton-shimmer 1.35s ease-in-out infinite;
+}
+
+.app-skeleton__line {
+  min-height: 0.875rem;
+}
+
+.app-skeleton__line:first-child {
+  min-height: 1.125rem;
+}
+
+.app-readonly-state--loading.app-loading-skeleton,
+.app-schedule__state.app-loading-skeleton,
+.app-patient-profile__status.app-loading-skeleton {
+  border: none;
+  background: transparent;
+  padding: var(--ui-space-3) 0;
+}

@@ -1,4 +1,11 @@
 export { AppErrorBoundary } from "./AppErrorBoundary.js";
+export { AppMetricTile, type AppMetricTileProps, type AppMetricTileTone } from "./app-metric-tile.js";
+export {
+  AppStatusGrid,
+  type AppStatusGridItem,
+  type AppStatusGridProps,
+  type AppStatusGridTone,
+} from "./app-status-grid.js";
 export {
   AppShell,
   APP_NAV_MODULES,

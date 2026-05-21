@@ -13,6 +13,7 @@ import type { BridgeDevStatusResponse } from "@microdent/contracts";
 import type { BridgeHealthPhase } from "./bridge-health.js";
 import { PatientDemographicsWritePanel } from "./PatientDemographicsWritePanel.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
+import { AppMetricTile } from "./app-metric-tile.js";
 import {
   buildRoomLabelMap,
   filterPatientAppointments,
@@ -112,6 +113,8 @@ import {
   treatmentsToolbarSummary,
   ledgerToolbarSummary,
   PATIENT_CHANGE_PATIENT_LABEL,
+  PATIENT_NO_SELECTION_DESCRIPTION,
+  PATIENT_NO_SELECTION_TITLE,
   PATIENT_PAGE_SEARCH_EXAMPLE,
   PATIENT_PAGE_SEARCH_LEDE,
   PATIENT_MODULE_TABS_HINT,
@@ -365,9 +368,16 @@ function ProfileHeaderStrip({
   const provider = profileAssignedProviderLabel(profile.doctorId, doctorLabels);
 
   return (
-    <div className="app-patient-hero app-patient-profile__header-strip" role="region" aria-label="Patient record context">
-      <h3 className="app-patient-hero__name app-patient-profile__header-name">{profile.displayName}</h3>
-      <ul className="app-patient-hero__chips">
+    <div
+      className="app-hero-band app-patient-hero app-patient-profile__header-strip"
+      role="region"
+      aria-label="Patient record context"
+    >
+      <h2 className="app-hero-band__title app-patient-hero__name app-patient-profile__header-name">
+        {profile.displayName}
+      </h2>
+      {profile.reverseName ? <p className="app-patient-profile__header-reverse">{profile.reverseName}</p> : null}
+      <ul className="app-patient-hero__chips app-patient-profile__header-chips">
         <li className="app-patient-hero__chip app-patient-hero__chip--chart">Chart {profile.chartNumber ?? "—"}</li>
         <li className="app-patient-hero__chip app-patient-hero__chip--provider">{provider}</li>
         <li
@@ -375,7 +385,6 @@ function ProfileHeaderStrip({
         >
           {activeLabel ?? "—"}
         </li>
-        <li className="app-patient-hero__chip app-patient-hero__chip--record">Record {profile.patientId}</li>
       </ul>
     </div>
   );
@@ -761,7 +770,8 @@ function TreatmentsBody({
           No procedures match the current filters.
         </p>
       ) : (
-        monthGroups.map((group) => (
+        <div className="app-clinical-stack">
+        {monthGroups.map((group) => (
           <section key={group.monthKey} className="app-patient-profile__clinical-month-group app-clinical-group-card">
             <h4 className="app-patient-profile__tab-section-title app-clinical-section-header app-clinical-section-header--treatments">
               {group.heading}
@@ -806,7 +816,8 @@ function TreatmentsBody({
               })}
             </ul>
           </section>
-        ))
+        ))}
+        </div>
       )}
       <p className="app-patient-profile__treatments-privacy">{privacyNote}</p>
     </div>
@@ -914,7 +925,8 @@ function ChartBody({
           No chart entries match the current filter.
         </p>
       ) : (
-        toothGroups.map((group) => (
+        <div className="app-clinical-stack">
+        {toothGroups.map((group) => (
           <section key={group.toothKey} className="app-patient-profile__clinical-tooth-group app-clinical-group-card">
             <h4 className="app-patient-profile__tab-section-title app-clinical-section-header app-clinical-section-header--chart">
               {group.toothLabel}
@@ -930,7 +942,11 @@ function ChartBody({
                     </div>
                     <div className="app-patient-profile__chart-badges">
                       {row.hasNote ? (
-                        <Badge variant="neutral" semanticLabel="Chart note hidden">
+                        <Badge
+                          variant="neutral"
+                          semanticLabel="Chart note hidden"
+                          className="app-clinical-badge app-clinical-badge--description-hidden"
+                        >
                           Note hidden
                         </Badge>
                       ) : null}
@@ -940,66 +956,36 @@ function ChartBody({
               ))}
             </ul>
           </section>
-        ))
+        ))}
+        </div>
       )}
       <p className="app-patient-profile__chart-privacy">{privacyNote}</p>
     </div>
   );
 }
 
-function ProfileSummaryCard({
+function ProfileSummaryMetricGrid({
   profile,
-  activeLabel,
   doctorLabels,
 }: {
   profile: PatientProfileResponse;
-  activeLabel: string | null;
   doctorLabels: ReadonlyMap<string, string>;
 }) {
+  const provider = profileAssignedProviderLabel(profile.doctorId, doctorLabels);
+
   return (
-    <Card className="app-patient-profile__card">
-      <CardHeader>
-        <div className="app-patient-profile__card-head">
-          <div>
-            <p className="app-patient-profile__name">{profile.displayName}</p>
-            {profile.reverseName ? <p className="app-patient-profile__rev">{profile.reverseName}</p> : null}
-          </div>
-          {activeLabel ? (
-            <Badge variant={profile.active ? "success" : "neutral"} semanticLabel={`Account status: ${activeLabel}`}>
-              {activeLabel}
-            </Badge>
-          ) : null}
-        </div>
-      </CardHeader>
-      <CardBody>
-        <dl className="app-patient-profile__dl">
-          <div className="app-patient-profile__row">
-            <dt>Chart number</dt>
-            <dd>{profile.chartNumber ?? "—"}</dd>
-          </div>
-          <div className="app-patient-profile__row">
-            <dt>Record id</dt>
-            <dd>{profile.patientId}</dd>
-          </div>
-          <div className="app-patient-profile__row">
-            <dt>Phone (masked)</dt>
-            <dd>{profile.phoneMask ?? "—"}</dd>
-          </div>
-          <div className="app-patient-profile__row">
-            <dt>Provider</dt>
-            <dd>{profileAssignedProviderLabel(profile.doctorId, doctorLabels)}</dd>
-          </div>
-          <div className="app-patient-profile__row">
-            <dt>Entry date</dt>
-            <dd>{profile.entryDate ?? "—"}</dd>
-          </div>
-          <div className="app-patient-profile__row">
-            <dt>Last visit</dt>
-            <dd>{profile.lastVisit ?? "—"}</dd>
-          </div>
-        </dl>
-      </CardBody>
-    </Card>
+    <div className="app-metric-tile-grid app-patient-profile__summary-metrics" aria-label="Patient record summary">
+      <AppMetricTile label="Record id" value={profile.patientId} />
+      <AppMetricTile label="Phone (masked)" value={profile.phoneMask ?? "—"} tone="info" />
+      <AppMetricTile label="Provider" value={provider} />
+      <AppMetricTile label="Entry date" value={profile.entryDate ?? "—"} />
+      <AppMetricTile
+        label="Last visit"
+        value={profile.lastVisit ?? "—"}
+        tone={profile.lastVisit ? "emphasis" : "neutral"}
+      />
+      <AppMetricTile label="Chart number" value={profile.chartNumber ?? "—"} tone="success" />
+    </div>
   );
 }
 
@@ -1099,7 +1085,8 @@ function LedgerBody({
           No ledger lines match the current filter.
         </p>
       ) : (
-        monthGroups.map((group) => (
+        <div className="app-clinical-stack">
+        {monthGroups.map((group) => (
           <section key={group.monthKey} className="app-patient-profile__clinical-month-group app-clinical-group-card">
             <h4 className="app-patient-profile__tab-section-title app-clinical-section-header app-clinical-section-header--ledger">
               {formatLedgerMonthGroupHeading(group.monthKey, group.items.length)}
@@ -1139,7 +1126,8 @@ function LedgerBody({
               })}
             </ul>
           </section>
-        ))
+        ))}
+        </div>
       )}
       <p className="app-patient-profile__ledger-privacy">{privacyNote}</p>
     </div>
@@ -1192,6 +1180,7 @@ function MedicalSummaryBody({ summary }: { summary: PatientMedicalSummaryRespons
         </>
       ) : null}
 
+      <section className="app-clinical-group-card app-clinical-group-card--medical">
       <h4 className="app-patient-profile__tab-section-title app-clinical-section-header app-clinical-section-header--medical">
         {PATIENT_TAB_SECTION_QUESTIONNAIRE}
       </h4>
@@ -1219,9 +1208,10 @@ function MedicalSummaryBody({ summary }: { summary: PatientMedicalSummaryRespons
           </dd>
         </div>
       </dl>
+      </section>
 
       {!sensitive && conditionSections.general.length > 0 ? (
-        <>
+        <section className="app-clinical-group-card app-clinical-group-card--medical">
           <h4 className="app-patient-profile__tab-section-title app-clinical-section-header app-clinical-section-header--medical">
             {PATIENT_TAB_SECTION_GENERAL_SCREENING}
           </h4>
@@ -1230,11 +1220,11 @@ function MedicalSummaryBody({ summary }: { summary: PatientMedicalSummaryRespons
               <li key={item.key}>{item.label}</li>
             ))}
           </ul>
-        </>
+        </section>
       ) : null}
 
       {!sensitive && conditionSections.additional.length > 0 ? (
-        <>
+        <section className="app-clinical-group-card app-clinical-group-card--medical">
           <h4 className="app-patient-profile__tab-section-title app-clinical-section-header app-clinical-section-header--medical">
             {PATIENT_TAB_SECTION_ADDITIONAL_MARKERS}
           </h4>
@@ -1243,7 +1233,7 @@ function MedicalSummaryBody({ summary }: { summary: PatientMedicalSummaryRespons
               <li key={item.key}>{item.label}</li>
             ))}
           </ul>
-        </>
+        </section>
       ) : null}
 
       {!sensitive && visibleNamedCount === 0 && summary.flaggedConditionCount === 0 ? (
@@ -2172,7 +2162,13 @@ export function PatientProfilePanel({
                 className="app-patient-profile__summary"
               >
                 <p className="app-patient-profile__summary-lede">{PATIENT_TAB_SUMMARY_LEDE}</p>
-                <ProfileSummaryCard profile={state.profile} activeLabel={activeLabel} doctorLabels={doctorLabels} />
+                <h3 className="app-patient-profile__tab-section-title app-patient-profile__tab-section-title--summary">
+                  Record summary
+                </h3>
+                <ProfileSummaryMetricGrid profile={state.profile} doctorLabels={doctorLabels} />
+                <h3 className="app-patient-profile__tab-section-title app-patient-profile__tab-section-title--overview">
+                  Record overview
+                </h3>
                 <PatientSummaryMiniCards
                   appt={summaryAppt}
                   medical={summaryMed}

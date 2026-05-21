@@ -52,8 +52,10 @@ export const PATIENT_MODULE_TABS_HINT =
 
 export const PATIENT_CHANGE_PATIENT_LABEL = "Search another patient";
 
+export const PATIENT_NO_SELECTION_TITLE = "No patient selected";
+
 export const PATIENT_NO_SELECTION_DESCRIPTION =
-  "Search below or in the top bar and pick a row to open a patient record.";
+  "Search by name or chart number, then pick a row to open the record.";
 
 export const PATIENT_RECENT_SESSION_TITLE = "Recent this session";
 
@@ -354,7 +356,15 @@ export const TODAY_REMINDERS_EMPTY =
 export const TODAY_REMINDERS_PILOT_UNAVAILABLE =
   "Reminders are not in this pilot. Use Schedule or Patients for live data.";
 
-export const TODAY_STATUS_COUNT_TITLE = "Today's appointments";
+export const TODAY_HERO_KICKER = "Command center";
+
+export const TODAY_STATUS_COUNT_TITLE = "Appointments";
+
+export const TODAY_METRIC_NEXT_LABEL = "Next visit";
+
+export const TODAY_METRIC_SCHEDULE_LABEL = "Schedule";
+
+export const TODAY_METRIC_ON_SCHEDULE = "On the schedule today";
 
 export const TODAY_STATUS_MIRROR_TITLE = "Data freshness";
 
@@ -395,7 +405,7 @@ export const TODAY_REFRESH = "Refresh today";
 export const TODAY_EMPTY_TITLE = "No appointments today";
 
 export const TODAY_EMPTY_DESCRIPTION =
-  "Nothing on today’s schedule. Check other days in Schedule or search for a patient.";
+  "Your board is clear. Open Schedule for other days or search for a patient.";
 
 export const TODAY_OPEN_SCHEDULE = "Open schedule";
 
@@ -446,7 +456,7 @@ export const READONLY_STATE_RETRY = "Retry";
 export const SCHEDULE_EMPTY_TITLE = "No appointments in this range";
 
 export const SCHEDULE_EMPTY_DESCRIPTION =
-  "Try another day or week, adjust filters, or refresh after the clinic service connects.";
+  "Shift the range, reset filters, or refresh once the clinic service connects.";
 
 export const SCHEDULE_ROOM_FILTER_LABEL = "Room";
 
@@ -508,7 +518,7 @@ export const FRONT_DESK_OVERVIEW_BRIDGE_OFFLINE = "Offline";
 export const FRONT_DESK_OVERVIEW_GUIDANCE_LABEL = "Next step";
 
 export const FRONT_DESK_OVERVIEW_CONNECT_GUIDANCE =
-  "Connect the clinic service in Settings to load schedule and search from your copied data.";
+  "Connect the clinic service in Settings to load schedule and search.";
 
 export const FRONT_DESK_OVERVIEW_MIRROR_LABEL = "Data freshness";
 
@@ -658,11 +668,19 @@ export function writeResultUncommittedHeadline(mode?: string): string {
     : "Committed: false — dry-run plan only; nothing was saved.";
 }
 
+export const WRITE_BLOCKED_PANEL_TITLE = "Writes blocked";
+
+export const WRITE_FLOW_STEP_EDIT = "Edit";
+
+export const WRITE_FLOW_STEP_PREVIEW = "Preview";
+
+export const WRITE_FLOW_STEP_APPLY = "Apply";
+
 export const SANDBOX_WRITE_BLOCKED_WRITE_MODE =
-  "Sandbox writes are blocked — bridge write mode is off. Check Settings for write mode and sandbox configuration.";
+  "Sandbox writes are blocked — bridge write mode is off. Open Settings to review write mode and sandbox paths.";
 
 export const SANDBOX_WRITE_BLOCKED_SANDBOX =
-  "Sandbox writes are not ready on this bridge. Check Settings for write mode, sandbox path, and backup configuration.";
+  "Sandbox writes are not ready on this bridge. Open Settings to confirm write mode, sandbox path, and backup.";
 
 export const APPOINTMENT_CREATE_SUMMARY = "Sandbox: new appointment";
 
@@ -839,7 +857,7 @@ export const SETTINGS_CHECKLIST_MIRROR_IMPORT = "Latest mirror import healthy";
 export const SETTINGS_NEXT_STEP_LABEL = "Next step";
 
 export const SETTINGS_NEXT_STEP_BRIDGE =
-  "Start the clinic service and wait until Settings shows Connected.";
+  "Start the clinic service — wait for Connected in Settings.";
 
 export const SETTINGS_NEXT_STEP_DESKTOP_SETUP =
   "Complete desktop first-run setup to configure DATA_ROOT and SQLITE_PATH before the clinic service can start.";

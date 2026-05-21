@@ -202,7 +202,8 @@ export function AppointmentTimeMoveWriteAction({
           {patientApptStatusLabel(appointment.status)}
         </p>
       </div>
-      <div className="app-sandbox-write__fields">
+      <div className="app-sandbox-write__section">
+        <div className="app-sandbox-write__fields">
         <label className="app-sandbox-write__label">
           <span className="app-sandbox-write__label-text">Date</span>
           <input
@@ -265,6 +266,7 @@ export function AppointmentTimeMoveWriteAction({
             }}
           />
         </label>
+        </div>
       </div>
       <div className="app-sandbox-write__actions">
         <Button

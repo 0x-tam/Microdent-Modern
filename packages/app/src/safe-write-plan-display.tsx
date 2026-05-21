@@ -3,12 +3,17 @@ import {
   SANDBOX_WRITE_BLOCKED_SANDBOX,
   SANDBOX_WRITE_BLOCKED_WRITE_MODE,
   SANDBOX_WRITE_PILOT_PANEL_BANNER,
+  WRITE_BLOCKED_PANEL_TITLE,
+  WRITE_FLOW_STEP_APPLY,
+  WRITE_FLOW_STEP_EDIT,
+  WRITE_FLOW_STEP_PREVIEW,
   WRITE_PLAN_LABEL_RECORD_ID,
   WRITE_PLAN_LABEL_WORKFLOW,
   WRITE_POST_COMMIT_COMBINED_NUDGE,
   writeResultCommittedHeadline,
   writeResultUncommittedHeadline,
 } from "./read-only-ui-copy.js";
+import { AppEmptyPanel } from "./app-empty-panel.js";
 import type { SandboxWriteBlockReason } from "./sandbox-write-pilot.js";
 
 export type WritePlanResultSummary = {
@@ -61,12 +66,11 @@ export type SandboxWriteBannerProps = {
   className?: string;
 };
 
-
 export type SandboxWriteStep = "edit" | "preview" | "result";
 
 export function SandboxWriteStepIndicator({ step }: { step: SandboxWriteStep }) {
   const steps: SandboxWriteStep[] = ["edit", "preview", "result"];
-  const labels = ["Edit", "Preview", "Apply"];
+  const labels = [WRITE_FLOW_STEP_EDIT, WRITE_FLOW_STEP_PREVIEW, WRITE_FLOW_STEP_APPLY];
   const activeIdx = steps.indexOf(step);
   return (
     <ol className="app-sandbox-write-zone__steps" aria-label="Sandbox write flow">
@@ -80,7 +84,10 @@ export function SandboxWriteStepIndicator({ step }: { step: SandboxWriteStep }) 
           .join(" ");
         return (
           <li key={name} className={className}>
-            {labels[idx]}
+            <span className="app-sandbox-write-zone__step-num" aria-hidden="true">
+              {idx + 1}
+            </span>
+            <span className="app-sandbox-write-zone__step-label">{labels[idx]}</span>
           </li>
         );
       })}
@@ -90,7 +97,12 @@ export function SandboxWriteStepIndicator({ step }: { step: SandboxWriteStep }) 
 
 export function SandboxWriteBanner({ className }: SandboxWriteBannerProps) {
   return (
-    <p className={[className ?? "app-sandbox-write__banner", "app-sandbox-write-zone__header"].filter(Boolean).join(" ")} role="status">
+    <p
+      className={[className ?? "app-sandbox-write__banner", "app-sandbox-write-zone__header"]
+        .filter(Boolean)
+        .join(" ")}
+      role="status"
+    >
       {SANDBOX_WRITE_PILOT_PANEL_BANNER}
     </p>
   );
@@ -147,13 +159,13 @@ function sandboxWriteBlockedMessage(reason: SandboxWriteBlockReason): string {
 
 export function SandboxWriteBlockedNotice({ reason, className, testId }: SandboxWriteBlockedNoticeProps) {
   return (
-    <div
+    <AppEmptyPanel
+      variant="blocked-write"
       className={className ?? "app-sandbox-write app-sandbox-write--blocked"}
-      role="status"
-      data-testid={testId}
-    >
-      <p className="app-sandbox-write__blocked">{sandboxWriteBlockedMessage(reason)}</p>
-    </div>
+      title={WRITE_BLOCKED_PANEL_TITLE}
+      body={sandboxWriteBlockedMessage(reason)}
+      testId={testId}
+    />
   );
 }
 

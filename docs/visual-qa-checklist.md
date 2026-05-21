@@ -1,82 +1,77 @@
-# Visual QA Checklist — Command Center v2 + Visual Identity
+# Visual QA Checklist — v2 Modern Workspace Redesign
 
-Manual verification per page after the command center UX rebuild and visual identity batch. No screenshot artifacts in repo.
+Manual verification per page after the structural v2 redesign (hero bands, metric tiles, status grids, 300px rail, last-loaded `workspace-redesign.css`). No screenshot artifacts in repo.
+
+**Browser proof (2026-05-21):** `browser_visibly_changed: **yes**` — warm canvas, teal rail brand band, hero + metric grid on Today, status chips (not `<dl>` table), search hero on Patients, schedule header band, profile display hero + pill tabs, Settings status hero tiles.
 
 ## Global shell
 
 - [ ] Full viewport width used — no floating ~960px / ~1040px column
-- [ ] Rail is 280px (260px tablet) with brand, nav icons, patient slot, status footer
-- [ ] Teal identity visible at first glance (brand kicker, active nav, focus rings)
+- [ ] Rail is **300px** (272px below 1200px) with teal brand band, tall nav rows, patient card, connection footer
+- [ ] Teal identity visible at first glance (brand kicker, active nav left bar, focus rings)
 - [ ] Read-only mode shown as header pill, not full-width banner
 - [ ] Status messages in compact strip (critical/warning/info tiers) with intentional semantic color
-- [ ] Body text readable at arm's length (16px minimum)
-- [ ] Focus rings visible on rail nav, search, filters, buttons (teal ring, not browser default only)
-- [ ] Surfaces use clinical wash / raised tiers — not flat gray admin panels
+- [ ] Body text readable at arm's length (**16px** minimum on workspace surfaces)
+- [ ] Focus rings visible on rail nav, search, filters, buttons (teal ring)
+- [ ] Surfaces use warm workspace canvas / rail tint / hero band — not flat gray admin panels
+- [ ] `workspace-redesign.css` loaded last in `app-shell.css`
 
 ## Today
 
-- [ ] `.app-page-hero` band with date kicker — soft clinical wash, not plain white
-- [ ] `.app-stat-strip` visible at first glance (count, status mix, mirror, readiness) with tone-colored tiles
-- [ ] `.app-command-grid`: board panel + ops panel (not Card soup)
-- [ ] Appointment rows use `.app-data-list` column grid with status-colored left accent
-- [ ] Ops panel: next appointment uses `.app-ops-highlight` (teal left bar)
-- [ ] Global status strip collapsed when Today owns mirror/write chips
-- [ ] Empty / offline states use `.app-empty-panel` (wash + title + CTA) — not dead white
+- [ ] `.app-hero-band` with display title + date kicker — pronounced clinical band
+- [ ] `.app-metric-tile-grid` with bold values (appointments, freshness, schedule readiness)
+- [ ] `.app-command-grid`: board panel + ops panel
+- [ ] Appointment rows: thicker rows with status-colored left accent
+- [ ] Ops panel: next appointment uses `.app-ops-highlight`
+- [ ] **Clinic at a glance** uses `.app-status-grid` with colored chips — not `<dl>` text table
+- [ ] Empty / offline states use `.app-empty-panel` with primary CTA
 - [ ] No horizontal overflow at 1280px and 1920px
-- [ ] `prefers-reduced-motion`: no panel hover lift animation
 
 ## Patients (empty)
 
-- [ ] Search hero centered with large input and clinical wash background
-- [ ] Recent patients as tinted mini-cards (not plain list rows)
-- [ ] No-results dropdown uses `.app-empty-panel` pattern
-- [ ] Rail shows "No patient selected" when none open
+- [ ] Search hero elevated card centered on Patients page
+- [ ] Recent patients as tinted mini-cards or card grid
+- [ ] Result rows 16px+ with chart pill affordance
+- [ ] Keyboard nav + offline banner preserved
 
 ## Profile
 
-- [ ] Hero band with name, chart, provider chips (display typography)
-- [ ] Tab bar readable; active tab uses teal pill fill; `aria-selected` on tabs
-- [ ] Summary mini-cards in surface grid with tone borders
-- [ ] Timeline/schedule rows use data-list column grid
-- [ ] Tab empty / offline states use `.app-empty-panel` — no raw error bodies
-- [ ] Feels like the product centerpiece — not pale/gray admin
+- [ ] `.app-hero-band` with display name, chart, provider chips
+- [ ] Summary uses `.app-metric-tile-grid`
+- [ ] Segmented tabs **44px** height, active = filled teal pill
+- [ ] Tab empty / offline states use `.app-empty-panel`
 
 ## Schedule
 
-- [ ] Full workspace width; date hero in page header with teal accent
-- [ ] Toolbar filters unified (room, provider, status) with active chip color
-- [ ] Rows: time column ~72px, patient, meta, semantic status badge, actions
-- [ ] Day headers sticky with count badge
-- [ ] Empty day / filter-empty uses `.app-empty-panel` with refresh / clear CTAs
-- [ ] Offline state uses `.app-empty-panel--offline`
-- [ ] Write zone visually separated in row expansion (amber sandbox)
+- [ ] Page header band with date range + count badge
+- [ ] Pill filter chips with filled teal active state
+- [ ] Card-style appointment rows (not flat gray strips)
+- [ ] Empty day uses operational empty panel
 
 ## Settings
 
-- [ ] Status overview hero row — tone-colored stat tiles (connection / mirror / write / sandbox)
-- [ ] Next-action callout prominent with concise operator copy
-- [ ] Status cards in 2-column grid on wide screens
-- [ ] Danger cards use left-border accent (green / amber / red by severity)
+- [ ] Status overview hero: **5** `.app-metric-tile` tiles (connection / mirror / write / sandbox / backup)
+- [ ] Section cards in 2-column grid with severity left accent
+- [ ] Path masking unchanged
 
 ## Write panels
 
-- [ ] Two-column layout on wide screens (form / preview)
-- [ ] Amber left border on sandbox zone
-- [ ] Preview → confirm → result progression clear
+- [ ] Amber sandbox banner spanning write zone
+- [ ] Numbered step strip with filled active step
+- [ ] Result panels: green / amber / red distinct surfaces
 
 ## Accessibility
 
 - [ ] Rail nav roving focus works
-- [ ] Profile tab arrow keys preserved; `aria-selected` on tab controls
-- [ ] Schedule date keyboard shortcuts work
-- [ ] Filter chips have `aria-pressed` where toggle filters apply
-- [ ] New chips/cards show teal focus-visible ring
-- [ ] Reduced motion disables panel hover lifts
+- [ ] Profile tab arrow keys + `aria-selected`
+- [ ] Schedule date keyboard shortcuts
+- [ ] Filter chips have `aria-pressed` where applicable
+- [ ] `prefers-reduced-motion`: no panel hover lift
 
 ## Color / life criteria (all pages)
 
 - [ ] Not pale/gray admin — warm clinical canvas at first glance
-- [ ] Teal-forward identity without gradient soup or random decoration
+- [ ] Teal-forward identity without gradient soup
 - [ ] Status colors intentional (success/info/warning/danger/neutral)
-- [ ] Scanability: primary action obvious within 3 seconds
-- [ ] No decorative clutter; hierarchy from surface tier + accent bars only
+- [ ] Primary action obvious within 3 seconds
+- [ ] **browser_visibly_changed:** yes / no (record in batch report)

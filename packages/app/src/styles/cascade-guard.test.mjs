@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const stylesRoot = join(__dirname);
 const shellLayoutPath = join(stylesRoot, "shell-layout.css");
+const appShellPath = join(stylesRoot, "..", "app-shell.css");
 
 const SHELL_LAYOUT_ONLY = /\.(app-shell|app-workspace-shell)\s*\{[^}]*\}/gs;
 const FORBIDDEN_SHELL_LAYOUT = /flex-direction\s*:\s*column/;
@@ -44,5 +45,14 @@ describe("CSS cascade guard — shell layout ownership", () => {
     const layout = readFileSync(shellLayoutPath, "utf8");
     expect(layout).toMatch(/\.app-workspace-shell/);
     expect(layout).toMatch(/display:\s*grid|display:\s*flex/);
+  });
+
+  it("imports workspace-redesign.css after page CSS in app-shell.css", () => {
+    const hub = readFileSync(appShellPath, "utf8");
+    const writeIdx = hub.indexOf('"./styles/pages/write.css"');
+    const redesignIdx = hub.indexOf('"./styles/workspace-redesign.css"');
+    expect(writeIdx).toBeGreaterThan(-1);
+    expect(redesignIdx).toBeGreaterThan(writeIdx);
+    expect(hub.lastIndexOf("@import")).toBe(hub.indexOf('@import "./styles/workspace-redesign.css"'));
   });
 });

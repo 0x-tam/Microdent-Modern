@@ -138,11 +138,12 @@
   display: inline-flex;
   align-items: center;
   gap: var(--ui-space-1);
-  padding: 2px var(--ui-space-2);
+  min-height: 36px;
+  padding: var(--ui-space-1) var(--ui-space-3);
   border-radius: var(--ui-radius-sm);
   border: 1px solid var(--ui-border-subtle);
   background: var(--ui-bg-surface);
-  font-size: var(--app-text-meta);
+  font-size: var(--app-text-meta, 14px);
   font-weight: 600;
   line-height: 1.35;
   color: var(--ui-text-secondary);

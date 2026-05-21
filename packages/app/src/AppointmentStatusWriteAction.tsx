@@ -159,7 +159,7 @@ export function AppointmentStatusWriteAction({
     <div className={rootClass} data-testid="appt-status-write-pilot">
       {!embedded ? <SandboxWriteBanner className="app-appt-status-write__banner" /> : null}
       <SandboxWriteStepIndicator step={resolveWriteStep(state)} />
-      <div className="app-appt-status-write__controls">
+      <div className="app-appt-status-write__controls app-sandbox-write__section">
         <label className="app-appt-status-write__label">
           <span className="app-appt-status-write__label-text app-sandbox-write__label-text">New status</span>
           <select
@@ -213,8 +213,6 @@ export function AppointmentStatusWriteAction({
           successLabel="status updated"
           feedbackLines={state.feedbackLines}
           mode={state.mode}
-          className="app-appt-status-write__result"
-          headlineClassName="app-appt-status-write__result-summary"
           testId="appt-status-write-result"
         />
       ) : null}

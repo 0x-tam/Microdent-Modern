@@ -102,6 +102,8 @@ export type AppShellProps = {
   sandboxWritePilot?: boolean;
 };
 
+const APP_SHELL_VERSION = "0.0.1";
+
 function formatDevCheckTime(ms: number): string {
   try {
     return new Intl.DateTimeFormat(undefined, { timeStyle: "medium" }).format(new Date(ms));
@@ -347,6 +349,18 @@ export function AppShell({
     });
   }, [selectedPatientChartNumber, selectedPatientDisplayName, selectedPatientId]);
 
+  const selectedPatientInitial = useMemo(() => {
+    const name = selectedPatientDisplayName?.trim();
+    if (!name) return "?";
+    return name.charAt(0).toUpperCase();
+  }, [selectedPatientDisplayName]);
+
+  const railConnectionLabel = useMemo(() => {
+    if (bridgePhase === "connected") return "Connected";
+    if (bridgePhase === "checking") return "Checking…";
+    return "Offline";
+  }, [bridgePhase]);
+
   const railStatusTone = useMemo(() => {
     if (shellStatusBanners.some((b) => b.tone === "danger")) return "danger";
     if (shellStatusBanners.some((b) => b.tone === "warning")) return "warning";
@@ -381,8 +395,11 @@ export function AppShell({
               title={m.sublabel}
               onClick={() => setActive(m.id)}
             >
-              <span className="app-sidebar__btn-label">{m.label}</span>
-              <span className="app-sidebar__btn-sublabel">{m.sublabel}</span>
+              <span className={`app-sidebar__btn-dot app-sidebar__btn-dot--${m.id}`} aria-hidden />
+              <span className="app-sidebar__btn-copy">
+                <span className="app-sidebar__btn-label">{m.label}</span>
+                <span className="app-sidebar__btn-sublabel">{m.sublabel}</span>
+              </span>
             </button>
           </li>
         ))}
@@ -413,13 +430,23 @@ export function AppShell({
           {selectedPatientContextLabel ? (
             <>
               <span className="app-rail__patient-label">Patient</span>
-              <button
-                type="button"
-                className="app-rail__patient-chip app-main__patient-context-chip ui-focusable"
-                onClick={() => setActive("patients")}
-              >
-                {selectedPatientContextLabel}
-              </button>
+              <div className="app-rail__patient-card">
+                <span className="app-rail__patient-avatar" aria-hidden>
+                  {selectedPatientInitial}
+                </span>
+                <div className="app-rail__patient-details">
+                  <button
+                    type="button"
+                    className="app-rail__patient-chip app-main__patient-context-chip ui-focusable"
+                    onClick={() => setActive("patients")}
+                  >
+                    {selectedPatientContextLabel}
+                  </button>
+                  {selectedPatientChartNumber ? (
+                    <span className="app-rail__patient-chart">Chart {selectedPatientChartNumber}</span>
+                  ) : null}
+                </div>
+              </div>
               <Button
                 type="button"
                 variant="ghost"
@@ -431,30 +458,37 @@ export function AppShell({
               </Button>
             </>
           ) : (
-            <p className="app-rail__patient-empty">No patient selected</p>
+            <>
+              <span className="app-rail__patient-label">Patient</span>
+              <div className="app-rail__patient-card app-rail__patient-card--empty">
+                <span className="app-rail__patient-avatar app-rail__patient-avatar--empty" aria-hidden>
+                  ?
+                </span>
+                <p className="app-rail__patient-empty">No patient selected</p>
+              </div>
+            </>
           )}
         </div>
 
         <div className="app-rail__footer">
-          <span
-            className={`app-rail__status-dot${railStatusTone ? ` app-rail__status-dot--${railStatusTone}` : ""}`}
-            role="status"
-          >
-            {bridgePhase === "connected"
-              ? "Service connected"
-              : bridgePhase === "checking"
-                ? "Checking service…"
-                : "Service offline"}
-          </span>
-          <p className="app-sidebar__hint" role="note">
-            {sidebarNavHint}{" "}
-            <button
-              type="button"
-              className="app-sidebar__hint-link ui-focusable"
-              onClick={() => setActive("settings")}
+          <div className="app-rail__footer-meta">
+            <span className="app-rail__version">v{APP_SHELL_VERSION}</span>
+            <span
+              className={`app-rail__connection-pill${railStatusTone ? ` app-rail__connection-pill--${railStatusTone}` : ""}`}
+              role="status"
             >
-              Settings
-            </button>
+              {railConnectionLabel}
+            </span>
+          </div>
+          <button
+            type="button"
+            className="app-rail__settings-link ui-focusable"
+            onClick={() => setActive("settings")}
+          >
+            Settings
+          </button>
+          <p className="app-sidebar__hint" role="note">
+            {sidebarNavHint}
           </p>
         </div>
       </aside>

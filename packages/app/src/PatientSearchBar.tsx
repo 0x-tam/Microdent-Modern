@@ -1,9 +1,13 @@
 import { BridgeClientError, createBridgeClient, isInvalidBodySchemaMismatch } from "@microdent/bridge-client";
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Button } from "@microdent/ui";
+import { AppEmptyPanel } from "./app-empty-panel.js";
 import type { BridgeHealthPhase } from "./bridge-health.js";
 import {
   CLINIC_SERVICE_CHECKING,
+  CLINIC_SERVICE_OFFLINE_PANEL,
+  CLINIC_SERVICE_OFFLINE_TITLE,
+  PATIENT_PROFILE_WAITING_TITLE,
   PATIENT_PAGE_SEARCH_PRIVACY,
   PATIENT_SEARCH_DROPDOWN_NO_MATCH,
   PATIENT_SEARCH_FIELD_LABEL,
@@ -70,15 +74,11 @@ function patientSearchDomIds(instanceId: PatientSearchInstanceId) {
   };
 }
 
-function formatHitSecondary(hit: PatientSearchHit): string | null {
-  const parts: string[] = [];
-  if (hit.chartNumber) {
-    parts.push(`Chart ${hit.chartNumber}`);
+function formatHitProviderLine(hit: PatientSearchHit): string | null {
+  if (hit.patientId) {
+    return `Record ${hit.patientId}`;
   }
-  if (!hit.chartNumber && hit.patientId) {
-    parts.push(`Record ${hit.patientId}`);
-  }
-  return parts.length ? parts.join(" · ") : null;
+  return null;
 }
 
 export function safePatientSearchError(e: unknown): string {
@@ -429,11 +429,15 @@ export function PatientSearchBar({
 
   const cappedList = results.length >= 20;
 
-  const rootClassName = ["app-patient-search", instanceId === "page" ? "app-patient-search--page" : null, className]
+  const rootClassName = [
+    "app-patient-search",
+    instanceId === "page" ? "app-patient-search--page app-patient-search--hero" : "app-patient-search--header",
+    className,
+  ]
     .filter(Boolean)
     .join(" ");
 
-  return (
+  const searchBody = (
     <div ref={rootRef} className={rootClassName}>
       {showOfflineBanner ? (
         <p className="app-patient-search__offline-banner" role="status">
@@ -540,6 +544,7 @@ export function PatientSearchBar({
                     }}
                     className={[
                       "app-patient-search__recent-btn",
+                      "app-patient-search__recent-card",
                       "ui-focusable",
                       isProfileMatch ? "app-patient-search__recent-btn--selected" : null,
                       activeRecentIndex === recentIndex ? "app-patient-search__recent-btn--focused" : null,
@@ -549,10 +554,17 @@ export function PatientSearchBar({
                     onClick={() => onRecentPatientSelect(entry)}
                     onKeyDown={(e) => onRecentKeyDown(e, recentIndex)}
                   >
+                    {entry.chartNumber?.trim() ? (
+                      <span className="app-patient-search__recent-chart">Chart {entry.chartNumber.trim()}</span>
+                    ) : (
+                      <span className="app-patient-search__recent-chart app-patient-search__recent-chart--record">
+                        Record
+                      </span>
+                    )}
                     <span className="app-patient-search__recent-name">{entry.displayName}</span>
-                    <span className="app-patient-search__recent-meta">
-                      {formatSessionRecentPatientMeta(entry)}
-                    </span>
+                    {!entry.chartNumber?.trim() ? (
+                      <span className="app-patient-search__recent-meta">{formatSessionRecentPatientMeta(entry)}</span>
+                    ) : null}
                   </button>
                 </li>
               );
@@ -581,7 +593,7 @@ export function PatientSearchBar({
           ) : (
             <ul className="app-patient-search__hits">
               {results.map((hit, index) => {
-                const secondary = formatHitSecondary(hit);
+                const providerLine = formatHitProviderLine(hit);
                 const isProfileMatch = selectedPatientId !== null && selectedPatientId === hit.patientId;
                 const isKeyboardActive = index === activeOptionIndex;
                 const optionId = `${domIds.listbox}-option-${hit.patientId}`;
@@ -605,8 +617,16 @@ export function PatientSearchBar({
                       onMouseEnter={() => setActiveOptionIndex(index)}
                       onClick={() => selectPatientHit(hit)}
                     >
-                      <span className="app-patient-search__hit-name">{hit.displayName}</span>
-                      {secondary ? <span className="app-patient-search__hit-meta">{secondary}</span> : null}
+                      <span className="app-patient-search__hit-main">
+                        {hit.chartNumber ? (
+                          <span className="app-patient-search__hit-chart">Chart {hit.chartNumber}</span>
+                        ) : null}
+                        <span className="app-patient-search__hit-name">{hit.displayName}</span>
+                      </span>
+                      {providerLine ? <span className="app-patient-search__hit-meta">{providerLine}</span> : null}
+                      <span className="app-patient-search__hit-chevron" aria-hidden="true">
+                        ›
+                      </span>
                     </button>
                   </li>
                 );
@@ -619,5 +639,24 @@ export function PatientSearchBar({
         </div>
       ) : null}
     </div>
+  );
+
+  const pageOfflinePanel =
+    instanceId === "page" && !canSearch ? (
+      <AppEmptyPanel
+        className="app-patients-offline-panel"
+        variant={bridgePhase === "checking" ? "default" : "offline"}
+        title={bridgePhase === "checking" ? PATIENT_PROFILE_WAITING_TITLE : CLINIC_SERVICE_OFFLINE_TITLE}
+        body={bridgePhase === "checking" ? CLINIC_SERVICE_CHECKING : CLINIC_SERVICE_OFFLINE_PANEL}
+      />
+    ) : null;
+
+  return instanceId === "page" ? (
+    <div className="app-patients-search-hero">
+      {pageOfflinePanel}
+      {searchBody}
+    </div>
+  ) : (
+    searchBody
   );
 }

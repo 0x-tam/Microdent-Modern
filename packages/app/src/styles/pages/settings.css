@@ -202,11 +202,12 @@
 
 .app-settings__card--danger,
 .app-settings__card[data-tone="danger"] {
-  border-left: 4px solid var(--ui-status-danger, #b00020);
+  border-left: 6px solid var(--ui-status-danger, #b00020);
 }
 
 .app-settings__card {
   margin-bottom: 0;
+  border-left: 6px solid var(--ui-border-subtle);
 }
 
 .app-settings__card h3 {
@@ -220,6 +221,11 @@
   justify-content: space-between;
   gap: var(--ui-space-3);
   flex-wrap: wrap;
+}
+
+.app-settings__mirror-head h3 {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .app-settings__status {
@@ -344,28 +350,76 @@
 
 
 /* ----- Visual identity: settings control center ----- */
-.app-settings__hero-stats {
-  margin: 0 0 var(--ui-space-4);
+.app-settings__hero {
+  margin: 0 0 var(--ui-space-5);
 }
 
-.app-settings__hero-stat {
-  min-width: min(9rem, 100%);
+.app-settings__hero-tile {
+  min-width: min(10rem, 100%);
 }
 
-.app-settings__hero-stat .app-stat__value {
-  font-size: clamp(0.9rem, 0.85rem + 0.2vw, 1rem);
+.app-settings__hero-tile .app-metric-tile__value {
+  font-size: clamp(0.95rem, 0.9rem + 0.25vw, 1.125rem);
   line-height: 1.35;
-  font-weight: 600;
+  font-weight: 700;
+}
+
+.app-settings__card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+}
+
+.app-settings__card-header h3 {
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.app-settings__card-status-dot {
+  flex: 0 0 auto;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 999px;
+  background: var(--ui-border-strong);
+}
+
+.app-settings__card-status-dot--ok {
+  background: var(--ui-status-success, #0d7a3a);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ui-status-success, #0d7a3a) 25%, transparent);
+}
+
+.app-settings__card-status-dot--warn {
+  background: var(--ui-status-warning, #9a6700);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ui-status-warning, #9a6700) 25%, transparent);
+}
+
+.app-settings__card-status-dot--danger {
+  background: var(--ui-status-danger, #b00020);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ui-status-danger, #b00020) 25%, transparent);
+}
+
+.app-settings__card-status-dot--neutral {
+  background: var(--ui-text-muted);
 }
 
 .app-settings__card--ok,
 .app-settings__card[data-tone="ok"] {
-  border-left: 4px solid var(--ui-status-success, #0d7a3a);
+  border-left-color: var(--ui-status-success, #0d7a3a);
 }
 
 .app-settings__card--warn,
 .app-settings__card[data-tone="warn"] {
-  border-left: 4px solid var(--ui-status-warning, #9a6700);
+  border-left-color: var(--ui-status-warning, #9a6700);
+}
+
+.app-settings__card--danger,
+.app-settings__card[data-tone="danger"] {
+  border-left-color: var(--ui-status-danger, #b00020);
+}
+
+.app-settings__card--neutral {
+  border-left-color: var(--ui-border-strong);
 }
 
 .app-settings__card--primary {

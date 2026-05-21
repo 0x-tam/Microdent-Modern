@@ -1,5 +1,4 @@
-import { Button } from "@microdent/ui";
-import { AppEmptyPanel } from "./app-empty-panel.js";
+import { Button, EmptyState } from "@microdent/ui";
 import type {
   TimelineDisplayModel,
   TimelineEvent,
@@ -18,10 +17,7 @@ import {
 import {
   FILTER_CLEAR_LABEL,
   PATIENT_TIMELINE_EMPTY_FILTER,
-  PATIENT_TIMELINE_EMPTY_FILTER_TITLE,
   PATIENT_TIMELINE_EMPTY_RANGE,
-  PATIENT_TIMELINE_EMPTY_TITLE,
-  PATIENT_TIMELINE_UNDATED_TITLE,
   PATIENT_TIMELINE_KIND_FILTER_ARIA,
   PATIENT_TIMELINE_LIMITATIONS,
   PATIENT_TIMELINE_ROW_ARIA,
@@ -87,13 +83,14 @@ function TimelineRow({
   if (event.secondaryLabel) ariaParts.push(event.secondaryLabel);
 
   return (
-    <li>
+    <li className="app-patient-profile__timeline-rail-item">
       <button
         type="button"
-        className={`app-patient-profile__timeline-row ui-focusable ${timelineRowKindClass(event.kind)}`}
+        className={`app-patient-profile__timeline-row app-patient-profile__timeline-event-card ui-focusable ${timelineRowKindClass(event.kind)}`}
         aria-label={`${ariaParts.join(". ")}. ${PATIENT_TIMELINE_ROW_ARIA}.`}
         onClick={() => onRowClick(event.sourceTab, event.navigateHint)}
         data-testid={`patient-timeline-row-${event.eventId}`}
+        data-timeline-kind={event.kind}
       >
         <span className="app-patient-profile__timeline-row-icon" aria-hidden="true">
           {timelineKindIcon(event.kind)}
@@ -188,7 +185,7 @@ export function PatientTimeline({
       {model.snapshotEvents.length > 0 ? (
         <section className="app-patient-profile__timeline-snapshots" aria-label="Undated snapshots">
           <h4 className="app-patient-profile__tab-section-title">Snapshots</h4>
-          <ul className="app-patient-profile__timeline-list">
+          <ul className="app-patient-profile__timeline-list app-patient-profile__timeline-rail">
             {model.snapshotEvents.map((event) => (
               <TimelineRow key={event.eventId} event={event} onRowClick={onRowClick} />
             ))}
@@ -205,7 +202,7 @@ export function PatientTimeline({
               data-testid={`patient-timeline-section-${group.section}`}
             >
               <h4 className="app-patient-profile__tab-section-title">{group.heading}</h4>
-              <ul className="app-patient-profile__timeline-list">
+              <ul className="app-patient-profile__timeline-list app-patient-profile__timeline-rail">
                 {group.events.map((event) => (
                   <TimelineRow key={event.eventId} event={event} onRowClick={onRowClick} />
                 ))}
@@ -223,7 +220,7 @@ export function PatientTimeline({
                 {monthGroup.dayGroups.map((dayGroup) => (
                   <div key={`${monthGroup.monthKey}-${dayGroup.dayKey}`} className="app-patient-profile__timeline-day-group">
                     <h5 className="app-patient-profile__timeline-day-heading">{dayGroup.heading}</h5>
-                    <ul className="app-patient-profile__timeline-list">
+                    <ul className="app-patient-profile__timeline-list app-patient-profile__timeline-rail">
                       {dayGroup.events.map((event) => (
                         <TimelineRow key={event.eventId} event={event} onRowClick={onRowClick} />
                       ))}
@@ -233,22 +230,22 @@ export function PatientTimeline({
               </section>
             ))
           : model.eventCount === 0 ? (
-              <AppEmptyPanel
-                className="app-patient-profile__timeline-empty"
-                title={PATIENT_TIMELINE_EMPTY_TITLE}
-                body={PATIENT_TIMELINE_EMPTY_RANGE}
+              <EmptyState
+                className="ui-empty--start app-patient-profile__timeline-empty"
+                title="No timeline events"
+                description={PATIENT_TIMELINE_EMPTY_RANGE}
               />
             ) : !hasFilteredContent && kindFilterActive ? (
-              <AppEmptyPanel
-                className="app-patient-profile__timeline-empty"
-                title={PATIENT_TIMELINE_EMPTY_FILTER_TITLE}
-                body={PATIENT_TIMELINE_EMPTY_FILTER}
+              <EmptyState
+                className="ui-empty--start app-patient-profile__timeline-empty"
+                title="No matching events"
+                description={PATIENT_TIMELINE_EMPTY_FILTER}
               />
             ) : !hasDatedEvents && model.snapshotEvents.length === 0 && model.eventCount > 0 ? (
-              <AppEmptyPanel
-                className="app-patient-profile__timeline-empty"
-                title={PATIENT_TIMELINE_UNDATED_TITLE}
-                body={PATIENT_TIMELINE_UNDATED_ONLY}
+              <EmptyState
+                className="ui-empty--start app-patient-profile__timeline-empty"
+                title="Undated events only"
+                description={PATIENT_TIMELINE_UNDATED_ONLY}
               />
             ) : null}
     </div>

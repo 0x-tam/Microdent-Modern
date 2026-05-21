@@ -246,7 +246,8 @@ export function AppointmentCreateWriteAction({
         </p>
       ) : null}
       <p className="app-sandbox-write__hint">{APPOINTMENT_CREATE_PATIENT_ID_HINT}</p>
-      <div className="app-sandbox-write__fields app-sandbox-write__fields--grid">
+      <div className="app-sandbox-write__section">
+        <div className="app-sandbox-write__fields app-sandbox-write__fields--grid">
         <label className="app-sandbox-write__label">
           <span className="app-sandbox-write__label-text">Date</span>
           <input
@@ -360,6 +361,7 @@ export function AppointmentCreateWriteAction({
             ))}
           </select>
         </label>
+        </div>
       </div>
       <div className="app-sandbox-write__actions">
         <Button

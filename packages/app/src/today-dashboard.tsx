@@ -2,7 +2,9 @@ import { createBridgeClient } from "@microdent/bridge-client";
 import type { BridgeDevStatusResponse, MirrorStatusResponse, ScheduleAppointmentItem } from "@microdent/contracts";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Badge, Button } from "@microdent/ui";
-import { AppEmptyPanel } from "./app-empty-panel.js";
+import { AppEmptyPanel, AppLoadingSkeleton } from "./app-empty-panel.js";
+import { AppMetricTile, type AppMetricTileTone } from "./app-metric-tile.js";
+import { AppStatusGrid, type AppStatusGridItem, type AppStatusGridTone } from "./app-status-grid.js";
 import type { AppSidebarModuleId } from "./app-nav-modules.js";
 import type { SessionRecentPatient } from "./session-recent-patients.js";
 import type { BridgeHealthPhase } from "./bridge-health.js";
@@ -19,7 +21,11 @@ import {
   roomDisplayLabel,
   type RoomLabelMap,
 } from "./patient-appointments-display.js";
-import { resolveFrontDeskOverview } from "./settings-status.js";
+import {
+  resolveBackupConfiguredStatus,
+  resolveFrontDeskOverview,
+  type SettingsStatusTone,
+} from "./settings-status.js";
 import type { ProcedureReferenceMaps } from "./procedure-reference.js";
 import { useDoctorLabels } from "./useDoctorLabels.js";
 import { useProcedureReference } from "./useProcedureReference.js";
@@ -28,7 +34,19 @@ import {
   CLINIC_SERVICE_CHECKING,
   CLINIC_SERVICE_CONNECT_TODAY,
   CLINIC_SERVICE_OFFLINE_TITLE,
+  FRONT_DESK_OVERVIEW_BACKUP_LABEL,
+  FRONT_DESK_OVERVIEW_BRIDGE_LABEL,
+  FRONT_DESK_OVERVIEW_BRIDGE_OFFLINE,
+  FRONT_DESK_OVERVIEW_MIRROR_LABEL,
   FRONT_DESK_OVERVIEW_OPEN_SETTINGS,
+  FRONT_DESK_OVERVIEW_SANDBOX_PILOT_LABEL,
+  FRONT_DESK_OVERVIEW_WRITE_MODE_LABEL,
+  FRONT_DESK_OVERVIEW_WRITE_MODE_UNKNOWN,
+  SETTINGS_SANDBOX_PILOT_OFF,
+  SETTINGS_SANDBOX_PILOT_ON,
+  WRITE_MODE_CHIP_DISABLED,
+  WRITE_MODE_CHIP_DRY_RUN,
+  WRITE_MODE_CHIP_ENABLED,
   MIRROR_ACTIVE_BANNER_LABEL,
   MIRROR_FALLBACK_BANNER_LABEL,
   MIRROR_STALE_BANNER_LABEL,
@@ -61,6 +79,9 @@ import {
   TODAY_SELECTED_PATIENT_OPEN,
   TODAY_SELECTED_PATIENT_TITLE,
   TODAY_STATUS_COUNT_TITLE,
+  TODAY_METRIC_ON_SCHEDULE,
+  TODAY_METRIC_SCHEDULE_LABEL,
+  TODAY_METRIC_NEXT_LABEL,
   TODAY_STATUS_MIX_UNAVAILABLE,
   TODAY_STATUS_MIRROR_ACTIVE,
   TODAY_STATUS_MIRROR_FALLBACK,
@@ -224,6 +245,94 @@ function resolveMirrorFreshness(
     return { label: MIRROR_FALLBACK_BANNER_LABEL, body: TODAY_STATUS_MIRROR_FALLBACK, tone: "warning" };
   }
   return { label: MIRROR_ACTIVE_BANNER_LABEL, body: TODAY_STATUS_MIRROR_ACTIVE, tone: "info" };
+}
+
+function mapOverviewTone(tone: SettingsStatusTone): AppStatusGridTone {
+  return tone;
+}
+
+function mapMirrorFreshnessToMetricTone(tone: MirrorFreshness["tone"]): AppMetricTileTone {
+  if (tone === "warning") return "warning";
+  if (tone === "info") return "info";
+  return "neutral";
+}
+
+function mapMirrorFreshnessToGridTone(tone: MirrorFreshness["tone"]): AppStatusGridTone {
+  if (tone === "warning") return "warn";
+  if (tone === "info") return "info";
+  return "neutral";
+}
+
+function scheduleReadinessGridTone(
+  hasBase: boolean,
+  bridgePhase: BridgeHealthPhase,
+  loading: boolean,
+  error: string | null,
+  mirrorStale: boolean,
+): AppStatusGridTone {
+  if (!hasBase || bridgePhase === "offline") return "neutral";
+  if (bridgePhase === "checking" || loading) return "neutral";
+  if (error) return "warn";
+  if (mirrorStale) return "warn";
+  return "ok";
+}
+
+function scheduleReadinessMetricTone(
+  hasBase: boolean,
+  bridgePhase: BridgeHealthPhase,
+  loading: boolean,
+  error: string | null,
+  mirrorStale: boolean,
+): AppMetricTileTone {
+  const gridTone = scheduleReadinessGridTone(hasBase, bridgePhase, loading, error, mirrorStale);
+  if (gridTone === "ok") return "success";
+  if (gridTone === "warn") return "warning";
+  return "neutral";
+}
+
+function scheduleReadinessShort(
+  hasBase: boolean,
+  bridgePhase: BridgeHealthPhase,
+  loading: boolean,
+  error: string | null,
+  mirrorStale: boolean,
+): string {
+  if (!hasBase || bridgePhase === "offline") return "Offline";
+  if (bridgePhase === "checking" || loading) return "…";
+  if (error) return "Unavailable";
+  if (mirrorStale) return "Stale";
+  return "Ready";
+}
+
+function resolveWriteModeMetric(
+  writeCapability: BridgeDevStatusResponse | null,
+): { label: string; tone: AppMetricTileTone } {
+  if (!writeCapability) {
+    return { label: FRONT_DESK_OVERVIEW_WRITE_MODE_UNKNOWN, tone: "neutral" };
+  }
+  switch (writeCapability.writeMode) {
+    case "disabled":
+      return { label: WRITE_MODE_CHIP_DISABLED, tone: "success" };
+    case "dry-run":
+      return { label: WRITE_MODE_CHIP_DRY_RUN, tone: "warning" };
+    case "enabled":
+      return { label: WRITE_MODE_CHIP_ENABLED, tone: "danger" };
+    default:
+      return { label: FRONT_DESK_OVERVIEW_WRITE_MODE_UNKNOWN, tone: "neutral" };
+  }
+}
+
+function resolveSandboxMetric(
+  sandboxWritePilot: boolean,
+  writeCapability: BridgeDevStatusResponse | null,
+): { label: string; tone: AppMetricTileTone } {
+  if (!sandboxWritePilot) {
+    return { label: SETTINGS_SANDBOX_PILOT_OFF, tone: "neutral" };
+  }
+  if (writeCapability?.writableSandbox && writeCapability.writesPermitted) {
+    return { label: SETTINGS_SANDBOX_PILOT_ON, tone: "success" };
+  }
+  return { label: SETTINGS_SANDBOX_PILOT_ON, tone: "warning" };
 }
 
 function selectedPatientHeadline(
@@ -419,24 +528,113 @@ export function DashboardHome({
     ],
   );
 
-  const countCardValue: ReactNode = (() => {
-    if (!base || bridgePhase === "offline") {
-      return <span className="app-dashboard-status__value app-dashboard-status__value--muted">—</span>;
-    }
-    if (bridgePhase === "checking" || loading) {
-      return <span className="app-dashboard-status__value app-dashboard-status__value--muted">…</span>;
-    }
-    if (error) {
-      return <span className="app-dashboard-status__value app-dashboard-status__value--muted">—</span>;
-    }
-    return (
-      <span className="app-dashboard-status__value" role="status">
-        {sorted.length}
-      </span>
-    );
+  const writeModeMetric = useMemo(
+    () => resolveWriteModeMetric(writeCapability),
+    [writeCapability],
+  );
+
+  const sandboxMetric = useMemo(
+    () => resolveSandboxMetric(sandboxWritePilot, writeCapability),
+    [sandboxWritePilot, writeCapability],
+  );
+
+  const scheduleMetricShort = useMemo(
+    () => scheduleReadinessShort(Boolean(base), bridgePhase, loading, error, mirrorStale),
+    [base, bridgePhase, loading, error, mirrorStale],
+  );
+
+  const scheduleMetricTone = useMemo(
+    () => scheduleReadinessMetricTone(Boolean(base), bridgePhase, loading, error, mirrorStale),
+    [base, bridgePhase, loading, error, mirrorStale],
+  );
+
+  const statusGridItems = useMemo((): AppStatusGridItem[] => {
+    const overviewByKey = new Map(clinicOverview.map((row) => [row.key, row]));
+    const bridge = overviewByKey.get("bridge");
+    const mirrorRow = overviewByKey.get("mirror");
+    const writeRow = overviewByKey.get("write-mode");
+    const backupRow = overviewByKey.get("backup");
+    const sandboxRow = overviewByKey.get("sandbox-pilot");
+    const backupFallback = resolveBackupConfiguredStatus(writeCapability);
+
+    const rows: AppStatusGridItem[] = [
+      {
+        key: "clinic-service",
+        label: FRONT_DESK_OVERVIEW_BRIDGE_LABEL,
+        value: bridge?.value ?? FRONT_DESK_OVERVIEW_BRIDGE_OFFLINE,
+        tone: mapOverviewTone(bridge?.tone ?? "neutral"),
+        ...(canLoad
+          ? {
+              actionLabel: FRONT_DESK_OVERVIEW_OPEN_SETTINGS,
+              onAction: () => onOpenModule("settings"),
+            }
+          : {}),
+      },
+      {
+        key: "data-freshness",
+        label: FRONT_DESK_OVERVIEW_MIRROR_LABEL,
+        value: mirrorRow?.value ?? mirrorFreshness.body,
+        tone: mapOverviewTone(mirrorRow?.tone ?? "neutral"),
+      },
+      {
+        key: "schedule-readiness",
+        label: "Schedule readiness",
+        value: scheduleReadinessLine,
+        tone: scheduleReadinessGridTone(Boolean(base), bridgePhase, loading, error, mirrorStale),
+      },
+      {
+        key: "write-mode",
+        label: FRONT_DESK_OVERVIEW_WRITE_MODE_LABEL,
+        value: writeRow?.value ?? writeModeMetric.label,
+        tone: mapOverviewTone(writeRow?.tone ?? "neutral"),
+      },
+      {
+        key: "sandbox",
+        label: FRONT_DESK_OVERVIEW_SANDBOX_PILOT_LABEL,
+        value: sandboxRow?.value ?? sandboxMetric.label,
+        tone: mapOverviewTone(sandboxRow?.tone ?? "neutral"),
+      },
+      {
+        key: "backup",
+        label: FRONT_DESK_OVERVIEW_BACKUP_LABEL,
+        value: backupRow?.value ?? backupFallback.label,
+        tone: mapOverviewTone(backupRow?.tone ?? backupFallback.tone),
+      },
+      {
+        key: "mirror",
+        label: "Mirror",
+        value: mirrorFreshness.label,
+        tone: mapMirrorFreshnessToGridTone(mirrorFreshness.tone),
+      },
+    ];
+
+    return rows;
+  }, [
+    base,
+    bridgePhase,
+    canLoad,
+    clinicOverview,
+    error,
+    loading,
+    mirrorFreshness.body,
+    mirrorFreshness.label,
+    mirrorFreshness.tone,
+    mirrorStale,
+    onOpenModule,
+    sandboxMetric.label,
+    scheduleReadinessLine,
+    writeCapability,
+    writeModeMetric.label,
+  ]);
+
+  const appointmentsMetricValue: ReactNode = (() => {
+    if (!base || bridgePhase === "offline") return "—";
+    if (bridgePhase === "checking" || loading) return "…";
+    if (error) return "—";
+    return sorted.length;
   })();
 
-  const countCardHint: ReactNode = (() => {
+  const appointmentsMetricHint = (() => {
     if (!base || bridgePhase === "offline") {
       return TODAY_NEXT_OFFLINE;
     }
@@ -452,7 +650,33 @@ export function DashboardHome({
     if (sorted.length === 0) {
       return TODAY_EMPTY_TITLE;
     }
-    return "On the schedule today";
+    return TODAY_METRIC_ON_SCHEDULE;
+  })();
+
+  const nextMetricValue: ReactNode = (() => {
+    if (!base || bridgePhase === "offline") return "—";
+    if (bridgePhase === "checking" || loading) return "…";
+    if (error) return "—";
+    if (sorted.length === 0 || !nextUpcoming) return "—";
+    return nextUpcoming.time.trim();
+  })();
+
+  const nextMetricHint = (() => {
+    if (!base || bridgePhase === "offline") return TODAY_NEXT_OFFLINE;
+    if (bridgePhase === "checking") return CLINIC_SERVICE_CHECKING;
+    if (loading) return TODAY_NEXT_LOADING;
+    if (error) return TODAY_SCHEDULE_UNAVAILABLE;
+    if (sorted.length === 0) return TODAY_EMPTY_TITLE;
+    if (!nextUpcoming) return TODAY_NEXT_NO_UPCOMING;
+    return dashboardPatientHeadline(nextUpcoming);
+  })();
+
+  const nextMetricTone: AppMetricTileTone = (() => {
+    if (!base || bridgePhase === "offline" || bridgePhase === "checking" || loading || error) {
+      return "neutral";
+    }
+    if (!nextUpcoming) return "neutral";
+    return "info";
   })();
 
   const primaryBody: ReactNode = (() => {
@@ -460,7 +684,7 @@ export function DashboardHome({
       return (
         <AppEmptyPanel
           className="app-dashboard-sched__empty-wrap"
-          offline
+          variant="offline"
           title={CLINIC_SERVICE_OFFLINE_TITLE}
           body={CLINIC_SERVICE_CONNECT_TODAY}
           actions={
@@ -485,9 +709,10 @@ export function DashboardHome({
     }
     if (loading) {
       return (
-        <p className="app-readonly-state app-readonly-state--loading" role="status" aria-live="polite" aria-busy="true">
-          {TODAY_LOADING}
-        </p>
+        <AppLoadingSkeleton
+          className="app-readonly-state app-readonly-state--loading app-dashboard-sched__loading"
+          label={TODAY_LOADING}
+        />
       );
     }
     if (error) {
@@ -503,28 +728,29 @@ export function DashboardHome({
     if (sorted.length === 0) {
       return (
         <AppEmptyPanel
-          className="app-dashboard-sched__empty-wrap"
+          className="app-dashboard-sched__empty-wrap app-dashboard-sched__empty-wrap--rich"
+          variant="empty-schedule"
           title={TODAY_EMPTY_TITLE}
           body={TODAY_EMPTY_DESCRIPTION}
           actions={
-            <>
+            <div className="app-dashboard-cta-row app-dashboard-cta-row--empty">
               <Button
                 type="button"
                 variant="primary"
                 className="ui-focusable app-dashboard-cta-row__primary"
-                onClick={() => onOpenModule("schedule")}
+                onClick={() => onOpenModule("patients")}
               >
-                {TODAY_OPEN_SCHEDULE}
+                {TODAY_SEARCH_PATIENT}
               </Button>
               <Button
                 type="button"
                 variant="secondary"
                 className="ui-focusable app-dashboard-cta-row__secondary"
-                onClick={() => onOpenModule("patients")}
+                onClick={() => onOpenModule("schedule")}
               >
-                {TODAY_SEARCH_PATIENT}
+                {TODAY_OPEN_SCHEDULE}
               </Button>
-            </>
+            </div>
           }
         />
       );
@@ -619,9 +845,11 @@ export function DashboardHome({
     }
     if (loading) {
       return (
-        <p className="app-next-patient__hint" role="status" aria-busy="true">
-          {TODAY_NEXT_LOADING}
-        </p>
+        <AppLoadingSkeleton
+          className="app-next-patient__loading"
+          lines={2}
+          label={TODAY_NEXT_LOADING}
+        />
       );
     }
     if (error) {
@@ -631,6 +859,7 @@ export function DashboardHome({
       return (
         <AppEmptyPanel
           className="app-next-patient__empty"
+          variant="empty-schedule"
           title={TODAY_EMPTY_TITLE}
           body={TODAY_NEXT_NO_UPCOMING}
         />
@@ -699,52 +928,69 @@ export function DashboardHome({
 
   return (
     <div className="app-workspace-page app-dashboard">
-      <header className="app-page-hero">
-        <div>
-          <h2 className="app-page-hero__title">{moduleTitle}</h2>
-          {moduleDescription ? <p className="app-page-hero__meta">{moduleDescription}</p> : null}
+      <header className="app-hero-band app-dashboard__hero">
+        <div className="app-dashboard__hero-main">
+          <h2 className="app-hero-band__title app-dashboard__hero-title">{moduleTitle}</h2>
+          {moduleDescription ? <p className="app-dashboard__hero-meta">{moduleDescription}</p> : null}
         </div>
-        <p className="app-page-hero__meta app-dashboard__date">{formatTodayLine()}</p>
+        <div className="app-dashboard__hero-aside">
+          <p className="app-dashboard__date">{formatTodayLine()}</p>
+          {canLoad ? (
+            <Button
+              type="button"
+              variant="secondary"
+              className="ui-focusable app-dashboard__hero-refresh"
+              disabled={loading}
+              onClick={refreshToday}
+            >
+              {TODAY_REFRESH}
+            </Button>
+          ) : null}
+        </div>
       </header>
 
-      <div className="app-stat-strip" role="region" aria-label="Today command center metrics">
-        <div className="app-stat app-stat--emphasis">
-          <p className="app-stat__label">Today</p>
-          <p className="app-stat__value">{countCardValue}</p>
-          <p className="app-stat__hint">{countCardHint}</p>
-        </div>
-        {statusMixLine ? (
-          <div className="app-stat">
-            <p className="app-stat__label">{TODAY_STATUS_COUNT_TITLE}</p>
-            <p className="app-stat__value">{statusMixLine}</p>
-          </div>
-        ) : null}
-        <div className={`app-stat app-stat--${mirrorFreshness.tone}`}>
-          <p className="app-stat__label">{TODAY_STATUS_MIRROR_TITLE}</p>
-          <p className="app-stat__value">{mirrorFreshness.label}</p>
-        </div>
-        <div className="app-stat">
-          <p className="app-stat__label">Schedule</p>
-          <p className="app-stat__value">{scheduleReadinessLine}</p>
-        </div>
+      <div
+        className="app-metric-tile-grid app-dashboard__metrics"
+        role="region"
+        aria-label="Today command center metrics"
+      >
+        <AppMetricTile
+          label={TODAY_STATUS_COUNT_TITLE}
+          value={appointmentsMetricValue}
+          hint={
+            statusMixLine ? `${statusMixLine} · ${TODAY_METRIC_ON_SCHEDULE}` : appointmentsMetricHint
+          }
+          tone="emphasis"
+        />
+        <AppMetricTile label={TODAY_METRIC_NEXT_LABEL} value={nextMetricValue} hint={nextMetricHint} tone={nextMetricTone} />
+        <AppMetricTile
+          label={TODAY_METRIC_SCHEDULE_LABEL}
+          value={scheduleMetricShort}
+          hint={scheduleReadinessLine}
+          tone={scheduleMetricTone}
+        />
+        <AppMetricTile
+          label={TODAY_STATUS_MIRROR_TITLE}
+          value={mirrorFreshness.label}
+          hint={mirrorFreshness.body}
+          tone={mapMirrorFreshnessToMetricTone(mirrorFreshness.tone)}
+        />
+        <AppMetricTile
+          label={FRONT_DESK_OVERVIEW_WRITE_MODE_LABEL}
+          value={writeModeMetric.label}
+          tone={writeModeMetric.tone}
+        />
+        <AppMetricTile
+          label={FRONT_DESK_OVERVIEW_SANDBOX_PILOT_LABEL}
+          value={sandboxMetric.label}
+          tone={sandboxMetric.tone}
+        />
       </div>
 
       <div className="app-command-grid">
         <section className="app-board-panel" aria-label="Today’s appointments">
           <div className="app-board-panel__head">
             <h3 className="app-board-panel__title">Today&apos;s appointments</h3>
-            {canLoad ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="compact"
-                className="ui-focusable app-dashboard-sched__refresh"
-                disabled={loading}
-                onClick={refreshToday}
-              >
-                {TODAY_REFRESH}
-              </Button>
-            ) : null}
           </div>
           {mirrorStale ? (
             <p className="app-dashboard-sched__mirror-advisory" role="note">
@@ -802,34 +1048,9 @@ export function DashboardHome({
             </div>
           ) : null}
 
-          <div className="app-ops-panel__section">
+          <div className="app-ops-panel__section app-dashboard__glance">
             <h4 className="app-ops-panel__title">{CLINIC_AT_A_GLANCE_TITLE}</h4>
-            <dl className="app-dashboard-clinic-overview__list">
-              {clinicOverview.map((row) => (
-                <div
-                  key={row.key}
-                  className={`app-dashboard-clinic-overview__row app-dashboard-clinic-overview__row--${row.tone}`}
-                >
-                  <dt className="app-dashboard-clinic-overview__label">{row.label}</dt>
-                  <dd className="app-dashboard-clinic-overview__value">{row.value}</dd>
-                </div>
-              ))}
-              <div className="app-dashboard-clinic-overview__row app-dashboard-clinic-overview__row--neutral">
-                <dt className="app-dashboard-clinic-overview__label">Schedule readiness</dt>
-                <dd className="app-dashboard-clinic-overview__value">{scheduleReadinessLine}</dd>
-              </div>
-            </dl>
-            {canLoad ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="compact"
-                className="ui-focusable app-dashboard-clinic-overview__settings-link"
-                onClick={() => onOpenModule("settings")}
-              >
-                {FRONT_DESK_OVERVIEW_OPEN_SETTINGS}
-              </Button>
-            ) : null}
+            <AppStatusGrid aria-label={CLINIC_AT_A_GLANCE_TITLE} items={statusGridItems} />
           </div>
 
           {recentPatients.length > 0 && onRecentPatientSelect ? (

@@ -400,7 +400,7 @@ export function createReadOnlySmokeFetch(): (input: RequestInfo | URL) => Promis
 }
 
 /** Legacy DBF field labels that must not appear as visible DOM tokens (excludes UI words like "before"). */
-const DOM_FORBIDDEN_FIELD_LABELS = [
+export const DOM_FORBIDDEN_FIELD_LABELS = [
   "PAT_NAME",
   "TELEPHONE",
   "HOME_PHONE",
@@ -431,6 +431,7 @@ export function assertNoForbiddenDomTokens(text: string): void {
   expect(text).not.toMatch(/"before"/i);
   expect(text).not.toMatch(/"after"/i);
   expect(text).not.toMatch(/\bmedicalText\b/i);
+  expect(text).not.toMatch(/\bpaymentAmount\b/i);
   expect(text).not.toContain("rawRow");
 
   expect(text).not.toContain(SMOKE_LEAKED_VALUES.telephone);

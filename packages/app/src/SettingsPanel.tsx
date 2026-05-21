@@ -1,7 +1,9 @@
 import { createBridgeClient } from "@microdent/bridge-client";
 import type { BridgeDevStatusResponse, MirrorStatusResponse } from "@microdent/contracts";
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
 import { Badge, Button, Card, CardBody, CardHeader } from "@microdent/ui";
+import { AppMetricTile, type AppMetricTileTone } from "./app-metric-tile.js";
 import type { BridgeHealthPhase } from "./bridge-health.js";
 import { isMirrorImportStale } from "./mirror-stale.js";
 import { MASKED_PATH_HINT_EXAMPLES, maskOperatorPath } from "./mask-operator-path.js";
@@ -40,20 +42,18 @@ import {
   SETTINGS_PILOT_BUILD_PACKAGE_VERSION,
   SETTINGS_PILOT_BUILD_SECTION,
   SETTINGS_PILOT_BUILD_UNAVAILABLE,
+  SETTINGS_OPEN_TODAY_BUTTON,
   SETTINGS_PANEL_LEDE,
   SETTINGS_SANDBOX_PILOT_OFF,
   SETTINGS_SANDBOX_PILOT_ON,
   SETTINGS_SANDBOX_SECTION,
   SETTINGS_SQLITE_MIRROR_SECTION,
-  SETTINGS_TODAY_OVERVIEW_HINT,
-  SETTINGS_OPEN_TODAY_BUTTON,
   SETTINGS_WRITE_SECTION,
 } from "./read-only-ui-copy.js";
 import {
   resolvePilotBuildMetadata,
   type PilotBuildMetadata,
 } from "./pilot-build-metadata.js";
-import type { SettingsStatusTone } from "./settings-status.js";
 import {
   resolveBackupConfiguredStatus,
   resolveDataRootConfiguredStatus,
@@ -61,6 +61,7 @@ import {
   resolvePilotReadinessChecklist,
   resolveSandboxValidityStatus,
   resolveSqliteMirrorStatus,
+  type SettingsStatusTone,
 } from "./settings-status.js";
 import {
   resolveSettingsOperatorNextStep,
@@ -83,7 +84,6 @@ export type SettingsPanelProps = {
   /** When true, sandbox write pilot UI may appear elsewhere (from host env). */
   sandboxWritePilot?: boolean;
   showConnectionDiagnostics?: boolean;
-  /** Navigate to Today module from operator cross-link. */
   onOpenToday?: () => void;
 };
 
@@ -141,42 +141,6 @@ function showDevPathHints(showConnectionDiagnostics: boolean): boolean {
   return import.meta.env.DEV && showConnectionDiagnostics;
 }
 
-
-function settingsHeroStatTone(tone: SettingsStatusTone | "connected" | "checking" | "offline"): string {
-  if (tone === "ok" || tone === "connected") return "success";
-  if (tone === "warn" || tone === "offline") return "warning";
-  if (tone === "danger") return "danger";
-  return "neutral";
-}
-
-function settingsCardClassName(
-  tone: SettingsStatusTone | null,
-  options?: { primary?: boolean; wide?: boolean },
-): string {
-  const parts = ["app-settings__card"];
-  if (options?.primary) parts.push("app-settings__card--primary");
-  if (options?.wide) parts.push("app-settings__card--mirror");
-  if (tone === "danger") parts.push("app-settings__card--danger");
-  else if (tone === "warn") parts.push("app-settings__card--warn");
-  else if (tone === "ok") parts.push("app-settings__card--ok");
-  return parts.join(" ");
-}
-
-function bridgeCardTone(phase: BridgeHealthPhase): SettingsStatusTone {
-  if (phase === "connected") return "ok";
-  if (phase === "checking") return "neutral";
-  return "warn";
-}
-
-function writeCardTone(writeCapability: BridgeDevStatusResponse | null): SettingsStatusTone {
-  if (!writeCapability) return "neutral";
-  if (writeCapability.writeMode === "enabled") {
-    return writeCapability.writableSandbox ? "danger" : "warn";
-  }
-  if (writeCapability.writeMode === "dry-run") return "warn";
-  return "ok";
-}
-
 function formatBuildTimestamp(iso: string): string {
   if (!iso.trim()) return "—";
   try {
@@ -187,6 +151,101 @@ function formatBuildTimestamp(iso: string): string {
   } catch {
     return iso;
   }
+}
+
+function settingsMetricTone(
+  tone: SettingsStatusTone | BridgeHealthPhase,
+): AppMetricTileTone {
+  switch (tone) {
+    case "ok":
+    case "connected":
+      return "success";
+    case "warn":
+      return "warning";
+    case "danger":
+    case "offline":
+      return "danger";
+    case "checking":
+      return "info";
+    default:
+      return "neutral";
+  }
+}
+
+function writeMetricTone(writeCapability: BridgeDevStatusResponse | null): AppMetricTileTone {
+  const chip = resolveWriteModeChip(writeCapability);
+  if (!chip) return "neutral";
+  switch (chip.variant) {
+    case "warning":
+      return "warning";
+    case "danger":
+      return "danger";
+    default:
+      return "neutral";
+  }
+}
+
+function bridgeCardTone(bridgePhase: BridgeHealthPhase): SettingsStatusTone {
+  if (bridgePhase === "connected") return "ok";
+  if (bridgePhase === "checking") return "neutral";
+  return "danger";
+}
+
+function writeCardTone(writeCapability: BridgeDevStatusResponse | null): SettingsStatusTone {
+  const chip = resolveWriteModeChip(writeCapability);
+  if (!chip) return "neutral";
+  switch (chip.variant) {
+    case "warning":
+      return "warn";
+    case "danger":
+      return "danger";
+    default:
+      return "neutral";
+  }
+}
+
+function mirrorCardTone(
+  bridgePhase: BridgeHealthPhase,
+  mirrorStale: boolean,
+): SettingsStatusTone {
+  if (bridgePhase !== "connected") return "neutral";
+  if (mirrorStale) return "warn";
+  return "ok";
+}
+
+function settingsCardClassName(tone: SettingsStatusTone, opts?: { primary?: boolean }): string {
+  return [
+    "app-settings__card",
+    `app-settings__card--${tone}`,
+    opts?.primary ? "app-settings__card--primary" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+type SettingsCardHeaderProps = {
+  title: string;
+  tone: SettingsStatusTone;
+  id?: string;
+  className?: string;
+  children?: ReactNode;
+};
+
+function SettingsCardHeader({ title, tone, id, className, children }: SettingsCardHeaderProps) {
+  return (
+    <CardHeader
+      className={["app-settings__card-header", `app-settings__card-header--${tone}`, className]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      <span
+        className={`app-settings__card-status-dot app-settings__card-status-dot--${tone}`}
+        aria-hidden="true"
+      />
+      <h3 id={id}>{title}</h3>
+      {children}
+    </CardHeader>
+  );
 }
 
 type SettingsNextStepProps = {
@@ -282,42 +341,28 @@ export function SettingsPanel({
 
   const importedCount = mirrorStatus?.importedTables.length ?? 0;
   const runs = mirrorStatus?.latestImportRuns ?? [];
+  const writeHeroValue = writeChip?.label ?? "Connect the clinic service";
+  const mirrorHeroValue = sqliteMirrorStatus.label;
 
   return (
-    <div className="app-workspace-page app-settings" aria-labelledby="settings-panel-title">
-      <header className="app-page-hero">
-        <div>
-          <h2 className="app-page-hero__title" id="settings-panel-title">{moduleTitle}</h2>
-          {moduleDescription ? <p className="app-page-hero__meta">{moduleDescription}</p> : null}
+    <div className="app-settings" aria-labelledby="settings-panel-title">
+      <header className="app-hero-band app-settings__hero-band">
+        <div className="app-hero-band__copy">
+          <h2 id="settings-panel-title" className="app-hero-band__title">
+            {moduleTitle}
+          </h2>
+          {moduleDescription ? (
+            <p className="app-hero-band__lede">{moduleDescription}</p>
+          ) : (
+            <p className="app-hero-band__lede">{SETTINGS_PANEL_LEDE}</p>
+          )}
         </div>
+        {onOpenToday ? (
+          <Button type="button" variant="secondary" className="ui-focusable" onClick={onOpenToday}>
+            {SETTINGS_OPEN_TODAY_BUTTON}
+          </Button>
+        ) : null}
       </header>
-
-      <div className="app-settings__hero-stats app-stat-strip" role="region" aria-label="Settings status overview">
-        <div className={`app-stat app-settings__hero-stat app-stat--${settingsHeroStatTone(bridgePhase)}`}>
-          <p className="app-stat__label">{SETTINGS_BRIDGE_SECTION}</p>
-          <p className="app-stat__value">{bridgeLabel}</p>
-        </div>
-        <div
-          className={`app-stat app-settings__hero-stat app-stat--${settingsHeroStatTone(mirrorStale ? "warn" : sqliteMirrorStatus.tone)}`}
-        >
-          <p className="app-stat__label">{SETTINGS_SQLITE_MIRROR_SECTION}</p>
-          <p className="app-stat__value">{sqliteMirrorStatus.label}</p>
-        </div>
-        <div className={`app-stat app-settings__hero-stat app-stat--${settingsHeroStatTone(writeCardTone(writeCapability))}`}>
-          <p className="app-stat__label">{SETTINGS_WRITE_SECTION}</p>
-          <p className="app-stat__value">{writeChip?.label ?? "—"}</p>
-        </div>
-        <div className={`app-stat app-settings__hero-stat app-stat--${settingsHeroStatTone(sandboxStatus.tone)}`}>
-          <p className="app-stat__label">{SETTINGS_SANDBOX_SECTION}</p>
-          <p className="app-stat__value">{sandboxStatus.label}</p>
-        </div>
-        <div className={`app-stat app-settings__hero-stat app-stat--${settingsHeroStatTone(backupStatus.tone)}`}>
-          <p className="app-stat__label">{SETTINGS_BACKUP_SECTION}</p>
-          <p className="app-stat__value">{backupStatus.label}</p>
-        </div>
-      </div>
-
-      <p className="app-settings__lede">{SETTINGS_PANEL_LEDE}</p>
 
       {dangerBanners.length > 0 ? (
         <div className="app-settings__danger-banners" role="region" aria-label="Operator alerts">
@@ -348,23 +393,6 @@ export function SettingsPanel({
               </li>
             ))}
           </ul>
-          <p className="app-settings__today-hint" role="note">
-            {SETTINGS_TODAY_OVERVIEW_HINT}
-            {onOpenToday ? (
-              <>
-                {" "}
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="compact"
-                  className="ui-focusable app-settings__today-btn"
-                  onClick={onOpenToday}
-                >
-                  {SETTINGS_OPEN_TODAY_BUTTON}
-                </Button>
-              </>
-            ) : null}
-          </p>
         </div>
       ) : null}
 
@@ -391,11 +419,42 @@ export function SettingsPanel({
         </div>
       ) : null}
 
+      <div className="app-settings__hero app-metric-tile-grid" role="region" aria-label="Settings status overview">
+        <AppMetricTile
+          label={SETTINGS_BRIDGE_SECTION}
+          value={bridgeLabel}
+          tone={settingsMetricTone(bridgePhase)}
+          className="app-settings__hero-tile"
+        />
+        <AppMetricTile
+          label={SETTINGS_MIRROR_SECTION}
+          value={mirrorHeroValue}
+          tone={settingsMetricTone(mirrorStale ? "warn" : sqliteMirrorStatus.tone)}
+          className="app-settings__hero-tile"
+        />
+        <AppMetricTile
+          label={SETTINGS_WRITE_SECTION}
+          value={writeHeroValue}
+          tone={writeMetricTone(writeCapability)}
+          className="app-settings__hero-tile"
+        />
+        <AppMetricTile
+          label={SETTINGS_SANDBOX_SECTION}
+          value={sandboxStatus.label}
+          tone={settingsMetricTone(sandboxStatus.tone)}
+          className="app-settings__hero-tile"
+        />
+        <AppMetricTile
+          label={SETTINGS_BACKUP_SECTION}
+          value={backupStatus.label}
+          tone={settingsMetricTone(backupStatus.tone)}
+          className="app-settings__hero-tile"
+        />
+      </div>
+
       <div className="app-settings__grid">
-        <Card className={settingsCardClassName(bridgeCardTone(bridgePhase), { primary: true })}>
-          <CardHeader>
-            <h3 id="settings-panel-title">{SETTINGS_BRIDGE_SECTION}</h3>
-          </CardHeader>
+        <Card className={settingsCardClassName(bridgeCardTone(bridgePhase))}>
+          <SettingsCardHeader title={SETTINGS_BRIDGE_SECTION} tone={bridgeCardTone(bridgePhase)} id="settings-panel-title" />
           <CardBody>
             <p className={`app-settings__status app-settings__status--${bridgePhase}`}>{bridgeLabel}</p>
             <SettingsNextStep card="bridge" {...{ bridgePhase, writeCapability, mirrorStatus, sandboxWritePilot }} />
@@ -408,9 +467,7 @@ export function SettingsPanel({
         </Card>
 
         <Card className={settingsCardClassName(dataRootStatus.tone)}>
-          <CardHeader>
-            <h3>{SETTINGS_DATA_PATHS_SECTION}</h3>
-          </CardHeader>
+          <SettingsCardHeader title={SETTINGS_DATA_PATHS_SECTION} tone={dataRootStatus.tone} />
           <CardBody>
             <p className={`app-settings__status app-settings__status--${dataRootStatus.tone}`}>{dataRootStatus.label}</p>
             <SettingsNextStep card="dataRoot" {...{ bridgePhase, writeCapability, mirrorStatus, sandboxWritePilot }} />
@@ -425,9 +482,7 @@ export function SettingsPanel({
         </Card>
 
         <Card className={settingsCardClassName(writeCardTone(writeCapability), { primary: true })}>
-          <CardHeader>
-            <h3>{SETTINGS_WRITE_SECTION}</h3>
-          </CardHeader>
+          <SettingsCardHeader title={SETTINGS_WRITE_SECTION} tone={writeCardTone(writeCapability)} />
           <CardBody>
             {writeChip ? (
               <Badge
@@ -445,9 +500,7 @@ export function SettingsPanel({
         </Card>
 
         <Card className={settingsCardClassName(sandboxStatus.tone)}>
-          <CardHeader>
-            <h3>{SETTINGS_SANDBOX_SECTION}</h3>
-          </CardHeader>
+          <SettingsCardHeader title={SETTINGS_SANDBOX_SECTION} tone={sandboxStatus.tone} />
           <CardBody>
             <p className={`app-settings__status app-settings__status--${sandboxStatus.tone}`}>{sandboxStatus.label}</p>
             <SettingsNextStep card="sandbox" {...{ bridgePhase, writeCapability, mirrorStatus, sandboxWritePilot }} />
@@ -455,9 +508,7 @@ export function SettingsPanel({
         </Card>
 
         <Card className={settingsCardClassName(backupStatus.tone)}>
-          <CardHeader>
-            <h3>{SETTINGS_BACKUP_SECTION}</h3>
-          </CardHeader>
+          <SettingsCardHeader title={SETTINGS_BACKUP_SECTION} tone={backupStatus.tone} />
           <CardBody>
             <p className={`app-settings__status app-settings__status--${backupStatus.tone}`}>{backupStatus.label}</p>
             <SettingsNextStep card="backup" {...{ bridgePhase, writeCapability, mirrorStatus, sandboxWritePilot }} />
@@ -470,9 +521,7 @@ export function SettingsPanel({
         </Card>
 
         <Card className={settingsCardClassName("neutral")}>
-          <CardHeader>
-            <h3>{SETTINGS_PILOT_SECTION}</h3>
-          </CardHeader>
+          <SettingsCardHeader title={SETTINGS_PILOT_SECTION} tone="neutral" />
           <CardBody>
             <p className="app-settings__muted">
               {sandboxWritePilot ? SETTINGS_SANDBOX_PILOT_ON : SETTINGS_SANDBOX_PILOT_OFF}
@@ -482,9 +531,7 @@ export function SettingsPanel({
         </Card>
 
         <Card className={settingsCardClassName("neutral")}>
-          <CardHeader>
-            <h3>{SETTINGS_PILOT_BUILD_SECTION}</h3>
-          </CardHeader>
+          <SettingsCardHeader title={SETTINGS_PILOT_BUILD_SECTION} tone="neutral" />
           <CardBody>
             {pilotBuild === undefined ? (
               <p className="app-settings__muted">{SETTINGS_PILOT_BUILD_LOADING}</p>
@@ -513,9 +560,7 @@ export function SettingsPanel({
         </Card>
 
         <Card className={settingsCardClassName("neutral")}>
-          <CardHeader>
-            <h3>{SETTINGS_DESKTOP_SECTION}</h3>
-          </CardHeader>
+          <SettingsCardHeader title={SETTINGS_DESKTOP_SECTION} tone="neutral" />
           <CardBody>
             <p className="app-settings__muted">
               {isDesktopFileProtocol() ? SETTINGS_DESKTOP_FILE_PROTOCOL : SETTINGS_DESKTOP_BROWSER}
@@ -524,9 +569,7 @@ export function SettingsPanel({
         </Card>
 
         <Card className={settingsCardClassName(sqliteMirrorStatus.tone)}>
-          <CardHeader>
-            <h3>{SETTINGS_SQLITE_MIRROR_SECTION}</h3>
-          </CardHeader>
+          <SettingsCardHeader title={SETTINGS_SQLITE_MIRROR_SECTION} tone={sqliteMirrorStatus.tone} />
           <CardBody>
             <p className={`app-settings__status app-settings__status--${sqliteMirrorStatus.tone}`}>
               {sqliteMirrorStatus.label}
@@ -543,9 +586,14 @@ export function SettingsPanel({
           </CardBody>
         </Card>
 
-        <Card className={settingsCardClassName(mirrorStale ? "warn" : sqliteMirrorStatus.tone, { primary: true, wide: true })}>
-          <CardHeader className="app-settings__mirror-head">
-            <h3>{SETTINGS_MIRROR_SECTION}</h3>
+        <Card
+          className={`${settingsCardClassName(mirrorCardTone(bridgePhase, mirrorStale))} app-settings__card--mirror`}
+        >
+          <SettingsCardHeader
+            title={SETTINGS_MIRROR_SECTION}
+            tone={mirrorCardTone(bridgePhase, mirrorStale)}
+            className="app-settings__mirror-head"
+          >
             <Button
               type="button"
               variant="ghost"
@@ -556,7 +604,7 @@ export function SettingsPanel({
             >
               {mirrorRefreshing ? "Refreshing…" : SETTINGS_MIRROR_REFRESH}
             </Button>
-          </CardHeader>
+          </SettingsCardHeader>
           <CardBody>
             {bridgePhase !== "connected" ? (
               <p className="app-settings__muted">Connect the clinic service to load mirror status.</p>

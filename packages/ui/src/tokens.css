@@ -7,6 +7,14 @@
   --ui-bg-canvas: #f6f7f9;
   /** Slightly cooler wash for layered gradients behind the shell (still neutral). */
   --ui-bg-canvas-wash: #edf4f5;
+  /** v2 warm blue-gray workspace canvas — replaces near-white admin feel. */
+  --ui-bg-workspace: #e8eef2;
+  /** v2 tinted teal rail surface. */
+  --ui-bg-rail-v2: #dceef0;
+  /** v2 pronounced hero / command band. */
+  --ui-bg-hero: #d4e8ec;
+  /** v2 metric tile surface (white on tinted strip). */
+  --ui-bg-metric: #ffffff;
   --ui-bg-surface: #ffffff;
   --ui-bg-subtle: #eef1f4;
   /** Muted inset panels (callouts, secondary strips). */
@@ -31,15 +39,15 @@
   --ui-text-muted: #8a939e;
   --ui-text-inverse: #ffffff;
 
-  /* Brand */
-  --ui-primary-600: #1b6f7a;
-  --ui-primary-500: #248b98;
-  --ui-primary-50: #e8f4f5;
+  /* Brand — v2 richer teal saturation */
+  --ui-primary-600: #167078;
+  --ui-primary-500: #1a8a96;
+  --ui-primary-50: #e3f2f4;
   /** Deep brand step for small accents (nav bar, kicker text). */
-  --ui-primary-700: #145a63;
+  --ui-primary-700: #125a61;
   /** Brand alpha stops for tinted surfaces (app bridge maps these). */
-  --ui-primary-alpha-12: rgba(27, 111, 122, 0.12);
-  --ui-primary-alpha-40: rgba(27, 111, 122, 0.4);
+  --ui-primary-alpha-12: rgba(22, 112, 120, 0.12);
+  --ui-primary-alpha-40: rgba(22, 112, 120, 0.4);
 
   /** Connection / read-only / informational accents. */
   --ui-accent: var(--ui-primary-600);
@@ -90,6 +98,10 @@
   /** Panel depth without heavy shadows. */
   --ui-shadow-panel: 0 1px 3px rgba(26, 31, 38, 0.05), 0 1px 2px rgba(26, 31, 38, 0.04);
   --ui-shadow-elevated: 0 4px 16px rgba(26, 31, 38, 0.07);
+  /** v2 metric tile depth on workspace canvas. */
+  --ui-shadow-metric: 0 4px 14px rgba(22, 112, 120, 0.12), 0 1px 3px rgba(26, 31, 38, 0.06);
+  /** v2 rail separation from workspace. */
+  --ui-shadow-rail: 0 2px 10px rgba(22, 112, 120, 0.08);
   --ui-shadow-modal: 0 4px 24px rgba(26, 31, 38, 0.08);
   --ui-overlay-scrim: rgba(26, 31, 38, 0.45);
 
@@ -97,10 +109,12 @@
   --ui-font-sans: system-ui, -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neue", arial, sans-serif;
   --ui-font-mono: ui-monospace, sfmono-regular, menlo, monospace;
 
-  /** Typography scale — mapped in app CSS via --app-text-* bridge tokens. */
-  --ui-text-display: clamp(1.75rem, 1.4rem + 1.2vw, 2rem);
-  --ui-text-section: clamp(1rem, 0.92rem + 0.35vw, 1.125rem);
+  /** Typography scale — v2 bump; mapped in app CSS via --app-text-* bridge tokens. */
+  --ui-text-display: clamp(2rem, 1.6rem + 1.5vw, 2.25rem);
+  --ui-text-section: clamp(1.125rem, 1rem + 0.5vw, 1.25rem);
   --ui-text-body: 16px;
+  /** Minimum meta/chrome size on redesigned surfaces. */
+  --ui-text-meta: 14px;
 
   /* Spacing (4px grid) */
   --ui-space-1: 4px;
@@ -118,7 +132,7 @@
   --ui-radius-lg: 12px;
 
   /* Focus ring (always visible on :focus-visible) */
-  --ui-focus-ring-color: rgba(27, 111, 122, 0.45);
+  --ui-focus-ring-color: rgba(22, 112, 120, 0.45);
   --ui-focus-ring-width: 2px;
   --ui-focus-ring-offset: 2px;
 

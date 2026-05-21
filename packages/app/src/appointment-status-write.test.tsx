@@ -260,7 +260,7 @@ describe("AppointmentStatusWriteAction", () => {
     expect(text).toContain(committedPlan.operationId);
     expect(text).toContain("Backup created");
     expect(text).toContain("Audit: operation found");
-    const result = container.querySelector(".app-appt-status-write__result");
+    const result = container.querySelector('[data-testid="appt-status-write-result"]');
     expect(result?.getAttribute("data-committed")).toBe("true");
     assertNoForbiddenDomTokens(text);
     expect(containsForbiddenWriteResultToken(text)).toBe(false);
@@ -292,7 +292,7 @@ describe("AppointmentStatusWriteAction", () => {
     expect(text).toContain("Committed: false");
     expect(text).toContain("dry-run plan only");
     expect(text).not.toContain("status updated");
-    const result = container.querySelector(".app-appt-status-write__result");
+    const result = container.querySelector('[data-testid="appt-status-write-result"]');
     expect(result?.getAttribute("data-committed")).toBe("false");
     assertNoForbiddenDomTokens(text);
     expect(containsForbiddenWriteResultToken(text)).toBe(false);

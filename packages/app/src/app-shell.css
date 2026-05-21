@@ -17,6 +17,7 @@
 @import "./styles/pages/schedule.css";
 @import "./styles/pages/settings.css";
 @import "./styles/pages/write.css";
+@import "./styles/workspace-redesign.css";
 
 /* ----- UX consistency pass (legacy overrides retained in hub) ----- */
 /* ----- UX consistency pass (Workstream I — last editor) ----- */
@@ -233,54 +234,7 @@
   font-style: italic;
 }
 
-.app-dashboard-clinic-overview .ui-card__body {
-  padding: var(--app-card-pad-compact);
-}
-
-.app-dashboard-clinic-overview__list {
-  margin: 0;
-  padding: var(--ui-space-2) var(--ui-space-3);
-  display: flex;
-  flex-direction: column;
-  gap: var(--ui-space-2);
-  border-radius: var(--ui-radius-md);
-  border: 1px solid var(--ui-border-subtle);
-  background: var(--ui-bg-subtle);
-}
-
-.app-dashboard-clinic-overview__row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-  gap: var(--ui-space-2);
-  align-items: start;
-  font-size: var(--app-text-meta);
-  line-height: 1.4;
-}
-
-.app-dashboard-clinic-overview__label {
-  margin: 0;
-  color: var(--ui-text-secondary);
-  font-weight: 500;
-}
-
-.app-dashboard-clinic-overview__value {
-  margin: 0;
-  color: var(--ui-text-primary);
-  font-weight: 600;
-  text-align: right;
-}
-
-.app-dashboard-clinic-overview__row--ok .app-dashboard-clinic-overview__value {
-  color: var(--ui-success-700, var(--ui-primary-700));
-}
-
-.app-dashboard-clinic-overview__row--warn .app-dashboard-clinic-overview__value {
-  color: var(--ui-warning-700, var(--ui-text-primary));
-}
-
-.app-dashboard-clinic-overview__row--danger .app-dashboard-clinic-overview__value {
-  color: var(--ui-danger-700);
-}
+/* Clinic overview layout — v2 chip/visual treatment in workspace-redesign.css */
 
 .app-next-patient-card .ui-card__body {
   padding: var(--app-card-pad-compact);
@@ -358,11 +312,7 @@
   margin-top: var(--ui-space-1);
 }
 
-.app-schedule__status-chip {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
+/* Chip font scale — v2 overrides in workspace-redesign.css */
 
 .app-schedule__provider-filters {
   display: flex;
@@ -370,10 +320,6 @@
   align-items: center;
   gap: var(--ui-space-1);
   margin-top: var(--ui-space-1);
-}
-
-.app-schedule__provider-chip {
-  font-size: 12px;
 }
 
 .app-schedule__footer .app-schedule__write-mode-chip {
@@ -603,10 +549,6 @@
   .app-patient-profile__summary-mini-grid {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
-
-  .app-dashboard-clinic-overview__row {
-    font-size: 14px;
-  }
 }
 
 /* Clinic workflow polish — unified filter chips, timeline kind filters, write hints */
@@ -620,14 +562,7 @@
   gap: var(--ui-space-1);
 }
 
-.app-patient-profile__timeline-kind-chip,
-.app-patient-profile__timeline-clear-filters,
-.app-patient-profile__appts-clear-filters,
-.app-patient-profile__clinical-clear-filters,
-.app-schedule__clear-filters {
-  min-height: 30px;
-  font-size: 12px;
-}
+/* Filter chip min-height/font-size — v2 scale in workspace-redesign.css */
 
 .app-patient-profile__timeline-row-action {
   display: block;

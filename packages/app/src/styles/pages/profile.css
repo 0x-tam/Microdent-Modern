@@ -1030,31 +1030,120 @@
   gap: var(--ui-space-2);
 }
 
-/* ----- Wave F: Profile workspace visual identity ----- */
+/* ----- Wave H: Profile workspace v2 ----- */
 
 .app-patient-profile__header-strip.app-patient-hero {
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   gap: var(--ui-space-3);
-  margin: 0 0 var(--ui-space-3);
-  padding: var(--ui-space-4);
-  border-color: color-mix(in srgb, var(--ui-primary-600) 16%, var(--ui-border-subtle));
-  background: linear-gradient(
-    165deg,
-    var(--ui-bg-clinical-wash) 0%,
-    var(--ui-bg-clinical) 52%,
-    var(--ui-bg-surface) 100%
-  );
+  width: 100%;
+  margin: 0 0 var(--ui-space-4);
+  padding: var(--ui-space-5);
+  border: 1px solid color-mix(in srgb, var(--ui-primary-600) 16%, var(--ui-border-subtle));
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-bg-hero, var(--app-v2-hero));
   box-shadow: var(--ui-shadow-panel);
 }
 
 .app-patient-profile .app-patient-profile__header-name {
   margin: 0;
-  font-size: var(--ui-text-display, var(--app-text-display, clamp(1.75rem, 1.4rem + 1.2vw, 2rem)));
+  font-size: var(--ui-text-display, clamp(2rem, 1.6rem + 1.4vw, 2.25rem));
   font-weight: 700;
   letter-spacing: -0.02em;
-  line-height: 1.15;
+  line-height: 1.12;
   color: var(--ui-text-primary);
+}
+
+.app-patient-profile__header-reverse {
+  margin: calc(-1 * var(--ui-space-1)) 0 0;
+  font-size: var(--ui-text-meta);
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__header-chips {
+  margin-top: var(--ui-space-1);
+}
+
+.app-patient-hero__chip {
+  min-height: var(--app-v2-chip-min-h, 36px);
+  padding: var(--ui-space-1) var(--ui-space-3);
+  font-size: var(--ui-text-meta, 14px);
+  font-weight: 600;
+}
+
+.app-patient-profile__summary-metrics {
+  margin-bottom: var(--ui-space-2);
+}
+
+.app-patient-profile__tabs--pills .app-patient-profile__tab {
+  min-height: 44px;
+  padding: var(--ui-space-2) var(--ui-space-4);
+  font-size: var(--ui-text-meta, 14px);
+}
+
+.app-patient-profile__tabs--pills .app-patient-profile__tablist {
+  min-height: 44px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.app-patient-profile .app-patient-profile__tab-section-title {
+  margin: var(--ui-space-4) 0 var(--ui-space-3);
+  padding: var(--ui-space-1) 0 var(--ui-space-1) var(--ui-space-3);
+  border-left: 4px solid var(--ui-primary-600);
+  font-size: var(--ui-text-section, 1.25rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  color: var(--ui-text-primary);
+}
+
+.app-patient-profile .app-patient-profile__tab-section-title--summary {
+  border-left-color: var(--ui-primary-600);
+}
+
+.app-patient-profile .app-patient-profile__tab-section-title--overview {
+  border-left-color: var(--ui-accent-blue);
+}
+
+.app-patient-profile .app-patient-profile__tab-section-title:first-child {
+  margin-top: 0;
+}
+
+.app-patient-profile__summary-mini-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 10.5rem), 1fr));
+  gap: var(--ui-space-3);
+}
+
+.app-patient-profile__summary-mini-card {
+  min-height: 5.5rem;
+  padding: var(--ui-space-4);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-border-subtle);
+  border-left-width: 4px;
+  background: var(--ui-bg-metric, var(--ui-bg-surface));
+  box-shadow: var(--ui-shadow-metric, var(--ui-shadow-panel));
+}
+
+.app-patient-profile__summary-mini-card-title {
+  font-size: var(--ui-text-meta, 14px);
+  font-weight: 600;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__summary-mini-card-detail,
+.app-patient-profile__summary-mini-card-muted {
+  font-size: clamp(1.125rem, 1rem + 0.5vw, 1.375rem);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--ui-text-primary);
+}
+
+/* ----- Wave F: Profile workspace visual identity (legacy aliases) ----- */
+
+.app-patient-profile__header-strip.app-patient-hero.app-hero-band {
+  background: var(--ui-bg-hero, var(--app-v2-hero));
 }
 
 .app-patient-hero__chip--chart {
@@ -1113,15 +1202,18 @@
 }
 
 .app-patient-profile__tabs--pills .app-patient-profile__tablist {
-  padding: var(--ui-space-1);
-  gap: 2px;
+  min-height: 44px;
+  padding: 3px;
+  gap: 3px;
   border-radius: var(--ui-radius-md);
   border: 1px solid var(--ui-border-subtle);
   background: var(--ui-bg-muted);
 }
 
 .app-patient-profile__tabs--pills .app-patient-profile__tab {
-  min-height: 40px;
+  min-height: 44px;
+  padding: var(--ui-space-2) var(--ui-space-4);
+  font-size: var(--ui-text-meta, 14px);
   border: none;
   background: transparent;
   border-radius: calc(var(--ui-radius-md) - 2px);
@@ -1144,20 +1236,6 @@
   box-shadow: var(--ui-shadow-panel);
 }
 
-.app-patient-profile .app-patient-profile__tab-section-title {
-  margin: var(--ui-space-3) 0 var(--ui-space-2);
-  padding: var(--ui-space-1) 0 var(--ui-space-1) var(--ui-space-3);
-  border-left: 3px solid var(--ui-primary-600);
-  font-size: var(--ui-text-section, 0.92rem);
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  color: var(--ui-text-primary);
-}
-
-.app-patient-profile .app-patient-profile__tab-section-title:first-child {
-  margin-top: 0;
-}
-
 .app-patient-profile__summary-at-glance {
   border-color: color-mix(in srgb, var(--ui-primary-600) 14%, var(--ui-border-subtle));
   background: color-mix(in srgb, var(--ui-bg-clinical-wash) 55%, var(--ui-bg-muted));
@@ -1168,12 +1246,12 @@
   background: color-mix(in srgb, var(--ui-primary-50) 75%, var(--ui-bg-surface));
 }
 
-/* ----- Wave G: Timeline visual upgrade ----- */
+/* ----- Wave 2 I: Timeline card events on vertical rail ----- */
 
 .app-patient-profile__timeline-body {
   display: flex;
   flex-direction: column;
-  gap: var(--ui-space-2);
+  gap: var(--ui-space-3);
 }
 
 .app-patient-profile__timeline-sticky-bar {
@@ -1188,21 +1266,25 @@
   background: color-mix(in srgb, var(--ui-bg-clinical-wash) 40%, var(--ui-bg-surface-raised));
 }
 
-.app-patient-profile__timeline-list {
+.app-patient-profile__timeline-rail,
+.app-patient-profile__timeline-list.app-patient-profile__timeline-rail {
   position: relative;
   margin: 0;
-  padding: 0 0 0 var(--ui-space-5);
+  padding: 0 0 0 var(--ui-space-6);
   list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
 }
 
-.app-patient-profile__timeline-list::before {
+.app-patient-profile__timeline-rail::before {
   content: "";
   position: absolute;
-  left: 0.6875rem;
+  left: 0.8125rem;
   top: var(--ui-space-2);
   bottom: var(--ui-space-2);
-  width: 2px;
-  border-radius: 1px;
+  width: 3px;
+  border-radius: 2px;
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--ui-primary-500) 55%, var(--ui-border-subtle)) 0%,
@@ -1210,58 +1292,76 @@
   );
 }
 
-.app-patient-profile__timeline-list > li {
+.app-patient-profile__timeline-rail-item {
   position: relative;
+  list-style: none;
 }
 
-.app-patient-profile__timeline-list > li::before {
+.app-patient-profile__timeline-rail-item::before {
   content: "";
   position: absolute;
-  left: calc(-1 * var(--ui-space-5) + 0.4375rem);
-  top: 1.125rem;
-  width: 0.5rem;
-  height: 0.5rem;
+  left: calc(-1 * var(--ui-space-6) + 0.5625rem);
+  top: 1.375rem;
+  width: 0.625rem;
+  height: 0.625rem;
   border-radius: 999px;
   border: 2px solid var(--ui-bg-surface);
   background: var(--ui-border-subtle);
   box-shadow: 0 0 0 1px var(--ui-border-subtle);
+  z-index: 1;
 }
 
-.app-patient-profile__timeline-row {
-  position: relative;
-  margin-bottom: var(--ui-space-1);
-  padding: var(--ui-space-2) var(--ui-space-3);
+.app-patient-profile__timeline-event-card {
+  display: flex;
+  gap: var(--ui-space-3);
+  width: 100%;
+  min-height: 56px;
+  padding: var(--ui-space-3) var(--ui-space-4);
   border: 1px solid var(--ui-border-subtle);
-  border-left-width: 3px;
+  border-left-width: 4px;
   border-radius: var(--ui-radius-md);
   background: var(--ui-bg-surface);
+  box-shadow: var(--ui-shadow-panel);
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
   transition:
     border-color var(--ui-duration-hover) var(--ui-ease-out),
-    background-color var(--ui-duration-hover) var(--ui-ease-out);
+    background-color var(--ui-duration-hover) var(--ui-ease-out),
+    box-shadow var(--ui-duration-hover) var(--ui-ease-out);
 }
 
 .app-patient-profile__timeline-row--appointment {
   border-left-color: var(--ui-primary-600);
 }
 
-.app-patient-profile__timeline-list > li:has(.app-patient-profile__timeline-row--appointment)::before {
+.app-patient-profile__timeline-rail-item:has(.app-patient-profile__timeline-row--appointment)::before {
   background: var(--ui-primary-600);
+  box-shadow:
+    0 0 0 1px var(--ui-primary-600),
+    0 0 0 3px color-mix(in srgb, var(--ui-primary-600) 18%, transparent);
 }
 
 .app-patient-profile__timeline-row--treatment {
   border-left-color: var(--ui-accent-blue);
 }
 
-.app-patient-profile__timeline-list > li:has(.app-patient-profile__timeline-row--treatment)::before {
+.app-patient-profile__timeline-rail-item:has(.app-patient-profile__timeline-row--treatment)::before {
   background: var(--ui-accent-blue);
+  box-shadow:
+    0 0 0 1px var(--ui-accent-blue),
+    0 0 0 3px color-mix(in srgb, var(--ui-accent-blue) 18%, transparent);
 }
 
 .app-patient-profile__timeline-row--chart {
   border-left-color: var(--ui-success-600);
 }
 
-.app-patient-profile__timeline-list > li:has(.app-patient-profile__timeline-row--chart)::before {
+.app-patient-profile__timeline-rail-item:has(.app-patient-profile__timeline-row--chart)::before {
   background: var(--ui-success-600);
+  box-shadow:
+    0 0 0 1px var(--ui-success-600),
+    0 0 0 3px color-mix(in srgb, var(--ui-success-600) 18%, transparent);
 }
 
 .app-patient-profile__timeline-row--ledger,
@@ -1269,17 +1369,23 @@
   border-left-color: var(--ui-status-offline-text);
 }
 
-.app-patient-profile__timeline-list > li:has(.app-patient-profile__timeline-row--ledger)::before,
-.app-patient-profile__timeline-list > li:has(.app-patient-profile__timeline-row--neutral)::before {
+.app-patient-profile__timeline-rail-item:has(.app-patient-profile__timeline-row--ledger)::before,
+.app-patient-profile__timeline-rail-item:has(.app-patient-profile__timeline-row--neutral)::before {
   background: var(--ui-status-offline-text);
+  box-shadow:
+    0 0 0 1px var(--ui-status-offline-text),
+    0 0 0 3px color-mix(in srgb, var(--ui-status-offline-text) 18%, transparent);
 }
 
 .app-patient-profile__timeline-row--medical {
   border-left-color: var(--ui-accent-cyan);
 }
 
-.app-patient-profile__timeline-list > li:has(.app-patient-profile__timeline-row--medical)::before {
+.app-patient-profile__timeline-rail-item:has(.app-patient-profile__timeline-row--medical)::before {
   background: var(--ui-accent-cyan);
+  box-shadow:
+    0 0 0 1px var(--ui-accent-cyan),
+    0 0 0 3px color-mix(in srgb, var(--ui-accent-cyan) 18%, transparent);
 }
 
 .app-patient-profile__timeline-row--appointment .app-patient-profile__timeline-row-kind {
@@ -1324,6 +1430,50 @@
   color: var(--ui-accent-cyan);
 }
 
+.app-patient-profile__timeline-row-icon {
+  flex: 0 0 auto;
+  width: 1.375rem;
+  font-size: 1.125rem;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.app-patient-profile__timeline-row-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-1);
+  min-width: 0;
+}
+
+.app-patient-profile__timeline-row-kind {
+  font-size: var(--ui-text-meta, 14px);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.app-patient-profile__timeline-row-primary {
+  font-size: var(--ui-text-body, 16px);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ui-text-primary);
+}
+
+.app-patient-profile__timeline-row-secondary {
+  font-size: var(--ui-text-meta, 14px);
+  line-height: 1.4;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__timeline-row-action {
+  display: inline-flex;
+  align-items: center;
+  margin-top: var(--ui-space-1);
+  font-size: var(--ui-text-meta, 14px);
+  font-weight: 600;
+  color: var(--ui-primary-600);
+}
+
 .app-patient-profile__timeline-kind-chip[data-kind="appointments"][aria-pressed="true"] {
   background: var(--ui-primary-600);
   border-color: var(--ui-primary-600);
@@ -1355,21 +1505,23 @@
 }
 
 .app-patient-profile__timeline-limitations {
-  border-left: 3px solid var(--ui-status-readonly-border, var(--ui-accent-cyan));
+  border-left: 4px solid var(--ui-status-readonly-border, var(--ui-accent-cyan));
   background: color-mix(in srgb, var(--ui-status-readonly-bg) 65%, var(--ui-bg-surface));
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .app-patient-profile__timeline-row:hover {
+  .app-patient-profile__timeline-event-card:hover {
     border-color: color-mix(in srgb, var(--ui-primary-600) 30%, var(--ui-border-subtle));
     background: color-mix(in srgb, var(--ui-primary-50) 30%, var(--ui-bg-surface));
+    box-shadow: var(--ui-shadow-elevated);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .app-patient-profile__timeline-row:hover {
+  .app-patient-profile__timeline-event-card:hover {
     border-color: var(--ui-border-subtle);
     background: var(--ui-bg-surface);
+    box-shadow: var(--ui-shadow-panel);
   }
 }
 
