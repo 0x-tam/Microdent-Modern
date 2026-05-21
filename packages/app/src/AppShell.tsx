@@ -33,13 +33,24 @@ import { PatientSearchBar } from "./PatientSearchBar.js";
 import { SchedulePanel } from "./SchedulePanel.js";
 import { SettingsPanel } from "./SettingsPanel.js";
 import { DashboardHome } from "./today-dashboard.js";
-import { APP_SIDEBAR_MODULES, type AppSidebarModuleId } from "./app-nav-modules.js";
+import {
+  APP_SIDEBAR_MODULES,
+  formatSelectedPatientContextLabel,
+  getAppSidebarModule,
+  resolveSidebarNavHint,
+  type AppSidebarModuleId,
+} from "./app-nav-modules.js";
 
 export {
   APP_NAV_MODULES,
+  APP_NAV_UNSUPPORTED_MODULES,
   APP_SIDEBAR_MODULES,
+  formatSelectedPatientContextLabel,
+  getAppSidebarModule,
+  resolveSidebarNavHint,
   type AppNavModuleId,
   type AppSidebarModuleId,
+  type SelectedPatientContext,
 } from "./app-nav-modules.js";
 
 export type AppShellProps = {
@@ -88,11 +99,6 @@ export type AppShellProps = {
   sandboxWritePilot?: boolean;
 };
 
-function moduleLabel(id: AppSidebarModuleId): string {
-  const m = APP_SIDEBAR_MODULES.find((x) => x.id === id);
-  return m?.label ?? id;
-}
-
 function formatDevCheckTime(ms: number): string {
   try {
     return new Intl.DateTimeFormat(undefined, { timeStyle: "medium" }).format(new Date(ms));
@@ -128,6 +134,8 @@ export function AppShell({
   const showMirrorConnectionDiagnostics = import.meta.env.DEV && mirrorConnectionDiagnostics;
   const [active, setActive] = useState<AppSidebarModuleId>("today");
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  const [selectedPatientDisplayName, setSelectedPatientDisplayName] = useState<string | null>(null);
+  const [selectedPatientChartNumber, setSelectedPatientChartNumber] = useState<string | null>(null);
   const [bridgePhase, setBridgePhase] = useState<BridgeHealthPhase>(() => (bridgeBaseUrl?.trim() ? "checking" : "offline"));
   const [lastHealthCheckAt, setLastHealthCheckAt] = useState<number | null>(null);
   const [lastHealthOfflineReason, setLastHealthOfflineReason] = useState<string | null>(null);
@@ -139,6 +147,32 @@ export function AppShell({
   const mainHeadingId = "app-main-heading";
 
   const displayClinicLabel = resolveShellClinicLabel(bridgePhase, clinicLabel);
+
+  const handleOpenPatient = useCallback(
+    (patientId: string, summary?: { displayName?: string | null; chartNumber?: string | null }) => {
+      setSelectedPatientId(patientId);
+      setSelectedPatientDisplayName(summary?.displayName ?? null);
+      setSelectedPatientChartNumber(summary?.chartNumber ?? null);
+      setActive("patients");
+    },
+    [],
+  );
+
+  const handlePatientRecordSelect = useCallback(
+    (hit: { patientId: string; displayName: string; chartNumber: string | null }) => {
+      setSelectedPatientId(hit.patientId);
+      setSelectedPatientDisplayName(hit.displayName);
+      setSelectedPatientChartNumber(hit.chartNumber);
+      setActive("patients");
+    },
+    [],
+  );
+
+  const handlePatientSelectionClear = useCallback(() => {
+    setSelectedPatientId(null);
+    setSelectedPatientDisplayName(null);
+    setSelectedPatientChartNumber(null);
+  }, []);
 
   const runBridgeHealthCheck = useCallback(
     async (isStale?: () => boolean) => {
@@ -259,6 +293,17 @@ export function AppShell({
     return omitShellBannersDetailedInSettings(banners, bridgePhase, mirrorStatus, writeCapability);
   }, [active, bridgePhase, mirrorStatus, writeCapability]);
 
+  const activeModule = useMemo(() => getAppSidebarModule(active), [active]);
+  const sidebarNavHint = useMemo(() => resolveSidebarNavHint(), []);
+  const selectedPatientContextLabel = useMemo(() => {
+    if (!selectedPatientId) return null;
+    return formatSelectedPatientContextLabel({
+      patientId: selectedPatientId,
+      displayName: selectedPatientDisplayName,
+      chartNumber: selectedPatientChartNumber,
+    });
+  }, [selectedPatientChartNumber, selectedPatientDisplayName, selectedPatientId]);
+
   const sidebar = useMemo(
     () => (
       <ul className="app-sidebar__nav">
@@ -269,9 +314,11 @@ export function AppShell({
               className={`app-sidebar__btn ui-focusable app-sidebar__btn--${m.id}`}
               aria-current={active === m.id ? "true" : undefined}
               aria-controls="app-main-region"
+              title={m.sublabel}
               onClick={() => setActive(m.id)}
             >
-              {m.label}
+              <span className="app-sidebar__btn-label">{m.label}</span>
+              <span className="app-sidebar__btn-sublabel">{m.sublabel}</span>
             </button>
           </li>
         ))}
@@ -293,12 +340,10 @@ export function AppShell({
             bridgePhase={bridgePhase}
             bridgeBaseUrl={bridgeBaseUrl}
             selectedPatientId={selectedPatientId}
+            selectedDisplayName={selectedPatientDisplayName}
             fetchImpl={fetchImpl}
-            onPatientRecordSelect={(hit) => {
-              setSelectedPatientId(hit.patientId);
-              setActive("patients");
-            }}
-            onPatientSelectionClear={() => setSelectedPatientId(null)}
+            onPatientRecordSelect={handlePatientRecordSelect}
+            onPatientSelectionClear={handlePatientSelectionClear}
           />
         </div>
 
@@ -382,38 +427,67 @@ export function AppShell({
           </p>
           <nav aria-labelledby="sidebar-nav-label">{sidebar}</nav>
           <p className="app-sidebar__hint" role="note">
-            Chart, Treatments, and Ledger preview are under Patients when you open a record.
+            {sidebarNavHint}
           </p>
         </aside>
 
         <main className="app-main" id="app-main-region" role="main" aria-labelledby={mainHeadingId}>
           <div className="app-main__inner">
             <div className="app-main__head">
-              <h2 className="app-main__heading" id={mainHeadingId}>
-                {moduleLabel(active)}
-              </h2>
-              {active === "today" ? (
-                <p className="app-main__lede">Who is on the schedule, what is next, and where to go next.</p>
-              ) : active === "schedule" ? (
-                <p className="app-main__lede">
-                  Day and week views from your copied schedule. Patient names use a safe summary; notes and phones stay hidden.
-                </p>
-              ) : active === "patients" ? (
-                <p className="app-main__lede">
-                  Search by name or chart number to open a record — or use the top bar. Summary, visits, medical screening,
-                  treatments, chart, and ledger preview are read-only tabs; sensitive fields stay hidden.
-                </p>
-              ) : active === "settings" ? (
-                <p className="app-main__lede">
-                  Bridge health, mirror import metadata, write mode, and sandbox status — operator-safe summaries only.
-                </p>
-              ) : null}
+              <div className="app-main__head-row">
+                <h2 className="app-main__heading" id={mainHeadingId}>
+                  {activeModule.label}
+                </h2>
+                <div className="app-main__head-actions">
+                  {active !== "today" ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="compact"
+                      className="ui-focusable app-main__back-today"
+                      onClick={() => setActive("today")}
+                    >
+                      Back to Today
+                    </Button>
+                  ) : null}
+                  {selectedPatientContextLabel ? (
+                    <div
+                      className="app-main__patient-context"
+                      role="status"
+                      aria-label={`Selected patient: ${selectedPatientContextLabel}`}
+                    >
+                      <button
+                        type="button"
+                        className="app-main__patient-context-chip ui-focusable"
+                        onClick={() => setActive("patients")}
+                      >
+                        {selectedPatientContextLabel}
+                      </button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="compact"
+                        className="ui-focusable app-main__patient-context-clear"
+                        onClick={handlePatientSelectionClear}
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+              <p className="app-main__lede">{activeModule.description}</p>
             </div>
 
             <div className="app-main__content">
               {active === "today" ? (
                 <DashboardHome
                   onOpenModule={setActive}
+                  onOpenPatient={handleOpenPatient}
+                  selectedPatientId={selectedPatientId}
+                  selectedPatientDisplayName={selectedPatientDisplayName}
+                  selectedPatientChartNumber={selectedPatientChartNumber}
+                  mirrorStatus={mirrorStatus}
                   bridgeBaseUrl={bridgeBaseUrl}
                   bridgePhase={bridgePhase}
                   fetchImpl={fetchImpl}
@@ -448,8 +522,8 @@ export function AppShell({
                   sandboxWritePilot={sandboxWritePilot}
                   writeCapability={writeCapability}
                   onBackToday={() => setActive("today")}
-                  onClearPatient={() => setSelectedPatientId(null)}
-                  onPatientRecordSelect={(hit) => setSelectedPatientId(hit.patientId)}
+                  onClearPatient={handlePatientSelectionClear}
+                  onPatientRecordSelect={handlePatientRecordSelect}
                 />
               )}
             </div>

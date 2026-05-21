@@ -1057,4 +1057,349 @@ describe("SchedulePanel", () => {
     expect(container.textContent).toContain("Dry-run");
     expect(container.querySelector(".app-schedule__write-mode-chip")).toBeTruthy();
   });
+
+  it("shows blocked write notice per row when pilot is on but sandbox is not ready", async () => {
+    const fetchImpl = withReferenceDoctors((input) => {
+      const u = String(input);
+      if (u.includes("/v1/meta/write-capability")) {
+        return Promise.resolve(
+          jsonResponse({
+            writeMode: "disabled",
+            writesPermitted: false,
+            writableSandbox: false,
+            dataRootConfigured: false,
+            backupDirConfigured: false,
+            sqlitePathConfigured: false,
+          }),
+        );
+      }
+      if (u.includes("/v1/schedule/rooms")) {
+        return Promise.resolve(jsonResponse(sampleRooms));
+      }
+      if (u.includes("/v1/schedule/appointments")) {
+        const m = u.match(/from=([^&]+)/);
+        const fromQ = m ? decodeURIComponent(m[1]) : "";
+        return Promise.resolve(jsonResponse(sampleAppointments(fromQ)));
+      }
+      return Promise.reject(new Error(`unexpected fetch ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <SchedulePanel
+          isActive
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          sandboxWritePilot
+          onBackToday={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.querySelectorAll(".app-schedule__sandbox-write-banner")).toHaveLength(1);
+    expect(container.querySelector('[data-testid="appt-write-actions-blocked"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="appt-create-write-blocked"]')).toBeTruthy();
+  });
+
+  it("shows footer create panel when sandbox pilot is ready", async () => {
+    const fetchImpl = withReferenceDoctors((input) => {
+      const u = String(input);
+      if (u.includes("/v1/meta/write-capability")) {
+        return Promise.resolve(
+          jsonResponse({
+            writeMode: "enabled",
+            writesPermitted: true,
+            writableSandbox: true,
+            dataRootConfigured: true,
+            backupDirConfigured: true,
+            sqlitePathConfigured: true,
+          }),
+        );
+      }
+      if (u.includes("/v1/schedule/rooms")) {
+        return Promise.resolve(jsonResponse(sampleRooms));
+      }
+      if (u.includes("/v1/schedule/appointments")) {
+        const m = u.match(/from=([^&]+)/);
+        const fromQ = m ? decodeURIComponent(m[1]) : "";
+        return Promise.resolve(jsonResponse(sampleAppointments(fromQ)));
+      }
+      return Promise.reject(new Error(`unexpected fetch ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <SchedulePanel
+          isActive
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          sandboxWritePilot
+          onBackToday={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector('[data-testid="appt-create-write-pilot"]')).toBeTruthy();
+  });
+
+  it("syncs create defaultDate when schedule range navigates", async () => {
+    const fetchImpl = withReferenceDoctors((input) => {
+      const u = String(input);
+      if (u.includes("/v1/meta/write-capability")) {
+        return Promise.resolve(
+          jsonResponse({
+            writeMode: "enabled",
+            writesPermitted: true,
+            writableSandbox: true,
+            dataRootConfigured: true,
+            backupDirConfigured: true,
+            sqlitePathConfigured: true,
+          }),
+        );
+      }
+      if (u.includes("/v1/schedule/rooms")) {
+        return Promise.resolve(jsonResponse({ rooms: [] }));
+      }
+      if (u.includes("/v1/schedule/appointments")) {
+        return Promise.resolve(jsonResponse({ appointments: [] }));
+      }
+      return Promise.reject(new Error(`unexpected fetch ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <SchedulePanel
+          isActive
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          sandboxWritePilot
+          onBackToday={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const rangeBefore = container.querySelector("time[dateTime]")?.getAttribute("dateTime")?.split("/")[0] ?? "";
+    const createDetails = container.querySelector('[data-testid="appt-create-write-pilot"]') as HTMLDetailsElement;
+    await act(async () => {
+      createDetails.open = true;
+    });
+    const dateInputBefore = container.querySelector(
+      '[data-testid="appt-create-write-pilot"] input[type="date"]',
+    ) as HTMLInputElement;
+    expect(dateInputBefore?.value).toBe(rangeBefore);
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const rangeAfter = container.querySelector("time[dateTime]")?.getAttribute("dateTime")?.split("/")[0] ?? "";
+    expect(rangeAfter).not.toBe(rangeBefore);
+    const dateInputAfter = container.querySelector(
+      '[data-testid="appt-create-write-pilot"] input[type="date"]',
+    ) as HTMLInputElement;
+    expect(dateInputAfter?.value).toBe(rangeAfter);
+  });
+
+  it("refetches schedule after a sandbox status commit", async () => {
+    const dryRunPlan = {
+      operationId: "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+      workflow: "appointment.statusUpdate",
+      mode: "dry-run" as const,
+      tablesAffected: ["SCHEDULE"],
+      recordIds: ["501"],
+      fieldsChanged: [
+        { table: "SCHEDULE", recordId: "501", field: "STATUS", changeType: "set" as const },
+      ],
+      backupRequired: true,
+      backupWouldCreate: true,
+      warnings: [],
+      committed: false,
+      createdAt: "2026-05-15T12:00:00.000Z",
+    };
+    const committedPlan = { ...dryRunPlan, committed: true, mode: "enabled" as const };
+
+    vi.stubGlobal("confirm", vi.fn(() => true));
+
+    const fetchImpl = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const u = String(input);
+      const intent = (init?.headers as Record<string, string> | undefined)?.["X-Write-Intent"];
+      if (u.includes("/v1/meta/write-capability")) {
+        return Promise.resolve(
+          jsonResponse({
+            writeMode: "enabled",
+            writesPermitted: true,
+            writableSandbox: true,
+            dataRootConfigured: true,
+            backupDirConfigured: true,
+            sqlitePathConfigured: true,
+          }),
+        );
+      }
+      if (u.includes("/v1/reference/doctors")) {
+        return Promise.resolve(jsonResponse(syntheticDoctors));
+      }
+      if (u.includes("/v1/reference/procedures")) {
+        return Promise.resolve(jsonResponse({ procedures: [] }));
+      }
+      if (u.includes("/status") && intent === "dry-run") {
+        return Promise.resolve(jsonResponse(dryRunPlan));
+      }
+      if (u.includes("/status") && intent === "commit") {
+        return Promise.resolve(jsonResponse(committedPlan));
+      }
+      if (u.includes("/write-audit-recent")) {
+        return Promise.resolve(jsonResponse({ sqliteConfigured: true, sqliteUsable: true, entries: [] }));
+      }
+      if (u.includes("/v1/schedule/rooms")) {
+        return Promise.resolve(jsonResponse(sampleRooms));
+      }
+      if (u.includes("/v1/schedule/appointments") && !u.includes("/status")) {
+        const m = u.match(/from=([^&]+)/);
+        const fromQ = m ? decodeURIComponent(m[1]) : "";
+        return Promise.resolve(jsonResponse(sampleAppointments(fromQ)));
+      }
+      return Promise.reject(new Error(`unexpected fetch ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <SchedulePanel
+          isActive
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          sandboxWritePilot
+          onBackToday={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const apptCallsBefore = fetchImpl.mock.calls.filter(
+      (c) => String(c[0]).includes("/v1/schedule/appointments") && !String(c[0]).includes("/status"),
+    ).length;
+    expect(apptCallsBefore).toBeGreaterThanOrEqual(1);
+
+    const details = container.querySelector('[data-testid="appt-write-actions-panel"]') as HTMLDetailsElement;
+    await act(async () => {
+      details.open = true;
+    });
+
+    const select = details.querySelector("select.app-appt-status-write__select");
+    expect(select).toBeTruthy();
+    await act(async () => {
+      if (!select) return;
+      const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")?.set;
+      setter?.call(select, "3");
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    const previewBtn = [...details.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("Preview status change"),
+    );
+    await act(async () => {
+      previewBtn?.click();
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const applyBtn = [...details.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("Apply status change"),
+    );
+    await act(async () => {
+      applyBtn?.click();
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      expect.stringContaining("/status"),
+      expect.objectContaining({
+        headers: expect.objectContaining({ "X-Write-Intent": "commit" }),
+      }),
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const apptCallsAfter = fetchImpl.mock.calls.filter(
+      (c) => String(c[0]).includes("/v1/schedule/appointments") && !String(c[0]).includes("/status"),
+    ).length;
+    expect(apptCallsAfter).toBeGreaterThan(apptCallsBefore);
+
+    vi.unstubAllGlobals();
+  });
+
+  it("switches to day view and emphasizes Today when on current day", async () => {
+    const fetchImpl = withReferenceDoctors((input) => {
+      const u = String(input);
+      if (u.includes("/v1/schedule/rooms")) {
+        return Promise.resolve(jsonResponse({ rooms: [] }));
+      }
+      if (u.includes("/v1/schedule/appointments")) {
+        return Promise.resolve(jsonResponse({ appointments: [] }));
+      }
+      return Promise.reject(new Error(`unexpected fetch ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <SchedulePanel
+          isActive
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const dayBtn = [...container.querySelectorAll("button")].find((b) => b.textContent === "Day");
+    await act(async () => {
+      dayBtn?.click();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const todayBtn = [...container.querySelectorAll("button")].find((b) => b.textContent === "Today");
+    expect(todayBtn?.classList.contains("app-schedule__nav-today--active")).toBe(true);
+    expect(container.textContent).toMatch(/Includes today/i);
+  });
 });

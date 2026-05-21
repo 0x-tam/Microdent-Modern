@@ -125,7 +125,7 @@ describe("PatientDemographicsWritePanel", () => {
       },
     });
     expect(container.querySelector('[data-testid="patient-demographics-write-unavailable"]')).not.toBeNull();
-    expect(container.textContent).toContain("Sandbox writes are not ready");
+    expect(container.textContent).toMatch(/Sandbox writes are blocked/i);
     expect(previewBtn(container)).toBeNull();
   });
 

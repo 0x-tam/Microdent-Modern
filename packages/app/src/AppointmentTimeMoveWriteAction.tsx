@@ -10,11 +10,12 @@ import {
   APPOINTMENT_TIME_MOVE_APPLY_LABEL,
   APPOINTMENT_TIME_MOVE_PREVIEW_LABEL,
 } from "./read-only-ui-copy.js";
-import { isSandboxWritePilotEnabled, isSandboxWriteReady } from "./sandbox-write-pilot.js";
+import { isSandboxWritePilotEnabled, resolveSandboxWriteBlockReason } from "./sandbox-write-pilot.js";
 import {
   SafeWritePlanResult,
   SandboxWriteBanner,
   summarizeWritePlan,
+  WriteOperationResult,
   type WritePlanResultSummary,
 } from "./safe-write-plan-display.js";
 import {
@@ -146,7 +147,8 @@ export function AppointmentTimeMoveWriteAction({
     if (!isSandboxWritePilotEnabled(writePilotEnabled)) {
       return null;
     }
-    if (!writeCapability || !isSandboxWriteReady(writeCapability)) {
+    const blockReason = resolveSandboxWriteBlockReason(writePilotEnabled, writeCapability);
+    if (blockReason) {
       return null;
     }
   }
@@ -234,18 +236,12 @@ export function AppointmentTimeMoveWriteAction({
         <SafeWritePlanResult summary={state.summary} testId="appt-time-move-plan" />
       ) : null}
       {state.kind === "result" ? (
-        <div className="app-sandbox-write__result" role="status" data-committed={String(state.committed)}>
-          <p>
-            {state.committed
-              ? "Committed: true — appointment time updated."
-              : "Committed: false — nothing was saved."}
-          </p>
-          <ul className="app-sandbox-write__feedback" aria-label="Write operation feedback">
-            {state.feedbackLines.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-        </div>
+        <WriteOperationResult
+          committed={state.committed}
+          successLabel="appointment time updated"
+          feedbackLines={state.feedbackLines}
+          testId="appt-time-move-write-result"
+        />
       ) : null}
       {state.kind === "error" ? (
         <p className="app-sandbox-write__error" role="alert">

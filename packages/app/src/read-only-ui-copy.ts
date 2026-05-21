@@ -39,6 +39,11 @@ export const PATIENT_PAGE_SEARCH_TITLE = "Find a patient";
 export const PATIENT_PAGE_SEARCH_LEDE =
   "Search by name or chart number when the clinic service is connected. There is no full patient directory in this read-only viewer — only matches for your query are shown.";
 
+export const PATIENT_PAGE_SEARCH_EXAMPLE =
+  "Example: type a last name or a chart number (at least 2 characters).";
+
+export const PATIENT_SEARCH_FIELD_LABEL = "Find a patient";
+
 export const PATIENT_PAGE_SEARCH_PRIVACY =
   "Uses your copied clinic data. Names, chart numbers, record ids, and masked phone hints only — no notes, addresses, or payment fields.";
 
@@ -84,11 +89,44 @@ export const PATIENT_TAB_LEDGER_LEDE =
 
 export const PATIENT_TAB_LOADING_LEDGER = "Loading ledger preview…";
 
+export const PATIENT_TAB_DESC_SUMMARY =
+  "Safe demographics from your copied patient file. Sandbox pilot writes may appear when enabled.";
+
+export const PATIENT_TAB_DESC_APPOINTMENTS =
+  "Visit history for a date range. Schedule note text stays hidden.";
+
+export const PATIENT_TAB_DESC_MEDICAL =
+  "Screening questionnaire summary. Clinical free text stays hidden.";
+
+export const PATIENT_TAB_DESC_TREATMENTS =
+  "Procedure codes and provider labels. Memos and fees stay hidden.";
+
+export const PATIENT_TAB_DESC_CHART =
+  "Tooth-level chart rows. Chart memos and legends stay hidden.";
+
+export const PATIENT_TAB_DESC_LEDGER =
+  "Charge and payment type codes. Amounts and memo text stay hidden.";
+
+export const PATIENT_TAB_HIDDEN_FIELDS_NOTE = `Sensitive fields stay ${HIDDEN_IN_READONLY_VIEWER}.`;
+
 export const SENSITIVE_MEDICAL_BANNER =
   "This patient has medical details on file in the legacy system. Sensitive fields are hidden in this read-only viewer.";
 
 export const TRUNCATED_LIST_BANNER =
   "Showing a capped list only. Additional lines are omitted in this read-only viewer.";
+
+export const PATIENT_TAB_LEDGER_AMOUNTS_HIDDEN =
+  "Dollar amounts, running balances, and payment totals are never shown in this preview — only opaque type codes and dates.";
+
+export const PATIENT_TAB_SECTION_QUESTIONNAIRE = "Questionnaire summary";
+
+export const PATIENT_TAB_SECTION_SCREENING = "Screening flags marked yes";
+
+export const PATIENT_TAB_SECTION_PROCEDURE_HISTORY = "Procedure history";
+
+export const PATIENT_TAB_SECTION_CHART_ENTRIES = "Chart entries";
+
+export const PATIENT_TAB_SECTION_LEDGER_ENTRIES = "Transaction lines";
 
 export const SCHEDULE_PRIVACY_LEDE =
   "Read-only schedule. Names and chart numbers use a safe patient summary; notes and phone numbers stay hidden.";
@@ -107,6 +145,47 @@ export const TODAY_NEXT_NO_UPCOMING = "No upcoming appointments on the schedule 
 
 export const TODAY_REMINDERS_EMPTY =
   "No reminders in this read-only viewer. Connect the clinic service and use Schedule or Patients for live data from your copy.";
+
+export const TODAY_REMINDERS_PILOT_UNAVAILABLE =
+  "Reminders are not available in this pilot build. Use Schedule and Patients for live data from your copied clinic data.";
+
+export const TODAY_STATUS_COUNT_TITLE = "Today's appointments";
+
+export const TODAY_STATUS_MIRROR_TITLE = "Data freshness";
+
+export const TODAY_STATUS_MIRROR_ACTIVE =
+  "SQLite mirror active — search and schedule use your imported copy.";
+
+export const TODAY_STATUS_MIRROR_STALE =
+  "Mirror metadata is older than 48 hours. Schedule may show older data until you run a safe mirror import (Settings → Mirror import).";
+
+export const TODAY_STATUS_MIRROR_FALLBACK =
+  "SQLite mirror unavailable — schedule reads legacy DBF files until mirror import succeeds.";
+
+export const TODAY_STATUS_MIRROR_OFFLINE =
+  "Connect the clinic service to check mirror freshness.";
+
+export const TODAY_STATUS_MIRROR_UNKNOWN =
+  "Mirror status unknown until the clinic service connects.";
+
+export const TODAY_MIRROR_STALE_ADVISORY =
+  "Local copy may be outdated — today's list may not reflect the latest DBF changes until mirror import runs again.";
+
+export const TODAY_SCHEDULE_UNAVAILABLE =
+  "Schedule unavailable. Connect the clinic service and tap Refresh today.";
+
+export const TODAY_SELECTED_PATIENT_TITLE = "Selected patient";
+
+export const TODAY_SELECTED_PATIENT_OPEN = "Open record";
+
+export const TODAY_OPEN_PATIENT = "Open patient record";
+
+export const TODAY_OPEN_SETTINGS = "Open settings";
+
+export const TODAY_PILOT_READINESS_HINT =
+  "Pilot readiness checklist, mirror import, and write mode status are in Settings.";
+
+export const TODAY_REFRESH = "Refresh today";
 
 export const TODAY_EMPTY_TITLE = "No appointments today";
 
@@ -139,6 +218,8 @@ export const PATIENT_SEARCH_NO_MATCH =
 
 export const PATIENT_SEARCH_DROPDOWN_NO_MATCH = "No patients matched.";
 
+export const PATIENT_SEARCH_OPEN_RECORD_PREFIX = "Open record:";
+
 export const SCHEDULE_VIEW_LABEL = "Schedule view";
 
 export const SCHEDULE_VIEW_WEEK = "Week";
@@ -167,6 +248,18 @@ export const SCHEDULE_ROOM_FILTER_LABEL = "Room";
 export const SCHEDULE_ROOM_ALL = "All rooms";
 
 export const SCHEDULE_KEYBOARD_HINT = "Tip: ← → move the range; T jumps to today.";
+
+export const SCHEDULE_NAV_TODAY = "Today";
+
+/** Shown under the range heading when the visible range includes the current local day. */
+export const SCHEDULE_RANGE_INCLUDES_TODAY = "Includes today";
+
+export const SCHEDULE_RANGE_APPOINTMENT_COUNT = (count: number): string =>
+  count === 1 ? "1 appointment in this range" : `${count} appointments in this range`;
+
+export const SCHEDULE_ROOM_FILTER_LOADING = "Loading rooms…";
+
+export const SCHEDULE_ROOM_FILTER_EMPTY = "No rooms loaded";
 
 export const MODULE_PLACEHOLDER_TITLE = "Not available yet";
 
@@ -271,6 +364,28 @@ export const WRITE_FAILED_GUIDANCE =
 
 export const WRITE_AUDIT_STATUS_UPDATE_NOTE =
   "Audit detail is fullest for status-update commits today; other workflows show operation id, backup, and restore hints.";
+
+/** Headline when a sandbox commit succeeded. */
+export function writeResultCommittedHeadline(successLabel: string, mode?: string): string {
+  return mode ? `Committed: true — ${successLabel} (${mode}).` : `Committed: true — ${successLabel}.`;
+}
+
+/** Headline when preview or commit did not persist (dry-run / blocked commit). */
+export function writeResultUncommittedHeadline(mode?: string): string {
+  return mode
+    ? `Committed: false — dry-run plan only; nothing was saved (${mode}).`
+    : "Committed: false — dry-run plan only; nothing was saved.";
+}
+
+export const SANDBOX_WRITE_BLOCKED_WRITE_MODE =
+  "Sandbox writes are blocked — bridge write mode is off. Check Settings for write mode and sandbox configuration.";
+
+export const SANDBOX_WRITE_BLOCKED_SANDBOX =
+  "Sandbox writes are not ready on this bridge. Check Settings for write mode, sandbox path, and backup configuration.";
+
+export const APPOINTMENT_CREATE_PREVIEW_LABEL = "Preview create";
+
+export const APPOINTMENT_CREATE_APPLY_LABEL = "Create appointment";
 
 export const SETTINGS_PANEL_LEDE =
   "Pilot status for bridge, mirror, writes, sandbox readiness, and build id. No patient data is shown here — follow docs/PILOT-HANDOFF-PACK.md for the operator walkthrough.";

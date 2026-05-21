@@ -252,7 +252,7 @@ describe("AppointmentStatusWriteAction", () => {
     expect(onCommitted).not.toHaveBeenCalled();
     const text = container.textContent ?? "";
     expect(text).toContain("Committed: false");
-    expect(text).toContain("nothing was saved");
+    expect(text).toContain("dry-run plan only");
     expect(text).not.toContain("status updated");
     const result = container.querySelector(".app-appt-status-write__result");
     expect(result?.getAttribute("data-committed")).toBe("false");

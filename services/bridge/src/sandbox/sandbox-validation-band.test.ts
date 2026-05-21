@@ -16,6 +16,9 @@ import { readScheduleAppointmentStatus } from "../write/verify/read-appointment-
 import { ALLOW_LEGACY_WRITES_ACK } from "../write-safety/constants.js";
 import { writeScheduleFixtures } from "../test-fixtures/schedule-fixtures.js";
 import { writeSandboxMarker } from "../test-fixtures/write-sandbox.js";
+import {
+  assertSafeWritePlanExcludesKnownSecrets,
+} from "../test-fixtures/write-route-gate-helpers.js";
 
 const FORBIDDEN_RESPONSE_TOKENS = [
   "SYNTHETIC_COMMENT_TOKEN",
@@ -276,8 +279,8 @@ describe("sandbox validation band", () => {
         });
         expect(res.status).toBe(200);
         const text = await res.text();
-        expect(text).not.toMatch(/555/);
         const parsed = assertSafeWritePlanJson(text);
+        assertSafeWritePlanExcludesKnownSecrets(text, parsed);
         expect(parsed.workflow).toBe("patient.demographics.update");
         expect(parsed.tablesAffected).toContain("PATIENT");
       });
@@ -476,8 +479,8 @@ describe("sandbox validation band", () => {
             });
             expect(res.status).toBe(200);
             const text = await res.text();
-            expect(text).not.toMatch(/555/);
             const parsed = SafeWritePlanSchema.parse(JSON.parse(text));
+            assertSafeWritePlanExcludesKnownSecrets(text, parsed);
             expect(parsed.committed).toBe(true);
             expect(parsed.workflow).toBe("patient.demographics.update");
           });

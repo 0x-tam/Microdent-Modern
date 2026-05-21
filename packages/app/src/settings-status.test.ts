@@ -7,6 +7,7 @@ import {
   resolveSandboxValidityStatus,
   resolveSqliteMirrorStatus,
 } from "./settings-status.js";
+import { MIRROR_IMPORT_STALE_MS } from "./mirror-stale.js";
 
 describe("settings-status", () => {
   it("maps sandbox validity from writableSandbox", () => {
@@ -184,5 +185,89 @@ describe("settings-status", () => {
     expect(checklist.every((i) => !i.label.match(/C:\\\\|\/Users\//))).toBe(true);
     expect(checklist.some((i) => i.label.match(/not production legacy/i))).toBe(true);
     expect(checklist.some((i) => i.label.match(/mirror import healthy/i))).toBe(true);
+  });
+
+  it("flags stale mirror in readiness summary", () => {
+    const staleFinishedAt = new Date(Date.now() - MIRROR_IMPORT_STALE_MS - 60_000).toISOString();
+    const chips = resolvePilotReadinessSummary(
+      "connected",
+      {
+        writeMode: "disabled",
+        writesPermitted: false,
+        writableSandbox: true,
+        dataRootConfigured: true,
+        backupDirConfigured: false,
+        sqlitePathConfigured: true,
+      },
+      {
+        sqliteConfigured: true,
+        sqliteUsable: true,
+        importedTables: ["patients"],
+        latestImportRuns: [
+          {
+            tableName: "patients",
+            status: "success",
+            rowCount: 10,
+            errorCount: 0,
+            finishedAt: staleFinishedAt,
+          },
+        ],
+      },
+    );
+    expect(chips.some((c) => c.key === "mirror-stale")).toBe(true);
+  });
+
+  it("marks write mode active as danger in readiness summary", () => {
+    const chips = resolvePilotReadinessSummary(
+      "connected",
+      {
+        writeMode: "enabled",
+        writesPermitted: true,
+        writableSandbox: true,
+        dataRootConfigured: true,
+        backupDirConfigured: true,
+        sqlitePathConfigured: true,
+      },
+      null,
+    );
+    expect(chips.some((c) => c.key === "writes-active" && c.tone === "danger")).toBe(true);
+  });
+
+  it("returns only bridge-offline chip when disconnected", () => {
+    const chips = resolvePilotReadinessSummary("offline", null, null);
+    expect(chips).toHaveLength(1);
+    expect(chips[0]?.key).toBe("bridge-offline");
+  });
+
+  it("warns on mirror import checklist when runs are stale", () => {
+    const staleFinishedAt = new Date(Date.now() - MIRROR_IMPORT_STALE_MS - 60_000).toISOString();
+    const checklist = resolvePilotReadinessChecklist(
+      "connected",
+      {
+        writeMode: "disabled",
+        writesPermitted: false,
+        writableSandbox: true,
+        dataRootConfigured: true,
+        backupDirConfigured: false,
+        sqlitePathConfigured: true,
+      },
+      {
+        sqliteConfigured: true,
+        sqliteUsable: true,
+        importedTables: ["patients"],
+        latestImportRuns: [
+          {
+            tableName: "patients",
+            status: "success",
+            rowCount: 10,
+            errorCount: 0,
+            finishedAt: staleFinishedAt,
+          },
+        ],
+      },
+    );
+    const mirrorImport = checklist.find((i) => i.key === "mirrorImport");
+    expect(mirrorImport?.tone).toBe("warn");
+    expect(mirrorImport?.nextStep).toMatch(/stale|mirror import/i);
   });
 });

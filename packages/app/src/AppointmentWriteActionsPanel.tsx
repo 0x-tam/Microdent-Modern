@@ -8,7 +8,8 @@ import {
   APPOINTMENT_WRITE_TAB_MOVE,
   APPOINTMENT_WRITE_TAB_STATUS,
 } from "./read-only-ui-copy.js";
-import { isSandboxWritePilotEnabled, isSandboxWriteReady } from "./sandbox-write-pilot.js";
+import { isSandboxWritePilotEnabled, resolveSandboxWriteBlockReason } from "./sandbox-write-pilot.js";
+import { SandboxWriteBlockedNotice } from "./safe-write-plan-display.js";
 
 export type AppointmentWriteActionsPanelProps = {
   appointment: ScheduleAppointmentItem;
@@ -34,8 +35,16 @@ export function AppointmentWriteActionsPanel({
   if (!isSandboxWritePilotEnabled(writePilotEnabled)) {
     return null;
   }
-  if (!writeCapability || !isSandboxWriteReady(writeCapability)) {
-    return null;
+
+  const blockReason = resolveSandboxWriteBlockReason(writePilotEnabled, writeCapability);
+  if (blockReason) {
+    return (
+      <SandboxWriteBlockedNotice
+        reason={blockReason}
+        className="app-appt-write-actions app-appt-write-actions--blocked"
+        testId="appt-write-actions-blocked"
+      />
+    );
   }
 
   const tabId = (suffix: string) => `appt-write-tab-${appointment.id}-${suffix}`;

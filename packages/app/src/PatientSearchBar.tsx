@@ -6,12 +6,14 @@ import {
   CLINIC_SERVICE_CHECKING,
   PATIENT_PAGE_SEARCH_PRIVACY,
   PATIENT_SEARCH_DROPDOWN_NO_MATCH,
+  PATIENT_SEARCH_FIELD_LABEL,
   PATIENT_SEARCH_HINT_CONNECTED,
   PATIENT_SEARCH_HINT_OFFLINE,
   PATIENT_SEARCH_IDLE,
   PATIENT_SEARCH_OFFLINE_BANNER,
   PATIENT_SEARCH_OFFLINE_STATUS,
   PATIENT_SEARCH_NO_MATCH,
+  PATIENT_SEARCH_OPEN_RECORD_PREFIX,
   PATIENT_SEARCH_SEARCHING,
   PATIENT_SEARCH_TOO_SHORT,
 } from "./read-only-ui-copy.js";
@@ -34,6 +36,8 @@ export type PatientSearchBarProps = {
   instanceId?: PatientSearchInstanceId;
   /** Highlight the row that matches the profile currently shown (controlled from the shell). */
   selectedPatientId?: string | null;
+  /** Display-only label for the open record (topbar chip; does not control the input value). */
+  selectedDisplayName?: string | null;
   /** When the user picks a search row, the shell stores `patientId` and may navigate to Patients. */
   onPatientRecordSelect?: (hit: PatientSearchHit) => void;
   /** When the user edits the query, the shell should clear the selected patient id. */
@@ -101,6 +105,7 @@ export function PatientSearchBar({
   bridgeBaseUrl,
   instanceId = "topbar",
   selectedPatientId = null,
+  selectedDisplayName = null,
   onPatientRecordSelect,
   onPatientSelectionClear,
   clearSelectionOnQueryChange = true,
@@ -118,6 +123,7 @@ export function PatientSearchBar({
   const [searching, setSearching] = useState(false);
   const [lastFinishedQuery, setLastFinishedQuery] = useState<string | null>(null);
   const [isResultsPanelOpen, setIsResultsPanelOpen] = useState(false);
+  const [activeOptionIndex, setActiveOptionIndex] = useState(-1);
 
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -225,6 +231,7 @@ export function PatientSearchBar({
     setLastFinishedQuery(null);
     setQuery("");
     setIsResultsPanelOpen(false);
+    setActiveOptionIndex(-1);
     onPatientSelectionClear?.();
   }, [onPatientSelectionClear]);
 
@@ -239,6 +246,7 @@ export function PatientSearchBar({
       setLastFinishedQuery(null);
       setQuery(hit.displayName);
       setIsResultsPanelOpen(false);
+      setActiveOptionIndex(-1);
     },
     [onPatientRecordSelect],
   );
@@ -254,66 +262,124 @@ export function PatientSearchBar({
     void runSearch(trimmed);
   }, [canSearch, trimmed, runSearch]);
 
-  const canSelectFirstResult =
+  const canSelectFromList =
     trimmed.length >= 2 &&
     !searching &&
     searchError === null &&
     lastFinishedQuery === trimmed &&
     results.length > 0;
 
-  const onKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        clearSearch();
-        return;
-      }
-      if (e.key === "Enter") {
-        e.preventDefault();
-        if (canSelectFirstResult) {
-          selectPatientHit(results[0]);
-          return;
-        }
-        flushAndSearch();
-      }
-    },
-    [canSelectFirstResult, clearSearch, flushAndSearch, results, selectPatientHit],
-  );
+  useEffect(() => {
+    setActiveOptionIndex(-1);
+  }, [trimmed, results, searchError, searching, lastFinishedQuery]);
 
-  const showOfflineBanner = Boolean(base) && bridgePhase !== "connected";
-
-  const statusLine = useMemo(() => {
-    if (!base || bridgePhase === "offline") {
-      return PATIENT_SEARCH_OFFLINE_STATUS;
-    }
-    if (bridgePhase === "checking") {
-      return CLINIC_SERVICE_CHECKING;
-    }
-    if (!canSearch) {
-      return PATIENT_SEARCH_OFFLINE_STATUS;
-    }
-    if (trimmed.length === 0) {
-      return PATIENT_SEARCH_IDLE;
-    }
-    if (trimmed.length < 2) {
-      return PATIENT_SEARCH_TOO_SHORT;
-    }
-    if (searching) {
-      return PATIENT_SEARCH_SEARCHING;
-    }
-    if (searchError) {
-      return searchError;
-    }
-    if (lastFinishedQuery === trimmed && results.length === 0) {
-      return PATIENT_SEARCH_NO_MATCH;
-    }
-    return null;
-  }, [base, bridgePhase, canSearch, trimmed, searching, searchError, lastFinishedQuery, results.length]);
+  const activeOptionId =
+    activeOptionIndex >= 0 && activeOptionIndex < results.length
+      ? `${domIds.listbox}-option-${results[activeOptionIndex]?.patientId}`
+      : undefined;
 
   const hasDropdownContent =
     canSearch &&
     trimmed.length >= 2 &&
-    (searching || searchError !== null || results.length > 0 || (lastFinishedQuery === trimmed && !searching && results.length === 0));
+    (searching ||
+      searchError !== null ||
+      results.length > 0 ||
+      (lastFinishedQuery === trimmed && !searching && results.length === 0));
+
+  const onKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        if (isResultsPanelOpen) {
+          setIsResultsPanelOpen(false);
+          setActiveOptionIndex(-1);
+          return;
+        }
+        clearSearch();
+        return;
+      }
+      if (e.key === "ArrowDown") {
+        if (canSelectFromList) {
+          e.preventDefault();
+          if (!isResultsPanelOpen) {
+            setIsResultsPanelOpen(true);
+          }
+          setActiveOptionIndex((i) => {
+            if (i < 0) return 0;
+            return Math.min(i + 1, results.length - 1);
+          });
+        } else if (hasDropdownContent) {
+          setIsResultsPanelOpen(true);
+        }
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        if (canSelectFromList) {
+          e.preventDefault();
+          if (!isResultsPanelOpen) {
+            setIsResultsPanelOpen(true);
+          }
+          setActiveOptionIndex((i) => {
+            if (i < 0) return results.length - 1;
+            return Math.max(i - 1, 0);
+          });
+        }
+        return;
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (canSelectFromList) {
+          const idx = activeOptionIndex >= 0 ? activeOptionIndex : 0;
+          const hit = results[idx];
+          if (hit) {
+            selectPatientHit(hit);
+            return;
+          }
+        }
+        flushAndSearch();
+      }
+    },
+    [
+      activeOptionIndex,
+      canSelectFromList,
+      clearSearch,
+      flushAndSearch,
+      hasDropdownContent,
+      isResultsPanelOpen,
+      results,
+      selectPatientHit,
+    ],
+  );
+
+  const showOfflineBanner = Boolean(base) && bridgePhase !== "connected";
+
+  const statusMeta = useMemo((): { line: string; tone: "offline" | "checking" | "idle" | "short" | "searching" | "error" | "no-match" } | null => {
+    if (!base || bridgePhase === "offline") {
+      return { line: PATIENT_SEARCH_OFFLINE_STATUS, tone: "offline" };
+    }
+    if (bridgePhase === "checking") {
+      return { line: CLINIC_SERVICE_CHECKING, tone: "checking" };
+    }
+    if (!canSearch) {
+      return { line: PATIENT_SEARCH_OFFLINE_STATUS, tone: "offline" };
+    }
+    if (trimmed.length === 0) {
+      return { line: PATIENT_SEARCH_IDLE, tone: "idle" };
+    }
+    if (trimmed.length < 2) {
+      return { line: PATIENT_SEARCH_TOO_SHORT, tone: "short" };
+    }
+    if (searching) {
+      return { line: PATIENT_SEARCH_SEARCHING, tone: "searching" };
+    }
+    if (searchError) {
+      return { line: searchError, tone: "error" };
+    }
+    if (lastFinishedQuery === trimmed && results.length === 0) {
+      return { line: PATIENT_SEARCH_NO_MATCH, tone: "no-match" };
+    }
+    return null;
+  }, [base, bridgePhase, canSearch, trimmed, searching, searchError, lastFinishedQuery, results.length]);
 
   const showDropdown = hasDropdownContent && isResultsPanelOpen;
 
@@ -330,9 +396,15 @@ export function PatientSearchBar({
           {PATIENT_SEARCH_OFFLINE_BANNER}
         </p>
       ) : null}
-      <label className="app-sr-only" htmlFor={domIds.input}>
-        Find a patient
+      <label className="app-patient-search__label" htmlFor={domIds.input}>
+        {PATIENT_SEARCH_FIELD_LABEL}
       </label>
+      {instanceId === "topbar" && selectedDisplayName?.trim() ? (
+        <p className="app-patient-search__selected" role="status">
+          {PATIENT_SEARCH_OPEN_RECORD_PREFIX}{" "}
+          <span className="app-patient-search__selected-name">{selectedDisplayName.trim()}</span>
+        </p>
+      ) : null}
       <div className="app-patient-search__row">
         <input
           id={domIds.input}
@@ -341,15 +413,21 @@ export function PatientSearchBar({
           disabled={!canSearch}
           autoComplete="off"
           spellCheck={false}
-          placeholder="Find a patient by name or chart number"
+          placeholder="Name or chart number (2+ characters)"
           aria-describedby={`${domIds.hint} ${domIds.status}`}
           aria-expanded={showDropdown}
           aria-controls={showDropdown ? domIds.listbox : undefined}
+          aria-activedescendant={showDropdown && activeOptionId ? activeOptionId : undefined}
           aria-autocomplete="list"
           aria-haspopup="listbox"
           aria-busy={searching}
           role="combobox"
           value={query}
+          onFocus={() => {
+            if (hasDropdownContent) {
+              setIsResultsPanelOpen(true);
+            }
+          }}
           onChange={(e) => {
             if (clearSelectionOnQueryChange) {
               onPatientSelectionClear?.();
@@ -361,6 +439,9 @@ export function PatientSearchBar({
               setSearchError(null);
               setDevSchemaHint(false);
               setLastFinishedQuery(null);
+              setActiveOptionIndex(-1);
+            } else if (canSearch) {
+              setIsResultsPanelOpen(true);
             }
           }}
           onKeyDown={onKeyDown}
@@ -383,9 +464,14 @@ export function PatientSearchBar({
             : PATIENT_SEARCH_HINT_CONNECTED
           : PATIENT_SEARCH_HINT_OFFLINE}
       </p>
-      {statusLine ? (
-        <p id={domIds.status} className="app-patient-search__status" role="status" aria-live="polite">
-          {statusLine}
+      {statusMeta ? (
+        <p
+          id={domIds.status}
+          className={`app-patient-search__status app-patient-search__status--${statusMeta.tone}`}
+          role="status"
+          aria-live="polite"
+        >
+          {statusMeta.line}
         </p>
       ) : (
         <p id={domIds.status} className="app-sr-only">
@@ -414,7 +500,8 @@ export function PatientSearchBar({
             <ul className="app-patient-search__hits">
               {results.map((hit, index) => {
                 const secondary = formatHitSecondary(hit);
-                const isSelected = selectedPatientId !== null && selectedPatientId === hit.patientId;
+                const isProfileMatch = selectedPatientId !== null && selectedPatientId === hit.patientId;
+                const isKeyboardActive = index === activeOptionIndex;
                 const optionId = `${domIds.listbox}-option-${hit.patientId}`;
                 return (
                   <li key={hit.patientId} className="app-patient-search__hit-wrap">
@@ -422,10 +509,18 @@ export function PatientSearchBar({
                       id={optionId}
                       type="button"
                       role="option"
-                      aria-selected={isSelected}
+                      aria-selected={isProfileMatch || isKeyboardActive}
                       aria-posinset={index + 1}
                       aria-setsize={results.length}
-                      className={`app-patient-search__hit ui-focusable${isSelected ? " app-patient-search__hit--selected" : ""}`}
+                      className={[
+                        "app-patient-search__hit",
+                        "ui-focusable",
+                        isProfileMatch ? "app-patient-search__hit--selected" : null,
+                        isKeyboardActive ? "app-patient-search__hit--active" : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                      onMouseEnter={() => setActiveOptionIndex(index)}
                       onClick={() => selectPatientHit(hit)}
                     >
                       <span className="app-patient-search__hit-name">{hit.displayName}</span>

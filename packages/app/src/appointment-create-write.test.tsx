@@ -119,4 +119,39 @@ describe("AppointmentCreateWriteAction", () => {
     expect(containsForbiddenWriteResultToken(text)).toBe(false);
     expect(text).not.toMatch(/COMMENT/i);
   });
+
+  it("syncs defaultDate when defaultDate prop changes", async () => {
+    await act(async () => {
+      root.render(
+        <AppointmentCreateWriteAction
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          writePilotEnabled
+          writeCapability={readyCapability}
+          defaultDate="2026-05-20"
+        />,
+      );
+    });
+
+    const details = container.querySelector('[data-testid="appt-create-write-pilot"]') as HTMLDetailsElement;
+    await act(async () => {
+      details.open = true;
+    });
+
+    let dateInput = container.querySelector('input[type="date"]') as HTMLInputElement;
+    expect(dateInput?.value).toBe("2026-05-20");
+
+    await act(async () => {
+      root.render(
+        <AppointmentCreateWriteAction
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          writePilotEnabled
+          writeCapability={readyCapability}
+          defaultDate="2026-05-27"
+        />,
+      );
+    });
+
+    dateInput = container.querySelector('input[type="date"]') as HTMLInputElement;
+    expect(dateInput?.value).toBe("2026-05-27");
+  });
 });

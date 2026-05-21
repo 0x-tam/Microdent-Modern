@@ -1,16 +1,22 @@
 import { createBridgeClient, BridgeClientError } from "@microdent/bridge-client";
 import type { AppointmentCreateBody, BridgeDevStatusResponse } from "@microdent/contracts";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@microdent/ui";
 import {
   APPOINTMENT_CREATE_WRITE_CONFIRM,
   appointmentCreateWriteUnavailableMessage,
 } from "./appointment-create-write.js";
-import { isSandboxWritePilotEnabled, isSandboxWriteReady } from "./sandbox-write-pilot.js";
+import {
+  APPOINTMENT_CREATE_APPLY_LABEL,
+  APPOINTMENT_CREATE_PREVIEW_LABEL,
+} from "./read-only-ui-copy.js";
+import { isSandboxWritePilotEnabled, resolveSandboxWriteBlockReason } from "./sandbox-write-pilot.js";
 import {
   SafeWritePlanResult,
   SandboxWriteBanner,
+  SandboxWriteBlockedNotice,
   summarizeWritePlan,
+  WriteOperationResult,
   type WritePlanResultSummary,
 } from "./safe-write-plan-display.js";
 import {
@@ -54,6 +60,14 @@ export function AppointmentCreateWriteAction({
   const [durationSlots, setDurationSlots] = useState("1");
   const [status, setStatus] = useState("1");
   const [state, setState] = useState<UiState>({ kind: "idle" });
+
+  useEffect(() => {
+    setDate(defaultDate);
+  }, [defaultDate]);
+
+  useEffect(() => {
+    setRoom(String(defaultRoom));
+  }, [defaultRoom]);
 
   const buildBody = useCallback((): AppointmentCreateBody | null => {
     const roomNum = Number(room);
@@ -144,8 +158,16 @@ export function AppointmentCreateWriteAction({
   if (!isSandboxWritePilotEnabled(writePilotEnabled)) {
     return null;
   }
-  if (!writeCapability || !isSandboxWriteReady(writeCapability)) {
-    return null;
+
+  const blockReason = resolveSandboxWriteBlockReason(writePilotEnabled, writeCapability);
+  if (blockReason) {
+    return (
+      <SandboxWriteBlockedNotice
+        reason={blockReason}
+        className="app-sandbox-write app-appt-create-write app-sandbox-write--blocked"
+        testId="appt-create-write-blocked"
+      />
+    );
   }
 
   const loading = state.kind === "loading";
@@ -246,7 +268,7 @@ export function AppointmentCreateWriteAction({
           disabled={loading}
           onClick={() => void runPreview()}
         >
-          {state.kind === "loading" && state.action === "preview" ? "Previewing…" : "Preview create"}
+          {state.kind === "loading" && state.action === "preview" ? "Previewing…" : APPOINTMENT_CREATE_PREVIEW_LABEL}
         </Button>
         <Button
           type="button"
@@ -255,25 +277,19 @@ export function AppointmentCreateWriteAction({
           disabled={loading || state.kind !== "preview"}
           onClick={() => void runCommit()}
         >
-          {state.kind === "loading" && state.action === "commit" ? "Creating…" : "Create appointment"}
+          {state.kind === "loading" && state.action === "commit" ? "Creating…" : APPOINTMENT_CREATE_APPLY_LABEL}
         </Button>
       </div>
       {state.kind === "preview" ? (
         <SafeWritePlanResult summary={state.summary} testId="appt-create-plan" />
       ) : null}
       {state.kind === "result" ? (
-        <div className="app-sandbox-write__result" role="status" data-committed={String(state.committed)}>
-          <p>
-            {state.committed
-              ? "Committed: true — appointment created."
-              : "Committed: false — nothing was saved."}
-          </p>
-          <ul className="app-sandbox-write__feedback" aria-label="Write operation feedback">
-            {state.feedbackLines.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-        </div>
+        <WriteOperationResult
+          committed={state.committed}
+          successLabel="appointment created"
+          feedbackLines={state.feedbackLines}
+          testId="appt-create-write-result"
+        />
       ) : null}
       {state.kind === "error" ? (
         <p className="app-sandbox-write__error" role="alert">

@@ -6,7 +6,11 @@ import {
   SETTINGS_NEXT_STEP_BRIDGE,
   SETTINGS_NEXT_STEP_DESKTOP_SETUP,
   SETTINGS_NEXT_STEP_MIRROR_IMPORT,
+  SETTINGS_NEXT_STEP_MIRROR_STALE,
+  SETTINGS_NEXT_STEP_WRITE_DRY_RUN,
+  SETTINGS_NEXT_STEP_WRITE_ENABLED,
 } from "./read-only-ui-copy.js";
+import { MIRROR_IMPORT_STALE_MS } from "./mirror-stale.js";
 
 const writeCapBase: BridgeDevStatusResponse = {
   writeMode: "disabled",
@@ -50,5 +54,55 @@ describe("resolveSettingsOperatorNextStep", () => {
     expect(
       resolveSettingsOperatorNextStep("mirror", "connected", writeCapBase, mirror),
     ).toMatch(/mirror import/i);
+  });
+
+  it("suggests stale mirror re-import when metadata is old", () => {
+    const staleFinishedAt = new Date(Date.now() - MIRROR_IMPORT_STALE_MS - 60_000).toISOString();
+    const mirror: MirrorStatusResponse = {
+      sqliteConfigured: true,
+      sqliteUsable: true,
+      importedTables: ["patients"],
+      latestImportRuns: [
+        {
+          tableName: "patients",
+          status: "success",
+          rowCount: 10,
+          errorCount: 0,
+          finishedAt: staleFinishedAt,
+        },
+      ],
+    };
+    expect(
+      resolveSettingsOperatorNextStep("mirror", "connected", writeCapBase, mirror),
+    ).toBe(SETTINGS_NEXT_STEP_MIRROR_STALE);
+    expect(
+      resolveSettingsOperatorNextStep("mirrorImport", "connected", writeCapBase, mirror),
+    ).toBe(SETTINGS_NEXT_STEP_MIRROR_STALE);
+  });
+
+  it("suggests dry-run guidance when write mode is dry-run", () => {
+    expect(
+      resolveSettingsOperatorNextStep(
+        "write",
+        "connected",
+        { ...writeCapBase, writeMode: "dry-run", writableSandbox: true },
+        null,
+      ),
+    ).toBe(SETTINGS_NEXT_STEP_WRITE_DRY_RUN);
+  });
+
+  it("suggests enabled-write caution when commits are on", () => {
+    expect(
+      resolveSettingsOperatorNextStep(
+        "write",
+        "connected",
+        { ...writeCapBase, writeMode: "enabled", writableSandbox: true, writesPermitted: true },
+        null,
+      ),
+    ).toBe(SETTINGS_NEXT_STEP_WRITE_ENABLED);
+  });
+
+  it("returns null for bridge card when connected", () => {
+    expect(resolveSettingsOperatorNextStep("bridge", "connected", writeCapBase, null)).toBeNull();
   });
 });

@@ -1,5 +1,12 @@
 import type { SafeWritePlan, SafeWritePlanWarning } from "@microdent/contracts";
-import { SANDBOX_WRITE_PILOT_PANEL_BANNER } from "./read-only-ui-copy.js";
+import {
+  SANDBOX_WRITE_BLOCKED_SANDBOX,
+  SANDBOX_WRITE_BLOCKED_WRITE_MODE,
+  SANDBOX_WRITE_PILOT_PANEL_BANNER,
+  writeResultCommittedHeadline,
+  writeResultUncommittedHeadline,
+} from "./read-only-ui-copy.js";
+import type { SandboxWriteBlockReason } from "./sandbox-write-pilot.js";
 
 export type WritePlanResultSummary = {
   workflow: string;
@@ -58,6 +65,83 @@ export function SandboxWriteBanner({ className }: SandboxWriteBannerProps) {
     <p className={className ?? "app-sandbox-write__banner"} role="status">
       {SANDBOX_WRITE_PILOT_PANEL_BANNER}
     </p>
+  );
+}
+
+const BLOCK_REASON_COPY: Record<SandboxWriteBlockReason, string> = {
+  "write-mode-off": SANDBOX_WRITE_BLOCKED_WRITE_MODE,
+  "sandbox-not-ready": SANDBOX_WRITE_BLOCKED_SANDBOX,
+  "pilot-off": SANDBOX_WRITE_BLOCKED_SANDBOX,
+};
+
+export type SandboxWriteBlockedNoticeProps = {
+  reason: SandboxWriteBlockReason;
+  className?: string;
+  testId?: string;
+};
+
+export function SandboxWriteBlockedNotice({
+  reason,
+  className,
+  testId = "sandbox-write-blocked",
+}: SandboxWriteBlockedNoticeProps) {
+  return (
+    <div
+      className={className ?? "app-sandbox-write app-sandbox-write--blocked"}
+      data-testid={testId}
+      role="status"
+    >
+      <SandboxWriteBanner />
+      <p className="app-sandbox-write__hint">{BLOCK_REASON_COPY[reason]}</p>
+    </div>
+  );
+}
+
+export type WriteOperationResultProps = {
+  committed: boolean;
+  successLabel: string;
+  feedbackLines: readonly string[];
+  mode?: string;
+  className?: string;
+  headlineClassName?: string;
+  testId?: string;
+};
+
+export function formatWriteOperationHeadline(
+  committed: boolean,
+  successLabel: string,
+  mode?: string,
+): string {
+  return committed
+    ? writeResultCommittedHeadline(successLabel, mode)
+    : writeResultUncommittedHeadline(mode);
+}
+
+export function WriteOperationResult({
+  committed,
+  successLabel,
+  feedbackLines,
+  mode,
+  className,
+  headlineClassName,
+  testId,
+}: WriteOperationResultProps) {
+  return (
+    <div
+      className={className ?? "app-sandbox-write__result"}
+      role="status"
+      data-committed={String(committed)}
+      data-testid={testId}
+    >
+      <p className={headlineClassName ?? "app-sandbox-write__result-headline"}>
+        {formatWriteOperationHeadline(committed, successLabel, mode)}
+      </p>
+      <ul className="app-sandbox-write__feedback" aria-label="Write operation feedback">
+        {feedbackLines.map((line) => (
+          <li key={line}>{line}</li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

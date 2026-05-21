@@ -3,7 +3,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DBFFile } from "dbffile";
-import { SafeWritePlanSchema } from "@microdent/contracts";
 import { createBridgeApp } from "./app.js";
 import { parseDataRootFromValue } from "./config.js";
 import { readPatientProfileFromDbf } from "./dbf/patient-profile.js";
@@ -11,6 +10,7 @@ import { ALLOW_LEGACY_WRITES_ACK } from "./write-safety/constants.js";
 import { writeScheduleFixtures } from "./test-fixtures/schedule-fixtures.js";
 import { writeSandboxMarker } from "./test-fixtures/write-sandbox.js";
 import {
+  assertSafeWritePlanExcludesKnownSecrets,
   assertSafeWritePlanJson,
   withEnabledSandboxServer,
   withHttpServer,
@@ -123,9 +123,8 @@ describe("PATCH patient demographics — sandbox write band", () => {
       const res = await patchDemographics(port, "50001", validDemographicsBody, { "X-Write-Intent": "dry-run" });
       expect(res.status).toBe(200);
       const text = await res.text();
-      assertSafeWritePlanJson(text);
-      expect(text).not.toContain("Synthetic Schedule Patient");
-      const parsed = SafeWritePlanSchema.parse(JSON.parse(text));
+      const parsed = assertSafeWritePlanJson(text);
+      assertSafeWritePlanExcludesKnownSecrets(text, parsed);
       expect(parsed.committed).toBe(false);
       expect(parsed.mode).toBe("dry-run");
       expect(statSync(patientPath).mtimeMs).toBe(mtimeBefore);
@@ -155,10 +154,8 @@ describe("PATCH patient demographics — sandbox write band", () => {
       const res = await patchDemographics(port, "50001", validDemographicsBody);
       expect(res.status).toBe(200);
       const text = await res.text();
-      assertSafeWritePlanJson(text);
-      expect(text).not.toMatch(/555/);
-      expect(text).not.toContain("Synthetic Schedule Patient");
-      const parsed = SafeWritePlanSchema.parse(JSON.parse(text));
+      const parsed = assertSafeWritePlanJson(text);
+      assertSafeWritePlanExcludesKnownSecrets(text, parsed);
       expect(parsed.committed).toBe(true);
       expect(parsed.workflow).toBe("patient.demographics.update");
 

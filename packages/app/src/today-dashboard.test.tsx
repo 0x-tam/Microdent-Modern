@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { DashboardHome } from "./today-dashboard.js";
+import { isMirrorImportStale } from "./mirror-stale.js";
 import { assertNoForbiddenDomTokens } from "./read-only-smoke-fixtures.js";
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -156,7 +157,9 @@ describe("DashboardHome (Today schedule)", () => {
       await Promise.resolve();
     });
 
-    expect(container.textContent).toContain("2 on the schedule today");
+    expect(container.textContent).toContain("Today's appointments");
+    expect(container.textContent).toContain("2");
+    expect(container.textContent).toContain("On the schedule today");
     expect(container.textContent).toContain("08:00");
     expect(container.textContent).toContain("Synthetic Dashboard One");
     expect(container.textContent).toContain("DASH-501");
@@ -284,7 +287,7 @@ describe("DashboardHome (Today schedule)", () => {
       await Promise.resolve();
       await Promise.resolve();
     });
-    expect(container.textContent).toMatch(/Could not load the schedule/i);
+    expect(container.textContent).toMatch(/Schedule unavailable/i);
     expect(container.textContent).toMatch(/Retry/i);
   });
 
@@ -567,5 +570,252 @@ describe("DashboardHome (Today schedule)", () => {
 
     expect(container.textContent).toContain("Synthetic Dashboard One");
     expect(container.textContent).toContain("Doctor 3");
+  });
+
+  it("shows status strip count and mirror freshness in the aside", async () => {
+    vi.useFakeTimers({ now: new Date(2026, 5, 15, 10, 30, 0), toFake: ["Date"] });
+    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
+      const u = String(input);
+      if (u.includes("/v1/schedule/appointments")) {
+        return Promise.resolve(
+          jsonResponse({
+            appointments: [appt({ id: "1", date: "2026-06-15", time: "09:00", patId: "501", patient: null })],
+          }),
+        );
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <DashboardHome
+          onOpenModule={() => {}}
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          mirrorStatus={{
+            sqliteConfigured: true,
+            sqliteUsable: true,
+            importedTables: ["appointments"],
+            latestImportRuns: [
+              {
+                tableName: "appointments",
+                status: "success",
+                rowCount: 1,
+                errorCount: 0,
+                finishedAt: new Date(2026, 5, 14, 12, 0, 0).toISOString(),
+              },
+            ],
+          }}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain("Data freshness");
+    expect(container.textContent).toContain("SQLite mirror active");
+    const countIdx = container.textContent?.indexOf("Today's appointments") ?? -1;
+    expect(countIdx).toBeGreaterThan(-1);
+    expect(container.textContent).toContain("1");
+  });
+
+  it("shows mirror stale copy in status strip and schedule advisory", async () => {
+    vi.useFakeTimers({ now: new Date(2026, 5, 15, 10, 30, 0), toFake: ["Date"] });
+    const staleMirrorStatus = {
+      sqliteConfigured: true,
+      sqliteUsable: true,
+      importedTables: ["appointments"],
+      latestImportRuns: [
+        {
+          tableName: "appointments",
+          status: "success" as const,
+          rowCount: 1,
+          errorCount: 0,
+          finishedAt: "2026-04-01T12:00:00.000Z",
+        },
+      ],
+    };
+    expect(isMirrorImportStale(staleMirrorStatus, Date.parse("2026-06-15T17:30:00.000Z"))).toBe(true);
+    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
+      const u = String(input);
+      if (u.includes("/v1/schedule/appointments")) {
+        return Promise.resolve(jsonResponse({ appointments: [] }));
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <DashboardHome
+          onOpenModule={() => {}}
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          mirrorStatus={staleMirrorStatus}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toMatch(/Local copy may be outdated/i);
+    expect(container.textContent).toMatch(/older than 48 hours/i);
+    assertNoForbiddenDomTokens(container.textContent ?? "");
+  });
+
+  it("shows selected patient card when selectedPatientId is set", async () => {
+    vi.useFakeTimers({ now: new Date(2026, 5, 15, 10, 30, 0), toFake: ["Date"] });
+    const fetchImpl = vi.fn(() => Promise.resolve(jsonResponse({ appointments: [] })));
+
+    await act(async () => {
+      root.render(
+        <DashboardHome
+          onOpenModule={() => {}}
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          selectedPatientId="501"
+          selectedPatientDisplayName="Synthetic Selected Patient"
+          selectedPatientChartNumber="SEL-501"
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain("Selected patient");
+    expect(container.textContent).toContain("Synthetic Selected Patient");
+    expect(container.textContent).toContain("Chart SEL-501");
+    expect(container.textContent).toContain("Open record");
+    assertNoForbiddenDomTokens(container.textContent ?? "");
+  });
+
+  it("calls onOpenPatient when open patient is clicked on an appointment row", async () => {
+    vi.useFakeTimers({ now: new Date(2026, 5, 15, 8, 0, 0), toFake: ["Date"] });
+    const onOpenPatient = vi.fn();
+    const fetchImpl = vi.fn(() =>
+      Promise.resolve(
+        jsonResponse({
+          appointments: [
+            appt({
+              id: "1",
+              date: "2026-06-15",
+              time: "09:00",
+              patId: "501",
+              patient: { patientId: "501", displayName: "Row Open Synth", chartNumber: "ROW-501" },
+            }),
+          ],
+        }),
+      ),
+    );
+
+    await act(async () => {
+      root.render(
+        <DashboardHome
+          onOpenModule={() => {}}
+          onOpenPatient={onOpenPatient}
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const btn = Array.from(container.querySelectorAll("button")).find((b) =>
+      b.textContent?.includes("Open patient record"),
+    );
+    expect(btn).toBeTruthy();
+    await act(async () => {
+      btn!.click();
+    });
+    expect(onOpenPatient).toHaveBeenCalledWith("501", {
+      displayName: "Row Open Synth",
+      chartNumber: "ROW-501",
+    });
+    assertNoForbiddenDomTokens(container.textContent ?? "");
+  });
+
+  it("quick actions navigate via onOpenModule stubs", async () => {
+    vi.useFakeTimers({ now: new Date(2026, 5, 15, 10, 30, 0), toFake: ["Date"] });
+    const onOpenModule = vi.fn();
+    const fetchImpl = vi.fn(() => Promise.resolve(jsonResponse({ appointments: [] })));
+
+    await act(async () => {
+      root.render(
+        <DashboardHome
+          onOpenModule={onOpenModule}
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const settingsBtn = Array.from(container.querySelectorAll("button")).find((b) =>
+      b.textContent?.trim() === "Open settings",
+    );
+    expect(settingsBtn).toBeTruthy();
+    await act(async () => {
+      settingsBtn!.click();
+    });
+    expect(onOpenModule).toHaveBeenCalledWith("settings");
+    expect(container.textContent).toMatch(/Pilot readiness checklist/i);
+    expect(container.textContent).toMatch(/not available in this pilot build/i);
+    assertNoForbiddenDomTokens(container.textContent ?? "");
+  });
+
+  it("refresh today re-fetches schedule appointments", async () => {
+    vi.useFakeTimers({ now: new Date(2026, 5, 15, 10, 30, 0), toFake: ["Date"] });
+    let callCount = 0;
+    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
+      const u = String(input);
+      if (u.includes("/v1/schedule/appointments")) {
+        callCount += 1;
+        return Promise.resolve(jsonResponse({ appointments: [] }));
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <DashboardHome
+          onOpenModule={() => {}}
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(callCount).toBe(1);
+
+    const refreshBtn = Array.from(container.querySelectorAll("button")).find((b) =>
+      b.textContent?.includes("Refresh today"),
+    );
+    expect(refreshBtn).toBeTruthy();
+    await act(async () => {
+      refreshBtn!.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(callCount).toBe(2);
   });
 });

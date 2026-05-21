@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { once } from "node:events";
 import { expect } from "vitest";
+import { SafeWritePlanSchema, type SafeWritePlan } from "@microdent/contracts";
 import type { BridgeConfigInput } from "../config.js";
 import { createBridgeApp } from "../app.js";
 import { parseBackupDirFromValue, parseDataRootFromValue, type DataRootSet } from "../config.js";
@@ -30,8 +31,25 @@ export async function withHttpServer(
   }
 }
 
+/** Known synthetic PATIENT.DBF row values that must never appear in SafeWritePlan JSON. */
+export const SCHEDULE_FIXTURE_PATIENT_50001_SECRETS = [
+  "Synthetic Schedule Patient",
+  "(555) 200-3001",
+] as const;
+
+const FORBIDDEN_PII_FIELD_NAMES = new Set([
+  "HOME_PHONE",
+  "MOBILE",
+  "TELEPHONE",
+  "phone",
+  "address",
+  "notes",
+  "COMMENT",
+  "PAT_NAME",
+]);
+
 /** Asserts SafeWritePlan JSON never leaks PHI, row payloads, or synthetic fixture tokens. */
-export function assertSafeWritePlanJson(text: string): void {
+export function assertSafeWritePlanJson(text: string): SafeWritePlan {
   expect(text).not.toMatch(/SYNTHETIC_/);
   expect(text).not.toMatch(/"before"\s*:/i);
   expect(text).not.toMatch(/"after"\s*:/i);
@@ -41,6 +59,30 @@ export function assertSafeWritePlanJson(text: string): void {
   expect(text).not.toMatch(/"COMMENT"/i);
   expect(text).not.toMatch(/"HOME_PHONE"/i);
   expect(text).not.toMatch(/"(amount|balance|fee|charge)"/i);
+  return SafeWritePlanSchema.parse(JSON.parse(text));
+}
+
+/**
+ * Field-scoped privacy guard: rejects known fixture secrets in plan content and
+ * forbidden PII field names in fieldsChanged. Does not scan operationId UUIDs
+ * for arbitrary digit substrings (avoids false positives).
+ */
+export function assertSafeWritePlanExcludesKnownSecrets(
+  text: string,
+  plan: SafeWritePlan,
+  literalSecrets: readonly string[] = SCHEDULE_FIXTURE_PATIENT_50001_SECRETS,
+): void {
+  for (const secret of literalSecrets) {
+    expect(text).not.toContain(secret);
+  }
+  for (const change of plan.fieldsChanged) {
+    expect(FORBIDDEN_PII_FIELD_NAMES.has(change.field)).toBe(false);
+  }
+  for (const warning of plan.warnings) {
+    for (const secret of literalSecrets) {
+      expect(warning.message).not.toContain(secret);
+    }
+  }
 }
 
 export type EnabledSandboxHandles = {

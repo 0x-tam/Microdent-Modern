@@ -6,6 +6,7 @@ import {
   formatWriteOperationFeedbackLines,
   resolveWriteAuditFeedback,
 } from "./write-operation-feedback.js";
+import { assertNoForbiddenDomTokens } from "./read-only-smoke-fixtures.js";
 
 const operationId = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
 
@@ -87,7 +88,7 @@ describe("formatWriteOperationFeedbackLines", () => {
     expect(text).toContain("Backup created");
     expect(text).toContain("legacy-restore");
     expect(text).toContain("sandbox pilot only");
-    expect(text).toContain("never production legacy");
+    assertNoForbiddenDomTokens(text);
     expect(text).not.toMatch(/DATA_ROOT|manifest|before|after|PAT_NAME/i);
     expect(text).not.toMatch(/C:\\\\|\/Users\//);
   });

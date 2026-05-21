@@ -5,6 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { BridgeClientError } from "@microdent/bridge-client";
 import {
   PatientProfilePanel,
+  PROFILE_TAB_DESCRIPTIONS,
   safePatientAppointmentsError,
   safePatientChartError,
   safePatientLedgerError,
@@ -12,6 +13,8 @@ import {
   safePatientProfileError,
   safePatientTreatmentsError,
 } from "./PatientProfilePanel.js";
+import { PATIENT_DEMOGRAPHICS_WRITE_CONFIRM } from "./patient-demographics-write.js";
+import { PATIENT_TAB_HIDDEN_FIELDS_NOTE } from "./read-only-ui-copy.js";
 import { defaultPatientApptRange, inclusiveDayCount } from "./patient-appointments-range.js";
 import { assertNoForbiddenDomTokens } from "./read-only-smoke-fixtures.js";
 
@@ -1163,6 +1166,7 @@ describe("PatientProfilePanel", () => {
     expect(t).not.toMatch(/\b(PROBLEM|ALLERGY_TO|NOTES)\b/);
     expect(t).not.toMatch(/\braw row\b/i);
     expect(t).not.toContain("SYNTHETIC_MEDICAL_FREE_TEXT");
+    assertNoForbiddenDomTokens(t);
   });
 
   it("shows error state when medical summary cannot be loaded", async () => {
@@ -1522,7 +1526,7 @@ describe("PatientProfilePanel", () => {
     await flush();
     const t = container.textContent ?? "";
     expect(t).toMatch(/Ledger lines are read-only/i);
-    expect(t).toMatch(/Amounts, memo text, and insurance identifiers stay hidden/i);
+    expect(t).toMatch(/Dollar amounts, running balances, and payment totals are never shown/i);
     expect(t).toContain("Charge type 2");
     expect(t).toContain("Payment type 100");
     expect(t).toContain("Card payment");
@@ -1560,6 +1564,7 @@ describe("PatientProfilePanel", () => {
     expect(t).not.toMatch(/\braw row\b/i);
     expect(t).not.toContain("SYNTHETIC_LEDGER_MEMO_TOKEN");
     expect(t).not.toContain("9876.54");
+    assertNoForbiddenDomTokens(t);
   });
 
   it("activates Chart tab and shows panel", async () => {
@@ -1709,6 +1714,7 @@ describe("PatientProfilePanel", () => {
     expect(t).not.toContain("SYNTHETIC_CHART_MEMO_TOKEN");
     expect(t).not.toContain("LEAKED PATIENT NAME FROM CHART");
     expect(t).not.toContain("F2_S");
+    assertNoForbiddenDomTokens(t);
   });
 
   it("still renders appointments when reference doctors fail", async () => {
@@ -1747,5 +1753,254 @@ describe("PatientProfilePanel", () => {
 
     expect(container.textContent).toContain("Doctor 5");
     expect(container.textContent).toContain("Room 3");
+  });
+
+  it("shows profile header strip with chart, provider, status, and record id", async () => {
+    const fetchImpl = withReferenceDoctors((input) => {
+      const u = String(input);
+      if (u.includes("/profile")) {
+        return Promise.resolve(jsonResponse(validProfile));
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    expect(container.querySelector(".app-patient-profile__header-strip")).toBeTruthy();
+    expect(container.textContent).toContain("Synthetic Profile Patient");
+    expect(container.textContent).toContain("SYN-CHART");
+    expect(container.textContent).toContain("Synthetic Provider Profile");
+    expect(container.textContent).toContain("Active");
+    expect(container.textContent).toContain("Record id");
+    expect(container.textContent).toContain("42");
+    assertNoForbiddenDomTokens(container.textContent ?? "");
+  });
+
+  it("shows a one-line description for the active tab", async () => {
+    const fetchImpl = withReferenceDoctors((input) => {
+      const u = String(input);
+      if (u.includes("/profile")) {
+        return Promise.resolve(jsonResponse(validProfile));
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    const desc = container.querySelector("#patient-tab-desc-summary");
+    expect(desc?.textContent).toBe(PROFILE_TAB_DESCRIPTIONS.summary);
+  });
+
+  it("formats appointment day headers instead of raw ISO dates", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 4, 15));
+
+    const fetchImpl = withReferenceDoctors((input) => {
+      const u = String(input);
+      if (u.includes("/profile")) {
+        return Promise.resolve(jsonResponse(validProfile));
+      }
+      if (u.includes("/appointments")) {
+        return Promise.resolve(jsonResponse({ appointments: [syntheticAppt] }));
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    await clickAppointmentsTab(container);
+    await flush();
+
+    const dayTitle = container.querySelector(".app-patient-profile__appt-day-title");
+    expect(dayTitle?.textContent ?? "").not.toBe("2026-05-20");
+    expect(dayTitle?.querySelector("time")?.getAttribute("dateTime")).toBe("2026-05-20");
+    expect(dayTitle?.textContent ?? "").toMatch(/May/i);
+  });
+
+  it("shows hidden-in-viewer note on clinical tabs", async () => {
+    const fetchImpl = withReferenceDoctors(
+      treatmentsFetchHandler({
+        patientId: "42",
+        treatments: [syntheticTreatment],
+        truncated: false,
+        privacyNote: TREATMENTS_PRIVACY_NOTE,
+      }),
+    );
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+    await clickTreatmentsTab(container);
+    await flush();
+    expect(container.textContent).toContain(PATIENT_TAB_HIDDEN_FIELDS_NOTE);
+  });
+
+  it("keeps selection when typing in change-patient search", async () => {
+    const onClearPatient = vi.fn();
+    const fetchImpl = withReferenceDoctors((input) => {
+      const u = String(input);
+      if (u.includes("/profile")) {
+        return Promise.resolve(jsonResponse(validProfile));
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+          onClearPatient={onClearPatient}
+        />,
+      );
+    });
+    await flush();
+
+    const changeBtn = Array.from(container.querySelectorAll("button")).find((b) =>
+      b.textContent?.includes("Search another patient"),
+    );
+    await act(async () => {
+      changeBtn?.click();
+    });
+
+    const input = container.querySelector("input#app-patients-page-search-input") as HTMLInputElement;
+    await act(async () => {
+      setSearchInputValue(input, "Ne");
+    });
+    expect(onClearPatient).not.toHaveBeenCalled();
+  });
+
+  it("refetches profile after demographics commit when sandbox pilot is enabled", async () => {
+    vi.stubGlobal("confirm", vi.fn(() => true));
+
+    const updatedProfile = { ...validProfile, displayName: "Updated Sandbox Label" };
+    const dryRunPlan = {
+      operationId: "f47ac10b-58cc-4372-a567-0e02b2c3d481",
+      workflow: "patient.demographics.update",
+      mode: "dry-run" as const,
+      tablesAffected: ["PATIENT"],
+      recordIds: ["42"],
+      fieldsChanged: [{ table: "PATIENT", recordId: "42", field: "NAME", changeType: "set" as const }],
+      backupRequired: true,
+      backupWouldCreate: true,
+      warnings: [],
+      committed: false,
+      createdAt: "2026-05-15T12:00:00.000Z",
+    };
+    const committedPlan = { ...dryRunPlan, committed: true, mode: "enabled" as const };
+    const readyCapability = {
+      writeMode: "enabled" as const,
+      writesPermitted: true,
+      writableSandbox: true,
+      dataRootConfigured: true,
+      backupDirConfigured: true,
+      sqlitePathConfigured: true,
+    };
+
+    let profileFetches = 0;
+    const fetchImpl = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const u = String(input);
+      const intent = (init?.headers as Record<string, string> | undefined)?.["X-Write-Intent"];
+      if (u.includes("/v1/reference/doctors")) {
+        return Promise.resolve(jsonResponse(syntheticDoctors));
+      }
+      if (u.includes("/profile")) {
+        profileFetches += 1;
+        return Promise.resolve(jsonResponse(profileFetches > 1 ? updatedProfile : validProfile));
+      }
+      if (u.includes("/demographics") && intent === "dry-run") {
+        return Promise.resolve(jsonResponse(dryRunPlan));
+      }
+      if (u.includes("/demographics") && intent === "commit") {
+        return Promise.resolve(jsonResponse(committedPlan));
+      }
+      if (u.includes("/write-audit-recent")) {
+        return Promise.resolve(jsonResponse({ sqliteConfigured: true, sqliteUsable: true, entries: [] }));
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <PatientProfilePanel
+          patientId="42"
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          sandboxWritePilot
+          writeCapability={readyCapability}
+          onBackToday={() => {}}
+          onClearPatient={() => {}}
+        />,
+      );
+    });
+    await flush();
+
+    expect(container.querySelector('[data-testid="patient-sandbox-demographics-section"]')).toBeTruthy();
+
+    const nameInput = container.querySelector<HTMLInputElement>('input[aria-label="Display name"]');
+    const proto = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value");
+    await act(async () => {
+      proto?.set?.call(nameInput, "Updated Sandbox Label");
+      nameInput?.dispatchEvent(new Event("input", { bubbles: true }));
+      nameInput?.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="patient-demographics-preview"]')?.click();
+    });
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="patient-demographics-apply"]')?.click();
+    });
+
+    expect(window.confirm).toHaveBeenCalledWith(PATIENT_DEMOGRAPHICS_WRITE_CONFIRM);
+    await flush();
+    expect(profileFetches).toBeGreaterThanOrEqual(2);
+    expect(container.textContent).toContain("Updated Sandbox Label");
+
+    vi.unstubAllGlobals();
   });
 });

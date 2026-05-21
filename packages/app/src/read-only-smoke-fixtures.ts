@@ -14,7 +14,14 @@ export const SMOKE_LEAKED_VALUES = {
   desc: "SYNTHETIC_LEAKED_DESC_FIELD",
   amount: "98765.43",
   samount: "11111.22",
+  paymentAmount: "9876.54",
   rawRow: "SYNTHETIC_RAW_ROW_JSON_BLOB",
+  insurance: "SYNTHETIC_LEAKED_INSURANCE_PLAN_ID",
+  medicalText: "SYNTHETIC_MEDICAL_FREE_TEXT",
+  address: "987 Synthetic Leak Street",
+  email: "leaked-smoke-patient@example.invalid",
+  chartMemo: "SYNTHETIC_CHART_MEMO_TOKEN",
+  ledgerMemo: "SYNTHETIC_LEDGER_MEMO_TOKEN",
 } as const;
 
 export const smokeProfile = {
@@ -189,6 +196,7 @@ export function createReadOnlySmokeFetch(): (input: RequestInfo | URL) => Promis
     }
 
     if (u.includes(`/v1/patients/${SMOKE_PATIENT_ID}/profile`)) {
+      // Profile schema is strict — keep mock DTO shape valid so the smoke flow can load the panel.
       return Promise.resolve(jsonResponse(smokeProfile));
     }
 
@@ -353,12 +361,20 @@ export function createReadOnlySmokeFetch(): (input: RequestInfo | URL) => Promis
 const DOM_FORBIDDEN_FIELD_LABELS = [
   "PAT_NAME",
   "TELEPHONE",
+  "HOME_PHONE",
   "COMMENT",
   "NOTE",
+  "NOTES",
   "DESCRIPT",
   "DESC",
   "AMOUNT",
   "SAMOUNT",
+  "INSURANCE",
+  "STREET",
+  "EMAIL",
+  "ADDRESS",
+  "PROBLEM",
+  "ALLERGY_TO",
 ] as const;
 
 /** Asserts read-only UI never surfaces legacy field labels or leaked mock values. */
@@ -368,6 +384,7 @@ export function assertNoForbiddenDomTokens(text: string): void {
   }
   expect(text).not.toMatch(/\bNOTE body\b/i);
   expect(text).not.toMatch(/\braw row\b/i);
+  expect(text).not.toMatch(/\braw json\b/i);
   expect(text).not.toContain("rawRow");
 
   expect(text).not.toContain(SMOKE_LEAKED_VALUES.telephone);
@@ -377,7 +394,15 @@ export function assertNoForbiddenDomTokens(text: string): void {
   expect(text).not.toContain(SMOKE_LEAKED_VALUES.desc);
   expect(text).not.toContain(SMOKE_LEAKED_VALUES.amount);
   expect(text).not.toContain(SMOKE_LEAKED_VALUES.samount);
+  expect(text).not.toContain(SMOKE_LEAKED_VALUES.paymentAmount);
   expect(text).not.toContain(SMOKE_LEAKED_VALUES.rawRow);
+  expect(text).not.toContain(SMOKE_LEAKED_VALUES.insurance);
+  expect(text).not.toContain(SMOKE_LEAKED_VALUES.medicalText);
+  expect(text).not.toContain(SMOKE_LEAKED_VALUES.address);
+  expect(text).not.toContain(SMOKE_LEAKED_VALUES.email);
+  expect(text).not.toContain(SMOKE_LEAKED_VALUES.chartMemo);
+  expect(text).not.toContain(SMOKE_LEAKED_VALUES.ledgerMemo);
   expect(text).not.toContain("LEAKED SCHEDULE PAT_NAME");
+  expect(text).not.toContain("LEAKED PATIENT NAME FROM CHART");
   expect(text).not.toContain("SHOULD-NOT-SHOW");
 }

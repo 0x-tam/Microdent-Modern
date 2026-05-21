@@ -78,8 +78,22 @@ describe("AppShell", () => {
     expect(html).toContain("Patients");
     expect(html).toContain("Schedule");
     expect(html).toContain("Settings");
-    expect(html).not.toContain("Dental Chart");
-    expect(html).toMatch(/Chart, Treatments, and Ledger preview are under Patients/i);
+    expect(html).not.toMatch(/app-sidebar__btn-label">Dental Chart/);
+    expect(html).toContain("app-sidebar__btn-sublabel");
+    expect(html).toMatch(/Payments and Reports are not available in this read-only viewer yet/i);
+  });
+
+  it("renders page title and module description from nav metadata", () => {
+    const html = renderToStaticMarkup(<AppShell />);
+    expect(html).toContain('id="app-main-heading"');
+    expect(html).toContain("Who is on the schedule, what is next, and where to go next.");
+    expect(html).toContain("Front desk dashboard");
+  });
+
+  it("does not show Back to Today or patient context chip on the default Today view", () => {
+    const html = renderToStaticMarkup(<AppShell />);
+    expect(html).not.toContain("app-main__back-today");
+    expect(html).not.toContain("app-main__patient-context-chip");
   });
 
   it("marks the default section with aria-current on the active module control", () => {

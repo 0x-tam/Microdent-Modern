@@ -12,6 +12,13 @@
   --app-dashboard-col-aside: minmax(228px, min(300px, 28vw));
   --app-dashboard-gap: clamp(12px, 1.8vw, 20px);
   --app-topbar-gap: clamp(10px, 1.6vw, 20px);
+  --app-section-gap: clamp(var(--ui-space-3), 1.4vw, var(--ui-space-4));
+  --app-card-pad: clamp(var(--ui-space-4), 1.5vw, var(--ui-space-5));
+  --app-card-pad-compact: var(--ui-space-4);
+  --app-text-meta: 13px;
+  --app-text-body: 15px;
+  --app-text-lede: clamp(15px, 0.88rem + 0.35vw, 16px);
+  --app-control-min-h: 36px;
 }
 
 @media (min-width: 1200px) {
@@ -33,7 +40,96 @@
     --app-main-pad-y: clamp(12px, 1.6vw, 20px);
     --app-sidebar-w: clamp(168px, 14vw, 200px);
     --app-topbar-gap: clamp(8px, 1.4vw, 16px);
+    --app-card-pad-compact: var(--ui-space-3);
   }
+}
+
+
+/* ----- Shared UX primitives (controls, badges, write panels) ----- */
+.app-form-control,
+.app-schedule__select,
+.app-appt-status-write__select,
+.app-sandbox-write__label input,
+.app-sandbox-write__label select {
+  min-height: var(--app-control-min-h);
+  padding: 0 var(--ui-space-2);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-primary);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.app-form-control:disabled,
+.app-schedule__select:disabled,
+.app-appt-status-write__select:disabled,
+.app-sandbox-write__label input:disabled,
+.app-sandbox-write__label select:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  background: var(--ui-bg-subtle);
+}
+
+.app-form-control:focus-visible,
+.app-schedule__select:focus-visible,
+.app-appt-status-write__select:focus-visible,
+.app-sandbox-write__label input:focus-visible,
+.app-sandbox-write__label select:focus-visible,
+.app-topbar-search__input:focus-visible {
+  outline: var(--ui-focus-ring-width) solid var(--ui-focus-ring-color);
+  outline-offset: var(--ui-focus-ring-offset);
+}
+
+.app-badge,
+.app-appt-list__pill,
+.app-patient-profile__tab-badge,
+.app-schedule__write-mode-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  padding: 2px 8px;
+  border-radius: var(--ui-radius-sm);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-secondary);
+}
+
+.app-appt-list__pill {
+  font-size: 12px;
+  font-weight: 600;
+  border-style: dashed;
+}
+
+.app-sandbox-write > summary,
+.app-appt-write-actions > summary,
+.app-appt-write-actions__summary,
+.app-sandbox-write__summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.app-sandbox-write > summary::-webkit-details-marker,
+.app-appt-write-actions > summary::-webkit-details-marker {
+  display: none;
+}
+
+.app-sandbox-write > summary::before,
+.app-appt-write-actions > summary::before {
+  content: "▸";
+  display: inline-block;
+  margin-right: var(--ui-space-1);
+  transition: transform var(--ui-duration-hover) var(--ui-ease-out);
+}
+
+.app-sandbox-write[open] > summary::before,
+.app-appt-write-actions[open] > summary::before {
+  transform: rotate(90deg);
 }
 
 .app-shell {
@@ -2757,4 +2853,474 @@
   content: "⚙";
   margin-right: 0.35em;
   opacity: 0.75;
+}
+
+/* ----- UX consistency pass (Workstream I — last editor) ----- */
+.app-main__lede {
+  font-size: var(--app-text-lede);
+}
+
+.app-main__content .ui-card__body {
+  padding: var(--app-card-pad);
+}
+
+.app-main__content .ui-card__header {
+  padding-bottom: var(--ui-space-3);
+}
+
+.app-dashboard__primary .ui-card__body,
+.app-dashboard__aside .ui-card__body {
+  padding: var(--app-card-pad-compact);
+}
+
+.app-settings__grid .ui-card__body {
+  padding: var(--app-card-pad-compact);
+}
+
+/* Shell header + patient context (AppShellNav) */
+.app-main__head-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ui-space-2) var(--ui-space-3);
+}
+
+.app-main__head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--ui-space-2);
+}
+
+.app-main__back-today {
+  min-height: 32px;
+}
+
+.app-main__patient-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-2);
+  margin: 0;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-surface);
+  font-size: var(--app-text-meta);
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+.app-main__patient-context-chip {
+  font-weight: 600;
+  color: var(--ui-text-primary);
+}
+
+.app-main__patient-context-clear {
+  margin-left: auto;
+}
+
+.app-sidebar__btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.app-sidebar__btn-label {
+  font-weight: inherit;
+}
+
+.app-sidebar__btn-sublabel {
+  font-size: clamp(11px, 1.05vw, 12px);
+  font-weight: 400;
+  line-height: 1.35;
+  color: var(--ui-text-muted);
+}
+
+.app-sidebar__btn[aria-current="true"] .app-sidebar__btn-sublabel {
+  color: var(--ui-primary-700);
+  opacity: 0.85;
+}
+
+/* Read-only state modifiers — unified across modules */
+.app-patient-profile__status.app-readonly-state,
+.app-schedule__state.app-readonly-state,
+.app-next-patient__hint.app-readonly-state {
+  margin-top: var(--ui-space-2);
+}
+
+.app-patient-profile__error.app-readonly-state {
+  padding: var(--ui-space-3) var(--ui-space-4);
+}
+
+.app-dashboard-sched__offline,
+.app-dashboard-sched__waiting,
+.app-dashboard-sched__loading,
+.app-dashboard-sched__empty {
+  margin: 0;
+  padding: var(--ui-space-3) var(--ui-space-4);
+  font-size: var(--app-text-body);
+  line-height: 1.5;
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-subtle);
+  color: var(--ui-text-secondary);
+}
+
+.app-dashboard-sched__error {
+  padding: var(--ui-space-3) var(--ui-space-4);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-primary);
+}
+
+.app-dashboard-sched__error p {
+  margin: 0 0 var(--ui-space-2);
+}
+
+/* Today dashboard aside + schedule head */
+.app-dashboard-sched__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-2);
+}
+
+.app-dashboard-sched__refresh {
+  flex-shrink: 0;
+}
+
+.app-dashboard-sched__mirror-advisory {
+  margin: 0 0 var(--ui-space-2);
+  padding: var(--ui-space-2) var(--ui-space-3);
+  font-size: var(--app-text-meta);
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--ui-warning-600);
+  background: var(--ui-warning-50);
+  border: 1px solid rgba(180, 83, 9, 0.25);
+  border-radius: var(--ui-radius-md);
+}
+
+.app-dashboard-status-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ui-space-2);
+}
+
+.app-dashboard-status-card .ui-card__body {
+  padding: var(--app-card-pad-compact);
+}
+
+.app-dashboard-status-card--warning {
+  border-left: 3px solid var(--ui-warning-600);
+}
+
+.app-dashboard-status-card--info {
+  border-left: 3px solid var(--ui-primary-600);
+}
+
+.app-dashboard-status-card--neutral {
+  border-left: 3px solid var(--ui-border-strong);
+}
+
+.app-dashboard-status__value {
+  margin: 0 0 var(--ui-space-1);
+  font-size: clamp(1.5rem, 1.2rem + 1vw, 1.875rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  color: var(--ui-primary-700);
+}
+
+.app-dashboard-status__value--muted {
+  color: var(--ui-text-muted);
+  font-weight: 600;
+}
+
+.app-dashboard-status__label {
+  margin: 0 0 var(--ui-space-1);
+  font-size: var(--app-text-body);
+  font-weight: 600;
+  color: var(--ui-text-primary);
+}
+
+.app-dashboard-status__hint {
+  margin: 0;
+  font-size: var(--app-text-meta);
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+.app-next-patient-card .ui-card__body {
+  padding: var(--app-card-pad-compact);
+}
+
+.app-next-patient__patid-name {
+  font-weight: 600;
+}
+
+.app-dashboard-selected-patient .ui-card__body {
+  padding: var(--app-card-pad-compact);
+}
+
+.app-dashboard-selected-patient__name {
+  margin: 0 0 var(--ui-space-1);
+  font-size: var(--app-text-body);
+  font-weight: 600;
+  color: var(--ui-text-primary);
+}
+
+.app-dashboard-selected-patient__chart {
+  margin: 0 0 var(--ui-space-3);
+  font-size: var(--app-text-meta);
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+.app-dashboard-selected-patient__btn {
+  width: 100%;
+}
+
+.app-quick-actions__pilot-hint {
+  margin: var(--ui-space-3) 0 0;
+  font-size: var(--app-text-meta);
+  line-height: 1.45;
+  color: var(--ui-text-muted);
+}
+
+.app-appt-list__open-patient {
+  flex-shrink: 0;
+}
+
+.app-appt-list__patient-name {
+  font-weight: inherit;
+}
+
+/* Schedule toolbar polish */
+.app-schedule__range-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-1);
+}
+
+.app-schedule__range-meta {
+  margin: 0;
+  font-size: var(--app-text-meta);
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+.app-schedule__range-today-badge {
+  font-weight: 600;
+  color: var(--ui-primary-700);
+}
+
+.app-schedule__room-filter--empty {
+  font-size: var(--app-text-meta);
+  color: var(--ui-text-muted);
+}
+
+.app-schedule__room-filter-hint {
+  font-style: italic;
+}
+
+/* Write panels — tabs, blocked states (safety preserved) */
+.app-appt-write-actions__tab {
+  min-height: 28px;
+  padding: var(--ui-space-1) var(--ui-space-2);
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: var(--ui-radius-sm);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.app-appt-write-actions__tab[aria-selected="true"] {
+  border-color: var(--ui-danger-600);
+  background: var(--ui-bg-surface);
+  color: var(--ui-danger-600);
+}
+
+.app-appt-write-actions__tab:focus-visible {
+  outline: var(--ui-focus-ring-width) solid var(--ui-focus-ring-color);
+  outline-offset: var(--ui-focus-ring-offset);
+}
+
+.app-appt-write-actions--blocked,
+.app-sandbox-write--blocked,
+.app-appt-create-write.app-sandbox-write--blocked {
+  border-style: dashed;
+  border-color: var(--ui-border-subtle);
+  background: var(--ui-bg-subtle);
+}
+
+.app-appt-create-write {
+  margin-top: var(--ui-space-2);
+}
+
+.app-sandbox-write--blocked .app-sandbox-write__banner,
+.app-appt-write-actions--blocked .app-appt-write-actions__summary {
+  color: var(--ui-text-secondary);
+}
+
+/* Patient profile tabs + header strip */
+.app-patient-profile__tab:focus-visible {
+  outline: var(--ui-focus-ring-width) solid var(--ui-focus-ring-color);
+  outline-offset: var(--ui-focus-ring-offset);
+}
+
+.app-patient-profile__tab-desc {
+  margin: var(--ui-space-2) 0 0;
+  font-size: var(--app-text-meta);
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__tab-hidden-note {
+  margin: 0 0 var(--ui-space-2);
+  font-size: var(--app-text-meta);
+  line-height: 1.45;
+  color: var(--ui-text-muted);
+}
+
+.app-patient-profile__tab-section-title {
+  margin: var(--ui-space-3) 0 var(--ui-space-1);
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--ui-text-secondary);
+  letter-spacing: 0.01em;
+}
+
+.app-patient-profile__tab-section-title:first-child {
+  margin-top: 0;
+}
+
+.app-patient-profile__header-strip {
+  margin: 0 0 var(--ui-space-3);
+  padding: var(--ui-space-3);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-surface);
+}
+
+.app-patient-profile__header-dl {
+  margin: 0;
+  display: grid;
+  gap: var(--ui-space-2);
+}
+
+.app-patient-profile__header-row {
+  display: grid;
+  grid-template-columns: minmax(88px, 28%) 1fr;
+  gap: var(--ui-space-2);
+  align-items: baseline;
+  font-size: 14px;
+}
+
+.app-patient-profile__header-row dt {
+  margin: 0;
+  font-weight: 600;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__header-row dd {
+  margin: 0;
+  color: var(--ui-text-primary);
+  word-break: break-word;
+}
+
+.app-patient-profile__header-name {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.app-patient-profile__open-example {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__appt-day .ui-card__body {
+  padding: var(--app-card-pad-compact);
+}
+
+.app-patient-search__label {
+  font-size: var(--app-text-meta);
+  font-weight: 600;
+  color: var(--ui-text-secondary);
+}
+
+.app-fixture-panel__preview {
+  margin-top: var(--ui-space-2);
+  padding: var(--ui-space-2);
+  border-radius: var(--ui-radius-sm);
+  border: 1px dashed var(--ui-border-subtle);
+  background: var(--ui-bg-surface);
+}
+
+/* Settings container + doc refs */
+.app-settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-section-gap);
+  max-width: min(960px, 100%);
+}
+
+.app-settings__doc-ref {
+  font-size: 0.85em;
+  color: var(--ui-text-secondary);
+}
+
+.app-settings__mirror-truth {
+  margin: 0 0 var(--ui-space-2);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+/* Responsive — existing breakpoints only */
+@media (max-width: 1199px) {
+  .app-dashboard-status-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .app-main__patient-context {
+    width: 100%;
+  }
+
+  .app-patient-profile__header-row {
+    grid-template-columns: 1fr;
+    gap: var(--ui-space-1);
+  }
+}
+
+@media (min-width: 1200px) {
+  .app-dashboard__layout {
+    gap: var(--app-dashboard-gap);
+  }
+
+  .app-settings__grid {
+    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  }
+}
+
+@media (min-width: 1600px) {
+  .app-dashboard__layout {
+    --app-dashboard-col-aside: minmax(248px, min(320px, 26vw));
+  }
+
+  .app-schedule,
+  .app-settings {
+    max-width: min(1040px, 100%);
+  }
 }

@@ -1,8 +1,10 @@
-import { describe, expect, it } from "vitest";
+// @vitest-environment jsdom
+import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { SettingsPanel } from "./SettingsPanel.js";
 import type { BridgeDevStatusResponse, MirrorStatusResponse } from "@microdent/contracts";
 import { assertNoForbiddenDomTokens } from "./read-only-smoke-fixtures.js";
+import { MIRROR_IMPORT_STALE_MS } from "./mirror-stale.js";
 
 const writeCapBase: BridgeDevStatusResponse = {
   writeMode: "disabled",
@@ -212,5 +214,141 @@ describe("SettingsPanel", () => {
     expect(html).toContain("Windows execution: Deferred");
     expect(html).toContain("FIELD-TEST-START-HERE.md");
     assertNoForbiddenDomTokens(html);
+  });
+
+  it("renders danger banners for enabled writes outside sandbox", () => {
+    const html = renderToStaticMarkup(
+      <SettingsPanel
+        bridgePhase="connected"
+        writeCapability={{
+          ...writeCapBase,
+          writeMode: "enabled",
+          writesPermitted: false,
+          writableSandbox: false,
+          backupDirConfigured: false,
+        }}
+        mirrorStatus={mirrorEmpty}
+        onMirrorStatusChange={() => {}}
+      />,
+    );
+    expect(html).toContain("app-settings__danger-banners");
+    expect(html).toContain("Writes enabled outside sandbox");
+    expect(html).toContain("Backup required for commits");
+    expect(html).toContain("app-settings__card--warn");
+    assertNoForbiddenDomTokens(html);
+  });
+
+  it("renders eight-item pilot checklist when connected", () => {
+    const html = renderToStaticMarkup(
+      <SettingsPanel
+        bridgePhase="connected"
+        writeCapability={writeCapBase}
+        mirrorStatus={mirrorWithRuns}
+        onMirrorStatusChange={() => {}}
+      />,
+    );
+    expect(html).toContain("Pilot checklist");
+    expect(html.match(/class="app-settings__checklist-item app-settings__checklist-item--/g)?.length).toBe(8);
+    expect(html).toContain("DATA_ROOT safe (not production legacy)");
+    expect(html).toContain("Latest mirror import healthy");
+    assertNoForbiddenDomTokens(html);
+  });
+
+  it("shows mirror stale callout when import metadata is older than 48 hours", () => {
+    const staleFinishedAt = new Date(Date.now() - MIRROR_IMPORT_STALE_MS - 60_000).toISOString();
+    const staleMirror: MirrorStatusResponse = {
+      sqliteConfigured: true,
+      sqliteUsable: true,
+      importedTables: ["patients"],
+      latestImportRuns: [
+        {
+          tableName: "patients",
+          status: "success",
+          rowCount: 10,
+          errorCount: 0,
+          finishedAt: staleFinishedAt,
+        },
+      ],
+    };
+    const html = renderToStaticMarkup(
+      <SettingsPanel
+        bridgePhase="connected"
+        writeCapability={writeCapBase}
+        mirrorStatus={staleMirror}
+        onMirrorStatusChange={() => {}}
+      />,
+    );
+    expect(html).toContain("Mirror metadata is older than 48 hours");
+    expect(html).toContain("app-settings__card--warn");
+    assertNoForbiddenDomTokens(html);
+  });
+
+  it("shows pilot build metadata when fetch succeeds", async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          packageVersion: "0.9.0-pilot",
+          appVersion: "0.9.0",
+          gitCommit: "abc1234567890",
+          buildTimestampUtc: "2026-05-01T12:00:00.000Z",
+          releaseChannel: "pilot",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const { act } = await import("react");
+    const { createRoot } = await import("react-dom/client");
+    const container = document.createElement("div");
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <SettingsPanel
+          bridgePhase="connected"
+          writeCapability={writeCapBase}
+          mirrorStatus={mirrorEmpty}
+          onMirrorStatusChange={() => {}}
+          fetchImpl={fetchImpl as typeof fetch}
+        />,
+      );
+    });
+
+    await vi.waitFor(() => {
+      expect(container.textContent).toContain("0.9.0-pilot");
+    });
+
+    expect(container.textContent).toContain("abc1234");
+    expect(container.textContent).toContain("pilot");
+    assertNoForbiddenDomTokens(container.textContent ?? "");
+    root.unmount();
+  });
+
+  it("shows unavailable copy when pilot build fetch fails", async () => {
+    const fetchImpl = vi.fn(async () => new Response("", { status: 404 }));
+
+    const { act } = await import("react");
+    const { createRoot } = await import("react-dom/client");
+    const container = document.createElement("div");
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <SettingsPanel
+          bridgePhase="connected"
+          writeCapability={writeCapBase}
+          mirrorStatus={mirrorEmpty}
+          onMirrorStatusChange={() => {}}
+          fetchImpl={fetchImpl as typeof fetch}
+        />,
+      );
+    });
+
+    await vi.waitFor(() => {
+      expect(container.textContent).toContain("Build metadata unavailable");
+    });
+
+    assertNoForbiddenDomTokens(container.textContent ?? "");
+    root.unmount();
   });
 });

@@ -20,9 +20,14 @@ import {
   SCHEDULE_NAV_NEXT_WEEK,
   SCHEDULE_NAV_PREV_DAY,
   SCHEDULE_NAV_PREV_WEEK,
+  SCHEDULE_NAV_TODAY,
   SCHEDULE_PRIVACY_LEDE,
+  SCHEDULE_RANGE_APPOINTMENT_COUNT,
+  SCHEDULE_RANGE_INCLUDES_TODAY,
   SCHEDULE_ROOM_ALL,
+  SCHEDULE_ROOM_FILTER_EMPTY,
   SCHEDULE_ROOM_FILTER_LABEL,
+  SCHEDULE_ROOM_FILTER_LOADING,
   SCHEDULE_SANDBOX_WRITE_PILOT_BANNER,
   READONLY_STATE_RETRY,
   SCHEDULE_VIEW_DAY,
@@ -32,7 +37,6 @@ import {
 import { AppointmentCreateWriteAction } from "./AppointmentCreateWriteAction.js";
 import { AppointmentStatusDryRunAction } from "./AppointmentStatusDryRunAction.js";
 import { AppointmentWriteActionsPanel } from "./AppointmentWriteActionsPanel.js";
-import { isSandboxWriteReady } from "./sandbox-write-pilot.js";
 import { resolveWriteModeChip } from "./shell-status-banners.js";
 
 export type SchedulePanelProps = {
@@ -106,6 +110,20 @@ function inclusiveDayCount(from: string, to: string): number {
   const a = parseLocalIso(from).getTime();
   const b = parseLocalIso(to).getTime();
   return Math.floor((b - a) / 86_400_000) + 1;
+}
+
+function rangeIncludesToday(from: string, to: string): boolean {
+  const today = toLocalIsoDate(new Date());
+  return from <= today && today <= to;
+}
+
+function isViewingTodayRange(from: string, to: string, granularity: Granularity): boolean {
+  const today = toLocalIsoDate(new Date());
+  if (granularity === "day") {
+    return from === today;
+  }
+  const week = defaultWeekRange();
+  return from === week.from && to === week.to;
 }
 
 function statusLabel(code: number): string {
@@ -252,8 +270,6 @@ export function SchedulePanel({
   const [refreshTick, setRefreshTick] = useState(0);
   const [sandboxApplyEnabled, setSandboxApplyEnabled] = useState(false);
   const [writeCapability, setWriteCapability] = useState<BridgeDevStatusResponse | null>(null);
-  const sandboxWritesReady =
-    writeCapability !== null && isSandboxWriteReady(writeCapability);
 
   const [rooms, setRooms] = useState<ScheduleRoomItem[]>([]);
   const [appointments, setAppointments] = useState<ScheduleAppointmentItem[]>([]);
@@ -455,6 +471,16 @@ export function SchedulePanel({
     [rangeFrom, rangeTo, granularity],
   );
 
+  const includesToday = useMemo(
+    () => rangeIncludesToday(rangeFrom, rangeTo),
+    [rangeFrom, rangeTo],
+  );
+
+  const viewingToday = useMemo(
+    () => isViewingTodayRange(rangeFrom, rangeTo, granularity),
+    [rangeFrom, rangeTo, granularity],
+  );
+
   const grouped = useMemo(() => groupByDateThenRoom(appointments), [appointments]);
 
   const roomOptions = useMemo(() => {
@@ -507,13 +533,14 @@ export function SchedulePanel({
             </Button>
             <Button
               type="button"
-              variant="secondary"
+              variant={viewingToday ? "secondary" : "ghost"}
               size="compact"
-              className="ui-focusable"
+              className={`ui-focusable app-schedule__nav-today${viewingToday ? " app-schedule__nav-today--active" : ""}`}
               disabled={!canLoad || loading}
               onClick={goToday}
+              aria-current={viewingToday ? "date" : undefined}
             >
-              Today
+              {SCHEDULE_NAV_TODAY}
             </Button>
             <Button
               type="button"
@@ -549,6 +576,7 @@ export function SchedulePanel({
                     setRoomFilter(v === "" ? "" : Number.parseInt(v, 10));
                   }}
                   aria-label="Filter by room"
+                  aria-busy={loading && roomOptions.length === 0}
                 >
                   <option value="">{SCHEDULE_ROOM_ALL}</option>
                   {roomOptions.map((n) => (
@@ -558,6 +586,17 @@ export function SchedulePanel({
                   ))}
                 </select>
               </label>
+            ) : canLoad ? (
+              <span
+                className="app-schedule__room-filter app-schedule__room-filter--empty"
+                role="status"
+                aria-live="polite"
+              >
+                <span className="app-schedule__room-filter-label">{SCHEDULE_ROOM_FILTER_LABEL}</span>
+                <span className="app-schedule__room-filter-hint">
+                  {loading ? SCHEDULE_ROOM_FILTER_LOADING : SCHEDULE_ROOM_FILTER_EMPTY}
+                </span>
+              </span>
             ) : null}
             <Button
               type="button"
@@ -571,16 +610,26 @@ export function SchedulePanel({
             </Button>
           </div>
         </div>
-        <p
-          className="app-schedule__range"
-          aria-live="polite"
-          aria-label={`Schedule range: ${rangeHeading}`}
-        >
-          <time dateTime={`${rangeFrom}/${rangeTo}`}>{rangeHeading}</time>
-        </p>
+        <div className="app-schedule__range-block">
+          <p
+            className="app-schedule__range"
+            aria-live="polite"
+            aria-label={`Schedule range: ${rangeHeading}`}
+          >
+            <time dateTime={`${rangeFrom}/${rangeTo}`}>{rangeHeading}</time>
+          </p>
+          {!loading && !error && canLoad ? (
+            <p className="app-schedule__range-meta" role="status">
+              {SCHEDULE_RANGE_APPOINTMENT_COUNT(appointments.length)}
+              {includesToday ? (
+                <span className="app-schedule__range-today-badge"> · {SCHEDULE_RANGE_INCLUDES_TODAY}</span>
+              ) : null}
+            </p>
+          ) : null}
+        </div>
         <p className="app-schedule__privacy">{SCHEDULE_PRIVACY_LEDE}</p>
         {canLoad ? <p className="app-schedule__keyboard-hint">{SCHEDULE_KEYBOARD_HINT}</p> : null}
-        {sandboxPilotEnabled && sandboxWritesReady && canLoad ? (
+        {sandboxPilotEnabled && canLoad ? (
           <p className="app-schedule__sandbox-write-banner" role="status">
             {SCHEDULE_SANDBOX_WRITE_PILOT_BANNER}
           </p>
@@ -681,7 +730,7 @@ export function SchedulePanel({
                                   </Badge>
                                 ) : null}
                               </div>
-                              {bridgeBaseUrl && sandboxPilotEnabled && sandboxWritesReady ? (
+                              {bridgeBaseUrl && sandboxPilotEnabled && canLoad ? (
                                 <AppointmentWriteActionsPanel
                                   appointment={appt}
                                   bridgeBaseUrl={bridgeBaseUrl}
@@ -714,7 +763,7 @@ export function SchedulePanel({
       )}
 
       <div className="app-schedule__footer">
-        {bridgeBaseUrl && sandboxPilotEnabled && sandboxWritesReady ? (
+        {bridgeBaseUrl && sandboxPilotEnabled && canLoad ? (
           <AppointmentCreateWriteAction
             bridgeBaseUrl={bridgeBaseUrl}
             fetchImpl={fetchImpl}

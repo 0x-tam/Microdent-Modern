@@ -232,7 +232,39 @@ describe("PatientSearchBar", () => {
     expect(input.value).toBe("Demo Alpha");
   });
 
-  it("clears the query and closes results when Escape is pressed", async () => {
+  it("closes the dropdown on first Escape without clearing the query", async () => {
+    const fetchImpl = vi.fn(async () => {
+      return new Response(JSON.stringify(demoHitResponse), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+
+    act(() => {
+      root.render(
+        <PatientSearchBar bridgePhase="connected" bridgeBaseUrl="http://127.0.0.1:17890" fetchImpl={fetchImpl} />,
+      );
+    });
+    const input = container.querySelector("input#app-patient-search-input") as HTMLInputElement;
+    await act(async () => {
+      setSearchInputValue(input, "De");
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(320);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(hasSearchResultsDropdown(container)).toBe(true);
+
+    await act(async () => {
+      input.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    });
+    expect(hasSearchResultsDropdown(container)).toBe(false);
+    expect(input.value).toBe("De");
+  });
+
+  it("clears the query and closes results when Escape is pressed twice", async () => {
     const fetchImpl = vi.fn(async () => {
       return new Response(JSON.stringify(demoHitResponse), {
         status: 200,
@@ -267,6 +299,11 @@ describe("PatientSearchBar", () => {
       input.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     });
     expect(hasSearchResultsDropdown(container)).toBe(false);
+    expect(input.value).toBe("De");
+
+    await act(async () => {
+      input.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    });
     expect(input.value).toBe("");
     expect(onPatientSelectionClear).toHaveBeenCalled();
   });
@@ -491,5 +528,96 @@ describe("PatientSearchBar", () => {
     });
     expect(container.textContent).toContain("small data mapping fix");
     expect(container.textContent).toContain("Response shape mismatch");
+  });
+
+  it("navigates results with ArrowDown and ArrowUp and selects with Enter", async () => {
+    const fetchImpl = vi.fn(async () => {
+      const body = {
+        results: [
+          {
+            patientId: "90001",
+            chartNumber: "C-100",
+            displayName: "Demo Alpha",
+            phoneMask: "…9000",
+          },
+          {
+            patientId: "90002",
+            chartNumber: "C-200",
+            displayName: "Demo Beta",
+            phoneMask: null,
+          },
+        ],
+      };
+      return new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } });
+    });
+    const onPatientRecordSelect = vi.fn();
+
+    act(() => {
+      root.render(
+        <PatientSearchBar
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onPatientRecordSelect={onPatientRecordSelect}
+        />,
+      );
+    });
+    const input = container.querySelector("input#app-patient-search-input") as HTMLInputElement;
+    await act(async () => {
+      setSearchInputValue(input, "De");
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(320);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      input.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+      input.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    });
+    expect(container.querySelector(".app-patient-search__hit--active")?.textContent).toContain("Demo Beta");
+
+    await act(async () => {
+      input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    });
+    expect(onPatientRecordSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ patientId: "90002", displayName: "Demo Beta" }),
+    );
+  });
+
+  it("does not clear shell selection when clearSelectionOnQueryChange is false", async () => {
+    const onPatientSelectionClear = vi.fn();
+    act(() => {
+      root.render(
+        <PatientSearchBar
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          clearSelectionOnQueryChange={false}
+          onPatientSelectionClear={onPatientSelectionClear}
+        />,
+      );
+    });
+    const input = container.querySelector("input#app-patient-search-input") as HTMLInputElement;
+    await act(async () => {
+      setSearchInputValue(input, "Jo");
+    });
+    expect(onPatientSelectionClear).not.toHaveBeenCalled();
+  });
+
+  it("shows the open-record chip when selectedDisplayName is set on the topbar", () => {
+    act(() => {
+      root.render(
+        <PatientSearchBar
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          selectedDisplayName="Demo Alpha"
+        />,
+      );
+    });
+    expect(container.textContent).toMatch(/Open record:/i);
+    expect(container.textContent).toContain("Demo Alpha");
+    expect(container.querySelector(".app-patient-search__selected")).toBeTruthy();
   });
 });

@@ -7,7 +7,7 @@ import type {
   PatientTreatmentItem,
   ScheduleAppointmentItem,
 } from "@microdent/contracts";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge, Button, Card, CardBody, CardHeader, EmptyState } from "@microdent/ui";
 import type { BridgeDevStatusResponse } from "@microdent/contracts";
 import type { BridgeHealthPhase } from "./bridge-health.js";
@@ -59,16 +59,31 @@ import {
   PATIENT_TAB_LOADING_TREATMENTS,
   PATIENT_TAB_OFFLINE_TREATMENTS,
   PATIENT_CHANGE_PATIENT_LABEL,
+  PATIENT_PAGE_SEARCH_EXAMPLE,
   PATIENT_PAGE_SEARCH_LEDE,
   PATIENT_MODULE_TABS_HINT,
   PATIENT_PAGE_SEARCH_TITLE,
   PATIENT_PROFILE_READONLY_NOTE,
   PATIENT_TAB_APPOINTMENTS_LEDE,
   PATIENT_TAB_CHART_LEDE,
+  PATIENT_TAB_DESC_APPOINTMENTS,
+  PATIENT_TAB_DESC_CHART,
+  PATIENT_TAB_DESC_LEDGER,
+  PATIENT_TAB_DESC_MEDICAL,
+  PATIENT_TAB_DESC_SUMMARY,
+  PATIENT_TAB_DESC_TREATMENTS,
+  PATIENT_TAB_HIDDEN_FIELDS_NOTE,
   PATIENT_TAB_LEDGER_LEDE,
+  PATIENT_TAB_LEDGER_AMOUNTS_HIDDEN,
   PATIENT_TAB_MEDICAL_LEDE,
+  PATIENT_TAB_SECTION_CHART_ENTRIES,
+  PATIENT_TAB_SECTION_LEDGER_ENTRIES,
+  PATIENT_TAB_SECTION_PROCEDURE_HISTORY,
+  PATIENT_TAB_SECTION_QUESTIONNAIRE,
+  PATIENT_TAB_SECTION_SCREENING,
   PATIENT_TAB_SUMMARY_LEDE,
   PATIENT_TAB_TREATMENTS_LEDE,
+  READONLY_STATE_RETRY,
   SENSITIVE_MEDICAL_BANNER,
   TRUNCATED_LIST_BANNER,
 } from "./read-only-ui-copy.js";
@@ -154,6 +169,89 @@ export const PROFILE_TAB_ORDER: readonly { id: ProfileTab; label: string }[] = [
   { id: "chart", label: "Chart" },
   { id: "ledger", label: "Ledger preview" },
 ];
+
+export const PROFILE_TAB_DESCRIPTIONS: Record<ProfileTab, string> = {
+  summary: PATIENT_TAB_DESC_SUMMARY,
+  appointments: PATIENT_TAB_DESC_APPOINTMENTS,
+  medical: PATIENT_TAB_DESC_MEDICAL,
+  treatments: PATIENT_TAB_DESC_TREATMENTS,
+  chart: PATIENT_TAB_DESC_CHART,
+  ledger: PATIENT_TAB_DESC_LEDGER,
+};
+
+function formatApptDayHeading(dateIso: string): string {
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(new Date(dateIso + "T12:00:00"));
+  } catch {
+    return dateIso;
+  }
+}
+
+function ProfileTabHiddenNote() {
+  return (
+    <p className="app-patient-profile__tab-hidden-note" role="note">
+      {PATIENT_TAB_HIDDEN_FIELDS_NOTE}
+    </p>
+  );
+}
+
+function ProfileReadonlyError({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="app-readonly-state app-readonly-state--error app-patient-profile__error" role="alert">
+      <p>{message}</p>
+      <Button type="button" variant="secondary" className="ui-focusable" onClick={onRetry}>
+        {READONLY_STATE_RETRY}
+      </Button>
+    </div>
+  );
+}
+
+function ProfileHeaderStrip({
+  profile,
+  activeLabel,
+  doctorLabels,
+}: {
+  profile: PatientProfileResponse;
+  activeLabel: string | null;
+  doctorLabels: ReadonlyMap<string, string>;
+}) {
+  const provider =
+    profile.doctorId !== null
+      ? (doctorDisplayLabel(profile.doctorId, doctorLabels) ?? "—")
+      : "—";
+
+  return (
+    <div className="app-patient-profile__header-strip" role="region" aria-label="Patient record context">
+      <dl className="app-patient-profile__header-dl">
+        <div className="app-patient-profile__header-row">
+          <dt>Patient</dt>
+          <dd className="app-patient-profile__header-name">{profile.displayName}</dd>
+        </div>
+        <div className="app-patient-profile__header-row">
+          <dt>Chart</dt>
+          <dd>{profile.chartNumber ?? "—"}</dd>
+        </div>
+        <div className="app-patient-profile__header-row">
+          <dt>Provider</dt>
+          <dd>{provider}</dd>
+        </div>
+        <div className="app-patient-profile__header-row">
+          <dt>Status</dt>
+          <dd>{activeLabel ?? "—"}</dd>
+        </div>
+        <div className="app-patient-profile__header-row">
+          <dt>Record id</dt>
+          <dd>{profile.patientId}</dd>
+        </div>
+      </dl>
+    </div>
+  );
+}
 
 export function safePatientProfileError(e: unknown): string {
   if (e instanceof BridgeClientError) {
@@ -382,6 +480,7 @@ function TreatmentsBody({
           {TRUNCATED_LIST_BANNER}
         </p>
       ) : null}
+      <h4 className="app-patient-profile__tab-section-title">{PATIENT_TAB_SECTION_PROCEDURE_HISTORY}</h4>
       <ul className="app-patient-profile__treatment-list" aria-label="Procedure history">
         {sorted.map((t) => {
           const dateLabel = formatTreatmentDate(t.date);
@@ -432,9 +531,10 @@ function ChartBody({
     <div className="app-patient-profile__chart-body">
       {truncated ? (
         <p className="app-patient-profile__chart-banner" role="note">
-          Showing a capped set of chart rows only. Additional lines are omitted in this read-only preview.
+          {TRUNCATED_LIST_BANNER}
         </p>
       ) : null}
+      <h4 className="app-patient-profile__tab-section-title">{PATIENT_TAB_SECTION_CHART_ENTRIES}</h4>
       <ul className="app-patient-profile__chart-list" aria-label="Dental chart entries">
         {sorted.map((row) => (
           <li key={row.chartEntryId} className="app-patient-profile__chart-row">
@@ -538,6 +638,7 @@ function LedgerBody({
           {TRUNCATED_LIST_BANNER}
         </p>
       ) : null}
+      <h4 className="app-patient-profile__tab-section-title">{PATIENT_TAB_SECTION_LEDGER_ENTRIES}</h4>
       <ul className="app-patient-profile__ledger-list" aria-label="Ledger entries">
         {sorted.map((row) => {
           const dateLabel = formatLedgerDate(row.date);
@@ -585,6 +686,7 @@ function MedicalSummaryBody({ summary }: { summary: PatientMedicalSummaryRespons
         </p>
       ) : null}
 
+      <h4 className="app-patient-profile__tab-section-title">{PATIENT_TAB_SECTION_QUESTIONNAIRE}</h4>
       <dl className="app-patient-profile__dl">
         <div className="app-patient-profile__row">
           <dt>Questionnaire date</dt>
@@ -601,11 +703,14 @@ function MedicalSummaryBody({ summary }: { summary: PatientMedicalSummaryRespons
       </dl>
 
       {!sensitive && conditionItems.length > 0 ? (
-        <ul className="app-patient-profile__medical-flags" aria-label="Screening flags marked yes">
+        <>
+          <h4 className="app-patient-profile__tab-section-title">{PATIENT_TAB_SECTION_SCREENING}</h4>
+          <ul className="app-patient-profile__medical-flags" aria-label="Screening flags marked yes">
           {conditionItems.map((item) => (
             <li key={item.key}>{item.label}</li>
           ))}
-        </ul>
+          </ul>
+        </>
       ) : null}
 
       {!sensitive && conditionItems.length === 0 && summary.flaggedConditionCount === 0 ? (
@@ -1021,6 +1126,21 @@ export function PatientProfilePanel({
 
   const rangeHeading = formatApptRangeHeading(apptRange.from, apptRange.to);
 
+  const refreshOpenRecord = useCallback(() => {
+    setRetryNonce((n) => n + 1);
+    if (activeTab === "appointments") {
+      setApptRefreshNonce((n) => n + 1);
+    } else if (activeTab === "medical") {
+      setMedRefreshNonce((n) => n + 1);
+    } else if (activeTab === "treatments") {
+      setTxRefreshNonce((n) => n + 1);
+    } else if (activeTab === "chart") {
+      setChartRefreshNonce((n) => n + 1);
+    } else if (activeTab === "ledger") {
+      setLedgerRefreshNonce((n) => n + 1);
+    }
+  }, [activeTab]);
+
   const applyRangePreset = (preset: PatientApptRangePreset) => {
     setRangePreset(preset);
     setApptRange(patientApptRangeForPreset(preset));
@@ -1033,17 +1153,24 @@ export function PatientProfilePanel({
           Back to Today
         </Button>
         {patientId !== null ? (
-          <Button
-            type="button"
-            variant="ghost"
-            className="ui-focusable"
-            onClick={() => {
-              setChangePatientSearchOpen((open) => !open);
-            }}
-            aria-expanded={changePatientSearchOpen}
-          >
-            {PATIENT_CHANGE_PATIENT_LABEL}
-          </Button>
+          <>
+            {state.phase === "loaded" ? (
+              <Button type="button" variant="secondary" className="ui-focusable" onClick={refreshOpenRecord}>
+                Refresh
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              variant="ghost"
+              className="ui-focusable"
+              onClick={() => {
+                setChangePatientSearchOpen((open) => !open);
+              }}
+              aria-expanded={changePatientSearchOpen}
+            >
+              {PATIENT_CHANGE_PATIENT_LABEL}
+            </Button>
+          </>
         ) : null}
       </div>
 
@@ -1055,6 +1182,7 @@ export function PatientProfilePanel({
         {patientId === null ? (
           <div className="app-patient-profile__open">
             <p className="app-patient-profile__open-lede">{PATIENT_PAGE_SEARCH_LEDE}</p>
+            <p className="app-patient-profile__open-example">{PATIENT_PAGE_SEARCH_EXAMPLE}</p>
             <p className="app-patient-profile__open-hint">{PATIENT_MODULE_TABS_HINT}</p>
             <PatientPageSearchBlock
               patientId={null}
@@ -1084,20 +1212,14 @@ export function PatientProfilePanel({
             description="That record may have been removed from the copy, or the list was out of date. Search again."
           />
         ) : state.phase === "error" ? (
-          <div className="app-patient-profile__error" role="alert">
-            <p>{state.message}</p>
-            <Button type="button" variant="secondary" className="ui-focusable" onClick={() => setRetryNonce((n) => n + 1)}>
-              Retry
-            </Button>
-          </div>
+          <ProfileReadonlyError message={state.message} onRetry={() => setRetryNonce((n) => n + 1)} />
         ) : state.phase === "loaded" ? (
           <>
-            <p className="app-patient-profile__identity" role="status">
-              <span className="app-patient-profile__identity-name">{state.profile.displayName}</span>
-              {state.profile.chartNumber ? (
-                <span className="app-patient-profile__identity-chart"> · Chart {state.profile.chartNumber}</span>
-              ) : null}
-            </p>
+            <ProfileHeaderStrip
+              profile={state.profile}
+              activeLabel={activeLabel}
+              doctorLabels={doctorLabels}
+            />
 
             {changePatientSearchOpen ? (
               <PatientPageSearchBlock
@@ -1132,6 +1254,11 @@ export function PatientProfilePanel({
                   </li>
                 ))}
               </ul>
+              {activeTab ? (
+                <p id={`patient-tab-desc-${activeTab}`} className="app-patient-profile__tab-desc">
+                  {PROFILE_TAB_DESCRIPTIONS[activeTab]}
+                </p>
+              ) : null}
             </nav>
 
             {activeTab === "summary" ? (
@@ -1232,17 +1359,10 @@ export function PatientProfilePanel({
                     {PATIENT_TAB_LOADING_APPOINTMENTS}
                   </p>
                 ) : apptState.phase === "error" ? (
-                  <div className="app-patient-profile__error" role="alert">
-                    <p>{apptState.message}</p>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="ui-focusable"
-                      onClick={() => setApptRefreshNonce((n) => n + 1)}
-                    >
-                      Retry
-                    </Button>
-                  </div>
+                  <ProfileReadonlyError
+                    message={apptState.message}
+                    onRetry={() => setApptRefreshNonce((n) => n + 1)}
+                  />
                 ) : apptState.phase === "empty" ? (
                   <EmptyState
                     className="ui-empty--start app-patient-profile__empty"
@@ -1255,7 +1375,7 @@ export function PatientProfilePanel({
                       <Card key={dateIso} className="app-patient-profile__appt-day">
                         <CardHeader>
                           <p className="ui-card__title app-card-title-lg app-patient-profile__appt-day-title">
-                            {dateIso}
+                            <time dateTime={dateIso}>{formatApptDayHeading(dateIso)}</time>
                           </p>
                         </CardHeader>
                         <CardBody>
@@ -1310,6 +1430,7 @@ export function PatientProfilePanel({
                 className="app-patient-profile__medical"
               >
                 <p className="app-patient-profile__medical-lede">{PATIENT_TAB_MEDICAL_LEDE}</p>
+                <ProfileTabHiddenNote />
 
                 {medState.phase === "offline" ? (
                   <EmptyState
@@ -1322,17 +1443,10 @@ export function PatientProfilePanel({
                     {PATIENT_TAB_LOADING_MEDICAL}
                   </p>
                 ) : medState.phase === "error" ? (
-                  <div className="app-patient-profile__error" role="alert">
-                    <p>{medState.message}</p>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="ui-focusable"
-                      onClick={() => setMedRefreshNonce((n) => n + 1)}
-                    >
-                      Retry
-                    </Button>
-                  </div>
+                  <ProfileReadonlyError
+                    message={medState.message}
+                    onRetry={() => setMedRefreshNonce((n) => n + 1)}
+                  />
                 ) : medState.phase === "no_record" ? (
                   <EmptyState
                     className="ui-empty--start app-patient-profile__empty"
@@ -1353,6 +1467,7 @@ export function PatientProfilePanel({
                 className="app-patient-profile__treatments"
               >
                 <p className="app-patient-profile__treatments-lede">{PATIENT_TAB_TREATMENTS_LEDE}</p>
+                <ProfileTabHiddenNote />
 
                 <div className="app-patient-profile__treatments-controls">
                   <Button
@@ -1376,17 +1491,10 @@ export function PatientProfilePanel({
                     {PATIENT_TAB_LOADING_TREATMENTS}
                   </p>
                 ) : txState.phase === "error" ? (
-                  <div className="app-patient-profile__error" role="alert">
-                    <p>{txState.message}</p>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="ui-focusable"
-                      onClick={() => setTxRefreshNonce((n) => n + 1)}
-                    >
-                      Retry
-                    </Button>
-                  </div>
+                  <ProfileReadonlyError
+                    message={txState.message}
+                    onRetry={() => setTxRefreshNonce((n) => n + 1)}
+                  />
                 ) : txState.phase === "empty" ? (
                   <EmptyState
                     className="ui-empty--start app-patient-profile__empty"
@@ -1412,6 +1520,7 @@ export function PatientProfilePanel({
                 className="app-patient-profile__chart"
               >
                 <p className="app-patient-profile__chart-lede">{PATIENT_TAB_CHART_LEDE}</p>
+                <ProfileTabHiddenNote />
 
                 <div className="app-patient-profile__chart-controls">
                   <Button
@@ -1435,17 +1544,10 @@ export function PatientProfilePanel({
                     {PATIENT_TAB_LOADING_CHART}
                   </p>
                 ) : chartState.phase === "error" ? (
-                  <div className="app-patient-profile__error" role="alert">
-                    <p>{chartState.message}</p>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="ui-focusable"
-                      onClick={() => setChartRefreshNonce((n) => n + 1)}
-                    >
-                      Retry
-                    </Button>
-                  </div>
+                  <ProfileReadonlyError
+                    message={chartState.message}
+                    onRetry={() => setChartRefreshNonce((n) => n + 1)}
+                  />
                 ) : chartState.phase === "empty" ? (
                   <EmptyState
                     className="ui-empty--start app-patient-profile__empty"
@@ -1470,8 +1572,9 @@ export function PatientProfilePanel({
                 className="app-patient-profile__ledger"
               >
                 <p className="app-patient-profile__ledger-lede">{PATIENT_TAB_LEDGER_LEDE}</p>
+                <ProfileTabHiddenNote />
                 <p className="app-patient-profile__ledger-amounts-note" role="note">
-                  Payment amounts are intentionally hidden in this preview.
+                  {PATIENT_TAB_LEDGER_AMOUNTS_HIDDEN}
                 </p>
 
                 <div className="app-patient-profile__ledger-controls">
@@ -1496,17 +1599,10 @@ export function PatientProfilePanel({
                     {PATIENT_TAB_LOADING_LEDGER}
                   </p>
                 ) : ledgerState.phase === "error" ? (
-                  <div className="app-patient-profile__error" role="alert">
-                    <p>{ledgerState.message}</p>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="ui-focusable"
-                      onClick={() => setLedgerRefreshNonce((n) => n + 1)}
-                    >
-                      Retry
-                    </Button>
-                  </div>
+                  <ProfileReadonlyError
+                    message={ledgerState.message}
+                    onRetry={() => setLedgerRefreshNonce((n) => n + 1)}
+                  />
                 ) : ledgerState.phase === "empty" ? (
                   <EmptyState
                     className="ui-empty--start app-patient-profile__empty"

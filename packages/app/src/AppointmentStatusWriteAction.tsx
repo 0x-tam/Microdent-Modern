@@ -12,11 +12,12 @@ import {
   APPOINTMENT_STATUS_APPLY_LABEL,
   APPOINTMENT_STATUS_PREVIEW_LABEL,
 } from "./read-only-ui-copy.js";
-import { isSandboxWritePilotEnabled, isSandboxWriteReady } from "./sandbox-write-pilot.js";
+import { isSandboxWritePilotEnabled, resolveSandboxWriteBlockReason } from "./sandbox-write-pilot.js";
 import {
   SafeWritePlanResult,
   SandboxWriteBanner,
   summarizeWritePlan,
+  WriteOperationResult,
   type WritePlanResultSummary,
 } from "./safe-write-plan-display.js";
 import { buildWriteOperationFeedback } from "./write-operation-feedback.js";
@@ -122,7 +123,8 @@ export function AppointmentStatusWriteAction({
     if (!isSandboxWritePilotEnabled(writePilotEnabled)) {
       return null;
     }
-    if (!writeCapability || !isSandboxWriteReady(writeCapability)) {
+    const blockReason = resolveSandboxWriteBlockReason(writePilotEnabled, writeCapability);
+    if (blockReason) {
       return null;
     }
   }
@@ -179,18 +181,15 @@ export function AppointmentStatusWriteAction({
         <SafeWritePlanResult summary={state.summary} testId="appt-status-write-plan" />
       ) : null}
       {state.kind === "result" ? (
-        <div className="app-appt-status-write__result" role="status" data-committed={String(state.committed)}>
-          <p className="app-appt-status-write__result-summary">
-            {state.committed
-              ? `Committed: true — status updated (${state.mode}).`
-              : `Committed: false — dry-run plan only; nothing was saved (${state.mode}).`}
-          </p>
-          <ul className="app-appt-status-write__feedback" aria-label="Write operation feedback">
-            {state.feedbackLines.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-        </div>
+        <WriteOperationResult
+          committed={state.committed}
+          successLabel="status updated"
+          feedbackLines={state.feedbackLines}
+          mode={state.mode}
+          className="app-appt-status-write__result"
+          headlineClassName="app-appt-status-write__result-summary"
+          testId="appt-status-write-result"
+        />
       ) : null}
       {state.kind === "error" ? (
         <p className="app-appt-status-write__error" role="alert">

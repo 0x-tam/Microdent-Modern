@@ -10,11 +10,13 @@ import {
   type PatientDemographicsFormState,
 } from "./patient-demographics-write.js";
 import { PATIENT_DEMOGRAPHICS_DOCTOR_ID_HINT } from "./read-only-ui-copy.js";
-import { isSandboxWritePilotEnabled, isSandboxWriteReady } from "./sandbox-write-pilot.js";
+import { isSandboxWritePilotEnabled, resolveSandboxWriteBlockReason } from "./sandbox-write-pilot.js";
 import {
   SafeWritePlanResult,
   SandboxWriteBanner,
+  SandboxWriteBlockedNotice,
   summarizeWritePlan,
+  WriteOperationResult,
   type WritePlanResultSummary,
 } from "./safe-write-plan-display.js";
 import {
@@ -144,24 +146,18 @@ export function PatientDemographicsWritePanel({
     return null;
   }
 
-  const writeReady = writeCapability !== null && isSandboxWriteReady(writeCapability);
+  const blockReason = resolveSandboxWriteBlockReason(writePilotEnabled, writeCapability);
   const loading = state.kind === "loading";
   const previewOk = state.kind === "preview";
   const applyDisabled = loading || !previewOk;
 
-  if (!writeReady) {
+  if (blockReason) {
     return (
-      <div
-        className="app-sandbox-write app-patient-demographics-write app-patient-demographics-write--unavailable"
-        data-testid="patient-demographics-write-unavailable"
-        role="status"
-      >
-        <SandboxWriteBanner />
-        <p className="app-sandbox-write__hint">
-          Sandbox writes are not ready on this bridge. Check Settings for write mode, sandbox path, and
-          backup configuration.
-        </p>
-      </div>
+      <SandboxWriteBlockedNotice
+        reason={blockReason}
+        className="app-sandbox-write app-patient-demographics-write app-sandbox-write--blocked"
+        testId="patient-demographics-write-unavailable"
+      />
     );
   }
 
@@ -319,18 +315,12 @@ export function PatientDemographicsWritePanel({
         <SafeWritePlanResult summary={state.summary} testId="patient-demographics-plan" />
       ) : null}
       {state.kind === "result" ? (
-        <div className="app-sandbox-write__result" role="status" data-committed={String(state.committed)}>
-          <p>
-            {state.committed
-              ? "Committed: true — demographics updated."
-              : "Committed: false — nothing was saved."}
-          </p>
-          <ul className="app-sandbox-write__feedback" aria-label="Write operation feedback">
-            {state.feedbackLines.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-        </div>
+        <WriteOperationResult
+          committed={state.committed}
+          successLabel="demographics updated"
+          feedbackLines={state.feedbackLines}
+          testId="patient-demographics-write-result"
+        />
       ) : null}
       {state.kind === "error" ? (
         <p className="app-sandbox-write__error" role="alert">

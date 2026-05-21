@@ -25,9 +25,10 @@ async function flush(): Promise<void> {
 }
 
 function clickSidebarModule(container: HTMLElement, label: string): void {
-  const btn = Array.from(container.querySelectorAll(".app-sidebar__btn")).find(
+  const labelEl = Array.from(container.querySelectorAll(".app-sidebar__btn-label")).find(
     (b) => b.textContent?.trim() === label,
   );
+  const btn = labelEl?.closest("button");
   if (!(btn instanceof HTMLButtonElement)) {
     throw new Error(`Sidebar module button not found: ${label}`);
   }
@@ -110,6 +111,9 @@ describe("read-only app smoke", () => {
     expect(container.querySelector("#app-main-heading")?.textContent).toBe("Patients");
     expect(container.textContent).toContain(smokeProfile.displayName);
     expect(container.textContent).toContain("Chart SYN-SMOKE");
+    expect(container.querySelector(".app-main__patient-context-chip")?.textContent).toContain(
+      smokeProfile.displayName,
+    );
     expect(container.querySelector("#patient-panel-summary")).toBeTruthy();
 
     await clickPatientTab(container, "appointments");
@@ -153,6 +157,7 @@ describe("read-only app smoke", () => {
     await flush();
 
     expect(container.querySelector("#app-main-heading")?.textContent).toBe("Schedule");
+    expect(container.querySelector(".app-main__back-today")).toBeTruthy();
     expect(container.textContent).toContain("Synthetic Schedule Smoke Patient");
     expect(container.textContent).toContain("09:00");
     expect(container.textContent).toContain("Synthetic smoke bay");
@@ -178,11 +183,11 @@ describe("read-only app smoke", () => {
     });
     await waitForBridgeConnected(container);
 
-    const labels = Array.from(container.querySelectorAll(".app-sidebar__btn")).map((b) =>
+    const labels = Array.from(container.querySelectorAll(".app-sidebar__btn-label")).map((b) =>
       b.textContent?.trim(),
     );
     expect(labels).toEqual(["Today", "Patients", "Schedule", "Settings"]);
-    expect(container.textContent).toMatch(/Chart, Treatments, and Ledger preview are under Patients/i);
+    expect(container.textContent).toMatch(/Payments and Reports are not available in this read-only viewer yet/i);
     assertNoForbiddenDomTokens(container.textContent ?? "");
   });
 

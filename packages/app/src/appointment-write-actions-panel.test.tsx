@@ -105,7 +105,7 @@ describe("AppointmentWriteActionsPanel", () => {
     expect(container.querySelector('[data-testid="appt-write-actions-panel"]')).toBeNull();
   });
 
-  it("renders nothing when bridge is not write-ready", () => {
+  it("shows blocked notice when bridge is not write-ready", () => {
     renderPanel({
       writeCapability: {
         writeMode: "disabled",
@@ -117,6 +117,8 @@ describe("AppointmentWriteActionsPanel", () => {
       },
     });
     expect(container.querySelector('[data-testid="appt-write-actions-panel"]')).toBeNull();
+    expect(container.querySelector('[data-testid="appt-write-actions-blocked"]')).toBeTruthy();
+    expect(container.textContent).toMatch(/Sandbox writes are blocked/i);
   });
 
   it("is collapsed by default and does not show per-row sandbox banner", () => {

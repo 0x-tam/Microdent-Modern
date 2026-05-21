@@ -51,6 +51,7 @@ import {
   resolvePilotBuildMetadata,
   type PilotBuildMetadata,
 } from "./pilot-build-metadata.js";
+import type { SettingsStatusTone } from "./settings-status.js";
 import {
   resolveBackupConfiguredStatus,
   resolveDataRootConfiguredStatus,
@@ -132,6 +133,34 @@ function isDesktopFileProtocol(): boolean {
 
 function showDevPathHints(showConnectionDiagnostics: boolean): boolean {
   return import.meta.env.DEV && showConnectionDiagnostics;
+}
+
+function settingsCardClassName(
+  tone: SettingsStatusTone | null,
+  options?: { primary?: boolean; wide?: boolean },
+): string {
+  const parts = ["app-settings__card"];
+  if (options?.primary) parts.push("app-settings__card--primary");
+  if (options?.wide) parts.push("app-settings__card--mirror");
+  if (tone === "danger") parts.push("app-settings__card--danger");
+  else if (tone === "warn") parts.push("app-settings__card--warn");
+  else if (tone === "ok") parts.push("app-settings__card--ok");
+  return parts.join(" ");
+}
+
+function bridgeCardTone(phase: BridgeHealthPhase): SettingsStatusTone {
+  if (phase === "connected") return "ok";
+  if (phase === "checking") return "neutral";
+  return "warn";
+}
+
+function writeCardTone(writeCapability: BridgeDevStatusResponse | null): SettingsStatusTone {
+  if (!writeCapability) return "neutral";
+  if (writeCapability.writeMode === "enabled") {
+    return writeCapability.writableSandbox ? "danger" : "warn";
+  }
+  if (writeCapability.writeMode === "dry-run") return "warn";
+  return "ok";
 }
 
 function formatBuildTimestamp(iso: string): string {
@@ -297,7 +326,7 @@ export function SettingsPanel({
       ) : null}
 
       <div className="app-settings__grid">
-        <Card className="app-settings__card">
+        <Card className={settingsCardClassName(bridgeCardTone(bridgePhase), { primary: true })}>
           <CardHeader>
             <h3 id="settings-panel-title">{SETTINGS_BRIDGE_SECTION}</h3>
           </CardHeader>
@@ -312,7 +341,7 @@ export function SettingsPanel({
           </CardBody>
         </Card>
 
-        <Card className="app-settings__card">
+        <Card className={settingsCardClassName(dataRootStatus.tone)}>
           <CardHeader>
             <h3>{SETTINGS_DATA_PATHS_SECTION}</h3>
           </CardHeader>
@@ -329,7 +358,7 @@ export function SettingsPanel({
           </CardBody>
         </Card>
 
-        <Card className="app-settings__card">
+        <Card className={settingsCardClassName(writeCardTone(writeCapability), { primary: true })}>
           <CardHeader>
             <h3>{SETTINGS_WRITE_SECTION}</h3>
           </CardHeader>
@@ -349,7 +378,7 @@ export function SettingsPanel({
           </CardBody>
         </Card>
 
-        <Card className="app-settings__card">
+        <Card className={settingsCardClassName(sandboxStatus.tone)}>
           <CardHeader>
             <h3>{SETTINGS_SANDBOX_SECTION}</h3>
           </CardHeader>
@@ -359,7 +388,7 @@ export function SettingsPanel({
           </CardBody>
         </Card>
 
-        <Card className="app-settings__card">
+        <Card className={settingsCardClassName(backupStatus.tone)}>
           <CardHeader>
             <h3>{SETTINGS_BACKUP_SECTION}</h3>
           </CardHeader>
@@ -374,7 +403,7 @@ export function SettingsPanel({
           </CardBody>
         </Card>
 
-        <Card className="app-settings__card">
+        <Card className={settingsCardClassName("neutral")}>
           <CardHeader>
             <h3>{SETTINGS_PILOT_SECTION}</h3>
           </CardHeader>
@@ -386,7 +415,7 @@ export function SettingsPanel({
           </CardBody>
         </Card>
 
-        <Card className="app-settings__card">
+        <Card className={settingsCardClassName("neutral")}>
           <CardHeader>
             <h3>{SETTINGS_PILOT_BUILD_SECTION}</h3>
           </CardHeader>
@@ -417,7 +446,7 @@ export function SettingsPanel({
           </CardBody>
         </Card>
 
-        <Card className="app-settings__card">
+        <Card className={settingsCardClassName("neutral")}>
           <CardHeader>
             <h3>{SETTINGS_DESKTOP_SECTION}</h3>
           </CardHeader>
@@ -428,7 +457,7 @@ export function SettingsPanel({
           </CardBody>
         </Card>
 
-        <Card className="app-settings__card">
+        <Card className={settingsCardClassName(sqliteMirrorStatus.tone)}>
           <CardHeader>
             <h3>{SETTINGS_SQLITE_MIRROR_SECTION}</h3>
           </CardHeader>
@@ -448,7 +477,7 @@ export function SettingsPanel({
           </CardBody>
         </Card>
 
-        <Card className="app-settings__card app-settings__card--mirror">
+        <Card className={settingsCardClassName(mirrorStale ? "warn" : sqliteMirrorStatus.tone, { primary: true, wide: true })}>
           <CardHeader className="app-settings__mirror-head">
             <h3>{SETTINGS_MIRROR_SECTION}</h3>
             <Button
