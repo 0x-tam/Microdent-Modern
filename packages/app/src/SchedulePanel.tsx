@@ -1,7 +1,7 @@
 import { createBridgeClient } from "@microdent/bridge-client";
 import type { BridgeDevStatusResponse, MirrorStatusResponse, ScheduleAppointmentItem, ScheduleRoomItem } from "@microdent/contracts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Badge, Button, Card, CardBody, CardHeader, EmptyState } from "@microdent/ui";
+import { Badge, Button, EmptyState } from "@microdent/ui";
 import type { BridgeHealthPhase } from "./bridge-health.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
 import {
@@ -745,23 +745,36 @@ export function SchedulePanel({
           </p>
           {!loading && !error && canLoad ? (
             <>
-              <ul className="app-metric-row app-schedule__range-meta" role="status">
-                <li className="app-metric-row__chip app-metric-row__chip--emphasis">{operationalSummary.shownLabel}</li>
+              <div className="app-stat-strip app-schedule__stat-strip" role="status">
+                <div className="app-stat app-stat--emphasis">
+                  <p className="app-stat__label">Shown</p>
+                  <p className="app-stat__value">{operationalSummary.shownLabel}</p>
+                </div>
                 {includesToday ? (
-                  <li className="app-metric-row__chip">{SCHEDULE_RANGE_INCLUDES_TODAY}</li>
+                  <div className="app-stat">
+                    <p className="app-stat__label">Range</p>
+                    <p className="app-stat__value">{SCHEDULE_RANGE_INCLUDES_TODAY}</p>
+                  </div>
                 ) : null}
                 {operationalSummary.statusMix ? (
-                  <li className="app-metric-row__chip">{operationalSummary.statusMix}</li>
+                  <div className="app-stat">
+                    <p className="app-stat__label">Status</p>
+                    <p className="app-stat__value">{operationalSummary.statusMix}</p>
+                  </div>
                 ) : null}
                 {operationalSummary.providerMix ? (
-                  <li className="app-metric-row__chip">{operationalSummary.providerMix}</li>
+                  <div className="app-stat">
+                    <p className="app-stat__label">Providers</p>
+                    <p className="app-stat__value">{operationalSummary.providerMix}</p>
+                  </div>
                 ) : null}
-                {roomFilterContext ? (
-                  <li className="app-metric-row__chip">{roomFilterContext}</li>
-                ) : operationalSummary.roomMix ? (
-                  <li className="app-metric-row__chip">{operationalSummary.roomMix}</li>
+                {roomFilterContext || operationalSummary.roomMix ? (
+                  <div className="app-stat">
+                    <p className="app-stat__label">Rooms</p>
+                    <p className="app-stat__value">{roomFilterContext ?? operationalSummary.roomMix}</p>
+                  </div>
                 ) : null}
-              </ul>
+              </div>
               {operationalSummary.filterActiveLabel ? (
                 <p className="app-schedule__filter-active-label" role="status">
                   {operationalSummary.filterActiveLabel}
@@ -898,17 +911,12 @@ export function SchedulePanel({
           {[...grouped.entries()].map(([dateIso, byRoom]) => {
             const dayCount = [...byRoom.values()].reduce((sum, list) => sum + list.length, 0);
             return (
-            <Card key={dateIso} className="app-schedule__day-card">
-              <CardHeader>
-                <p className="ui-card__title app-card-title-lg app-schedule__day-title">
-                  <time dateTime={dateIso}>{formatRangeHeading(dateIso, dateIso, "day")}</time>
-                  <span className="app-schedule__day-count">
-                    {" · "}
-                    {SCHEDULE_DAY_APPOINTMENT_COUNT(dayCount)}
-                  </span>
-                </p>
-              </CardHeader>
-              <CardBody>
+            <section key={dateIso} className="app-schedule__day-card">
+              <h3 className="app-board-day-header app-schedule__day-title">
+                <time dateTime={dateIso}>{formatRangeHeading(dateIso, dateIso, "day")}</time>
+                <span className="app-board-day-header__count">{SCHEDULE_DAY_APPOINTMENT_COUNT(dayCount)}</span>
+              </h3>
+              <div className="app-schedule__day-body">
                 {[...byRoom.entries()]
                   .sort(([a], [b]) => a - b)
                   .map(([roomNum, list]) => (
@@ -1004,8 +1012,8 @@ export function SchedulePanel({
                       </ul>
                     </section>
                   ))}
-              </CardBody>
-            </Card>
+              </div>
+            </section>
           );
           })}
         </div>

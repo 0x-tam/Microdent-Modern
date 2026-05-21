@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   omitShellBannersDetailedInSettings,
+  resolveContextualStatusForModule,
   resolveBackupNotConfiguredBanner,
   resolveBridgeOfflineBanner,
   resolveEnabledNonSandboxBanner,
@@ -188,6 +189,21 @@ describe("omitShellBannersDetailedInSettings", () => {
     const shell = resolveShellStatusBanners("connected", mirrorActive, capOff);
     const filtered = omitShellBannersDetailedInSettings(shell, "connected", mirrorActive, capOff);
     expect(filtered.map((b) => b.key)).toEqual(["mirror-active", "write-mode-disabled"]);
+  });
+});
+
+describe("resolveContextualStatusForModule", () => {
+  it("shows only danger banners on Today (mirror/write info lives in stat strip)", () => {
+    const today = resolveContextualStatusForModule("today", "connected", mirrorFallback, capSandbox);
+    expect(today.every((b) => b.tone === "danger")).toBe(true);
+    expect(today.map((b) => b.key)).not.toContain("mirror-fallback");
+  });
+
+  it("omits Settings-detail banners on Settings module", () => {
+    const settings = resolveContextualStatusForModule("settings", "connected", mirrorFallback, capSandbox);
+    const keys = settings.map((b) => b.key);
+    expect(keys).not.toContain("mirror-fallback");
+    expect(keys).not.toContain("sandbox-write-warning");
   });
 });
 

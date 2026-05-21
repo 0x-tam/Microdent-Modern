@@ -56,6 +56,7 @@ Mac-side UI restructure ROI is **exhausted** after this batch. Further Mac work 
 - **Write parity** — Room `<select>` from schedule rooms, patient context pre-fill, move context panel, `WRITE_REFRESH_NUDGE` on all write routes
 - **Medical toolbar parity** — Flagged-count + section count line matching treatments/chart/ledger
 - **Search recent CSS** — Styled recent session list mirroring Today dashboard; keyboard roving focus
+- **Front desk command center (v2)** — Stat strip + command grid on Today; contextual status resolver; full-width schedule/profile/patients; board/ops panels replace Card soup for stats. Mac UI layout ROI **exhausted** — bugfix-only until Windows field execution.
 - **Front desk command center** — Backup row, schedule readiness, open schedule for today / open patient appointments
 - **UX cohesion** — Shared filter chip tokens, write form spacing, readonly empty-state hierarchy
 

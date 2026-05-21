@@ -1,7 +1,7 @@
 import { createBridgeClient } from "@microdent/bridge-client";
 import type { BridgeDevStatusResponse, MirrorStatusResponse, ScheduleAppointmentItem } from "@microdent/contracts";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Badge, Button, Card, CardBody, CardHeader, EmptyState } from "@microdent/ui";
+import { Badge, Button, EmptyState } from "@microdent/ui";
 import type { AppSidebarModuleId } from "./app-nav-modules.js";
 import type { SessionRecentPatient } from "./session-recent-patients.js";
 import type { BridgeHealthPhase } from "./bridge-health.js";
@@ -529,12 +529,19 @@ export function DashboardHome({
       );
     }
     return (
-      <ul className="app-appt-list" aria-label="Today’s appointments from the clinic copy">
+      <div className="app-data-list app-data-list--today" aria-label="Today’s appointments from the clinic copy">
+        <div className="app-data-list__header app-data-list__header--today">
+          <span>Time</span>
+          <span>Patient</span>
+          <span>Visit</span>
+          <span>Status</span>
+          <span>Action</span>
+        </div>
         {sorted.map((a) => {
           const rowClass = [
-            "app-appt-list__row",
-            currentAppt?.id === a.id ? "app-appt-list__row--current" : "",
-            nextUpcoming?.id === a.id && currentAppt?.id !== a.id ? "app-appt-list__row--next" : "",
+            "app-data-row",
+            currentAppt?.id === a.id ? "app-data-row--current" : "",
+            nextUpcoming?.id === a.id && currentAppt?.id !== a.id ? "app-data-row--next" : "",
           ]
             .filter(Boolean)
             .join(" ");
@@ -545,24 +552,30 @@ export function DashboardHome({
                 ? TODAY_APPT_ROW_NEXT_LABEL
                 : undefined;
           return (
-          <li key={a.id} className={rowClass} aria-label={rowLabel}>
-            <span className="app-appt-list__time">{a.time.trim()}</span>
-            <div className="app-appt-list__main">
+            <div
+              key={a.id}
+              className={rowClass}
+              aria-label={rowLabel}
+            >
+              <span className="app-data-row__time">{a.time.trim()}</span>
               <span
                 className={
-                  a.patId === "0"
-                    ? "app-appt-list__patient app-appt-list__patient--muted"
-                    : "app-appt-list__patient"
+                  a.patId === "0" ? "app-data-row__primary app-data-row__primary--muted" : "app-data-row__primary"
                 }
               >
-                <span className="app-appt-list__patient-name">{dashboardPatientHeadline(a)}</span>
+                {dashboardPatientHeadline(a)}
                 {a.patId !== "0" && dashboardPatientChart(a) !== null ? (
-                  <span className="app-appt-list__patient-chart"> · {dashboardPatientChart(a)}</span>
+                  <span className="app-data-row__meta"> · {dashboardPatientChart(a)}</span>
                 ) : null}
               </span>
-              <span className="app-appt-list__visit">{visitMetaLine(a, doctorLabels, procedureMaps, roomMap)}</span>
-              <div className="app-appt-list__extras">
-                {a.hasComment ? <span className="app-appt-list__pill">Note hidden</span> : null}
+              <span className="app-data-row__meta">{visitMetaLine(a, doctorLabels, procedureMaps, roomMap)}</span>
+              <span className="app-data-row__badge">
+                <Badge variant={statusBadgeVariant(a.status)} semanticLabel={patientApptStatusSemanticLabel(a.status)}>
+                  {statusLabel(a.status)}
+                </Badge>
+              </span>
+              <span className="app-data-row__actions">
+                {a.hasComment ? <span className="app-badge">Note hidden</span> : null}
                 {a.missed ? (
                   <Badge variant="danger" semanticLabel="Missed appointment">
                     Missed
@@ -573,21 +586,17 @@ export function DashboardHome({
                     type="button"
                     variant="ghost"
                     size="compact"
-                    className="ui-focusable app-appt-list__open-patient"
+                    className="ui-focusable"
                     onClick={() => openPatientFromAppt(a)}
                   >
                     {TODAY_OPEN_PATIENT}
                   </Button>
                 ) : null}
-              </div>
+              </span>
             </div>
-            <Badge variant={statusBadgeVariant(a.status)} semanticLabel={patientApptStatusSemanticLabel(a.status)}>
-              {statusLabel(a.status)}
-            </Badge>
-          </li>
           );
         })}
-      </ul>
+      </div>
     );
   })();
 
@@ -695,222 +704,210 @@ export function DashboardHome({
         <p className="app-page-hero__meta app-dashboard__date">{formatTodayLine()}</p>
       </header>
 
-      <div className="app-dashboard__layout">
-        <div className="app-dashboard__primary">
-          <Card>
-            <CardHeader>
-              <div className="app-dashboard-sched__head">
-                <p className="ui-card__title app-card-title-lg">Today&apos;s appointments</p>
-                {canLoad ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="compact"
-                    className="ui-focusable app-dashboard-sched__refresh"
-                    disabled={loading}
-                    onClick={refreshToday}
-                  >
-                    {TODAY_REFRESH}
-                  </Button>
-                ) : null}
-              </div>
-            </CardHeader>
-            <CardBody>
-              {mirrorStale ? (
-                <p className="app-dashboard-sched__mirror-advisory" role="note">
-                  {TODAY_MIRROR_STALE_ADVISORY}
-                </p>
-              ) : null}
-              <p className="app-dashboard-sched__privacy">{TODAY_PRIVACY_LEDE}</p>
-              <ul className="app-metric-row app-dashboard-sched__metrics" aria-label="Today schedule metrics">
-                <li className="app-metric-row__chip app-metric-row__chip--emphasis">
-                  {countCardValue} appointments
-                </li>
-                {statusMixLine ? (
-                  <li className="app-metric-row__chip">{statusMixLine}</li>
-                ) : null}
-                <li className={`app-metric-row__chip app-metric-row__chip--${mirrorFreshness.tone}`}>
-                  {mirrorFreshness.label}
-                </li>
-                <li className="app-metric-row__chip">{scheduleReadinessLine}</li>
-              </ul>
-              {primaryBody}
-              {sorted.length > 0 ? (
-                <div className="app-appt-list__footer app-dashboard-cta-row">
-                  <Button
-                    type="button"
-                    variant="primary"
-                    className="ui-focusable app-dashboard-cta-row__primary"
-                    onClick={() => onOpenModule("schedule")}
-                  >
-                    {TODAY_OPEN_SCHEDULE}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="ui-focusable app-dashboard-cta-row__secondary"
-                    onClick={() => onOpenModule("patients")}
-                  >
-                    {TODAY_SEARCH_PATIENT}
-                  </Button>
-                </div>
-              ) : null}
-            </CardBody>
-          </Card>
+      <div className="app-stat-strip" role="region" aria-label="Today command center metrics">
+        <div className="app-stat app-stat--emphasis">
+          <p className="app-stat__label">Today</p>
+          <p className="app-stat__value">{countCardValue}</p>
+          <p className="app-stat__hint">{countCardHint}</p>
         </div>
+        {statusMixLine ? (
+          <div className="app-stat">
+            <p className="app-stat__label">{TODAY_STATUS_COUNT_TITLE}</p>
+            <p className="app-stat__value">{statusMixLine}</p>
+          </div>
+        ) : null}
+        <div className={`app-stat app-stat--${mirrorFreshness.tone}`}>
+          <p className="app-stat__label">{TODAY_STATUS_MIRROR_TITLE}</p>
+          <p className="app-stat__value">{mirrorFreshness.label}</p>
+        </div>
+        <div className="app-stat">
+          <p className="app-stat__label">Schedule</p>
+          <p className="app-stat__value">{scheduleReadinessLine}</p>
+        </div>
+      </div>
 
-        <aside className="app-dashboard__aside" aria-label="Status, next visit, and shortcuts">
-          <Card className="app-dashboard-now-card">
-            <CardHeader>
-              <p className="ui-card__title app-card-title-lg">{TODAY_NOW_CARD_TITLE}</p>
-            </CardHeader>
-            <CardBody>
-              {nextCardBody}
-              {selectedPatientId ? (
-                <div className="app-dashboard-selected-patient app-dashboard-selected-patient--inline">
-                  <p className="app-dashboard-selected-patient__name">
-                    {selectedPatientHeadline(selectedPatientId, selectedPatientDisplayName)}
-                  </p>
-                  {selectedPatientChartNumber ? (
-                    <p className="app-dashboard-selected-patient__chart">Chart {selectedPatientChartNumber}</p>
-                  ) : (
-                    <p className="app-dashboard-selected-patient__chart">Record {selectedPatientId}</p>
-                  )}
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="compact"
-                    className="ui-focusable app-dashboard-selected-patient__btn"
-                    onClick={() => onOpenModule("patients")}
-                  >
-                    {TODAY_SELECTED_PATIENT_OPEN}
-                  </Button>
-                </div>
-              ) : null}
-            </CardBody>
-          </Card>
+      <div className="app-command-grid">
+        <section className="app-board-panel" aria-label="Today’s appointments">
+          <div className="app-board-panel__head">
+            <h3 className="app-board-panel__title">Today&apos;s appointments</h3>
+            {canLoad ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="compact"
+                className="ui-focusable app-dashboard-sched__refresh"
+                disabled={loading}
+                onClick={refreshToday}
+              >
+                {TODAY_REFRESH}
+              </Button>
+            ) : null}
+          </div>
+          {mirrorStale ? (
+            <p className="app-dashboard-sched__mirror-advisory" role="note">
+              {TODAY_MIRROR_STALE_ADVISORY}
+            </p>
+          ) : null}
+          <p className="app-dashboard-sched__privacy">{TODAY_PRIVACY_LEDE}</p>
+          {primaryBody}
+          {sorted.length > 0 ? (
+            <div className="app-appt-list__footer app-dashboard-cta-row">
+              <Button
+                type="button"
+                variant="primary"
+                className="ui-focusable app-dashboard-cta-row__primary"
+                onClick={() => onOpenModule("schedule")}
+              >
+                {TODAY_OPEN_SCHEDULE}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="ui-focusable app-dashboard-cta-row__secondary"
+                onClick={() => onOpenModule("patients")}
+              >
+                {TODAY_SEARCH_PATIENT}
+              </Button>
+            </div>
+          ) : null}
+        </section>
 
-          <Card className="app-dashboard-clinic-overview app-dashboard-clinic-overview--compact">
-            <CardHeader>
-              <p className="ui-card__title app-card-title-lg">{CLINIC_AT_A_GLANCE_TITLE}</p>
-            </CardHeader>
-            <CardBody>
-              <dl className="app-dashboard-clinic-overview__list">
-                {clinicOverview.map((row) => (
-                  <div
-                    key={row.key}
-                    className={`app-dashboard-clinic-overview__row app-dashboard-clinic-overview__row--${row.tone}`}
-                  >
-                    <dt className="app-dashboard-clinic-overview__label">{row.label}</dt>
-                    <dd className="app-dashboard-clinic-overview__value">{row.value}</dd>
-                  </div>
-                ))}
-                <div className="app-dashboard-clinic-overview__row app-dashboard-clinic-overview__row--neutral">
-                  <dt className="app-dashboard-clinic-overview__label">Schedule readiness</dt>
-                  <dd className="app-dashboard-clinic-overview__value">{scheduleReadinessLine}</dd>
-                </div>
-              </dl>
-              {canLoad ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="compact"
-                  className="ui-focusable app-dashboard-clinic-overview__settings-link"
-                  onClick={() => onOpenModule("settings")}
-                >
-                  {FRONT_DESK_OVERVIEW_OPEN_SETTINGS}
-                </Button>
-              ) : null}
-            </CardBody>
-          </Card>
-
-          {recentPatients.length > 0 && onRecentPatientSelect ? (
-            <Card className="app-dashboard-recent-patients">
-              <CardHeader>
-                <p className="ui-card__title app-card-title-lg">{TODAY_RECENT_PATIENTS_TITLE}</p>
-              </CardHeader>
-              <CardBody>
-                <ul className="app-recent-list app-dashboard-recent-patients__list" aria-label={TODAY_RECENT_PATIENTS_TITLE}>
-                  {recentPatients.slice(0, 5).map((entry) => (
-                    <li key={entry.patientId}>
-                      <button
-                        type="button"
-                        className="app-recent-list__btn app-dashboard-recent-patients__btn ui-focusable"
-                        onClick={() => onRecentPatientSelect(entry)}
-                      >
-                        <span className="app-dashboard-recent-patients__name">{entry.displayName}</span>
-                        {entry.chartNumber ? (
-                          <span className="app-dashboard-recent-patients__chart">Chart {entry.chartNumber}</span>
-                        ) : null}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </CardBody>
-            </Card>
+        <aside className="app-ops-panel" aria-label="Status, next visit, and shortcuts">
+          <div className="app-ops-panel__head">
+            <h3 className="app-ops-panel__title">{TODAY_NOW_CARD_TITLE}</h3>
+          </div>
+          {nextCardBody}
+          {selectedPatientId ? (
+            <div className="app-dashboard-selected-patient app-dashboard-selected-patient--inline">
+              <p className="app-dashboard-selected-patient__name">
+                {selectedPatientHeadline(selectedPatientId, selectedPatientDisplayName)}
+              </p>
+              {selectedPatientChartNumber ? (
+                <p className="app-dashboard-selected-patient__chart">Chart {selectedPatientChartNumber}</p>
+              ) : (
+                <p className="app-dashboard-selected-patient__chart">Record {selectedPatientId}</p>
+              )}
+              <Button
+                type="button"
+                variant="secondary"
+                size="compact"
+                className="ui-focusable app-dashboard-selected-patient__btn"
+                onClick={() => onOpenModule("patients")}
+              >
+                {TODAY_SELECTED_PATIENT_OPEN}
+              </Button>
+            </div>
           ) : null}
 
-          <Card>
-            <CardHeader>
-              <p className="ui-card__title app-card-title-lg">Quick actions</p>
-            </CardHeader>
-            <CardBody>
-              <p className="app-quick-actions__lede">{TODAY_QUICK_ACTIONS_LEDE}</p>
-              <div className="app-quick-actions">
-                {recentPatients.length > 0 && onRecentPatientSelect ? (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="ui-focusable app-quick-actions__btn"
-                    onClick={() => onRecentPatientSelect(recentPatients[0]!)}
-                  >
-                    {TODAY_REOPEN_RECENT}
-                  </Button>
-                ) : null}
-                {selectedPatientId ? (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="ui-focusable app-quick-actions__btn"
-                    onClick={() => onOpenModule("patients")}
-                  >
-                    {TODAY_OPEN_PATIENT_APPOINTMENTS}
-                  </Button>
-                ) : null}
+          <div className="app-ops-panel__section">
+            <h4 className="app-ops-panel__title">{CLINIC_AT_A_GLANCE_TITLE}</h4>
+            <dl className="app-dashboard-clinic-overview__list">
+              {clinicOverview.map((row) => (
+                <div
+                  key={row.key}
+                  className={`app-dashboard-clinic-overview__row app-dashboard-clinic-overview__row--${row.tone}`}
+                >
+                  <dt className="app-dashboard-clinic-overview__label">{row.label}</dt>
+                  <dd className="app-dashboard-clinic-overview__value">{row.value}</dd>
+                </div>
+              ))}
+              <div className="app-dashboard-clinic-overview__row app-dashboard-clinic-overview__row--neutral">
+                <dt className="app-dashboard-clinic-overview__label">Schedule readiness</dt>
+                <dd className="app-dashboard-clinic-overview__value">{scheduleReadinessLine}</dd>
+              </div>
+            </dl>
+            {canLoad ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="compact"
+                className="ui-focusable app-dashboard-clinic-overview__settings-link"
+                onClick={() => onOpenModule("settings")}
+              >
+                {FRONT_DESK_OVERVIEW_OPEN_SETTINGS}
+              </Button>
+            ) : null}
+          </div>
+
+          {recentPatients.length > 0 && onRecentPatientSelect ? (
+            <div className="app-ops-panel__section">
+              <h4 className="app-ops-panel__title">{TODAY_RECENT_PATIENTS_TITLE}</h4>
+              <ul className="app-recent-grid" aria-label={TODAY_RECENT_PATIENTS_TITLE}>
+                {recentPatients.slice(0, 6).map((entry) => (
+                  <li key={entry.patientId}>
+                    <button
+                      type="button"
+                      className="app-recent-list__btn ui-focusable"
+                      onClick={() => onRecentPatientSelect(entry)}
+                    >
+                      <span className="app-dashboard-recent-patients__name">{entry.displayName}</span>
+                      {entry.chartNumber ? (
+                        <span className="app-dashboard-recent-patients__chart">Chart {entry.chartNumber}</span>
+                      ) : null}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          <div className="app-ops-panel__section">
+            <h4 className="app-ops-panel__title">Quick actions</h4>
+            <p className="app-quick-actions__lede">{TODAY_QUICK_ACTIONS_LEDE}</p>
+            <div className="app-quick-actions">
+              {recentPatients.length > 0 && onRecentPatientSelect ? (
                 <Button
                   type="button"
-                  variant="primary"
+                  variant="secondary"
+                  className="ui-focusable app-quick-actions__btn"
+                  onClick={() => onRecentPatientSelect(recentPatients[0]!)}
+                >
+                  {TODAY_REOPEN_RECENT}
+                </Button>
+              ) : null}
+              {selectedPatientId ? (
+                <Button
+                  type="button"
+                  variant="secondary"
                   className="ui-focusable app-quick-actions__btn"
                   onClick={() => onOpenModule("patients")}
                 >
-                  {TODAY_SEARCH_PATIENT}
+                  {TODAY_OPEN_PATIENT_APPOINTMENTS}
                 </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="ui-focusable app-quick-actions__btn"
-                  disabled={!canLoad}
-                  onClick={openScheduleToday}
-                >
-                  {TODAY_OPEN_SCHEDULE}
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="ui-focusable app-quick-actions__btn"
-                  onClick={() => onOpenModule("settings")}
-                >
-                  {TODAY_OPEN_SETTINGS}
-                </Button>
-              </div>
-              <p className="app-quick-actions__pilot-hint" role="note">
-                {TODAY_PILOT_READINESS_HINT}
-              </p>
-              <p className="app-dashboard__reminders-footnote" role="note">
-                {TODAY_REMINDERS_FOOTNOTE}
-              </p>
-            </CardBody>
-          </Card>
+              ) : null}
+              <Button
+                type="button"
+                variant="primary"
+                className="ui-focusable app-quick-actions__btn"
+                onClick={() => onOpenModule("patients")}
+              >
+                {TODAY_SEARCH_PATIENT}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="ui-focusable app-quick-actions__btn"
+                disabled={!canLoad}
+                onClick={openScheduleToday}
+              >
+                {TODAY_OPEN_SCHEDULE}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="ui-focusable app-quick-actions__btn"
+                onClick={() => onOpenModule("settings")}
+              >
+                {TODAY_OPEN_SETTINGS}
+              </Button>
+            </div>
+            <p className="app-quick-actions__pilot-hint" role="note">
+              {TODAY_PILOT_READINESS_HINT}
+            </p>
+            <p className="app-dashboard__reminders-footnote" role="note">
+              {TODAY_REMINDERS_FOOTNOTE}
+            </p>
+          </div>
 
           {import.meta.env.DEV ? (
             <>

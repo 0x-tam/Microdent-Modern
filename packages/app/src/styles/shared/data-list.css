@@ -51,6 +51,11 @@
   box-shadow: inset 3px 0 0 var(--ui-primary-600);
 }
 
+.app-data-row--next {
+  background: color-mix(in srgb, var(--ui-info-50, var(--ui-primary-50)) 45%, var(--ui-bg-surface));
+  box-shadow: inset 3px 0 0 var(--ui-info-600, var(--ui-primary-500));
+}
+
 .app-data-row__time {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
@@ -78,6 +83,11 @@
   align-items: center;
   gap: var(--ui-space-2);
   justify-self: end;
+}
+
+.app-data-list__header--today,
+.app-data-list--today .app-data-row {
+  grid-template-columns: 80px 1fr minmax(160px, 2fr) auto auto;
 }
 
 .app-data-list--schedule .app-data-row,

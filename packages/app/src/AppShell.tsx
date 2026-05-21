@@ -8,7 +8,7 @@ import {
   READ_ONLY_CONNECTED_LABEL,
   READ_ONLY_VIEWER_LABEL,
 } from "./read-only-ui-copy.js";
-import { omitShellBannersDetailedInSettings, resolveShellStatusBanners } from "./shell-status-banners.js";
+import { resolveContextualStatusForModule } from "./shell-status-banners.js";
 
 export function resolveMirrorDiagnosticLabel(
   enabled: boolean,
@@ -331,11 +331,10 @@ export function AppShell({
     };
   }, [bridgeBaseUrl, bridgePhase, fetchImpl]);
 
-  const shellStatusBanners = useMemo(() => {
-    const banners = resolveShellStatusBanners(bridgePhase, mirrorStatus, writeCapability);
-    if (active !== "settings") return banners;
-    return omitShellBannersDetailedInSettings(banners, bridgePhase, mirrorStatus, writeCapability);
-  }, [active, bridgePhase, mirrorStatus, writeCapability]);
+  const shellStatusBanners = useMemo(
+    () => resolveContextualStatusForModule(active, bridgePhase, mirrorStatus, writeCapability),
+    [active, bridgePhase, mirrorStatus, writeCapability],
+  );
 
   const activeModule = useMemo(() => getAppSidebarModule(active), [active]);
   const sidebarNavHint = useMemo(() => resolveSidebarNavHint(), []);

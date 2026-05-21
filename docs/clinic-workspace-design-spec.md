@@ -160,6 +160,73 @@ Page agents own their partial; ShellFoundation owns layout and status.
 
 ---
 
+## Command Center v2 (density + width completion)
+
+**Batch:** Command center UX rebuild on baseline `13560fe`  
+**Goal:** Full workspace width, command-center page hierarchy, no card soup for stats.
+
+### Product model (enforced in layout)
+
+1. **Today** = command center (stat strip hero + live schedule board + ops health panel)
+2. **Schedule** = operational board (full-width column grid, sticky day headers)
+3. **Patients** = lookup gateway (search-first, recents grid)
+4. **Profile** = patient workspace (hero + stat strip + tabs)
+5. **Settings** = operator control center (multi-column card grid)
+
+### First-glance requirements (3 seconds)
+
+| Page | Must see |
+| --- | --- |
+| Today | Appt count today, next/current appt, connection/mirror tone, primary CTA |
+| Schedule | Date range, loaded count, filter state, scannable time column |
+| Patients | Search field, recent patients, what happens on select |
+| Profile | Name, chart, next visit hint, tab with most activity |
+
+### Density rules
+
+- Breathe at **page edges**; **dense inside data regions** (lists, boards, stat strips).
+- **No generic card grids for stats** — use `.app-stat-strip`, `.app-board-panel`, `.app-ops-panel`.
+- **No page-level max-width** on schedule/profile/patients roots (copy blocks may use `max-width: 72ch`).
+
+### Command center layout (Today)
+
+```
+┌─ .app-stat-strip (full width) ────────────────────────────┐
+│ Today count │ Status mix │ Mirror │ Write │ Bridge        │
+├─ .app-command-grid ───────────────────────────────────────┤
+│ .app-board-panel (2fr)     │ .app-ops-panel (1fr)        │
+│  .app-data-list appts      │  Now/Next, actions, recents  │
+│                            │  Clinic overview (dense dl) │
+└───────────────────────────────────────────────────────────┘
+```
+
+### Status tier v2
+
+| Tier | Placement |
+| --- | --- |
+| Read-only | Header pill only |
+| Critical | Workspace header strip + rail footer dot |
+| Warning | Page-specific (Today ops, Settings cards) — not global when duplicated |
+| Info | Today stat strip chips / Settings only |
+
+Use `resolveContextualStatusForModule(active)` so global `.app-status-strip` collapses when the active page owns the same signal.
+
+### Shared command-center classes
+
+| Class | Purpose |
+| --- | --- |
+| `.app-stat-strip` / `.app-stat` | First-glance metrics row |
+| `.app-command-grid` | Board + ops two-column layout |
+| `.app-board-panel` | Primary data surface (appointments, schedule board) |
+| `.app-ops-panel` | Secondary ops (now/next, quick actions, overview) |
+| `.app-board-day-header` | Sticky schedule day group header |
+
+**CSS hygiene:** Shell root layout (`.app-shell`, `.app-workspace-shell` grid/flex) lives only in `shell-layout.css`. Hub `app-shell.css` must not reintroduce `960px`/`1040px` page caps.
+
+**Typography floor:** No UI chrome below **13px** (sidebar sublabels, badges, meta).
+
+---
+
 ## Windows field execution
 
 **Deferred / Not yet run.** Clinic go-live blocked until Tier 3 per `docs/FIELD-TEST-START-HERE.md`.

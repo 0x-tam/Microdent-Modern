@@ -3,7 +3,11 @@
   --app-gutter-x: clamp(12px, 2.2vw, 24px);
   --app-workspace-pad: clamp(16px, 2vw, 24px);
   --app-main-pad-y: clamp(14px, 1.8vw, 24px);
-  --app-rail-w: 260px;
+  --app-rail-w: 280px;
+  --app-stat-strip-gap: 12px;
+  --app-board-row-height: 56px;
+  --app-text-label: 14px;
+  --app-text-stat: clamp(1.25rem, 1rem + 0.5vw, 1.5rem);
   --app-sidebar-w: var(--app-rail-w);
   --app-content-max: none;
   --app-main-inner-max: none;
@@ -33,7 +37,7 @@
     --app-gutter-x: clamp(10px, 2vw, 20px);
     --app-workspace-pad: clamp(14px, 1.8vw, 20px);
     --app-main-pad-y: clamp(12px, 1.6vw, 20px);
-    --app-rail-w: 240px;
+    --app-rail-w: 260px;
     --app-topbar-gap: clamp(8px, 1.4vw, 16px);
     --app-card-pad-compact: var(--ui-space-3);
   }
@@ -77,11 +81,17 @@
 }
 
 .app-topbar__search {
-  flex: 1 1 min(280px, 42vw);
-  max-width: min(520px, 100%);
-  min-width: min(160px, 100%);
+  flex: 1 1 480px;
+  max-width: none;
+  min-width: min(200px, 100%);
   position: relative;
   z-index: 4;
+}
+
+.app-topbar-search__input,
+.app-patient-search__input {
+  min-height: 44px;
+  font-size: var(--app-text-body);
 }
 
 /* ----- Patient search (top bar) ----- */
@@ -429,6 +439,7 @@
 .app-sidebar__btn {
   width: 100%;
   text-align: left;
+  min-height: 48px;
   padding: clamp(10px, 1.2vw, 12px) clamp(12px, 1.4vw, 16px);
   border: 1px solid transparent;
   background: transparent;
@@ -930,7 +941,7 @@
 }
 
 .app-workspace-shell .app-topbar__search {
-  flex: 1 1 min(320px, 50vw);
-  max-width: min(640px, 100%);
+  flex: 1 1 480px;
+  max-width: none;
 }
 

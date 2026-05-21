@@ -2195,8 +2195,22 @@ export function PatientProfilePanel({
       <AppErrorBoundary>
         {patientId === null ? (
           <div className="app-patient-profile__open app-state-panel">
-            <h3 className="app-page-hero__title">{PATIENT_PAGE_SEARCH_TITLE}</h3>
-            <p className="app-patient-profile__open-lede">{PATIENT_PAGE_SEARCH_LEDE}</p>
+            <div className="app-patients-search-hero">
+              <h3 className="app-page-hero__title">{PATIENT_PAGE_SEARCH_TITLE}</h3>
+              <p className="app-patient-profile__open-lede">{PATIENT_PAGE_SEARCH_LEDE}</p>
+              <PatientPageSearchBlock
+                patientId={null}
+                bridgePhase={bridgePhase}
+                bridgeBaseUrl={bridgeBaseUrl}
+                fetchImpl={fetchImpl}
+                clearSelectionOnQueryChange
+                title={PATIENT_PAGE_SEARCH_TITLE}
+                recentPatients={recentPatients}
+                onPatientRecordSelect={onPatientRecordSelect}
+                onRecentPatientSelect={onRecentPatientSelect}
+                onPatientSelectionClear={onClearPatient}
+              />
+            </div>
             <p className="app-patient-profile__open-example">{PATIENT_PAGE_SEARCH_EXAMPLE}</p>
             <p className="app-patient-profile__open-hint">{PATIENT_MODULE_TABS_HINT}</p>
             <section
@@ -2209,7 +2223,7 @@ export function PatientProfilePanel({
               </h3>
               <p className="app-patient-profile__recent-hint">{PATIENT_RECENT_SESSION_HINT}</p>
               {recentPatients.length > 0 && onRecentPatientSelect ? (
-                <ul className="app-patient-profile__recent-list" aria-label={PATIENT_RECENT_SESSION_TITLE}>
+                <ul className="app-recent-grid app-patient-profile__recent-list" aria-label={PATIENT_RECENT_SESSION_TITLE}>
                   {recentPatients.map((entry) => (
                     <li key={entry.patientId}>
                       <button
@@ -2231,18 +2245,6 @@ export function PatientProfilePanel({
                 </p>
               )}
             </section>
-            <PatientPageSearchBlock
-              patientId={null}
-              bridgePhase={bridgePhase}
-              bridgeBaseUrl={bridgeBaseUrl}
-              fetchImpl={fetchImpl}
-              clearSelectionOnQueryChange
-              title={PATIENT_PAGE_SEARCH_TITLE}
-              recentPatients={recentPatients}
-              onPatientRecordSelect={onPatientRecordSelect}
-              onRecentPatientSelect={onRecentPatientSelect}
-              onPatientSelectionClear={onClearPatient}
-            />
           </div>
         ) : state.phase === "offline" ? (
           <EmptyState

@@ -3,7 +3,6 @@
   display: flex;
   flex-direction: column;
   gap: clamp(var(--ui-space-3), 1.4vw, var(--ui-space-4));
-  max-width: min(960px, 100%);
   width: 100%;
 }
 
@@ -78,9 +77,51 @@
   color: var(--ui-text-muted);
 }
 
+.app-schedule__toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--ui-bg-surface);
+  padding-bottom: var(--ui-space-2);
+}
+
+.app-schedule__days .app-data-list,
+.app-schedule__appt-list.app-data-list {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.app-schedule__room-block {
+  margin-left: var(--ui-space-3);
+  padding-left: var(--ui-space-3);
+  border-left: 2px solid var(--ui-border-subtle);
+}
+
+.app-schedule__appt-row,
+.app-schedule__appt-list .app-data-row {
+  display: grid;
+  grid-template-columns: 72px 1fr minmax(200px, 2fr) auto auto;
+  align-items: center;
+  gap: var(--ui-space-3);
+  min-height: var(--app-board-row-height, 56px);
+  padding: var(--ui-space-2) var(--ui-space-4);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-subtle);
+  margin-bottom: var(--ui-space-2);
+}
+
+.app-schedule__day-card {
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-surface);
+  overflow: hidden;
+}
+
 .app-schedule__keyboard-hint {
   margin: var(--ui-space-1) 0 0;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.4;
   color: var(--ui-text-muted);
 }

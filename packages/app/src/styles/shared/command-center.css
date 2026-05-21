@@ -1,0 +1,175 @@
+/* ----- Command center layout primitives ----- */
+.app-stat-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: var(--app-stat-strip-gap, 12px);
+  padding: var(--ui-space-3) var(--ui-space-4);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-surface-raised);
+}
+
+.app-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: min(8rem, 100%);
+  flex: 1 1 auto;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-radius: var(--ui-radius-sm);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-surface);
+}
+
+.app-stat--emphasis {
+  border-color: var(--app-primary-alpha-40);
+  background: var(--ui-primary-50);
+}
+
+.app-stat__label {
+  margin: 0;
+  font-size: var(--app-text-label, 14px);
+  font-weight: 600;
+  color: var(--ui-text-secondary);
+  line-height: 1.35;
+}
+
+.app-stat__value {
+  margin: 0;
+  font-size: var(--app-text-stat, clamp(1.25rem, 1rem + 0.5vw, 1.5rem));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  color: var(--ui-text-primary);
+}
+
+.app-stat__hint {
+  margin: 0;
+  font-size: var(--app-text-meta);
+  line-height: 1.4;
+  color: var(--ui-text-muted);
+}
+
+.app-command-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: var(--app-dashboard-gap);
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .app-command-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.app-board-panel,
+.app-ops-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-4);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-surface);
+  box-shadow: var(--ui-shadow-card, 0 1px 2px rgba(15, 23, 42, 0.06));
+  min-width: 0;
+}
+
+.app-board-panel__head,
+.app-ops-panel__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ui-space-2);
+}
+
+.app-board-panel__title,
+.app-ops-panel__title {
+  margin: 0;
+  font-size: clamp(1rem, 0.92rem + 0.35vw, 1.125rem);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ui-text-primary);
+}
+
+.app-board-day-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-2);
+  margin: 0;
+  padding: var(--ui-space-2) var(--ui-space-4);
+  font-size: var(--app-text-meta);
+  font-weight: 600;
+  color: var(--ui-text-primary);
+  background: var(--ui-bg-surface-raised);
+  border-bottom: 1px solid var(--ui-border-subtle);
+}
+
+.app-board-day-header__count {
+  font-size: var(--app-text-meta);
+  font-weight: 500;
+  color: var(--ui-text-secondary);
+  padding: 2px var(--ui-space-2);
+  border-radius: var(--ui-radius-sm);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-surface);
+}
+
+.app-recent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: var(--ui-space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.app-form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--ui-space-3);
+}
+
+@media (min-width: 900px) {
+  .app-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.app-sandbox-write-zone__steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  margin: 0 0 var(--ui-space-3);
+  padding: 0;
+  list-style: none;
+  font-size: var(--app-text-meta);
+}
+
+.app-sandbox-write-zone__step {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-1);
+  padding: var(--ui-space-1) var(--ui-space-2);
+  border-radius: var(--ui-radius-sm);
+  border: 1px solid var(--ui-border-subtle);
+  color: var(--ui-text-muted);
+}
+
+.app-sandbox-write-zone__step--active {
+  border-color: var(--ui-primary-600);
+  color: var(--ui-primary-700);
+  font-weight: 600;
+  background: var(--ui-primary-50);
+}
+
+.app-sandbox-write-zone__step--done {
+  color: var(--ui-text-secondary);
+}

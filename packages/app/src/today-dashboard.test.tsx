@@ -664,7 +664,7 @@ describe("DashboardHome (Today schedule)", () => {
     });
 
     expect(container.textContent).toMatch(/Local copy may be outdated/i);
-    expect(container.querySelector(".app-metric-row")).toBeTruthy();
+    expect(container.querySelector(".app-stat-strip")).toBeTruthy();
     assertNoForbiddenDomTokens(container.textContent ?? "");
   });
 
@@ -853,8 +853,8 @@ describe("DashboardHome (Today schedule)", () => {
     });
 
     expect(container.textContent).toMatch(/1 scheduled · 1 confirmed/i);
-    expect(container.querySelector(".app-appt-list__row--current")).toBeTruthy();
-    expect(container.querySelector(".app-appt-list__row--next")).toBeTruthy();
+    expect(container.querySelector(".app-data-row--current")).toBeTruthy();
+    expect(container.querySelector(".app-data-row--next")).toBeTruthy();
   });
 
   it("renders Clinic at a glance with safe overview rows when connected", async () => {

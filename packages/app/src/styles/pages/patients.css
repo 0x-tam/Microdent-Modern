@@ -36,9 +36,23 @@
   background: var(--ui-bg-subtle);
 }
 
+.app-patients-search-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ui-space-3);
+  width: 100%;
+  padding: var(--ui-space-4) 0;
+}
+
+.app-patients-search-hero .app-patient-search--page {
+  width: 100%;
+  max-width: min(640px, 100%);
+}
+
 .app-patient-search__hint {
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.4;
   color: var(--ui-text-muted);
 }
@@ -195,7 +209,6 @@
   display: flex;
   flex-direction: column;
   gap: clamp(var(--ui-space-3), 1.4vw, var(--ui-space-4));
-  max-width: min(720px, 100%);
 }
 
 .app-module-home__header {

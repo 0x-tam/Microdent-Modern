@@ -1,11 +1,11 @@
-# Visual QA Checklist — Clinic Workspace Restructure
+# Visual QA Checklist — Command Center v2
 
-Manual verification per page after the workspace restructure batch. No screenshot artifacts in repo.
+Manual verification per page after the command center UX rebuild batch. No screenshot artifacts in repo.
 
 ## Global shell
 
-- [ ] Full viewport width used — no floating ~1040px column
-- [ ] Rail is 260px with brand, nav icons, patient slot, status footer
+- [ ] Full viewport width used — no floating ~960px / ~1040px column
+- [ ] Rail is 280px (260px tablet) with brand, nav icons, patient slot, status footer
 - [ ] Read-only mode shown as header pill, not full-width banner
 - [ ] Status messages in compact strip (critical/warning/info tiers)
 - [ ] Body text readable at arm's length (16px minimum)
@@ -13,9 +13,10 @@ Manual verification per page after the workspace restructure batch. No screensho
 
 ## Today
 
-- [ ] Page hero shows date + module title
-- [ ] Primary/aside grid: appointments left, operations panel right
-- [ ] Appointment rows scannable (time, patient, status)
+- [ ] `.app-stat-strip` visible at first glance (count, status mix, mirror, readiness)
+- [ ] `.app-command-grid`: board panel + ops panel (not Card soup)
+- [ ] Appointment rows use `.app-data-list` column grid
+- [ ] Global status strip collapsed when Today owns mirror/write chips
 - [ ] Empty state centered with primary CTA
 - [ ] No horizontal overflow at 1280px and 1920px
 

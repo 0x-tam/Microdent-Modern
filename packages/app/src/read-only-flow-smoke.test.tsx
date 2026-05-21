@@ -90,7 +90,7 @@ describe("read-only app smoke", () => {
     expect(container.querySelector("#app-main-heading")?.textContent).toBe("Today");
     expect(container.textContent).toMatch(/Clinic at a glance/i);
     expect(container.textContent).toMatch(/Now/i);
-    expect(container.querySelector(".app-metric-row")).toBeTruthy();
+    expect(container.querySelector(".app-stat-strip")).toBeTruthy();
     assertNoForbiddenDomTokens(container.textContent ?? "");
 
     const searchInput = container.querySelector("input#app-patient-search-input") as HTMLInputElement;

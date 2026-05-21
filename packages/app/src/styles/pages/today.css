@@ -282,7 +282,7 @@
 .app-legacy-catalog-panel__id {
   display: block;
   margin-top: 2px;
-  font-size: 11px;
+  font-size: 13px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   color: var(--ui-text-muted);
 }

@@ -214,6 +214,28 @@ export function resolveSandboxWriteWarningBanner(
   };
 }
 
+export type AppShellModuleId = "today" | "patients" | "schedule" | "settings";
+
+/**
+ * Banners for the global status strip — page-specific warning/info moves to Today stat strip or Settings.
+ */
+export function resolveContextualStatusForModule(
+  active: AppShellModuleId,
+  phase: BridgeHealthPhase,
+  mirrorStatus: MirrorStatusResponse | null,
+  writeCapability: BridgeDevStatusResponse | null,
+  nowMs: number = Date.now(),
+): ShellStatusBanner[] {
+  const all = resolveShellStatusBanners(phase, mirrorStatus, writeCapability, nowMs);
+  if (active === "settings") {
+    return omitShellBannersDetailedInSettings(all, phase, mirrorStatus, writeCapability, nowMs);
+  }
+  if (active === "today") {
+    return all.filter((b) => b.tone === "danger");
+  }
+  return all.filter((b) => b.tone === "danger" || b.key === "mirror-stale");
+}
+
 /** Ordered production banners (read-only banner is rendered separately in AppShell). */
 export function resolveShellStatusBanners(
   phase: BridgeHealthPhase,

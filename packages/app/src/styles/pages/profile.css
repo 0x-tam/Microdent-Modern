@@ -3,7 +3,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--ui-space-4);
-  max-width: min(720px, 100%);
 }
 
 .app-patient-profile__toolbar {
@@ -92,9 +91,10 @@
   gap: var(--ui-space-3);
 }
 
+.app-page-hero--profile .app-page-hero__title,
 .app-patient-profile__name {
   margin: 0;
-  font-size: clamp(1.35rem, 1.1rem + 1.2vw, 1.85rem);
+  font-size: 2rem;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.02em;
@@ -157,6 +157,7 @@
 
 .app-patient-profile__tab {
   display: inline-flex;
+  min-height: 48px;
   align-items: center;
   gap: var(--ui-space-2);
   padding: var(--ui-space-2) var(--ui-space-3);
@@ -184,7 +185,7 @@
 }
 
 .app-patient-profile__tab-badge {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -561,7 +562,7 @@
 }
 
 .app-patient-profile__timeline-row-kind {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;

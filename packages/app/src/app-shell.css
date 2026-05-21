@@ -5,6 +5,7 @@
 
 @import "./styles/shell-layout.css";
 @import "./styles/shell-status.css";
+@import "./styles/shared/command-center.css";
 @import "./styles/shared/surface.css";
 @import "./styles/shared/toolbar.css";
 @import "./styles/shared/data-list.css";
@@ -356,7 +357,7 @@
 }
 
 .app-schedule__status-chip {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.02em;
 }
@@ -521,7 +522,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--app-section-gap);
-  max-width: min(960px, 100%);
 }
 
 .app-settings__doc-ref {
@@ -598,11 +598,6 @@
     --app-dashboard-col-aside: minmax(248px, min(320px, 26vw));
   }
 
-  .app-schedule,
-  .app-settings {
-    max-width: min(1040px, 100%);
-  }
-
   .app-patient-profile__summary-mini-grid {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
@@ -635,7 +630,7 @@
 .app-patient-profile__timeline-row-action {
   display: block;
   margin-top: 2px;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--ui-primary-600);
 }
 
