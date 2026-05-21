@@ -1,5 +1,5 @@
 import { createBridgeClient } from "@microdent/bridge-client";
-import type { MirrorStatusResponse, ScheduleAppointmentItem } from "@microdent/contracts";
+import type { BridgeDevStatusResponse, MirrorStatusResponse, ScheduleAppointmentItem } from "@microdent/contracts";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Badge, Button, Card, CardBody, CardHeader, EmptyState } from "@microdent/ui";
 import type { AppSidebarModuleId } from "./app-nav-modules.js";
@@ -8,10 +8,17 @@ import { FixtureConnectionPanel } from "./FixtureConnectionPanel.js";
 import { LegacyCatalogPanel } from "./LegacyCatalogPanel.js";
 import { doctorDisplayLabel } from "./doctor-labels.js";
 import { isMirrorImportStale } from "./mirror-stale.js";
+import {
+  formatAppointmentStatusMix,
+  patientApptStatusBadgeVariant,
+  patientApptStatusLabel,
+} from "./patient-appointments-display.js";
+import { resolveFrontDeskOverview } from "./settings-status.js";
 import { procClassDisplayLabel, type ProcedureReferenceMaps } from "./procedure-reference.js";
 import { useDoctorLabels } from "./useDoctorLabels.js";
 import { useProcedureReference } from "./useProcedureReference.js";
 import {
+  CLINIC_AT_A_GLANCE_TITLE,
   CLINIC_SERVICE_CHECKING,
   CLINIC_SERVICE_CONNECT_TODAY,
   MIRROR_ACTIVE_BANNER_LABEL,
@@ -20,6 +27,8 @@ import {
   READONLY_STATE_RETRY,
   SCHEDULE_LOAD_ERROR,
   TAB_UNAVAILABLE_TITLE,
+  TODAY_APPT_ROW_CURRENT_LABEL,
+  TODAY_APPT_ROW_NEXT_LABEL,
   TODAY_EMPTY_DESCRIPTION,
   TODAY_EMPTY_TITLE,
   TODAY_LOADING,
@@ -40,6 +49,7 @@ import {
   TODAY_SELECTED_PATIENT_OPEN,
   TODAY_SELECTED_PATIENT_TITLE,
   TODAY_STATUS_COUNT_TITLE,
+  TODAY_STATUS_MIX_UNAVAILABLE,
   TODAY_STATUS_MIRROR_ACTIVE,
   TODAY_STATUS_MIRROR_FALLBACK,
   TODAY_STATUS_MIRROR_OFFLINE,
@@ -56,25 +66,13 @@ function toLocalIsoDate(d: Date): string {
 }
 
 function statusLabel(code: number): string {
-  const map: Record<number, string> = {
-    0: "Available",
-    1: "Scheduled",
-    2: "Confirmed",
-    3: "Completed",
-    4: "Cancelled",
-    5: "No-show",
-  };
-  return map[code] ?? `Status ${code}`;
+  return patientApptStatusLabel(code);
 }
 
 function statusBadgeVariant(
   code: number,
 ): "neutral" | "success" | "warning" | "danger" | "info" {
-  if (code === 2 || code === 3) return "success";
-  if (code === 4) return "warning";
-  if (code === 5) return "danger";
-  if (code === 1) return "info";
-  return "neutral";
+  return patientApptStatusBadgeVariant(code);
 }
 
 function formatDuration(a: ScheduleAppointmentItem): string {
@@ -126,6 +124,19 @@ function findNextUpcomingToday(sorted: ScheduleAppointmentItem[], now: Date): Sc
   return null;
 }
 
+/** Appointment in progress at `now` (start <= now < end). */
+function findCurrentToday(sorted: ScheduleAppointmentItem[], now: Date): ScheduleAppointmentItem | null {
+  const nowM = now.getHours() * 60 + now.getMinutes();
+  for (const a of sorted) {
+    const start = parseTimeToMinutes(a.time);
+    if (start === null) continue;
+    const slotMin = a.periodMinutes ?? 30;
+    const end = start + a.durationSlots * slotMin;
+    if (start <= nowM && nowM < end) return a;
+  }
+  return null;
+}
+
 function formatTodayLine(): string {
   try {
     return new Intl.DateTimeFormat(undefined, {
@@ -170,6 +181,7 @@ export type DashboardHomeProps = {
   selectedPatientDisplayName?: string | null;
   selectedPatientChartNumber?: string | null;
   mirrorStatus?: MirrorStatusResponse | null;
+  writeCapability?: BridgeDevStatusResponse | null;
 };
 
 type MirrorFreshness = {
@@ -220,6 +232,7 @@ export function DashboardHome({
   selectedPatientDisplayName = null,
   selectedPatientChartNumber = null,
   mirrorStatus = null,
+  writeCapability = null,
 }: DashboardHomeProps) {
   const base = bridgeBaseUrl?.trim() ?? "";
   const canLoad = Boolean(base) && bridgePhase === "connected";
@@ -295,7 +308,44 @@ export function DashboardHome({
   }, [canLoad, loadToday, retryTick]);
 
   const sorted = useMemo(() => [...appointments].sort(sortAppointments), [appointments]);
-  const nextUpcoming = useMemo(() => findNextUpcomingToday(sorted, new Date()), [sorted]);
+  const now = useMemo(() => new Date(), [sorted, loading, retryTick]);
+  const currentAppt = useMemo(() => findCurrentToday(sorted, now), [sorted, now]);
+  const nextUpcoming = useMemo(() => findNextUpcomingToday(sorted, now), [sorted, now]);
+
+  const todayCountForOverview = useMemo((): number | null => {
+    if (!base || bridgePhase === "offline") return null;
+    if (bridgePhase === "checking" || loading || error) return null;
+    return sorted.length;
+  }, [base, bridgePhase, loading, error, sorted.length]);
+
+  const statusMixLine = useMemo(() => {
+    if (!base || bridgePhase === "offline") return null;
+    if (bridgePhase === "checking" || loading) return null;
+    if (error || sorted.length === 0) return null;
+    return formatAppointmentStatusMix(sorted);
+  }, [base, bridgePhase, loading, error, sorted]);
+
+  const clinicOverview = useMemo(
+    () =>
+      resolveFrontDeskOverview({
+        bridgePhase,
+        mirrorStatus,
+        writeCapability,
+        todayAppointmentCount: todayCountForOverview,
+        selectedPatientId,
+        selectedPatientDisplayName,
+        selectedPatientChartNumber,
+      }),
+    [
+      bridgePhase,
+      mirrorStatus,
+      writeCapability,
+      todayCountForOverview,
+      selectedPatientId,
+      selectedPatientDisplayName,
+      selectedPatientChartNumber,
+    ],
+  );
 
   const countCardValue: ReactNode = (() => {
     if (!base || bridgePhase === "offline") {
@@ -410,8 +460,22 @@ export function DashboardHome({
     }
     return (
       <ul className="app-appt-list" aria-label="Today’s appointments from the clinic copy">
-        {sorted.map((a) => (
-          <li key={a.id} className="app-appt-list__row">
+        {sorted.map((a) => {
+          const rowClass = [
+            "app-appt-list__row",
+            currentAppt?.id === a.id ? "app-appt-list__row--current" : "",
+            nextUpcoming?.id === a.id && currentAppt?.id !== a.id ? "app-appt-list__row--next" : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
+          const rowLabel =
+            currentAppt?.id === a.id
+              ? TODAY_APPT_ROW_CURRENT_LABEL
+              : nextUpcoming?.id === a.id && currentAppt?.id !== a.id
+                ? TODAY_APPT_ROW_NEXT_LABEL
+                : undefined;
+          return (
+          <li key={a.id} className={rowClass} aria-label={rowLabel}>
             <span className="app-appt-list__time">{a.time.trim()}</span>
             <div className="app-appt-list__main">
               <span
@@ -451,7 +515,8 @@ export function DashboardHome({
               {statusLabel(a.status)}
             </Badge>
           </li>
-        ))}
+          );
+        })}
       </ul>
     );
   })();
@@ -554,6 +619,14 @@ export function DashboardHome({
             {TODAY_SEARCH_PATIENT}
           </Button>
         )}
+        <Button
+          type="button"
+          variant="secondary"
+          className="ui-focusable app-next-patient__btn app-next-patient__btn--schedule"
+          onClick={() => onOpenModule("schedule")}
+        >
+          {TODAY_OPEN_SCHEDULE}
+        </Button>
       </>
     );
   })();
@@ -625,6 +698,15 @@ export function DashboardHome({
               <CardBody>
                 {countCardValue}
                 <p className="app-dashboard-status__hint">{countCardHint}</p>
+                {statusMixLine ? (
+                  <p className="app-dashboard-status__mix" role="status">
+                    {statusMixLine}
+                  </p>
+                ) : canLoad && (loading || error) ? (
+                  <p className="app-dashboard-status__mix app-dashboard-status__mix--muted" role="status">
+                    {TODAY_STATUS_MIX_UNAVAILABLE}
+                  </p>
+                ) : null}
               </CardBody>
             </Card>
             <Card className={`app-dashboard-status-card app-dashboard-status-card--${mirrorFreshness.tone}`}>
@@ -637,6 +719,25 @@ export function DashboardHome({
               </CardBody>
             </Card>
           </div>
+
+          <Card className="app-dashboard-clinic-overview">
+            <CardHeader>
+              <p className="ui-card__title app-card-title-lg">{CLINIC_AT_A_GLANCE_TITLE}</p>
+            </CardHeader>
+            <CardBody>
+              <dl className="app-dashboard-clinic-overview__list">
+                {clinicOverview.map((row) => (
+                  <div
+                    key={row.key}
+                    className={`app-dashboard-clinic-overview__row app-dashboard-clinic-overview__row--${row.tone}`}
+                  >
+                    <dt className="app-dashboard-clinic-overview__label">{row.label}</dt>
+                    <dd className="app-dashboard-clinic-overview__value">{row.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </CardBody>
+          </Card>
 
           <Card className="app-next-patient-card">
             <CardHeader>

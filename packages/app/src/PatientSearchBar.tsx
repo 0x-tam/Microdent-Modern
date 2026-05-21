@@ -16,7 +16,13 @@ import {
   PATIENT_SEARCH_OPEN_RECORD_PREFIX,
   PATIENT_SEARCH_SEARCHING,
   PATIENT_SEARCH_TOO_SHORT,
+  PATIENT_RECENT_SESSION_HINT,
+  PATIENT_RECENT_SESSION_TITLE,
 } from "./read-only-ui-copy.js";
+import {
+  formatSessionRecentPatientMeta,
+  type SessionRecentPatient,
+} from "./session-recent-patients.js";
 
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -40,6 +46,9 @@ export type PatientSearchBarProps = {
   selectedDisplayName?: string | null;
   /** When the user picks a search row, the shell stores `patientId` and may navigate to Patients. */
   onPatientRecordSelect?: (hit: PatientSearchHit) => void;
+  /** Session-only recent patients (safe fields; max 5). */
+  recentPatients?: readonly SessionRecentPatient[];
+  onRecentPatientSelect?: (entry: SessionRecentPatient) => void;
   /** When the user edits the query, the shell should clear the selected patient id. */
   onPatientSelectionClear?: () => void;
   /** When false, typing does not call `onPatientSelectionClear` (e.g. change-patient search while a profile is open). */
@@ -107,6 +116,8 @@ export function PatientSearchBar({
   selectedPatientId = null,
   selectedDisplayName = null,
   onPatientRecordSelect,
+  recentPatients = [],
+  onRecentPatientSelect,
   onPatientSelectionClear,
   clearSelectionOnQueryChange = true,
   className,
@@ -385,6 +396,9 @@ export function PatientSearchBar({
 
   const cappedList = results.length >= 20;
 
+  const showRecentSession =
+    canSearch && trimmed.length < 2 && recentPatients.length > 0 && onRecentPatientSelect !== undefined;
+
   const rootClassName = ["app-patient-search", instanceId === "page" ? "app-patient-search--page" : null, className]
     .filter(Boolean)
     .join(" ");
@@ -478,6 +492,38 @@ export function PatientSearchBar({
           Ready.
         </p>
       )}
+
+      {showRecentSession ? (
+        <div className="app-patient-search__recent" data-testid="patient-search-recent">
+          <p className="app-patient-search__recent-title">{PATIENT_RECENT_SESSION_TITLE}</p>
+          <p className="app-patient-search__recent-hint">{PATIENT_RECENT_SESSION_HINT}</p>
+          <ul className="app-patient-search__recent-list" aria-label={PATIENT_RECENT_SESSION_TITLE}>
+            {recentPatients.map((entry) => {
+              const isProfileMatch = selectedPatientId !== null && selectedPatientId === entry.patientId;
+              return (
+                <li key={entry.patientId} className="app-patient-search__recent-wrap">
+                  <button
+                    type="button"
+                    className={[
+                      "app-patient-search__recent-btn",
+                      "ui-focusable",
+                      isProfileMatch ? "app-patient-search__recent-btn--selected" : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    onClick={() => onRecentPatientSelect(entry)}
+                  >
+                    <span className="app-patient-search__recent-name">{entry.displayName}</span>
+                    <span className="app-patient-search__recent-meta">
+                      {formatSessionRecentPatientMeta(entry)}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
 
       {showDropdown ? (
         <div id={domIds.listbox} className="app-patient-search__dropdown" role="listbox" aria-label="Patient search results">

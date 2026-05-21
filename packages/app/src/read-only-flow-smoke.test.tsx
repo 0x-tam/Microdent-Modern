@@ -115,6 +115,16 @@ describe("read-only app smoke", () => {
       smokeProfile.displayName,
     );
     expect(container.querySelector("#patient-panel-summary")).toBeTruthy();
+    expect(container.querySelector(".app-patient-profile__summary-mini-grid")).toBeTruthy();
+
+    for (let i = 0; i < 15; i++) {
+      if (container.textContent?.match(/appointment in range|No appointments|screening flag/i)) {
+        break;
+      }
+      await flush();
+    }
+    expect(container.textContent).toMatch(/appointment|Medical|procedure|chart|ledger/i);
+    assertNoForbiddenDomTokens(container.textContent ?? "");
 
     await clickPatientTab(container, "appointments");
     await flush();
@@ -140,11 +150,29 @@ describe("read-only app smoke", () => {
     expect(container.textContent).toMatch(/Dental chart is read-only/i);
     expect(container.textContent).toContain("Tooth 14");
 
+    const treatedOnlyBtn = [...container.querySelectorAll("button")].find(
+      (b) => b.textContent === "Treated only",
+    );
+    if (treatedOnlyBtn) {
+      await act(async () => {
+        treatedOnlyBtn.click();
+      });
+      await flush();
+    }
+
     await clickPatientTab(container, "ledger");
     await flush();
     expect(container.querySelector("#patient-panel-ledger")).toBeTruthy();
     expect(container.textContent).toMatch(/Ledger lines are read-only/i);
     expect(container.textContent).toContain("Charge type 2");
+
+    const paymentsBtn = [...container.querySelectorAll("button")].find((b) => b.textContent === "Payments");
+    if (paymentsBtn) {
+      await act(async () => {
+        paymentsBtn.click();
+      });
+      await flush();
+    }
 
     clickSidebarModule(container, "Settings");
     await flush();

@@ -40,6 +40,10 @@ import {
   resolveSidebarNavHint,
   type AppSidebarModuleId,
 } from "./app-nav-modules.js";
+import {
+  pushSessionRecentPatient,
+  type SessionRecentPatient,
+} from "./session-recent-patients.js";
 
 export {
   APP_NAV_MODULES,
@@ -136,6 +140,7 @@ export function AppShell({
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [selectedPatientDisplayName, setSelectedPatientDisplayName] = useState<string | null>(null);
   const [selectedPatientChartNumber, setSelectedPatientChartNumber] = useState<string | null>(null);
+  const [recentPatients, setRecentPatients] = useState<SessionRecentPatient[]>([]);
   const [bridgePhase, setBridgePhase] = useState<BridgeHealthPhase>(() => (bridgeBaseUrl?.trim() ? "checking" : "offline"));
   const [lastHealthCheckAt, setLastHealthCheckAt] = useState<number | null>(null);
   const [lastHealthOfflineReason, setLastHealthOfflineReason] = useState<string | null>(null);
@@ -143,19 +148,42 @@ export function AppShell({
   const [mirrorDiagLabel, setMirrorDiagLabel] = useState<string | null>(null);
   const [mirrorStatus, setMirrorStatus] = useState<MirrorStatusResponse | null>(null);
   const [writeCapability, setWriteCapability] = useState<BridgeDevStatusResponse | null>(null);
+  const [scheduleInitialDate, setScheduleInitialDate] = useState<string | null>(null);
 
   const mainHeadingId = "app-main-heading";
 
   const displayClinicLabel = resolveShellClinicLabel(bridgePhase, clinicLabel);
+
+  const rememberRecentPatient = useCallback(
+    (entry: { patientId: string; displayName: string; chartNumber: string | null }) => {
+      const displayName = entry.displayName?.trim();
+      if (!displayName) return;
+      setRecentPatients((prev) =>
+        pushSessionRecentPatient(prev, {
+          patientId: entry.patientId,
+          displayName,
+          chartNumber: entry.chartNumber,
+        }),
+      );
+    },
+    [],
+  );
 
   const handleOpenPatient = useCallback(
     (patientId: string, summary?: { displayName?: string | null; chartNumber?: string | null }) => {
       setSelectedPatientId(patientId);
       setSelectedPatientDisplayName(summary?.displayName ?? null);
       setSelectedPatientChartNumber(summary?.chartNumber ?? null);
+      if (summary?.displayName?.trim()) {
+        rememberRecentPatient({
+          patientId,
+          displayName: summary.displayName.trim(),
+          chartNumber: summary.chartNumber ?? null,
+        });
+      }
       setActive("patients");
     },
-    [],
+    [rememberRecentPatient],
   );
 
   const handlePatientRecordSelect = useCallback(
@@ -163,15 +191,32 @@ export function AppShell({
       setSelectedPatientId(hit.patientId);
       setSelectedPatientDisplayName(hit.displayName);
       setSelectedPatientChartNumber(hit.chartNumber);
+      rememberRecentPatient(hit);
       setActive("patients");
     },
-    [],
+    [rememberRecentPatient],
+  );
+
+  const handleRecentPatientSelect = useCallback(
+    (entry: SessionRecentPatient) => {
+      handlePatientRecordSelect(entry);
+    },
+    [handlePatientRecordSelect],
   );
 
   const handlePatientSelectionClear = useCallback(() => {
     setSelectedPatientId(null);
     setSelectedPatientDisplayName(null);
     setSelectedPatientChartNumber(null);
+  }, []);
+
+  const handleOpenScheduleAtDate = useCallback((dateIso: string) => {
+    setScheduleInitialDate(dateIso);
+    setActive("schedule");
+  }, []);
+
+  const handleScheduleInitialDateApplied = useCallback(() => {
+    setScheduleInitialDate(null);
   }, []);
 
   const runBridgeHealthCheck = useCallback(
@@ -341,8 +386,10 @@ export function AppShell({
             bridgeBaseUrl={bridgeBaseUrl}
             selectedPatientId={selectedPatientId}
             selectedDisplayName={selectedPatientDisplayName}
+            recentPatients={recentPatients}
             fetchImpl={fetchImpl}
             onPatientRecordSelect={handlePatientRecordSelect}
+            onRecentPatientSelect={handleRecentPatientSelect}
             onPatientSelectionClear={handlePatientSelectionClear}
           />
         </div>
@@ -500,7 +547,11 @@ export function AppShell({
                   fetchImpl={fetchImpl}
                   writeDiagnosticsActions={devWriteActionsEnabled}
                   sandboxWritePilot={sandboxWritePilot}
+                  initialDate={scheduleInitialDate}
+                  onInitialDateApplied={handleScheduleInitialDateApplied}
                   onBackToday={() => setActive("today")}
+                  onOpenPatient={handleOpenPatient}
+                  mirrorStatus={mirrorStatus}
                 />
               ) : active === "settings" ? (
                 <SettingsPanel
@@ -521,9 +572,12 @@ export function AppShell({
                   fetchImpl={fetchImpl}
                   sandboxWritePilot={sandboxWritePilot}
                   writeCapability={writeCapability}
+                  recentPatients={recentPatients}
                   onBackToday={() => setActive("today")}
                   onClearPatient={handlePatientSelectionClear}
                   onPatientRecordSelect={handlePatientRecordSelect}
+                  onRecentPatientSelect={handleRecentPatientSelect}
+                  onOpenScheduleAtDate={handleOpenScheduleAtDate}
                 />
               )}
             </div>

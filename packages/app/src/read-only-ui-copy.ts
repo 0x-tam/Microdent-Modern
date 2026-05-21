@@ -55,6 +55,13 @@ export const PATIENT_CHANGE_PATIENT_LABEL = "Search another patient";
 export const PATIENT_NO_SELECTION_DESCRIPTION =
   "Search below or in the top bar, pick a row when the clinic service is connected, and this area will open their record.";
 
+export const PATIENT_RECENT_SESSION_TITLE = "Recent this session";
+
+export const PATIENT_RECENT_SESSION_HINT =
+  "Up to five patients opened this session — not saved after you close the app. Names and chart numbers only.";
+
+export const PATIENT_RECENT_SESSION_EMPTY = "No recent patients yet — open a record from search.";
+
 export const PATIENT_PROFILE_LOADING = "Loading profile…";
 
 export const PATIENT_PROFILE_WAITING_TITLE = "Waiting for the clinic service";
@@ -78,6 +85,12 @@ export const PATIENT_TAB_TREATMENTS_LEDE =
 export const PATIENT_TAB_LOADING_TREATMENTS = "Loading treatments…";
 
 export const PATIENT_TAB_OFFLINE_TREATMENTS = "Connect the bridge to load treatment history.";
+
+export const PATIENT_TAB_OFFLINE_MEDICAL = "Connect the bridge to load the medical summary.";
+
+export const PATIENT_TAB_OFFLINE_CHART = "Connect the bridge to load the dental chart.";
+
+export const PATIENT_TAB_OFFLINE_LEDGER = "Connect the bridge to load the ledger preview.";
 
 export const PATIENT_TAB_CHART_LEDE =
   "Dental chart is read-only. Chart memos and clinical labels stay hidden.";
@@ -110,13 +123,60 @@ export const PATIENT_TAB_DESC_LEDGER =
 export const PATIENT_TAB_HIDDEN_FIELDS_NOTE = `Sensitive fields stay ${HIDDEN_IN_READONLY_VIEWER}.`;
 
 export const SENSITIVE_MEDICAL_BANNER =
-  "This patient has medical details on file in the legacy system. Sensitive fields are hidden in this read-only viewer.";
+  "This patient has medical details on file in the legacy system. Problem descriptions, allergy text, and clinical notes stay hidden in this read-only viewer.";
+
+export const MEDICAL_SENSITIVE_STILL_SHOWN =
+  "You can still see questionnaire dates and the total count of screening flags marked yes — no free-text medical fields.";
+
+export const PATIENT_TAB_CHART_EXPLAINER =
+  "Read-only chart preview grouped by tooth. Chart memos and decoded clinical legends stay hidden — only safe tooth numbers, opaque type codes, and treated/not-treated flags are shown.";
 
 export const TRUNCATED_LIST_BANNER =
   "Showing a capped list only. Additional lines are omitted in this read-only viewer.";
 
 export const PATIENT_TAB_LEDGER_AMOUNTS_HIDDEN =
   "Dollar amounts, running balances, and payment totals are never shown in this preview — only opaque type codes and dates.";
+
+export const PATIENT_TAB_LEDGER_AMOUNTS_CHIP = "Amounts intentionally hidden";
+
+export const PATIENT_TAB_SECTION_UNDATED = "Date unknown";
+
+export const PATIENT_TAB_FILTER_ALL = "All";
+
+export const PATIENT_TAB_CHART_FILTER_ALL = "All entries";
+
+export const PATIENT_TAB_CHART_FILTER_TREATED = "Treated only";
+
+export const PATIENT_TAB_LEDGER_FILTER_CHARGE = "Charges";
+
+export const PATIENT_TAB_LEDGER_FILTER_ADJUSTMENT = "Adjustments";
+
+export const PATIENT_TAB_LEDGER_FILTER_PAYMENT = "Payments";
+
+export const medicalFlaggedCountPartialNote = (flaggedCount: number): string =>
+  `${flaggedCount} screening flags marked yes (some categories summarized as count only)`;
+
+export const treatmentsToolbarSummary = (
+  shown: number,
+  total: number,
+  filterActive: boolean,
+): string => {
+  if (filterActive && shown !== total) {
+    return shown === 1
+      ? `1 of ${total} procedures shown (filtered)`
+      : `${shown} of ${total} procedures shown (filtered)`;
+  }
+  return total === 1 ? "1 procedure" : `${total} procedures`;
+};
+
+export const ledgerToolbarSummary = (shown: number, total: number, filterActive: boolean): string => {
+  if (filterActive && shown !== total) {
+    return shown === 1
+      ? `1 of ${total} ledger lines shown (filtered)`
+      : `${shown} of ${total} ledger lines shown (filtered)`;
+  }
+  return total === 1 ? "1 ledger line" : `${total} ledger lines`;
+};
 
 export const PATIENT_TAB_SECTION_QUESTIONNAIRE = "Questionnaire summary";
 
@@ -127,6 +187,39 @@ export const PATIENT_TAB_SECTION_PROCEDURE_HISTORY = "Procedure history";
 export const PATIENT_TAB_SECTION_CHART_ENTRIES = "Chart entries";
 
 export const PATIENT_TAB_SECTION_LEDGER_ENTRIES = "Transaction lines";
+
+/** Patient workspace summary mini-cards and cross-tab actions (Workstream A). */
+export const PATIENT_PROFILE_LAST_REFRESHED = "Last refreshed";
+
+export const PATIENT_SUMMARY_MINI_CARD_APPOINTMENTS = "Appointments";
+export const PATIENT_SUMMARY_MINI_CARD_MEDICAL = "Medical";
+export const PATIENT_SUMMARY_MINI_CARD_TREATMENTS = "Treatments";
+export const PATIENT_SUMMARY_MINI_CARD_CHART = "Chart";
+export const PATIENT_SUMMARY_MINI_CARD_LEDGER = "Ledger preview";
+
+export const PATIENT_SUMMARY_MINI_LOADING = "Loading…";
+export const PATIENT_SUMMARY_MINI_UNAVAILABLE = "Unavailable";
+export const PATIENT_SUMMARY_MINI_EMPTY = "None in range";
+export const PATIENT_SUMMARY_MINI_NO_RECORD = "No record on file";
+export const PATIENT_SUMMARY_MINI_SENSITIVE = "Sensitive details hidden";
+export const PATIENT_SUMMARY_MINI_TRUNCATED = "List capped";
+
+export const PATIENT_SUMMARY_CROSS_TAB_ARIA = "Open patient sections";
+
+export function patientSummaryViewTabLabel(tabLabel: string): string {
+  return `View ${tabLabel.toLowerCase()}`;
+}
+
+/** Patient appointment history filters and schedule link (Workstream B). */
+export const PATIENT_APPT_PRESET_DEFAULT = "Default";
+export const PATIENT_APPT_TIME_ALL = "All";
+export const PATIENT_APPT_TIME_PAST = "Past";
+export const PATIENT_APPT_TIME_UPCOMING = "Upcoming";
+export const PATIENT_APPT_FILTER_STATUS_ARIA = "Filter by visit status";
+export const PATIENT_APPT_FILTER_ROOM_ARIA = "Filter by room";
+export const PATIENT_APPT_FILTER_ALL_STATUSES = "All statuses";
+export const PATIENT_APPT_FILTER_ALL_ROOMS = "All rooms";
+export const PATIENT_APPT_OPEN_IN_SCHEDULE = "Open in Schedule";
 
 export const SCHEDULE_PRIVACY_LEDE =
   "Read-only schedule. Names and chart numbers use a safe patient summary; notes and phone numbers stay hidden.";
@@ -261,6 +354,50 @@ export const SCHEDULE_ROOM_FILTER_LOADING = "Loading rooms…";
 
 export const SCHEDULE_ROOM_FILTER_EMPTY = "No rooms loaded";
 
+export const SCHEDULE_MIRROR_STALE_ADVISORY =
+  "Local copy may be outdated — this range may not reflect the latest DBF changes until mirror import runs again.";
+
+export const SCHEDULE_ROOM_FILTER_CONTEXT = (roomLabel: string, count: number): string =>
+  count === 1 ? `${roomLabel} · 1 appointment` : `${roomLabel} · ${count} appointments`;
+
+export const SCHEDULE_OPEN_PATIENT = TODAY_OPEN_PATIENT;
+
+export const TODAY_STATUS_MIX_UNAVAILABLE = "Status mix unavailable until today's list loads.";
+
+export const TODAY_APPT_ROW_CURRENT_LABEL = "Current appointment";
+
+export const TODAY_APPT_ROW_NEXT_LABEL = "Next appointment";
+
+export const CLINIC_AT_A_GLANCE_TITLE = "Clinic at a glance";
+
+export const FRONT_DESK_OVERVIEW_BRIDGE_LABEL = "Clinic service";
+
+export const FRONT_DESK_OVERVIEW_BRIDGE_CONNECTED = "Connected";
+
+export const FRONT_DESK_OVERVIEW_BRIDGE_CHECKING = "Checking connection…";
+
+export const FRONT_DESK_OVERVIEW_BRIDGE_OFFLINE = "Offline";
+
+export const FRONT_DESK_OVERVIEW_GUIDANCE_LABEL = "Next step";
+
+export const FRONT_DESK_OVERVIEW_CONNECT_GUIDANCE =
+  "Connect the clinic service in Settings to load schedule and search from your copied data.";
+
+export const FRONT_DESK_OVERVIEW_MIRROR_LABEL = "Data freshness";
+
+export const FRONT_DESK_OVERVIEW_WRITE_MODE_LABEL = "Write mode";
+
+export const FRONT_DESK_OVERVIEW_WRITE_MODE_UNKNOWN = "Unknown until capability loads";
+
+export const FRONT_DESK_OVERVIEW_TODAY_LABEL = "Today's schedule";
+
+export const FRONT_DESK_OVERVIEW_TODAY_UNAVAILABLE = "—";
+
+export const FRONT_DESK_OVERVIEW_TODAY_COUNT = (count: number): string =>
+  count === 1 ? "1 appointment" : `${count} appointments`;
+
+export const FRONT_DESK_OVERVIEW_SELECTED_PATIENT_LABEL = "Selected patient";
+
 export const MODULE_PLACEHOLDER_TITLE = "Not available yet";
 
 export const MODULE_PLACEHOLDER_DESCRIPTION =
@@ -383,9 +520,25 @@ export const SANDBOX_WRITE_BLOCKED_WRITE_MODE =
 export const SANDBOX_WRITE_BLOCKED_SANDBOX =
   "Sandbox writes are not ready on this bridge. Check Settings for write mode, sandbox path, and backup configuration.";
 
+export const APPOINTMENT_CREATE_SUMMARY = "Sandbox: new appointment";
+
+export const APPOINTMENT_CREATE_PATIENT_ID_HINT =
+  "Enter the numeric patient record id from search or the profile header — there is no patient lookup in this pilot.";
+
 export const APPOINTMENT_CREATE_PREVIEW_LABEL = "Preview create";
 
 export const APPOINTMENT_CREATE_APPLY_LABEL = "Create appointment";
+
+export const PATIENT_DEMOGRAPHICS_PREVIEW_LABEL = "Preview changes";
+
+export const PATIENT_DEMOGRAPHICS_APPLY_LABEL = "Apply demographics";
+
+export const PATIENT_DEMOGRAPHICS_PREVIEWING_LABEL = "Previewing…";
+
+export const PATIENT_DEMOGRAPHICS_APPLYING_LABEL = "Applying…";
+
+export const WRITE_POST_COMMIT_MIRROR_NUDGE =
+  "Mirror may lag; refresh import from Settings when ready.";
 
 export const SETTINGS_PANEL_LEDE =
   "Pilot status for bridge, mirror, writes, sandbox readiness, and build id. No patient data is shown here — follow docs/PILOT-HANDOFF-PACK.md for the operator walkthrough.";

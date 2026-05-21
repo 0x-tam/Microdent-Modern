@@ -739,6 +739,18 @@
   row-gap: var(--ui-space-2);
 }
 
+.app-appt-list__row--current {
+  border-color: var(--ui-primary-600);
+  background: color-mix(in srgb, var(--ui-primary-50) 55%, var(--ui-bg-subtle));
+  box-shadow: inset 3px 0 0 var(--ui-primary-600);
+}
+
+.app-appt-list__row--next {
+  border-color: var(--ui-info-600, var(--ui-primary-500));
+  background: color-mix(in srgb, var(--ui-info-50, var(--ui-primary-50)) 45%, var(--ui-bg-subtle));
+  box-shadow: inset 3px 0 0 var(--ui-info-600, var(--ui-primary-500));
+}
+
 .app-appt-list__time {
   flex-shrink: 0;
   width: clamp(3.1rem, 8vw, 3.5rem);
@@ -1439,8 +1451,29 @@
   gap: var(--ui-space-1);
 }
 
+.app-appt-write-actions__tab {
+  min-height: 28px;
+  padding: var(--ui-space-1) var(--ui-space-2);
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: var(--ui-radius-sm);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+}
+
 .app-appt-write-actions__tab[aria-selected="true"] {
+  border-color: var(--ui-danger-600);
+  background: var(--ui-bg-surface);
+  color: var(--ui-danger-600);
   font-weight: 600;
+}
+
+.app-appt-write-actions__tab:focus-visible {
+  outline: var(--ui-focus-ring-width) solid var(--ui-focus-ring-color);
+  outline-offset: var(--ui-focus-ring-offset);
 }
 
 .app-appt-write-actions__panel {
@@ -1634,10 +1667,10 @@
 
 .app-patient-profile__sandbox-demographics {
   margin-top: var(--ui-space-4);
-  padding: var(--ui-space-3);
-  border: 1px solid var(--ui-border-subtle);
+  padding: var(--ui-space-2);
+  border: 1px solid var(--ui-danger-600);
   border-radius: var(--ui-radius-md);
-  background: var(--ui-bg-surface);
+  background: var(--ui-danger-50);
   display: flex;
   flex-direction: column;
   gap: var(--ui-space-2);
@@ -1645,8 +1678,9 @@
 
 .app-patient-profile__sandbox-demographics-heading {
   margin: 0;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
+  line-height: 1.4;
   color: var(--ui-danger-600);
 }
 
@@ -2161,6 +2195,186 @@
   font-size: 14px;
   line-height: 1.45;
   color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__toolbar-refreshed {
+  margin: 0 0 0 auto;
+  font-size: var(--app-text-meta);
+  line-height: 1.45;
+  color: var(--ui-text-muted);
+}
+
+.app-patient-profile__summary-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+}
+
+.app-patient-profile__summary-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr));
+  gap: var(--ui-space-2);
+}
+
+.app-patient-profile__summary-mini-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-1);
+  padding: var(--app-card-pad-compact);
+  text-align: left;
+  background: var(--ui-bg-surface);
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-md);
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    border-color var(--ui-duration-hover) var(--ui-ease-out),
+    background-color var(--ui-duration-hover) var(--ui-ease-out);
+}
+
+.app-patient-profile__summary-mini-card:hover:not(.app-patient-profile__summary-mini-card--loading) {
+  border-color: rgba(27, 111, 122, 0.35);
+  background: color-mix(in srgb, var(--ui-primary-50) 35%, var(--ui-bg-surface));
+}
+
+.app-patient-profile__summary-mini-card:focus-visible {
+  outline: var(--ui-focus-ring-width) solid var(--ui-focus-ring-color);
+  outline-offset: var(--ui-focus-ring-offset);
+}
+
+.app-patient-profile__summary-mini-card--loading {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.app-patient-profile__summary-mini-card-title {
+  margin: 0;
+  font-size: var(--app-text-meta);
+  font-weight: 600;
+  color: var(--ui-text-primary);
+}
+
+.app-patient-profile__summary-mini-card-detail,
+.app-patient-profile__summary-mini-card-muted {
+  margin: 0;
+  font-size: var(--app-text-meta);
+  line-height: 1.4;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__summary-cross-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-1);
+}
+
+.app-patient-profile__summary-cross-tab,
+.app-patient-profile__appts-filter-chip {
+  min-height: 30px;
+  font-size: 12px;
+  letter-spacing: 0.01em;
+}
+
+.app-patient-profile__clinical-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+}
+
+.app-patient-profile__clinical-toolbar-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.app-patient-profile__clinical-toolbar-summary {
+  margin: 0;
+  font-size: var(--app-text-meta);
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--ui-text-primary);
+}
+
+.app-patient-profile__clinical-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+}
+
+.app-patient-profile__clinical-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-1);
+  align-items: center;
+}
+
+.app-patient-profile__clinical-group-count {
+  font-weight: 500;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__clinical-empty-filtered {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__clinical-month-group,
+.app-patient-profile__clinical-tooth-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+}
+
+.app-patient-profile__chart-explainer {
+  margin: 0;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+  background: var(--ui-bg-surface);
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-md);
+}
+
+.app-patient-profile__medical-sensitive-still {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__medical-flag-note {
+  font-weight: 400;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__appts-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+}
+
+.app-patient-profile__appts-filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-1);
+  align-items: center;
+}
+
+.app-patient-profile__appts-range-count {
+  margin: 0;
+  font-size: var(--app-text-meta);
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+.app-patient-profile__appt-actions {
+  margin-top: var(--ui-space-2);
 }
 
 .app-reminder-list__empty {
@@ -3057,6 +3271,67 @@
   color: var(--ui-text-secondary);
 }
 
+.app-dashboard-status__mix {
+  margin: var(--ui-space-2) 0 0;
+  font-size: var(--app-text-meta);
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+.app-dashboard-status__mix--muted {
+  color: var(--ui-text-muted);
+  font-style: italic;
+}
+
+.app-dashboard-clinic-overview .ui-card__body {
+  padding: var(--app-card-pad-compact);
+}
+
+.app-dashboard-clinic-overview__list {
+  margin: 0;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-subtle);
+}
+
+.app-dashboard-clinic-overview__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: var(--ui-space-2);
+  align-items: start;
+  font-size: var(--app-text-meta);
+  line-height: 1.4;
+}
+
+.app-dashboard-clinic-overview__label {
+  margin: 0;
+  color: var(--ui-text-secondary);
+  font-weight: 500;
+}
+
+.app-dashboard-clinic-overview__value {
+  margin: 0;
+  color: var(--ui-text-primary);
+  font-weight: 600;
+  text-align: right;
+}
+
+.app-dashboard-clinic-overview__row--ok .app-dashboard-clinic-overview__value {
+  color: var(--ui-success-700, var(--ui-primary-700));
+}
+
+.app-dashboard-clinic-overview__row--warn .app-dashboard-clinic-overview__value {
+  color: var(--ui-warning-700, var(--ui-text-primary));
+}
+
+.app-dashboard-clinic-overview__row--danger .app-dashboard-clinic-overview__value {
+  color: var(--ui-danger-700);
+}
+
 .app-next-patient-card .ui-card__body {
   padding: var(--app-card-pad-compact);
 }
@@ -3121,6 +3396,39 @@
   color: var(--ui-primary-700);
 }
 
+.app-schedule__range-room-context {
+  font-weight: 500;
+}
+
+.app-schedule__status-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-1);
+  margin-top: var(--ui-space-1);
+}
+
+.app-schedule__status-chip {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.app-schedule__mirror-advisory {
+  margin: var(--ui-space-2) 0 0;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-radius: var(--ui-radius-sm);
+  border: 1px solid var(--ui-warning-200, var(--ui-border-subtle));
+  background: color-mix(in srgb, var(--ui-warning-50, var(--ui-bg-subtle)) 70%, var(--ui-bg-subtle));
+  font-size: var(--app-text-meta);
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+.app-schedule__open-patient {
+  flex-shrink: 0;
+}
+
 .app-schedule__room-filter--empty {
   font-size: var(--app-text-meta);
   color: var(--ui-text-muted);
@@ -3130,31 +3438,7 @@
   font-style: italic;
 }
 
-/* Write panels — tabs, blocked states (safety preserved) */
-.app-appt-write-actions__tab {
-  min-height: 28px;
-  padding: var(--ui-space-1) var(--ui-space-2);
-  font-size: 12px;
-  font-weight: 500;
-  border-radius: var(--ui-radius-sm);
-  border: 1px solid var(--ui-border-subtle);
-  background: var(--ui-bg-surface);
-  color: var(--ui-text-secondary);
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.app-appt-write-actions__tab[aria-selected="true"] {
-  border-color: var(--ui-danger-600);
-  background: var(--ui-bg-surface);
-  color: var(--ui-danger-600);
-}
-
-.app-appt-write-actions__tab:focus-visible {
-  outline: var(--ui-focus-ring-width) solid var(--ui-focus-ring-color);
-  outline-offset: var(--ui-focus-ring-offset);
-}
-
+/* Write panels — blocked states (safety preserved) */
 .app-appt-write-actions--blocked,
 .app-sandbox-write--blocked,
 .app-appt-create-write.app-sandbox-write--blocked {
@@ -3288,7 +3572,7 @@
   color: var(--ui-text-secondary);
 }
 
-/* Responsive — existing breakpoints only */
+/* Responsive — summary grid, schedule header, filter chips */
 @media (max-width: 1199px) {
   .app-dashboard-status-strip {
     grid-template-columns: 1fr;
@@ -3302,6 +3586,29 @@
     grid-template-columns: 1fr;
     gap: var(--ui-space-1);
   }
+
+  .app-patient-profile__summary-mini-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .app-patient-profile__toolbar-refreshed {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .app-schedule__toolbar-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .app-schedule__toolbar-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .app-schedule__status-breakdown {
+    gap: var(--ui-space-2);
+  }
 }
 
 @media (min-width: 1200px) {
@@ -3311,6 +3618,14 @@
 
   .app-settings__grid {
     grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  }
+
+  .app-patient-profile__summary-mini-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .app-schedule__range-block {
+    max-width: min(52rem, 100%);
   }
 }
 
@@ -3322,5 +3637,13 @@
   .app-schedule,
   .app-settings {
     max-width: min(1040px, 100%);
+  }
+
+  .app-patient-profile__summary-mini-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .app-dashboard-clinic-overview__row {
+    font-size: 14px;
   }
 }

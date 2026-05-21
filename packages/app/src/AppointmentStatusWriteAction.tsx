@@ -16,6 +16,7 @@ import { isSandboxWritePilotEnabled, resolveSandboxWriteBlockReason } from "./sa
 import {
   SafeWritePlanResult,
   SandboxWriteBanner,
+  SandboxWriteBlockedNotice,
   summarizeWritePlan,
   WriteOperationResult,
   type WritePlanResultSummary,
@@ -119,17 +120,29 @@ export function AppointmentStatusWriteAction({
     }
   }, [appointment.id, bridgeBaseUrl, fetchImpl, nextStatus, onCommitted, state.kind]);
 
-  if (!embedded) {
-    if (!isSandboxWritePilotEnabled(writePilotEnabled)) {
-      return null;
-    }
-    const blockReason = resolveSandboxWriteBlockReason(writePilotEnabled, writeCapability);
-    if (blockReason) {
-      return null;
-    }
+  if (!embedded && !isSandboxWritePilotEnabled(writePilotEnabled)) {
+    return null;
   }
 
+  const blockReason = !embedded
+    ? resolveSandboxWriteBlockReason(writePilotEnabled, writeCapability)
+    : null;
+  if (blockReason) {
+    return (
+      <SandboxWriteBlockedNotice
+        reason={blockReason}
+        className="app-sandbox-write app-appt-status-write app-sandbox-write--blocked"
+        testId="appt-status-write-blocked"
+      />
+    );
+  }
+
+  const invalidatePreview = () => {
+    setState((prev) => (prev.kind === "preview" ? { kind: "idle" } : prev));
+  };
+
   const loading = state.kind === "loading";
+  const previewOk = state.kind === "preview";
   const rootClass = embedded
     ? "app-appt-status-write app-appt-status-write--embedded"
     : "app-sandbox-write app-appt-status-write";
@@ -144,7 +157,10 @@ export function AppointmentStatusWriteAction({
             className="ui-focusable app-appt-status-write__select"
             value={nextStatus}
             disabled={loading}
-            onChange={(e) => setNextStatus(Number(e.target.value))}
+            onChange={(e) => {
+              setNextStatus(Number(e.target.value));
+              invalidatePreview();
+            }}
             aria-label={`New status for appointment ${appointment.id}`}
           >
             {APPOINTMENT_STATUS_OPTIONS.map((opt) => (
@@ -169,7 +185,9 @@ export function AppointmentStatusWriteAction({
           type="button"
           variant="danger"
           className="ui-focusable app-appt-status-write__btn"
-          disabled={loading || state.kind !== "preview"}
+          disabled={loading || !previewOk}
+          aria-disabled={loading || !previewOk}
+          title={previewOk ? undefined : `${APPOINTMENT_STATUS_PREVIEW_LABEL} before applying`}
           onClick={() => void runCommit()}
         >
           {state.kind === "loading" && state.action === "commit"

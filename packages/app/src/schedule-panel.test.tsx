@@ -1402,4 +1402,217 @@ describe("SchedulePanel", () => {
     expect(todayBtn?.classList.contains("app-schedule__nav-today--active")).toBe(true);
     expect(container.textContent).toMatch(/Includes today/i);
   });
+
+  it("shows status breakdown chips and room filter context in the summary header", async () => {
+    const fetchImpl = withReferenceDoctors((input: RequestInfo | URL) => {
+      const u = String(input);
+      if (u.includes("/v1/schedule/rooms")) {
+        return Promise.resolve(jsonResponse(sampleRooms));
+      }
+      if (u.includes("/v1/schedule/appointments")) {
+        const m = u.match(/from=([^&]+)/);
+        const fromQ = m ? decodeURIComponent(m[1]) : "";
+        const roomMatch = u.match(/room=(\d+)/);
+        const room = roomMatch ? Number(roomMatch[1]) : 1;
+        return Promise.resolve(
+          jsonResponse({
+            appointments: [
+              {
+                id: "1",
+                date: fromQ,
+                time: "09:00",
+                durationSlots: 1,
+                periodMinutes: 30,
+                room,
+                status: 1,
+                docId: 0,
+                patId: "100",
+                patient: { patientId: "100", displayName: "Status Mix Synth", chartNumber: "SM-1" },
+                procClass: 0,
+                vacId: 0,
+                recall: 0,
+                unreason: 0,
+                missed: false,
+                hasComment: false,
+              },
+              {
+                id: "2",
+                date: fromQ,
+                time: "10:00",
+                durationSlots: 1,
+                periodMinutes: 30,
+                room,
+                status: 3,
+                docId: 0,
+                patId: "101",
+                patient: null,
+                procClass: 0,
+                vacId: 0,
+                recall: 0,
+                unreason: 0,
+                missed: false,
+                hasComment: false,
+              },
+            ],
+          }),
+        );
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <SchedulePanel
+          isActive
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toMatch(/1 Scheduled/i);
+    expect(container.textContent).toMatch(/1 Completed/i);
+    expect(container.querySelector(".app-schedule__status-breakdown")).toBeTruthy();
+
+    const select = container.querySelector("select.app-schedule__select") as HTMLSelectElement;
+    await act(async () => {
+      select.value = "2";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toMatch(/Synthetic bay B \(Room 2\)/i);
+    expect(container.textContent).toMatch(/2 appointments in this range/i);
+    assertNoForbiddenDomTokens(container.textContent ?? "");
+  });
+
+  it("shows mirror stale advisory when mirror metadata is old", async () => {
+    const staleFinishedAt = new Date(Date.now() - 49 * 60 * 60 * 1000).toISOString();
+    const fetchImpl = withReferenceDoctors((input: RequestInfo | URL) => {
+      const u = String(input);
+      if (u.includes("/v1/schedule/rooms")) {
+        return Promise.resolve(jsonResponse({ rooms: [] }));
+      }
+      if (u.includes("/v1/schedule/appointments")) {
+        return Promise.resolve(jsonResponse({ appointments: [] }));
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <SchedulePanel
+          isActive
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          mirrorStatus={{
+            sqliteConfigured: true,
+            sqliteUsable: true,
+            importedTables: ["patients"],
+            latestImportRuns: [
+              {
+                tableName: "patients",
+                status: "success",
+                rowCount: 1,
+                errorCount: 0,
+                finishedAt: staleFinishedAt,
+              },
+            ],
+          }}
+          onBackToday={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toMatch(/Local copy may be outdated/i);
+    expect(container.querySelector(".app-schedule__mirror-advisory")).toBeTruthy();
+  });
+
+  it("calls onOpenPatient from schedule rows when patient id is set", async () => {
+    const onOpenPatient = vi.fn();
+    const fetchImpl = withReferenceDoctors((input: RequestInfo | URL) => {
+      const u = String(input);
+      if (u.includes("/v1/schedule/rooms")) {
+        return Promise.resolve(jsonResponse({ rooms: [] }));
+      }
+      if (u.includes("/v1/schedule/appointments")) {
+        const m = u.match(/from=([^&]+)/);
+        const fromQ = m ? decodeURIComponent(m[1]) : "";
+        return Promise.resolve(
+          jsonResponse({
+            appointments: [
+              {
+                id: "501",
+                date: fromQ,
+                time: "09:00",
+                durationSlots: 1,
+                periodMinutes: 30,
+                room: 1,
+                status: 1,
+                docId: 0,
+                patId: "9001",
+                patient: {
+                  patientId: "9001",
+                  displayName: "Open Patient Synth",
+                  chartNumber: "OP-1",
+                },
+                procClass: 0,
+                vacId: 0,
+                recall: 0,
+                unreason: 0,
+                missed: false,
+                hasComment: false,
+              },
+            ],
+          }),
+        );
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <SchedulePanel
+          isActive
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onOpenPatient={onOpenPatient}
+          onBackToday={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const openBtn = Array.from(container.querySelectorAll("button")).find((b) =>
+      b.textContent?.includes("Open patient record"),
+    );
+    expect(openBtn).toBeTruthy();
+    await act(async () => {
+      openBtn!.click();
+    });
+    expect(onOpenPatient).toHaveBeenCalledWith("9001", {
+      displayName: "Open Patient Synth",
+      chartNumber: "OP-1",
+    });
+  });
 });

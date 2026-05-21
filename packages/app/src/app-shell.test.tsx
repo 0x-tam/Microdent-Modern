@@ -132,6 +132,13 @@ describe("AppShell", () => {
     expect(banners.some((b) => b.key === "write-mode-dry-run")).toBe(true);
   });
 
+  it("static markup does not persist recent patients to disk (session UI is client-only)", () => {
+    const html = renderToStaticMarkup(<AppShell bridgeBaseUrl="http://127.0.0.1:17890" />);
+    expect(html).not.toContain("localStorage");
+    expect(html).not.toContain("sessionStorage");
+    assertNoForbiddenDomTokens(html);
+  });
+
   it("does not show mirror diagnostic in static markup (dev fetch runs client-side only)", () => {
     const html = renderToStaticMarkup(
       <AppShell

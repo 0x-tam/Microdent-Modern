@@ -1,5 +1,5 @@
 import { createBridgeClient } from "@microdent/bridge-client";
-import type { BridgeDevStatusResponse, ScheduleAppointmentItem, ScheduleRoomItem } from "@microdent/contracts";
+import type { BridgeDevStatusResponse, MirrorStatusResponse, ScheduleAppointmentItem, ScheduleRoomItem } from "@microdent/contracts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge, Button, Card, CardBody, CardHeader, EmptyState } from "@microdent/ui";
 import type { BridgeHealthPhase } from "./bridge-health.js";
@@ -25,9 +25,12 @@ import {
   SCHEDULE_RANGE_APPOINTMENT_COUNT,
   SCHEDULE_RANGE_INCLUDES_TODAY,
   SCHEDULE_ROOM_ALL,
-  SCHEDULE_ROOM_FILTER_EMPTY,
+  SCHEDULE_MIRROR_STALE_ADVISORY,
+  SCHEDULE_OPEN_PATIENT,
+  SCHEDULE_ROOM_FILTER_CONTEXT,
   SCHEDULE_ROOM_FILTER_LABEL,
   SCHEDULE_ROOM_FILTER_LOADING,
+  SCHEDULE_ROOM_FILTER_EMPTY,
   SCHEDULE_SANDBOX_WRITE_PILOT_BANNER,
   READONLY_STATE_RETRY,
   SCHEDULE_VIEW_DAY,
@@ -38,6 +41,13 @@ import { AppointmentCreateWriteAction } from "./AppointmentCreateWriteAction.js"
 import { AppointmentStatusDryRunAction } from "./AppointmentStatusDryRunAction.js";
 import { AppointmentWriteActionsPanel } from "./AppointmentWriteActionsPanel.js";
 import { resolveWriteModeChip } from "./shell-status-banners.js";
+import { isMirrorImportStale } from "./mirror-stale.js";
+import {
+  countAppointmentsByStatus,
+  patientApptStatusBadgeVariant,
+  patientApptStatusLabel,
+} from "./patient-appointments-display.js";
+import type { DashboardPatientSummary } from "./today-dashboard.js";
 
 export type SchedulePanelProps = {
   isActive: boolean;
@@ -58,6 +68,11 @@ export type SchedulePanelProps = {
   /** @deprecated Use {@link sandboxWritePilot}. */
   appointmentStatusWritePilot?: boolean;
   onBackToday: () => void;
+  onOpenPatient?: (patientId: string, summary?: DashboardPatientSummary) => void;
+  mirrorStatus?: MirrorStatusResponse | null;
+  /** When set, switches to day view focused on this date (YYYY-MM-DD) once active. */
+  initialDate?: string | null;
+  onInitialDateApplied?: () => void;
 };
 
 type Granularity = "day" | "week";
@@ -127,25 +142,13 @@ function isViewingTodayRange(from: string, to: string, granularity: Granularity)
 }
 
 function statusLabel(code: number): string {
-  const map: Record<number, string> = {
-    0: "Available",
-    1: "Scheduled",
-    2: "Confirmed",
-    3: "Completed",
-    4: "Cancelled",
-    5: "No-show",
-  };
-  return map[code] ?? `Status ${code}`;
+  return patientApptStatusLabel(code);
 }
 
 function statusBadgeVariant(
   code: number,
 ): "neutral" | "success" | "warning" | "danger" | "info" {
-  if (code === 2 || code === 3) return "success";
-  if (code === 4) return "warning";
-  if (code === 5) return "danger";
-  if (code === 1) return "info";
-  return "neutral";
+  return patientApptStatusBadgeVariant(code);
 }
 
 function formatDuration(a: ScheduleAppointmentItem): string {
@@ -244,6 +247,10 @@ export function SchedulePanel({
   sandboxWritePilot = false,
   appointmentStatusWritePilot = false,
   onBackToday,
+  onOpenPatient,
+  mirrorStatus = null,
+  initialDate = null,
+  onInitialDateApplied,
 }: SchedulePanelProps) {
   const sandboxPilotEnabled = sandboxWritePilot || appointmentStatusWritePilot;
   const devWriteActionsEnabled =
@@ -334,6 +341,15 @@ export function SchedulePanel({
     },
     [rangeFrom, setRange],
   );
+
+  useEffect(() => {
+    if (!isActive || !initialDate) {
+      return;
+    }
+    setGranularity("day");
+    setRange(initialDate, initialDate);
+    onInitialDateApplied?.();
+  }, [isActive, initialDate, onInitialDateApplied, setRange]);
 
   useEffect(() => {
     if (!devWriteActionsEnabled || !canLoad) {
@@ -490,6 +506,37 @@ export function SchedulePanel({
 
   const offlineMessage = bridgePhase === "checking" ? CLINIC_SERVICE_CHECKING : CLINIC_SERVICE_CONNECT_SCHEDULE;
   const writeModeChip = resolveWriteModeChip(writeCapability);
+  const mirrorStale =
+    bridgePhase === "connected" && mirrorStatus !== null && isMirrorImportStale(mirrorStatus, Date.now());
+
+  const statusBreakdown = useMemo(() => {
+    const counts = countAppointmentsByStatus(appointments);
+    return [...counts.entries()]
+      .filter(([, n]) => n > 0)
+      .sort(([a], [b]) => a - b)
+      .map(([code, n]) => ({
+        code,
+        count: n,
+        label: statusLabel(code),
+        variant: statusBadgeVariant(code),
+      }));
+  }, [appointments]);
+
+  const roomFilterContext =
+    roomFilter !== "" && !loading && !error && canLoad
+      ? SCHEDULE_ROOM_FILTER_CONTEXT(roomCopyLabel(rooms, roomFilter), appointments.length)
+      : null;
+
+  const openPatientFromAppt = useCallback(
+    (appt: ScheduleAppointmentItem) => {
+      if (!onOpenPatient || appt.patId === "0") return;
+      onOpenPatient(appt.patId, {
+        displayName: appt.patient?.displayName ?? null,
+        chartNumber: appt.patient?.chartNumber ?? null,
+      });
+    },
+    [onOpenPatient],
+  );
 
   return (
     <div className="app-schedule">
@@ -619,14 +666,38 @@ export function SchedulePanel({
             <time dateTime={`${rangeFrom}/${rangeTo}`}>{rangeHeading}</time>
           </p>
           {!loading && !error && canLoad ? (
-            <p className="app-schedule__range-meta" role="status">
-              {SCHEDULE_RANGE_APPOINTMENT_COUNT(appointments.length)}
-              {includesToday ? (
-                <span className="app-schedule__range-today-badge"> · {SCHEDULE_RANGE_INCLUDES_TODAY}</span>
+            <>
+              <p className="app-schedule__range-meta" role="status">
+                {SCHEDULE_RANGE_APPOINTMENT_COUNT(appointments.length)}
+                {includesToday ? (
+                  <span className="app-schedule__range-today-badge"> · {SCHEDULE_RANGE_INCLUDES_TODAY}</span>
+                ) : null}
+                {roomFilterContext ? (
+                  <span className="app-schedule__range-room-context"> · {roomFilterContext}</span>
+                ) : null}
+              </p>
+              {statusBreakdown.length > 0 ? (
+                <div className="app-schedule__status-breakdown" role="status" aria-label="Status breakdown">
+                  {statusBreakdown.map(({ code, count, label, variant }) => (
+                    <Badge
+                      key={code}
+                      variant={variant}
+                      className="app-schedule__status-chip"
+                      semanticLabel={`${count} ${label}`}
+                    >
+                      {count} {label}
+                    </Badge>
+                  ))}
+                </div>
               ) : null}
-            </p>
+            </>
           ) : null}
         </div>
+        {mirrorStale ? (
+          <p className="app-schedule__mirror-advisory" role="note">
+            {SCHEDULE_MIRROR_STALE_ADVISORY}
+          </p>
+        ) : null}
         <p className="app-schedule__privacy">{SCHEDULE_PRIVACY_LEDE}</p>
         {canLoad ? <p className="app-schedule__keyboard-hint">{SCHEDULE_KEYBOARD_HINT}</p> : null}
         {sandboxPilotEnabled && canLoad ? (
@@ -728,6 +799,17 @@ export function SchedulePanel({
                                   <Badge variant="neutral" semanticLabel="Internal note hidden">
                                     Note hidden
                                   </Badge>
+                                ) : null}
+                                {appt.patId !== "0" && onOpenPatient ? (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="compact"
+                                    className="ui-focusable app-schedule__open-patient"
+                                    onClick={() => openPatientFromAppt(appt)}
+                                  >
+                                    {SCHEDULE_OPEN_PATIENT}
+                                  </Button>
                                 ) : null}
                               </div>
                               {bridgeBaseUrl && sandboxPilotEnabled && canLoad ? (

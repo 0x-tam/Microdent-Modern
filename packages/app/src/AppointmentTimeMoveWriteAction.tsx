@@ -14,6 +14,7 @@ import { isSandboxWritePilotEnabled, resolveSandboxWriteBlockReason } from "./sa
 import {
   SafeWritePlanResult,
   SandboxWriteBanner,
+  SandboxWriteBlockedNotice,
   summarizeWritePlan,
   WriteOperationResult,
   type WritePlanResultSummary,
@@ -143,17 +144,29 @@ export function AppointmentTimeMoveWriteAction({
     }
   }, [appointment.id, bridgeBaseUrl, buildBody, fetchImpl, onCommitted, state.kind]);
 
-  if (!embedded) {
-    if (!isSandboxWritePilotEnabled(writePilotEnabled)) {
-      return null;
-    }
-    const blockReason = resolveSandboxWriteBlockReason(writePilotEnabled, writeCapability);
-    if (blockReason) {
-      return null;
-    }
+  if (!embedded && !isSandboxWritePilotEnabled(writePilotEnabled)) {
+    return null;
   }
 
+  const blockReason = !embedded
+    ? resolveSandboxWriteBlockReason(writePilotEnabled, writeCapability)
+    : null;
+  if (blockReason) {
+    return (
+      <SandboxWriteBlockedNotice
+        reason={blockReason}
+        className="app-sandbox-write app-appt-time-move-write app-sandbox-write--blocked"
+        testId="appt-time-move-write-blocked"
+      />
+    );
+  }
+
+  const invalidatePreview = () => {
+    setState((prev) => (prev.kind === "preview" ? { kind: "idle" } : prev));
+  };
+
   const loading = state.kind === "loading";
+  const previewOk = state.kind === "preview";
   const rootClass = embedded
     ? "app-appt-time-move-write app-appt-time-move-write--embedded"
     : "app-sandbox-write app-appt-time-move-write";
@@ -168,7 +181,10 @@ export function AppointmentTimeMoveWriteAction({
             className="ui-focusable"
             value={date}
             disabled={loading}
-            onChange={(e) => setDate(e.target.value)}
+            onChange={(e) => {
+              setDate(e.target.value);
+              invalidatePreview();
+            }}
           />
         </label>
         <label className="app-sandbox-write__label">
@@ -178,7 +194,10 @@ export function AppointmentTimeMoveWriteAction({
             className="ui-focusable"
             value={time}
             disabled={loading}
-            onChange={(e) => setTime(e.target.value)}
+            onChange={(e) => {
+              setTime(e.target.value);
+              invalidatePreview();
+            }}
             placeholder="9:00"
             aria-label="Appointment time"
           />
@@ -192,7 +211,10 @@ export function AppointmentTimeMoveWriteAction({
             className="ui-focusable"
             value={room}
             disabled={loading}
-            onChange={(e) => setRoom(e.target.value)}
+            onChange={(e) => {
+              setRoom(e.target.value);
+              invalidatePreview();
+            }}
           />
         </label>
         <label className="app-sandbox-write__label">
@@ -204,7 +226,10 @@ export function AppointmentTimeMoveWriteAction({
             className="ui-focusable"
             value={durationSlots}
             disabled={loading}
-            onChange={(e) => setDurationSlots(e.target.value)}
+            onChange={(e) => {
+              setDurationSlots(e.target.value);
+              invalidatePreview();
+            }}
           />
         </label>
       </div>
@@ -224,7 +249,9 @@ export function AppointmentTimeMoveWriteAction({
           type="button"
           variant="danger"
           className="ui-focusable"
-          disabled={loading || state.kind !== "preview"}
+          disabled={loading || !previewOk}
+          aria-disabled={loading || !previewOk}
+          title={previewOk ? undefined : `${APPOINTMENT_TIME_MOVE_PREVIEW_LABEL} before applying`}
           onClick={() => void runCommit()}
         >
           {state.kind === "loading" && state.action === "commit"

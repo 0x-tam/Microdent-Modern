@@ -35,6 +35,22 @@ import {
   SETTINGS_SQLITE_MIRROR_UNKNOWN,
   SETTINGS_CHECKLIST_DATA_ROOT_SAFE,
   SETTINGS_CHECKLIST_MIRROR_IMPORT,
+  FRONT_DESK_OVERVIEW_BRIDGE_CHECKING,
+  FRONT_DESK_OVERVIEW_BRIDGE_CONNECTED,
+  FRONT_DESK_OVERVIEW_BRIDGE_LABEL,
+  FRONT_DESK_OVERVIEW_BRIDGE_OFFLINE,
+  FRONT_DESK_OVERVIEW_CONNECT_GUIDANCE,
+  FRONT_DESK_OVERVIEW_GUIDANCE_LABEL,
+  FRONT_DESK_OVERVIEW_MIRROR_LABEL,
+  FRONT_DESK_OVERVIEW_SELECTED_PATIENT_LABEL,
+  FRONT_DESK_OVERVIEW_TODAY_COUNT,
+  FRONT_DESK_OVERVIEW_TODAY_LABEL,
+  FRONT_DESK_OVERVIEW_TODAY_UNAVAILABLE,
+  FRONT_DESK_OVERVIEW_WRITE_MODE_LABEL,
+  FRONT_DESK_OVERVIEW_WRITE_MODE_UNKNOWN,
+  WRITE_MODE_CHIP_DISABLED,
+  WRITE_MODE_CHIP_DRY_RUN,
+  WRITE_MODE_CHIP_ENABLED,
 } from "./read-only-ui-copy.js";
 import { isMirrorImportStale } from "./mirror-stale.js";
 import type { SettingsCardKey } from "./settings-operator-next-step.js";
@@ -191,6 +207,141 @@ export function resolvePilotReadinessSummary(
   });
 
   return chips;
+}
+
+export type FrontDeskOverviewItem = {
+  key: string;
+  label: string;
+  value: string;
+  tone: SettingsStatusTone;
+};
+
+export type FrontDeskOverviewOptions = {
+  bridgePhase: BridgeHealthPhase;
+  mirrorStatus: MirrorStatusResponse | null;
+  writeCapability: BridgeDevStatusResponse | null;
+  /** null when today's count is unavailable (offline, loading, or error). */
+  todayAppointmentCount: number | null;
+  selectedPatientId?: string | null;
+  selectedPatientDisplayName?: string | null;
+  selectedPatientChartNumber?: string | null;
+  nowMs?: number;
+};
+
+function resolveFrontDeskWriteModeLabel(
+  writeCapability: BridgeDevStatusResponse | null,
+): { label: string; tone: SettingsStatusTone } {
+  if (!writeCapability) {
+    return { label: FRONT_DESK_OVERVIEW_WRITE_MODE_UNKNOWN, tone: "neutral" };
+  }
+  switch (writeCapability.writeMode) {
+    case "disabled":
+      return { label: WRITE_MODE_CHIP_DISABLED, tone: "ok" };
+    case "dry-run":
+      return { label: WRITE_MODE_CHIP_DRY_RUN, tone: "warn" };
+    case "enabled":
+      return { label: WRITE_MODE_CHIP_ENABLED, tone: "danger" };
+    default:
+      return { label: FRONT_DESK_OVERVIEW_WRITE_MODE_UNKNOWN, tone: "neutral" };
+  }
+}
+
+function resolveFrontDeskMirrorLabel(
+  mirrorStatus: MirrorStatusResponse | null,
+  nowMs: number,
+): { label: string; tone: SettingsStatusTone } {
+  if (mirrorStatus === null) {
+    return { label: SETTINGS_READINESS_MIRROR_UNKNOWN, tone: "neutral" };
+  }
+  if (!mirrorStatus.sqliteUsable) {
+    return { label: SETTINGS_READINESS_MIRROR_FALLBACK, tone: "warn" };
+  }
+  if (isMirrorImportStale(mirrorStatus, nowMs)) {
+    return { label: SETTINGS_READINESS_MIRROR_STALE, tone: "warn" };
+  }
+  return { label: SETTINGS_READINESS_MIRROR_ACTIVE, tone: "ok" };
+}
+
+/**
+ * Safe front-desk overview rows for Today (no paths, no PHI beyond session selection).
+ */
+export function resolveFrontDeskOverview(options: FrontDeskOverviewOptions): FrontDeskOverviewItem[] {
+  const nowMs = options.nowMs ?? Date.now();
+
+  if (options.bridgePhase !== "connected") {
+    return [
+      {
+        key: "bridge",
+        label: FRONT_DESK_OVERVIEW_BRIDGE_LABEL,
+        value:
+          options.bridgePhase === "checking"
+            ? FRONT_DESK_OVERVIEW_BRIDGE_CHECKING
+            : FRONT_DESK_OVERVIEW_BRIDGE_OFFLINE,
+        tone: "neutral",
+      },
+      {
+        key: "guidance",
+        label: FRONT_DESK_OVERVIEW_GUIDANCE_LABEL,
+        value: FRONT_DESK_OVERVIEW_CONNECT_GUIDANCE,
+        tone: "warn",
+      },
+    ];
+  }
+
+  const items: FrontDeskOverviewItem[] = [
+    {
+      key: "bridge",
+      label: FRONT_DESK_OVERVIEW_BRIDGE_LABEL,
+      value: FRONT_DESK_OVERVIEW_BRIDGE_CONNECTED,
+      tone: "ok",
+    },
+  ];
+
+  const mirror = resolveFrontDeskMirrorLabel(options.mirrorStatus, nowMs);
+  items.push({
+    key: "mirror",
+    label: FRONT_DESK_OVERVIEW_MIRROR_LABEL,
+    value: mirror.label,
+    tone: mirror.tone,
+  });
+
+  const writeMode = resolveFrontDeskWriteModeLabel(options.writeCapability);
+  items.push({
+    key: "write-mode",
+    label: FRONT_DESK_OVERVIEW_WRITE_MODE_LABEL,
+    value: writeMode.label,
+    tone: writeMode.tone,
+  });
+
+  items.push({
+    key: "today",
+    label: FRONT_DESK_OVERVIEW_TODAY_LABEL,
+    value:
+      options.todayAppointmentCount === null
+        ? FRONT_DESK_OVERVIEW_TODAY_UNAVAILABLE
+        : FRONT_DESK_OVERVIEW_TODAY_COUNT(options.todayAppointmentCount),
+    tone: options.todayAppointmentCount === null ? "neutral" : "ok",
+  });
+
+  if (options.selectedPatientId) {
+    const trimmedName = options.selectedPatientDisplayName?.trim();
+    const headline =
+      trimmedName && trimmedName.length > 0
+        ? trimmedName
+        : `Patient ID ${options.selectedPatientId}`;
+    const chartSuffix =
+      options.selectedPatientChartNumber && options.selectedPatientChartNumber.length > 0
+        ? ` · Chart ${options.selectedPatientChartNumber}`
+        : "";
+    items.push({
+      key: "selected-patient",
+      label: FRONT_DESK_OVERVIEW_SELECTED_PATIENT_LABEL,
+      value: `${headline}${chartSuffix}`,
+      tone: "neutral",
+    });
+  }
+
+  return items;
 }
 
 export type PilotChecklistItem = {

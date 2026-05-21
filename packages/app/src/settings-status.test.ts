@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   resolveBackupConfiguredStatus,
   resolveDataRootConfiguredStatus,
+  resolveFrontDeskOverview,
   resolvePilotReadinessSummary,
   resolvePilotReadinessChecklist,
   resolveSandboxValidityStatus,
@@ -269,5 +270,57 @@ describe("settings-status", () => {
     const mirrorImport = checklist.find((i) => i.key === "mirrorImport");
     expect(mirrorImport?.tone).toBe("warn");
     expect(mirrorImport?.nextStep).toMatch(/stale|mirror import/i);
+  });
+
+  it("resolveFrontDeskOverview shows connect guidance when offline", () => {
+    const rows = resolveFrontDeskOverview({
+      bridgePhase: "offline",
+      mirrorStatus: null,
+      writeCapability: null,
+      todayAppointmentCount: null,
+    });
+    expect(rows).toHaveLength(2);
+    expect(rows[0]?.key).toBe("bridge");
+    expect(rows[1]?.key).toBe("guidance");
+    expect(rows[1]?.value).toMatch(/Connect the clinic service/i);
+    expect(rows.every((r) => !r.value.match(/C:\\\\|\/Users\//))).toBe(true);
+  });
+
+  it("resolveFrontDeskOverview includes mirror, write mode, today count, and selected patient", () => {
+    const rows = resolveFrontDeskOverview({
+      bridgePhase: "connected",
+      mirrorStatus: {
+        sqliteConfigured: true,
+        sqliteUsable: true,
+        importedTables: ["patients"],
+        latestImportRuns: [
+          {
+            tableName: "patients",
+            status: "success",
+            rowCount: 1,
+            errorCount: 0,
+            finishedAt: new Date().toISOString(),
+          },
+        ],
+      },
+      writeCapability: {
+        writeMode: "disabled",
+        writesPermitted: false,
+        writableSandbox: false,
+        dataRootConfigured: true,
+        backupDirConfigured: false,
+        sqlitePathConfigured: true,
+      },
+      todayAppointmentCount: 3,
+      selectedPatientId: "55",
+      selectedPatientDisplayName: "Desk Overview Synth",
+      selectedPatientChartNumber: "DO-55",
+    });
+    expect(rows.some((r) => r.key === "mirror" && r.value.match(/Mirror active/i))).toBe(true);
+    expect(rows.some((r) => r.key === "write-mode" && r.value.match(/Writes off/i))).toBe(true);
+    expect(rows.some((r) => r.key === "today" && r.value === "3 appointments")).toBe(true);
+    expect(rows.some((r) => r.key === "selected-patient" && r.value.match(/Desk Overview Synth · Chart DO-55/))).toBe(
+      true,
+    );
   });
 });

@@ -101,6 +101,21 @@ describe("AppointmentTimeMoveWriteAction", () => {
     expect(container.querySelector('[data-testid="appt-time-move-write-pilot"]')).toBeNull();
   });
 
+  it("shows blocked notice when bridge is not write-ready", () => {
+    renderPilot({
+      writeCapability: {
+        writeMode: "disabled",
+        writesPermitted: false,
+        writableSandbox: false,
+        dataRootConfigured: false,
+        backupDirConfigured: false,
+        sqlitePathConfigured: false,
+      },
+    });
+    expect(container.querySelector('[data-testid="appt-time-move-write-pilot"]')).toBeNull();
+    expect(container.querySelector('[data-testid="appt-time-move-write-blocked"]')).toBeTruthy();
+  });
+
   it("previews dry-run then commits after confirm", async () => {
     const fetchImpl = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const u = String(input);
@@ -142,6 +157,41 @@ describe("AppointmentTimeMoveWriteAction", () => {
     expect(text).toContain("Committed: true");
     assertNoForbiddenDomTokens(text);
     expect(containsForbiddenWriteResultToken(text)).toBe(false);
+  });
+
+  it("re-disables Apply after time change following preview", async () => {
+    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
+      if (String(input).includes("/time")) {
+        return Promise.resolve(jsonResponse(dryRunPlan));
+      }
+      return Promise.reject(new Error("unexpected"));
+    });
+    renderPilot({ fetchImpl });
+
+    const details = container.querySelector('[data-testid="appt-time-move-write-pilot"]') as HTMLDetailsElement;
+    await act(async () => {
+      details.open = true;
+    });
+
+    await act(async () => {
+      [...container.querySelectorAll("button")]
+        .find((b) => b.textContent?.includes("Preview move"))
+        ?.click();
+    });
+    const applyBtn = [...container.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("Apply move"),
+    );
+    expect(applyBtn?.disabled).toBe(false);
+
+    const timeInput = container.querySelector('input[aria-label="Appointment time"]') as HTMLInputElement;
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+      setter?.call(timeInput, "11:00");
+      timeInput.dispatchEvent(new Event("input", { bubbles: true }));
+      timeInput.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    expect(applyBtn?.disabled).toBe(true);
+    expect(container.querySelector('[data-testid="appt-time-move-plan"]')).toBeNull();
   });
 
   it("maps schedule conflict to safe copy without slot details", async () => {

@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatMedicalQuestionnaireDate,
   MEDICAL_CONDITION_LABELS,
   medicalConditionItemsForDisplay,
+  medicalFlaggedCountNeedsPartialNote,
 } from "./patient-medical-summary-display.js";
 
 describe("medicalConditionItemsForDisplay", () => {
@@ -127,6 +129,17 @@ describe("medicalConditionItemsForDisplay", () => {
     expect(labels).not.toContain("aids");
     expect(items.some((i) => i.key === "med1")).toBe(false);
     expect(items.some((i) => i.key === "aids")).toBe(false);
+  });
+
+  it("formats questionnaire dates with Intl", () => {
+    expect(formatMedicalQuestionnaireDate("2024-06-01")).toMatch(/2024/);
+    expect(formatMedicalQuestionnaireDate(null)).toBeNull();
+  });
+
+  it("detects when flagged count exceeds visible named flags", () => {
+    expect(medicalFlaggedCountNeedsPartialNote(3, 2)).toBe(true);
+    expect(medicalFlaggedCountNeedsPartialNote(2, 2)).toBe(false);
+    expect(medicalFlaggedCountNeedsPartialNote(0, 0)).toBe(false);
   });
 
   it("sorts labels alphabetically for stable display", () => {

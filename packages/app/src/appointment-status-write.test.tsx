@@ -119,7 +119,7 @@ describe("AppointmentStatusWriteAction", () => {
     expect(container.querySelector('[data-testid="appt-status-write-pilot"]')).toBeNull();
   });
 
-  it("renders nothing when bridge is not write-ready", () => {
+  it("shows blocked notice when bridge is not write-ready", () => {
     renderPilot({
       writeCapability: {
         writeMode: "disabled",
@@ -131,6 +131,42 @@ describe("AppointmentStatusWriteAction", () => {
       },
     });
     expect(container.querySelector('[data-testid="appt-status-write-pilot"]')).toBeNull();
+    expect(container.querySelector('[data-testid="appt-status-write-blocked"]')).toBeTruthy();
+    expect(container.textContent).toMatch(/Sandbox writes are blocked/i);
+  });
+
+  it("re-disables Apply after status change following a successful preview", async () => {
+    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
+      if (String(input).includes("/status")) {
+        return Promise.resolve(jsonResponse(dryRunPlan));
+      }
+      return Promise.reject(new Error("unexpected"));
+    });
+    renderPilot({ fetchImpl });
+
+    const select = container.querySelector("select") as HTMLSelectElement;
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")?.set;
+      setter?.call(select, "3");
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await act(async () => {
+      [...container.querySelectorAll("button")]
+        .find((b) => b.textContent?.includes("Preview status change"))
+        ?.click();
+    });
+    const applyBtn = [...container.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("Apply status change"),
+    );
+    expect(applyBtn?.disabled).toBe(false);
+
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")?.set;
+      setter?.call(select, "2");
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    expect(applyBtn?.disabled).toBe(true);
+    expect(container.querySelector('[data-testid="appt-status-write-plan"]')).toBeNull();
   });
 
   it("shows sandbox write banner when pilot is active and not embedded", () => {

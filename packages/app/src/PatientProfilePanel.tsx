@@ -14,10 +14,15 @@ import type { BridgeHealthPhase } from "./bridge-health.js";
 import { PatientDemographicsWritePanel } from "./PatientDemographicsWritePanel.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
 import {
+  filterPatientAppointments,
   patientApptFormatDuration,
+  patientApptRangeCountLabel,
   patientApptRowMeta,
   patientApptStatusBadgeVariant,
   patientApptStatusLabel,
+  patientApptUniqueRooms,
+  PATIENT_APPT_FILTER_STATUS_CODES,
+  type PatientApptTimeDirection,
 } from "./patient-appointments-display.js";
 import {
   defaultPatientApptRange,
@@ -27,22 +32,36 @@ import {
 import { doctorDisplayLabel } from "./doctor-labels.js";
 import { useDoctorLabels } from "./useDoctorLabels.js";
 import { useProcedureReference } from "./useProcedureReference.js";
-import { medicalConditionItemsForDisplay } from "./patient-medical-summary-display.js";
 import {
-  chartToothLabel,
+  formatMedicalQuestionnaireDate,
+  medicalConditionItemsForDisplay,
+  medicalFlaggedCountNeedsPartialNote,
+} from "./patient-medical-summary-display.js";
+import {
   chartTreatedLabel,
   chartTypeLabel,
-  sortChartEntriesForDisplay,
+  filterChartEntriesForDisplay,
+  groupChartEntriesByTooth,
+  type ChartTreatedFilter,
 } from "./patient-chart-display.js";
 import {
+  filterLedgerEntriesByType,
   formatLedgerDate,
+  groupLedgerEntriesByMonth,
   ledgerAdjustmentTypeLabel,
   ledgerCardPaymentLabel,
   ledgerChargeTypeLabel,
   ledgerPaymentTypeLabel,
+  ledgerTypeFilterActive,
+  ledgerTypeFiltersPresent,
   sortLedgerEntriesForDisplay,
+  type LedgerEntryTypeFilter,
 } from "./patient-ledger-display.js";
 import { PatientSearchBar, type PatientSearchHit } from "./PatientSearchBar.js";
+import {
+  formatSessionRecentPatientMeta,
+  type SessionRecentPatient,
+} from "./session-recent-patients.js";
 import {
   CLINIC_SERVICE_CHECKING,
   CLINIC_SERVICE_OFFLINE_PANEL,
@@ -58,11 +77,29 @@ import {
   PATIENT_TAB_LOADING_MEDICAL,
   PATIENT_TAB_LOADING_TREATMENTS,
   PATIENT_TAB_OFFLINE_TREATMENTS,
+  PATIENT_TAB_OFFLINE_MEDICAL,
+  PATIENT_TAB_OFFLINE_CHART,
+  PATIENT_TAB_OFFLINE_LEDGER,
+  PATIENT_TAB_CHART_EXPLAINER,
+  PATIENT_TAB_CHART_FILTER_ALL,
+  PATIENT_TAB_CHART_FILTER_TREATED,
+  PATIENT_TAB_FILTER_ALL,
+  PATIENT_TAB_LEDGER_AMOUNTS_CHIP,
+  PATIENT_TAB_LEDGER_FILTER_ADJUSTMENT,
+  PATIENT_TAB_LEDGER_FILTER_CHARGE,
+  PATIENT_TAB_LEDGER_FILTER_PAYMENT,
+  MEDICAL_SENSITIVE_STILL_SHOWN,
+  medicalFlaggedCountPartialNote,
+  treatmentsToolbarSummary,
+  ledgerToolbarSummary,
   PATIENT_CHANGE_PATIENT_LABEL,
   PATIENT_PAGE_SEARCH_EXAMPLE,
   PATIENT_PAGE_SEARCH_LEDE,
   PATIENT_MODULE_TABS_HINT,
   PATIENT_PAGE_SEARCH_TITLE,
+  PATIENT_RECENT_SESSION_EMPTY,
+  PATIENT_RECENT_SESSION_HINT,
+  PATIENT_RECENT_SESSION_TITLE,
   PATIENT_PROFILE_READONLY_NOTE,
   PATIENT_TAB_APPOINTMENTS_LEDE,
   PATIENT_TAB_CHART_LEDE,
@@ -76,25 +113,39 @@ import {
   PATIENT_TAB_LEDGER_LEDE,
   PATIENT_TAB_LEDGER_AMOUNTS_HIDDEN,
   PATIENT_TAB_MEDICAL_LEDE,
-  PATIENT_TAB_SECTION_CHART_ENTRIES,
-  PATIENT_TAB_SECTION_LEDGER_ENTRIES,
-  PATIENT_TAB_SECTION_PROCEDURE_HISTORY,
   PATIENT_TAB_SECTION_QUESTIONNAIRE,
   PATIENT_TAB_SECTION_SCREENING,
   PATIENT_TAB_SUMMARY_LEDE,
   PATIENT_TAB_TREATMENTS_LEDE,
+  PATIENT_APPT_FILTER_ALL_ROOMS,
+  PATIENT_APPT_FILTER_ALL_STATUSES,
+  PATIENT_APPT_FILTER_ROOM_ARIA,
+  PATIENT_APPT_FILTER_STATUS_ARIA,
+  PATIENT_APPT_OPEN_IN_SCHEDULE,
+  PATIENT_APPT_PRESET_DEFAULT,
+  PATIENT_APPT_TIME_ALL,
+  PATIENT_APPT_TIME_PAST,
+  PATIENT_APPT_TIME_UPCOMING,
+  PATIENT_PROFILE_LAST_REFRESHED,
   READONLY_STATE_RETRY,
   SENSITIVE_MEDICAL_BANNER,
   TRUNCATED_LIST_BANNER,
 } from "./read-only-ui-copy.js";
 import {
+  filterTreatmentsForDisplay,
   formatTreatmentDate,
-  sortTreatmentsForDisplay,
+  groupTreatmentsByMonth,
+  treatmentProcedureCodesFromItems,
   treatmentProcedureLine,
   treatmentProviderLabel,
+  treatmentProvidersFromItems,
   treatmentStatusLabel,
   treatmentToothLabel,
+  treatmentYearsFromItems,
+  treatmentsFiltersActive,
+  type TreatmentDisplayFilters,
 } from "./patient-treatments-display.js";
+import { PatientSummaryMiniCards, type SummaryApptPrefetch, type SummaryCountPrefetch, type SummaryMedPrefetch } from "./patient-summary-mini-cards.js";
 
 export type PatientProfilePanelProps = {
   /** When null, shows the embedded patient search/open area. */
@@ -109,6 +160,11 @@ export type PatientProfilePanelProps = {
   onClearPatient: () => void;
   /** When the user picks a row from page search (or change-patient search). */
   onPatientRecordSelect?: (hit: PatientSearchHit) => void;
+  /** Session-only recent patients from the shell (safe fields). */
+  recentPatients?: readonly SessionRecentPatient[];
+  onRecentPatientSelect?: (entry: SessionRecentPatient) => void;
+  /** Opens the schedule module focused on a visit date (YYYY-MM-DD). */
+  onOpenScheduleAtDate?: (dateIso: string) => void;
 };
 
 type LoadState =
@@ -120,6 +176,8 @@ type LoadState =
   | { phase: "error"; message: string };
 
 type ProfileTab = "summary" | "appointments" | "medical" | "treatments" | "chart" | "ledger";
+
+export type { ProfileTab };
 
 type ApptLoadState =
   | { phase: "idle" }
@@ -198,6 +256,14 @@ function ProfileTabHiddenNote() {
       {PATIENT_TAB_HIDDEN_FIELDS_NOTE}
     </p>
   );
+}
+
+function formatProfileLastRefreshed(ms: number): string {
+  try {
+    return new Intl.DateTimeFormat(undefined, { timeStyle: "medium" }).format(new Date(ms));
+  } catch {
+    return new Date(ms).toISOString();
+  }
 }
 
 function ProfileReadonlyError({ message, onRetry }: { message: string; onRetry: () => void }) {
@@ -471,7 +537,25 @@ function TreatmentsBody({
   privacyNote: string;
   doctorLabels: ReadonlyMap<string, string>;
 }) {
-  const sorted = sortTreatmentsForDisplay(treatments);
+  const [filters, setFilters] = useState<TreatmentDisplayFilters>({
+    year: null,
+    provider: null,
+    procedureCode: null,
+  });
+
+  const yearOptions = useMemo(() => treatmentYearsFromItems(treatments), [treatments]);
+  const providerOptions = useMemo(
+    () => treatmentProvidersFromItems(treatments, doctorLabels),
+    [treatments, doctorLabels],
+  );
+  const codeOptions = useMemo(() => treatmentProcedureCodesFromItems(treatments), [treatments]);
+  const filtered = useMemo(
+    () => filterTreatmentsForDisplay(treatments, filters, doctorLabels),
+    [treatments, filters, doctorLabels],
+  );
+  const monthGroups = useMemo(() => groupTreatmentsByMonth(filtered), [filtered]);
+  const filterActive = treatmentsFiltersActive(filters);
+  const toolbarSummary = treatmentsToolbarSummary(filtered.length, treatments.length, filterActive);
 
   return (
     <div className="app-patient-profile__treatments-body">
@@ -480,37 +564,128 @@ function TreatmentsBody({
           {TRUNCATED_LIST_BANNER}
         </p>
       ) : null}
-      <h4 className="app-patient-profile__tab-section-title">{PATIENT_TAB_SECTION_PROCEDURE_HISTORY}</h4>
-      <ul className="app-patient-profile__treatment-list" aria-label="Procedure history">
-        {sorted.map((t) => {
-          const dateLabel = formatTreatmentDate(t.date);
-          const procedure = treatmentProcedureLine(t);
-          const tooth = treatmentToothLabel(t.tooth);
-          const provider = treatmentProviderLabel(t, doctorLabels);
-          const status = treatmentStatusLabel(t.status);
 
-          return (
-            <li key={t.treatmentId} className="app-patient-profile__treatment-row">
-              <div className="app-patient-profile__treatment-date">{dateLabel ?? "—"}</div>
-              <div className="app-patient-profile__treatment-main">
-                {procedure ? <p className="app-patient-profile__treatment-procedure">{procedure}</p> : null}
-                <div className="app-patient-profile__treatment-meta">
-                  {tooth ? <span>{tooth}</span> : null}
-                  {provider ? <span>{provider}</span> : null}
-                  {status ? <span>{status}</span> : null}
-                </div>
-                <div className="app-patient-profile__treatment-badges">
-                  {t.hasDescription ? (
-                    <Badge variant="neutral" semanticLabel="Procedure description hidden">
-                      Description hidden
-                    </Badge>
-                  ) : null}
-                </div>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+      <div className="app-patient-profile__clinical-toolbar">
+        <p className="app-patient-profile__clinical-toolbar-summary" aria-live="polite">
+          {toolbarSummary}
+        </p>
+        <div className="app-patient-profile__clinical-filters" role="group" aria-label="Procedure filters">
+          {yearOptions.length > 1 ? (
+            <div className="app-patient-profile__clinical-filter-row" role="group" aria-label="Year">
+              <Button
+                type="button"
+                variant={filters.year === null ? "primary" : "secondary"}
+                className="ui-focusable"
+                onClick={() => setFilters((f) => ({ ...f, year: null }))}
+              >
+                {PATIENT_TAB_FILTER_ALL}
+              </Button>
+              {yearOptions.map((year) => (
+                <Button
+                  key={year}
+                  type="button"
+                  variant={filters.year === year ? "primary" : "secondary"}
+                  className="ui-focusable"
+                  onClick={() => setFilters((f) => ({ ...f, year }))}
+                >
+                  {year}
+                </Button>
+              ))}
+            </div>
+          ) : null}
+          {providerOptions.length > 1 ? (
+            <div className="app-patient-profile__clinical-filter-row" role="group" aria-label="Provider">
+              <Button
+                type="button"
+                variant={filters.provider === null ? "primary" : "secondary"}
+                className="ui-focusable"
+                onClick={() => setFilters((f) => ({ ...f, provider: null }))}
+              >
+                {PATIENT_TAB_FILTER_ALL}
+              </Button>
+              {providerOptions.map((provider) => (
+                <Button
+                  key={provider}
+                  type="button"
+                  variant={filters.provider === provider ? "primary" : "secondary"}
+                  className="ui-focusable"
+                  onClick={() => setFilters((f) => ({ ...f, provider }))}
+                >
+                  {provider}
+                </Button>
+              ))}
+            </div>
+          ) : null}
+          {codeOptions.length > 1 ? (
+            <div className="app-patient-profile__clinical-filter-row" role="group" aria-label="Procedure code">
+              <Button
+                type="button"
+                variant={filters.procedureCode === null ? "primary" : "secondary"}
+                className="ui-focusable"
+                onClick={() => setFilters((f) => ({ ...f, procedureCode: null }))}
+              >
+                {PATIENT_TAB_FILTER_ALL}
+              </Button>
+              {codeOptions.map((code) => (
+                <Button
+                  key={code}
+                  type="button"
+                  variant={filters.procedureCode === code ? "primary" : "secondary"}
+                  className="ui-focusable"
+                  onClick={() => setFilters((f) => ({ ...f, procedureCode: code }))}
+                >
+                  {code}
+                </Button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <p className="app-patient-profile__clinical-empty-filtered" role="status">
+          No procedures match the current filters.
+        </p>
+      ) : (
+        monthGroups.map((group) => (
+          <section key={group.monthKey} className="app-patient-profile__clinical-month-group">
+            <h4 className="app-patient-profile__tab-section-title">
+              {group.heading}
+              <span className="app-patient-profile__clinical-group-count"> ({group.items.length})</span>
+            </h4>
+            <ul className="app-patient-profile__treatment-list" aria-label={`Procedure history for ${group.heading}`}>
+              {group.items.map((t) => {
+                const dateLabel = formatTreatmentDate(t.date);
+                const procedure = treatmentProcedureLine(t);
+                const tooth = treatmentToothLabel(t.tooth);
+                const provider = treatmentProviderLabel(t, doctorLabels);
+                const status = treatmentStatusLabel(t.status);
+
+                return (
+                  <li key={t.treatmentId} className="app-patient-profile__treatment-row">
+                    <div className="app-patient-profile__treatment-date">{dateLabel ?? "—"}</div>
+                    <div className="app-patient-profile__treatment-main">
+                      {procedure ? <p className="app-patient-profile__treatment-procedure">{procedure}</p> : null}
+                      <div className="app-patient-profile__treatment-meta">
+                        {tooth ? <span>{tooth}</span> : null}
+                        {provider ? <span>{provider}</span> : null}
+                        {status ? <span>{status}</span> : null}
+                      </div>
+                      <div className="app-patient-profile__treatment-badges">
+                        {t.hasDescription ? (
+                          <Badge variant="neutral" semanticLabel="Procedure description hidden">
+                            Description hidden
+                          </Badge>
+                        ) : null}
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ))
+      )}
       <p className="app-patient-profile__treatments-privacy">{privacyNote}</p>
     </div>
   );
@@ -525,7 +700,13 @@ function ChartBody({
   truncated: boolean;
   privacyNote: string;
 }) {
-  const sorted = sortChartEntriesForDisplay(entries);
+  const [treatedFilter, setTreatedFilter] = useState<ChartTreatedFilter>("all");
+  const filtered = useMemo(
+    () => filterChartEntriesForDisplay(entries, treatedFilter),
+    [entries, treatedFilter],
+  );
+  const toothGroups = useMemo(() => groupChartEntriesByTooth(filtered), [filtered]);
+  const hasUntreated = useMemo(() => entries.some((e) => !e.treated), [entries]);
 
   return (
     <div className="app-patient-profile__chart-body">
@@ -534,27 +715,74 @@ function ChartBody({
           {TRUNCATED_LIST_BANNER}
         </p>
       ) : null}
-      <h4 className="app-patient-profile__tab-section-title">{PATIENT_TAB_SECTION_CHART_ENTRIES}</h4>
-      <ul className="app-patient-profile__chart-list" aria-label="Dental chart entries">
-        {sorted.map((row) => (
-          <li key={row.chartEntryId} className="app-patient-profile__chart-row">
-            <div className="app-patient-profile__chart-tooth">{chartToothLabel(row.toothNumber)}</div>
-            <div className="app-patient-profile__chart-main">
-              <div className="app-patient-profile__chart-meta">
-                <span>{chartTypeLabel(row.chartType)}</span>
-                <span>{chartTreatedLabel(row.treated)}</span>
-              </div>
-              <div className="app-patient-profile__chart-badges">
-                {row.hasNote ? (
-                  <Badge variant="neutral" semanticLabel="Chart note hidden">
-                    Note hidden
-                  </Badge>
-                ) : null}
-              </div>
-            </div>
-          </li>
-        ))}
-      </ul>
+
+      <p className="app-patient-profile__chart-explainer" role="note">
+        {PATIENT_TAB_CHART_EXPLAINER}
+      </p>
+
+      {hasUntreated ? (
+        <div className="app-patient-profile__clinical-toolbar">
+          <p className="app-patient-profile__clinical-toolbar-summary" aria-live="polite">
+            {filtered.length === 1 ? "1 chart entry" : `${filtered.length} chart entries`}
+          </p>
+          <div className="app-patient-profile__clinical-filters" role="group" aria-label="Chart entry filter">
+            <Button
+              type="button"
+              variant={treatedFilter === "all" ? "primary" : "secondary"}
+              className="ui-focusable"
+              onClick={() => setTreatedFilter("all")}
+            >
+              {PATIENT_TAB_CHART_FILTER_ALL}
+            </Button>
+            <Button
+              type="button"
+              variant={treatedFilter === "treated" ? "primary" : "secondary"}
+              className="ui-focusable"
+              onClick={() => setTreatedFilter("treated")}
+            >
+              {PATIENT_TAB_CHART_FILTER_TREATED}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <p className="app-patient-profile__clinical-toolbar-summary" aria-live="polite">
+          {filtered.length === 1 ? "1 chart entry" : `${filtered.length} chart entries`}
+        </p>
+      )}
+
+      {filtered.length === 0 ? (
+        <p className="app-patient-profile__clinical-empty-filtered" role="status">
+          No chart entries match the current filter.
+        </p>
+      ) : (
+        toothGroups.map((group) => (
+          <section key={group.toothKey} className="app-patient-profile__clinical-tooth-group">
+            <h4 className="app-patient-profile__tab-section-title">
+              {group.toothLabel}
+              <span className="app-patient-profile__clinical-group-count"> ({group.entries.length})</span>
+            </h4>
+            <ul className="app-patient-profile__chart-list" aria-label={`Chart entries for ${group.toothLabel}`}>
+              {group.entries.map((row) => (
+                <li key={row.chartEntryId} className="app-patient-profile__chart-row">
+                  <div className="app-patient-profile__chart-main">
+                    <div className="app-patient-profile__chart-meta">
+                      <span>{chartTypeLabel(row.chartType)}</span>
+                      <span>{chartTreatedLabel(row.treated)}</span>
+                    </div>
+                    <div className="app-patient-profile__chart-badges">
+                      {row.hasNote ? (
+                        <Badge variant="neutral" semanticLabel="Chart note hidden">
+                          Note hidden
+                        </Badge>
+                      ) : null}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))
+      )}
       <p className="app-patient-profile__chart-privacy">{privacyNote}</p>
     </div>
   );
@@ -629,7 +857,15 @@ function LedgerBody({
   truncated: boolean;
   privacyNote: string;
 }) {
-  const sorted = sortLedgerEntriesForDisplay(entries);
+  const [typeFilter, setTypeFilter] = useState<LedgerEntryTypeFilter>(null);
+  const typeOptions = useMemo(() => ledgerTypeFiltersPresent(entries), [entries]);
+  const filtered = useMemo(
+    () => filterLedgerEntriesByType(entries, typeFilter),
+    [entries, typeFilter],
+  );
+  const monthGroups = useMemo(() => groupLedgerEntriesByMonth(filtered), [filtered]);
+  const filterActive = ledgerTypeFilterActive(typeFilter);
+  const toolbarSummary = ledgerToolbarSummary(filtered.length, entries.length, filterActive);
 
   return (
     <div className="app-patient-profile__ledger-body">
@@ -638,37 +874,104 @@ function LedgerBody({
           {TRUNCATED_LIST_BANNER}
         </p>
       ) : null}
-      <h4 className="app-patient-profile__tab-section-title">{PATIENT_TAB_SECTION_LEDGER_ENTRIES}</h4>
-      <ul className="app-patient-profile__ledger-list" aria-label="Ledger entries">
-        {sorted.map((row) => {
-          const dateLabel = formatLedgerDate(row.date);
-          const charge = ledgerChargeTypeLabel(row.chargeTypeCode);
-          const adjustment = ledgerAdjustmentTypeLabel(row.adjustmentTypeCode);
-          const payment = ledgerPaymentTypeLabel(row.paymentTypeCode);
-          const card = ledgerCardPaymentLabel(row.isCardPayment);
 
-          return (
-            <li key={row.ledgerEntryId} className="app-patient-profile__ledger-row">
-              <div className="app-patient-profile__ledger-date">{dateLabel ?? "—"}</div>
-              <div className="app-patient-profile__ledger-main">
-                <div className="app-patient-profile__ledger-meta">
-                  {charge ? <span>{charge}</span> : null}
-                  {adjustment ? <span>{adjustment}</span> : null}
-                  {payment ? <span>{payment}</span> : null}
-                  {card ? <span>{card}</span> : null}
-                </div>
-                <div className="app-patient-profile__ledger-badges">
-                  {row.hasDescription ? (
-                    <Badge variant="neutral" semanticLabel="Ledger description hidden">
-                      Description hidden
-                    </Badge>
-                  ) : null}
-                </div>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+      <div className="app-patient-profile__clinical-toolbar">
+        <div className="app-patient-profile__clinical-toolbar-head">
+          <p className="app-patient-profile__clinical-toolbar-summary" aria-live="polite">
+            {toolbarSummary}
+          </p>
+          <Badge variant="neutral" semanticLabel={PATIENT_TAB_LEDGER_AMOUNTS_CHIP}>
+            {PATIENT_TAB_LEDGER_AMOUNTS_CHIP}
+          </Badge>
+        </div>
+        {typeOptions.length > 1 ? (
+          <div className="app-patient-profile__clinical-filters" role="group" aria-label="Entry type">
+            <Button
+              type="button"
+              variant={typeFilter === null ? "primary" : "secondary"}
+              className="ui-focusable"
+              onClick={() => setTypeFilter(null)}
+            >
+              {PATIENT_TAB_FILTER_ALL}
+            </Button>
+            {typeOptions.includes("charge") ? (
+              <Button
+                type="button"
+                variant={typeFilter === "charge" ? "primary" : "secondary"}
+                className="ui-focusable"
+                onClick={() => setTypeFilter("charge")}
+              >
+                {PATIENT_TAB_LEDGER_FILTER_CHARGE}
+              </Button>
+            ) : null}
+            {typeOptions.includes("adjustment") ? (
+              <Button
+                type="button"
+                variant={typeFilter === "adjustment" ? "primary" : "secondary"}
+                className="ui-focusable"
+                onClick={() => setTypeFilter("adjustment")}
+              >
+                {PATIENT_TAB_LEDGER_FILTER_ADJUSTMENT}
+              </Button>
+            ) : null}
+            {typeOptions.includes("payment") ? (
+              <Button
+                type="button"
+                variant={typeFilter === "payment" ? "primary" : "secondary"}
+                className="ui-focusable"
+                onClick={() => setTypeFilter("payment")}
+              >
+                {PATIENT_TAB_LEDGER_FILTER_PAYMENT}
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+
+      {filtered.length === 0 ? (
+        <p className="app-patient-profile__clinical-empty-filtered" role="status">
+          No ledger lines match the current filter.
+        </p>
+      ) : (
+        monthGroups.map((group) => (
+          <section key={group.monthKey} className="app-patient-profile__clinical-month-group">
+            <h4 className="app-patient-profile__tab-section-title">
+              {group.heading}
+              <span className="app-patient-profile__clinical-group-count"> ({group.items.length})</span>
+            </h4>
+            <ul className="app-patient-profile__ledger-list" aria-label={`Ledger entries for ${group.heading}`}>
+              {group.items.map((row) => {
+                const dateLabel = formatLedgerDate(row.date);
+                const charge = ledgerChargeTypeLabel(row.chargeTypeCode);
+                const adjustment = ledgerAdjustmentTypeLabel(row.adjustmentTypeCode);
+                const payment = ledgerPaymentTypeLabel(row.paymentTypeCode);
+                const card = ledgerCardPaymentLabel(row.isCardPayment);
+
+                return (
+                  <li key={row.ledgerEntryId} className="app-patient-profile__ledger-row">
+                    <div className="app-patient-profile__ledger-date">{dateLabel ?? "—"}</div>
+                    <div className="app-patient-profile__ledger-main">
+                      <div className="app-patient-profile__ledger-meta">
+                        {charge ? <span>{charge}</span> : null}
+                        {adjustment ? <span>{adjustment}</span> : null}
+                        {payment ? <span>{payment}</span> : null}
+                        {card ? <span>{card}</span> : null}
+                      </div>
+                      <div className="app-patient-profile__ledger-badges">
+                        {row.hasDescription ? (
+                          <Badge variant="neutral" semanticLabel="Ledger description hidden">
+                            Description hidden
+                          </Badge>
+                        ) : null}
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ))
+      )}
       <p className="app-patient-profile__ledger-privacy">{privacyNote}</p>
     </div>
   );
@@ -677,28 +980,47 @@ function LedgerBody({
 function MedicalSummaryBody({ summary }: { summary: PatientMedicalSummaryResponse }) {
   const sensitive = summary.hasSensitiveMedicalDetails;
   const conditionItems = sensitive ? [] : medicalConditionItemsForDisplay(summary.conditions);
+  const lastUpdatedLabel = formatMedicalQuestionnaireDate(summary.lastUpdated) ?? "—";
+  const lastDentalLabel = formatMedicalQuestionnaireDate(summary.lastDentalVisit) ?? "—";
+  const partialFlagNote = medicalFlaggedCountNeedsPartialNote(
+    summary.flaggedConditionCount,
+    conditionItems.length,
+  );
 
   return (
     <div className="app-patient-profile__medical-body">
       {sensitive ? (
-        <p className="app-patient-profile__medical-banner" role="note">
-          {SENSITIVE_MEDICAL_BANNER}
-        </p>
+        <>
+          <p className="app-patient-profile__medical-banner" role="note">
+            {SENSITIVE_MEDICAL_BANNER}
+          </p>
+          <p className="app-patient-profile__medical-sensitive-still" role="note">
+            {MEDICAL_SENSITIVE_STILL_SHOWN}
+          </p>
+        </>
       ) : null}
 
       <h4 className="app-patient-profile__tab-section-title">{PATIENT_TAB_SECTION_QUESTIONNAIRE}</h4>
       <dl className="app-patient-profile__dl">
         <div className="app-patient-profile__row">
           <dt>Questionnaire date</dt>
-          <dd>{summary.lastUpdated ?? "—"}</dd>
+          <dd>{lastUpdatedLabel}</dd>
         </div>
         <div className="app-patient-profile__row">
           <dt>Last dental visit (questionnaire)</dt>
-          <dd>{summary.lastDentalVisit ?? "—"}</dd>
+          <dd>{lastDentalLabel}</dd>
         </div>
         <div className="app-patient-profile__row">
           <dt>Flagged screening items</dt>
-          <dd>{summary.flaggedConditionCount}</dd>
+          <dd>
+            {summary.flaggedConditionCount}
+            {partialFlagNote ? (
+              <span className="app-patient-profile__medical-flag-note">
+                {" "}
+                — {medicalFlaggedCountPartialNote(summary.flaggedConditionCount)}
+              </span>
+            ) : null}
+          </dd>
         </div>
       </dl>
 
@@ -706,15 +1028,21 @@ function MedicalSummaryBody({ summary }: { summary: PatientMedicalSummaryRespons
         <>
           <h4 className="app-patient-profile__tab-section-title">{PATIENT_TAB_SECTION_SCREENING}</h4>
           <ul className="app-patient-profile__medical-flags" aria-label="Screening flags marked yes">
-          {conditionItems.map((item) => (
-            <li key={item.key}>{item.label}</li>
-          ))}
+            {conditionItems.map((item) => (
+              <li key={item.key}>{item.label}</li>
+            ))}
           </ul>
         </>
       ) : null}
 
       {!sensitive && conditionItems.length === 0 && summary.flaggedConditionCount === 0 ? (
         <p className="app-patient-profile__medical-muted">No screening flags marked yes.</p>
+      ) : null}
+
+      {sensitive && summary.flaggedConditionCount > 0 ? (
+        <p className="app-patient-profile__medical-muted" role="note">
+          {medicalFlaggedCountPartialNote(summary.flaggedConditionCount)}
+        </p>
       ) : null}
 
       <p className="app-patient-profile__medical-privacy">{summary.privacyNote}</p>
@@ -744,6 +1072,8 @@ function PatientPageSearchBlock({
   fetchImpl,
   onPatientRecordSelect,
   onPatientSelectionClear,
+  recentPatients,
+  onRecentPatientSelect,
   clearSelectionOnQueryChange,
   title,
 }: {
@@ -753,6 +1083,8 @@ function PatientPageSearchBlock({
   fetchImpl?: typeof fetch;
   onPatientRecordSelect?: (hit: PatientSearchHit) => void;
   onPatientSelectionClear?: () => void;
+  recentPatients?: readonly SessionRecentPatient[];
+  onRecentPatientSelect?: (entry: SessionRecentPatient) => void;
   clearSelectionOnQueryChange: boolean;
   title?: string;
 }) {
@@ -768,9 +1100,11 @@ function PatientPageSearchBlock({
         bridgePhase={bridgePhase}
         bridgeBaseUrl={bridgeBaseUrl}
         selectedPatientId={patientId}
+        recentPatients={recentPatients}
         fetchImpl={fetchImpl}
         clearSelectionOnQueryChange={clearSelectionOnQueryChange}
         onPatientRecordSelect={onPatientRecordSelect}
+        onRecentPatientSelect={onRecentPatientSelect}
         onPatientSelectionClear={onPatientSelectionClear}
       />
     </section>
@@ -787,6 +1121,9 @@ export function PatientProfilePanel({
   onBackToday,
   onClearPatient,
   onPatientRecordSelect,
+  recentPatients = [],
+  onRecentPatientSelect,
+  onOpenScheduleAtDate,
 }: PatientProfilePanelProps) {
   const base = bridgeBaseUrl?.trim() ?? "";
   const { labels: doctorLabels } = useDoctorLabels({
@@ -830,6 +1167,27 @@ export function PatientProfilePanel({
   const ledgerRequestSeq = useRef(0);
 
   const [changePatientSearchOpen, setChangePatientSearchOpen] = useState(false);
+  const [lastLoadedAt, setLastLoadedAt] = useState<number | null>(null);
+  const touchLastLoadedAt = useCallback(() => {
+    setLastLoadedAt(Date.now());
+  }, []);
+
+  const [apptTimeDirection, setApptTimeDirection] = useState<PatientApptTimeDirection>("all");
+  const [apptStatusFilter, setApptStatusFilter] = useState<number | null>(null);
+  const [apptRoomFilter, setApptRoomFilter] = useState<number | null>(null);
+
+  const [summaryAppt, setSummaryAppt] = useState<SummaryApptPrefetch>({ phase: "idle", appointments: [] });
+  const [summaryMed, setSummaryMed] = useState<SummaryMedPrefetch>({
+    phase: "idle",
+    hasMedicalRecord: false,
+    flaggedConditionCount: 0,
+    sensitive: false,
+  });
+  const [summaryTx, setSummaryTx] = useState<SummaryCountPrefetch>({ phase: "idle", count: 0, truncated: false });
+  const [summaryChart, setSummaryChart] = useState<SummaryCountPrefetch>({ phase: "idle", count: 0, truncated: false });
+  const [summaryLedger, setSummaryLedger] = useState<SummaryCountPrefetch>({ phase: "idle", count: 0, truncated: false });
+  const [summaryRefreshNonce, setSummaryRefreshNonce] = useState(0);
+  const summaryRequestSeq = useRef(0);
 
   useEffect(() => {
     if (patientId === null) {
@@ -862,6 +1220,7 @@ export function PatientProfilePanel({
         const profile = await client.getPatientProfile(patientId);
         if (cancelled || seq !== requestSeq.current) return;
         setState({ phase: "loaded", profile });
+        touchLastLoadedAt();
       } catch (e: unknown) {
         if (cancelled || seq !== requestSeq.current) return;
         if (e instanceof BridgeClientError && e.kind === "http" && e.status === 404 && e.apiCode === "PATIENT_NOT_FOUND") {
@@ -875,7 +1234,131 @@ export function PatientProfilePanel({
     return () => {
       cancelled = true;
     };
-  }, [patientId, base, bridgePhase, fetchImpl, retryNonce]);
+  }, [patientId, base, bridgePhase, fetchImpl, retryNonce, touchLastLoadedAt]);
+
+  useEffect(() => {
+    if (patientId === null || activeTab !== "summary") {
+      setSummaryAppt({ phase: "idle", appointments: [] });
+      setSummaryMed({ phase: "idle", hasMedicalRecord: false, flaggedConditionCount: 0, sensitive: false });
+      setSummaryTx({ phase: "idle", count: 0, truncated: false });
+      setSummaryChart({ phase: "idle", count: 0, truncated: false });
+      setSummaryLedger({ phase: "idle", count: 0, truncated: false });
+      return;
+    }
+    if (!base || bridgePhase !== "connected") {
+      setSummaryAppt({ phase: "offline", appointments: [] });
+      setSummaryMed({ phase: "offline", hasMedicalRecord: false, flaggedConditionCount: 0, sensitive: false });
+      setSummaryTx({ phase: "offline", count: 0, truncated: false });
+      setSummaryChart({ phase: "offline", count: 0, truncated: false });
+      setSummaryLedger({ phase: "offline", count: 0, truncated: false });
+      return;
+    }
+
+    const seq = ++summaryRequestSeq.current;
+    setSummaryAppt({ phase: "loading", appointments: [] });
+    setSummaryMed({ phase: "loading", hasMedicalRecord: false, flaggedConditionCount: 0, sensitive: false });
+    setSummaryTx({ phase: "loading", count: 0, truncated: false });
+    setSummaryChart({ phase: "loading", count: 0, truncated: false });
+    setSummaryLedger({ phase: "loading", count: 0, truncated: false });
+
+    const client = createBridgeClient({ baseUrl: base, fetch: fetchImpl });
+    const summaryRange = defaultPatientApptRange();
+    let cancelled = false;
+
+    void (async () => {
+      await Promise.all([
+        (async () => {
+          try {
+            const data = await client.getPatientAppointments(patientId, summaryRange);
+            if (cancelled || seq !== summaryRequestSeq.current) return;
+            if (data.appointments.length === 0) {
+              setSummaryAppt({ phase: "empty", appointments: [] });
+            } else {
+              setSummaryAppt({ phase: "loaded", appointments: data.appointments });
+            }
+            touchLastLoadedAt();
+          } catch {
+            if (cancelled || seq !== summaryRequestSeq.current) return;
+            setSummaryAppt({ phase: "error", appointments: [] });
+          }
+        })(),
+        (async () => {
+          try {
+            const summary = await client.getPatientMedicalSummary(patientId);
+            if (cancelled || seq !== summaryRequestSeq.current) return;
+            if (!summary.hasMedicalRecord) {
+              setSummaryMed({
+                phase: "empty",
+                hasMedicalRecord: false,
+                flaggedConditionCount: 0,
+                sensitive: false,
+              });
+            } else {
+              setSummaryMed({
+                phase: "loaded",
+                hasMedicalRecord: true,
+                flaggedConditionCount: summary.flaggedConditionCount,
+                sensitive: summary.hasSensitiveMedicalDetails,
+              });
+            }
+            touchLastLoadedAt();
+          } catch {
+            if (cancelled || seq !== summaryRequestSeq.current) return;
+            setSummaryMed({ phase: "error", hasMedicalRecord: false, flaggedConditionCount: 0, sensitive: false });
+          }
+        })(),
+        (async () => {
+          try {
+            const data = await client.getPatientTreatments(patientId);
+            if (cancelled || seq !== summaryRequestSeq.current) return;
+            if (data.treatments.length === 0) {
+              setSummaryTx({ phase: "empty", count: 0, truncated: data.truncated });
+            } else {
+              setSummaryTx({ phase: "loaded", count: data.treatments.length, truncated: data.truncated });
+            }
+            touchLastLoadedAt();
+          } catch {
+            if (cancelled || seq !== summaryRequestSeq.current) return;
+            setSummaryTx({ phase: "error", count: 0, truncated: false });
+          }
+        })(),
+        (async () => {
+          try {
+            const data = await client.getPatientChart(patientId);
+            if (cancelled || seq !== summaryRequestSeq.current) return;
+            if (data.entries.length === 0) {
+              setSummaryChart({ phase: "empty", count: 0, truncated: data.truncated });
+            } else {
+              setSummaryChart({ phase: "loaded", count: data.entries.length, truncated: data.truncated });
+            }
+            touchLastLoadedAt();
+          } catch {
+            if (cancelled || seq !== summaryRequestSeq.current) return;
+            setSummaryChart({ phase: "error", count: 0, truncated: false });
+          }
+        })(),
+        (async () => {
+          try {
+            const data = await client.getPatientLedger(patientId);
+            if (cancelled || seq !== summaryRequestSeq.current) return;
+            if (data.entries.length === 0) {
+              setSummaryLedger({ phase: "empty", count: 0, truncated: data.truncated });
+            } else {
+              setSummaryLedger({ phase: "loaded", count: data.entries.length, truncated: data.truncated });
+            }
+            touchLastLoadedAt();
+          } catch {
+            if (cancelled || seq !== summaryRequestSeq.current) return;
+            setSummaryLedger({ phase: "error", count: 0, truncated: false });
+          }
+        })(),
+      ]);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [patientId, base, bridgePhase, fetchImpl, activeTab, summaryRefreshNonce, touchLastLoadedAt]);
 
   useEffect(() => {
     if (patientId === null) {
@@ -906,6 +1389,7 @@ export function PatientProfilePanel({
         } else {
           setApptState({ phase: "loaded", appointments: data.appointments });
         }
+        touchLastLoadedAt();
       } catch (e: unknown) {
         if (cancelled || seq !== apptRequestSeq.current) return;
         setApptState({ phase: "error", message: safePatientAppointmentsError(e) });
@@ -915,7 +1399,7 @@ export function PatientProfilePanel({
     return () => {
       cancelled = true;
     };
-  }, [patientId, base, bridgePhase, fetchImpl, activeTab, apptRange, apptRefreshNonce]);
+  }, [patientId, base, bridgePhase, fetchImpl, activeTab, apptRange, apptRefreshNonce, touchLastLoadedAt]);
 
   useEffect(() => {
     if (patientId === null) {
@@ -946,6 +1430,7 @@ export function PatientProfilePanel({
         } else {
           setMedState({ phase: "loaded", summary });
         }
+        touchLastLoadedAt();
       } catch (e: unknown) {
         if (cancelled || seq !== medRequestSeq.current) return;
         setMedState({ phase: "error", message: safePatientMedicalSummaryError(e) });
@@ -955,7 +1440,7 @@ export function PatientProfilePanel({
     return () => {
       cancelled = true;
     };
-  }, [patientId, base, bridgePhase, fetchImpl, activeTab, medRefreshNonce]);
+  }, [patientId, base, bridgePhase, fetchImpl, activeTab, medRefreshNonce, touchLastLoadedAt]);
 
   useEffect(() => {
     if (patientId === null) {
@@ -991,6 +1476,7 @@ export function PatientProfilePanel({
             privacyNote: data.privacyNote,
           });
         }
+        touchLastLoadedAt();
       } catch (e: unknown) {
         if (cancelled || seq !== txRequestSeq.current) return;
         setTxState({ phase: "error", message: safePatientTreatmentsError(e) });
@@ -1000,7 +1486,7 @@ export function PatientProfilePanel({
     return () => {
       cancelled = true;
     };
-  }, [patientId, base, bridgePhase, fetchImpl, activeTab, txRefreshNonce]);
+  }, [patientId, base, bridgePhase, fetchImpl, activeTab, txRefreshNonce, touchLastLoadedAt]);
 
   useEffect(() => {
     if (patientId === null) {
@@ -1036,6 +1522,7 @@ export function PatientProfilePanel({
             privacyNote: data.privacyNote,
           });
         }
+        touchLastLoadedAt();
       } catch (e: unknown) {
         if (cancelled || seq !== chartRequestSeq.current) return;
         setChartState({ phase: "error", message: safePatientChartError(e) });
@@ -1045,7 +1532,7 @@ export function PatientProfilePanel({
     return () => {
       cancelled = true;
     };
-  }, [patientId, base, bridgePhase, fetchImpl, activeTab, chartRefreshNonce]);
+  }, [patientId, base, bridgePhase, fetchImpl, activeTab, chartRefreshNonce, touchLastLoadedAt]);
 
   useEffect(() => {
     if (patientId === null) {
@@ -1081,6 +1568,7 @@ export function PatientProfilePanel({
             privacyNote: data.privacyNote,
           });
         }
+        touchLastLoadedAt();
       } catch (e: unknown) {
         if (cancelled || seq !== ledgerRequestSeq.current) return;
         setLedgerState({ phase: "error", message: safePatientLedgerError(e) });
@@ -1090,13 +1578,17 @@ export function PatientProfilePanel({
     return () => {
       cancelled = true;
     };
-  }, [patientId, base, bridgePhase, fetchImpl, activeTab, ledgerRefreshNonce]);
+  }, [patientId, base, bridgePhase, fetchImpl, activeTab, ledgerRefreshNonce, touchLastLoadedAt]);
 
   useEffect(() => {
     if (patientId === null) {
       setActiveTab(null);
       setRangePreset("default");
       setApptRange(defaultPatientApptRange());
+      setApptTimeDirection("all");
+      setApptStatusFilter(null);
+      setApptRoomFilter(null);
+      setLastLoadedAt(null);
       setApptState({ phase: "idle" });
       setMedState({ phase: "idle" });
       setTxState({ phase: "idle" });
@@ -1119,10 +1611,21 @@ export function PatientProfilePanel({
     return null;
   }, [state]);
 
-  const groupedAppts = useMemo(() => {
-    if (apptState.phase !== "loaded") return new Map<string, ScheduleAppointmentItem[]>();
-    return groupAppointmentsByDate(apptState.appointments);
+  const filteredAppts = useMemo(() => {
+    if (apptState.phase !== "loaded") return [];
+    return filterPatientAppointments(apptState.appointments, {
+      timeDirection: apptTimeDirection,
+      statusFilter: apptStatusFilter,
+      roomFilter: apptRoomFilter,
+    });
+  }, [apptState, apptTimeDirection, apptStatusFilter, apptRoomFilter]);
+
+  const apptRoomsInRange = useMemo(() => {
+    if (apptState.phase !== "loaded") return [];
+    return patientApptUniqueRooms(apptState.appointments);
   }, [apptState]);
+
+  const groupedAppts = useMemo(() => groupAppointmentsByDate(filteredAppts), [filteredAppts]);
 
   const rangeHeading = formatApptRangeHeading(apptRange.from, apptRange.to);
 
@@ -1172,6 +1675,11 @@ export function PatientProfilePanel({
             </Button>
           </>
         ) : null}
+        {patientId !== null && lastLoadedAt !== null ? (
+          <p className="app-patient-profile__toolbar-refreshed" role="status" aria-live="polite">
+            {PATIENT_PROFILE_LAST_REFRESHED}: {formatProfileLastRefreshed(lastLoadedAt)}
+          </p>
+        ) : null}
       </div>
 
       <p className="app-patient-profile__readonly-note" role="note">
@@ -1184,6 +1692,38 @@ export function PatientProfilePanel({
             <p className="app-patient-profile__open-lede">{PATIENT_PAGE_SEARCH_LEDE}</p>
             <p className="app-patient-profile__open-example">{PATIENT_PAGE_SEARCH_EXAMPLE}</p>
             <p className="app-patient-profile__open-hint">{PATIENT_MODULE_TABS_HINT}</p>
+            <section
+              className="app-patient-profile__recent"
+              aria-labelledby="app-patients-recent-heading"
+              data-testid="patients-page-recent"
+            >
+              <h3 id="app-patients-recent-heading" className="app-patient-profile__recent-title">
+                {PATIENT_RECENT_SESSION_TITLE}
+              </h3>
+              <p className="app-patient-profile__recent-hint">{PATIENT_RECENT_SESSION_HINT}</p>
+              {recentPatients.length > 0 && onRecentPatientSelect ? (
+                <ul className="app-patient-profile__recent-list" aria-label={PATIENT_RECENT_SESSION_TITLE}>
+                  {recentPatients.map((entry) => (
+                    <li key={entry.patientId}>
+                      <button
+                        type="button"
+                        className="app-patient-profile__recent-btn ui-focusable"
+                        onClick={() => onRecentPatientSelect(entry)}
+                      >
+                        <span className="app-patient-profile__recent-name">{entry.displayName}</span>
+                        <span className="app-patient-profile__recent-meta">
+                          {formatSessionRecentPatientMeta(entry)}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="app-patient-profile__recent-empty" role="status">
+                  {PATIENT_RECENT_SESSION_EMPTY}
+                </p>
+              )}
+            </section>
             <PatientPageSearchBlock
               patientId={null}
               bridgePhase={bridgePhase}
@@ -1191,7 +1731,9 @@ export function PatientProfilePanel({
               fetchImpl={fetchImpl}
               clearSelectionOnQueryChange
               title={PATIENT_PAGE_SEARCH_TITLE}
+              recentPatients={recentPatients}
               onPatientRecordSelect={onPatientRecordSelect}
+              onRecentPatientSelect={onRecentPatientSelect}
               onPatientSelectionClear={onClearPatient}
             />
           </div>
@@ -1227,6 +1769,8 @@ export function PatientProfilePanel({
                 bridgePhase={bridgePhase}
                 bridgeBaseUrl={bridgeBaseUrl}
                 fetchImpl={fetchImpl}
+                recentPatients={recentPatients}
+                onRecentPatientSelect={onRecentPatientSelect}
                 clearSelectionOnQueryChange={false}
                 title={PATIENT_CHANGE_PATIENT_LABEL}
                 onPatientRecordSelect={(hit) => {
@@ -1270,6 +1814,14 @@ export function PatientProfilePanel({
               >
                 <p className="app-patient-profile__summary-lede">{PATIENT_TAB_SUMMARY_LEDE}</p>
                 <ProfileSummaryCard profile={state.profile} activeLabel={activeLabel} doctorLabels={doctorLabels} />
+                <PatientSummaryMiniCards
+                  appt={summaryAppt}
+                  medical={summaryMed}
+                  treatments={summaryTx}
+                  chart={summaryChart}
+                  ledger={summaryLedger}
+                  onOpenTab={setActiveTab}
+                />
                 {base && patientId && sandboxWritePilot ? (
                   <section
                     className="app-patient-profile__sandbox-demographics"
@@ -1309,6 +1861,14 @@ export function PatientProfilePanel({
                   <div className="app-patient-profile__appts-presets" role="group" aria-label="Date range">
                     <Button
                       type="button"
+                      variant={rangePreset === "default" ? "primary" : "secondary"}
+                      className="ui-focusable"
+                      onClick={() => applyRangePreset("default")}
+                    >
+                      {PATIENT_APPT_PRESET_DEFAULT}
+                    </Button>
+                    <Button
+                      type="button"
                       variant={rangePreset === "past90" ? "primary" : "secondary"}
                       className="ui-focusable"
                       onClick={() => applyRangePreset("past90")}
@@ -1342,10 +1902,106 @@ export function PatientProfilePanel({
                       Refresh
                     </Button>
                   </div>
+
+                  <div className="app-patient-profile__appts-filters">
+                    <div className="app-patient-profile__appts-filter-group" role="group" aria-label="Past or upcoming">
+                      <Button
+                        type="button"
+                        size="compact"
+                        variant={apptTimeDirection === "all" ? "primary" : "secondary"}
+                        className="ui-focusable app-patient-profile__appts-filter-chip"
+                        onClick={() => setApptTimeDirection("all")}
+                      >
+                        {PATIENT_APPT_TIME_ALL}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="compact"
+                        variant={apptTimeDirection === "past" ? "primary" : "secondary"}
+                        className="ui-focusable app-patient-profile__appts-filter-chip"
+                        onClick={() => setApptTimeDirection("past")}
+                      >
+                        {PATIENT_APPT_TIME_PAST}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="compact"
+                        variant={apptTimeDirection === "upcoming" ? "primary" : "secondary"}
+                        className="ui-focusable app-patient-profile__appts-filter-chip"
+                        onClick={() => setApptTimeDirection("upcoming")}
+                      >
+                        {PATIENT_APPT_TIME_UPCOMING}
+                      </Button>
+                    </div>
+
+                    <div
+                      className="app-patient-profile__appts-filter-group"
+                      role="group"
+                      aria-label={PATIENT_APPT_FILTER_STATUS_ARIA}
+                    >
+                      <Button
+                        type="button"
+                        size="compact"
+                        variant={apptStatusFilter === null ? "primary" : "secondary"}
+                        className="ui-focusable app-patient-profile__appts-filter-chip"
+                        onClick={() => setApptStatusFilter(null)}
+                      >
+                        {PATIENT_APPT_FILTER_ALL_STATUSES}
+                      </Button>
+                      {PATIENT_APPT_FILTER_STATUS_CODES.map((code) => (
+                        <Button
+                          key={code}
+                          type="button"
+                          size="compact"
+                          variant={apptStatusFilter === code ? "primary" : "secondary"}
+                          className="ui-focusable app-patient-profile__appts-filter-chip"
+                          onClick={() => setApptStatusFilter(code)}
+                        >
+                          {patientApptStatusLabel(code)}
+                        </Button>
+                      ))}
+                    </div>
+
+                    {apptRoomsInRange.length > 0 ? (
+                      <div
+                        className="app-patient-profile__appts-filter-group"
+                        role="group"
+                        aria-label={PATIENT_APPT_FILTER_ROOM_ARIA}
+                      >
+                        <Button
+                          type="button"
+                          size="compact"
+                          variant={apptRoomFilter === null ? "primary" : "secondary"}
+                          className="ui-focusable app-patient-profile__appts-filter-chip"
+                          onClick={() => setApptRoomFilter(null)}
+                        >
+                          {PATIENT_APPT_FILTER_ALL_ROOMS}
+                        </Button>
+                        {apptRoomsInRange.map((room) => (
+                          <Button
+                            key={room}
+                            type="button"
+                            size="compact"
+                            variant={apptRoomFilter === room ? "primary" : "secondary"}
+                            className="ui-focusable app-patient-profile__appts-filter-chip"
+                            onClick={() => setApptRoomFilter(room)}
+                          >
+                            Room {room}
+                          </Button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
 
                 <p className="app-patient-profile__appts-range" aria-live="polite">
                   {rangeHeading}
+                  {apptState.phase === "loaded" ? (
+                    <span className="app-patient-profile__appts-range-count">
+                      {" · "}
+                      {patientApptRangeCountLabel(filteredAppts.length)}
+                    </span>
+                  ) : null}
                 </p>
 
                 {apptState.phase === "offline" ? (
@@ -1370,6 +2026,13 @@ export function PatientProfilePanel({
                     description="Nothing is scheduled in this date range. Try another preset or refresh after the bridge loads data."
                   />
                 ) : apptState.phase === "loaded" ? (
+                  filteredAppts.length === 0 ? (
+                    <EmptyState
+                      className="ui-empty--start app-patient-profile__empty"
+                      title="No appointments match"
+                      description="Try clearing filters or choosing a wider date preset."
+                    />
+                  ) : (
                   <div className="app-patient-profile__appt-days">
                     {[...groupedAppts.entries()].map(([dateIso, list]) => (
                       <Card key={dateIso} className="app-patient-profile__appt-day">
@@ -1410,6 +2073,19 @@ export function PatientProfilePanel({
                                       </Badge>
                                     ) : null}
                                   </div>
+                                  {onOpenScheduleAtDate ? (
+                                    <div className="app-patient-profile__appt-actions">
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="compact"
+                                        className="ui-focusable"
+                                        onClick={() => onOpenScheduleAtDate(appt.date)}
+                                      >
+                                        {PATIENT_APPT_OPEN_IN_SCHEDULE}
+                                      </Button>
+                                    </div>
+                                  ) : null}
                                 </div>
                               </li>
                             ))}
@@ -1418,6 +2094,7 @@ export function PatientProfilePanel({
                       </Card>
                     ))}
                   </div>
+                  )
                 ) : null}
               </section>
             ) : null}
@@ -1436,7 +2113,7 @@ export function PatientProfilePanel({
                   <EmptyState
                     className="ui-empty--start app-patient-profile__empty"
                     title={CLINIC_SERVICE_OFFLINE_TITLE}
-                    description={CLINIC_SERVICE_OFFLINE_SECTION}
+                    description={PATIENT_TAB_OFFLINE_MEDICAL}
                   />
                 ) : medState.phase === "loading" ? (
                   <p className="app-patient-profile__status app-readonly-state app-readonly-state--loading" role="status" aria-live="polite" aria-busy="true">
@@ -1537,7 +2214,7 @@ export function PatientProfilePanel({
                   <EmptyState
                     className="ui-empty--start app-patient-profile__empty"
                     title={CLINIC_SERVICE_OFFLINE_TITLE}
-                    description={CLINIC_SERVICE_OFFLINE_SECTION}
+                    description={PATIENT_TAB_OFFLINE_CHART}
                   />
                 ) : chartState.phase === "loading" ? (
                   <p className="app-patient-profile__status app-readonly-state app-readonly-state--loading" role="status" aria-live="polite" aria-busy="true">
@@ -1592,7 +2269,7 @@ export function PatientProfilePanel({
                   <EmptyState
                     className="ui-empty--start app-patient-profile__empty"
                     title={CLINIC_SERVICE_OFFLINE_TITLE}
-                    description={CLINIC_SERVICE_OFFLINE_SECTION}
+                    description={PATIENT_TAB_OFFLINE_LEDGER}
                   />
                 ) : ledgerState.phase === "loading" ? (
                   <p className="app-patient-profile__status app-readonly-state app-readonly-state--loading" role="status" aria-live="polite" aria-busy="true">

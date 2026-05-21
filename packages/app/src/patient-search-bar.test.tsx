@@ -620,4 +620,54 @@ describe("PatientSearchBar", () => {
     expect(container.textContent).toContain("Demo Alpha");
     expect(container.querySelector(".app-patient-search__selected")).toBeTruthy();
   });
+
+  it("shows session recent patients when query is short and does not include phone", () => {
+    const onRecentPatientSelect = vi.fn();
+    act(() => {
+      root.render(
+        <PatientSearchBar
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          recentPatients={[
+            { patientId: "42", displayName: "Recent One", chartNumber: "C-42" },
+          ]}
+          onRecentPatientSelect={onRecentPatientSelect}
+        />,
+      );
+    });
+    expect(container.querySelector('[data-testid="patient-search-recent"]')).toBeTruthy();
+    expect(container.textContent).toContain("Recent this session");
+    expect(container.textContent).toContain("Recent One");
+    expect(container.textContent).toContain("Chart C-42");
+    expect(container.textContent).not.toMatch(/phone/i);
+    assertNoForbiddenDomTokens(container.textContent ?? "");
+
+    const recentBtn = container.querySelector(".app-patient-search__recent-btn") as HTMLButtonElement;
+    act(() => {
+      recentBtn?.click();
+    });
+    expect(onRecentPatientSelect).toHaveBeenCalledWith({
+      patientId: "42",
+      displayName: "Recent One",
+      chartNumber: "C-42",
+    });
+  });
+
+  it("highlights the recent row matching selectedPatientId until Clear", () => {
+    act(() => {
+      root.render(
+        <PatientSearchBar
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          selectedPatientId="42"
+          recentPatients={[
+            { patientId: "42", displayName: "Recent One", chartNumber: "C-42" },
+            { patientId: "99", displayName: "Other", chartNumber: null },
+          ]}
+          onRecentPatientSelect={vi.fn()}
+        />,
+      );
+    });
+    expect(container.querySelector(".app-patient-search__recent-btn--selected")).toBeTruthy();
+  });
 });

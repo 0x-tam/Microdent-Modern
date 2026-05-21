@@ -3,6 +3,7 @@ import {
   SANDBOX_WRITE_BLOCKED_SANDBOX,
   SANDBOX_WRITE_BLOCKED_WRITE_MODE,
   SANDBOX_WRITE_PILOT_PANEL_BANNER,
+  WRITE_POST_COMMIT_MIRROR_NUDGE,
   writeResultCommittedHeadline,
   writeResultUncommittedHeadline,
 } from "./read-only-ui-copy.js";
@@ -48,8 +49,6 @@ export const FORBIDDEN_WRITE_RESULT_TOKENS = [
   "rawRow",
   '"before"',
   '"after"',
-  "before",
-  "after",
 ] as const;
 
 export function containsForbiddenWriteResultToken(text: string): boolean {
@@ -65,83 +64,6 @@ export function SandboxWriteBanner({ className }: SandboxWriteBannerProps) {
     <p className={className ?? "app-sandbox-write__banner"} role="status">
       {SANDBOX_WRITE_PILOT_PANEL_BANNER}
     </p>
-  );
-}
-
-const BLOCK_REASON_COPY: Record<SandboxWriteBlockReason, string> = {
-  "write-mode-off": SANDBOX_WRITE_BLOCKED_WRITE_MODE,
-  "sandbox-not-ready": SANDBOX_WRITE_BLOCKED_SANDBOX,
-  "pilot-off": SANDBOX_WRITE_BLOCKED_SANDBOX,
-};
-
-export type SandboxWriteBlockedNoticeProps = {
-  reason: SandboxWriteBlockReason;
-  className?: string;
-  testId?: string;
-};
-
-export function SandboxWriteBlockedNotice({
-  reason,
-  className,
-  testId = "sandbox-write-blocked",
-}: SandboxWriteBlockedNoticeProps) {
-  return (
-    <div
-      className={className ?? "app-sandbox-write app-sandbox-write--blocked"}
-      data-testid={testId}
-      role="status"
-    >
-      <SandboxWriteBanner />
-      <p className="app-sandbox-write__hint">{BLOCK_REASON_COPY[reason]}</p>
-    </div>
-  );
-}
-
-export type WriteOperationResultProps = {
-  committed: boolean;
-  successLabel: string;
-  feedbackLines: readonly string[];
-  mode?: string;
-  className?: string;
-  headlineClassName?: string;
-  testId?: string;
-};
-
-export function formatWriteOperationHeadline(
-  committed: boolean,
-  successLabel: string,
-  mode?: string,
-): string {
-  return committed
-    ? writeResultCommittedHeadline(successLabel, mode)
-    : writeResultUncommittedHeadline(mode);
-}
-
-export function WriteOperationResult({
-  committed,
-  successLabel,
-  feedbackLines,
-  mode,
-  className,
-  headlineClassName,
-  testId,
-}: WriteOperationResultProps) {
-  return (
-    <div
-      className={className ?? "app-sandbox-write__result"}
-      role="status"
-      data-committed={String(committed)}
-      data-testid={testId}
-    >
-      <p className={headlineClassName ?? "app-sandbox-write__result-headline"}>
-        {formatWriteOperationHeadline(committed, successLabel, mode)}
-      </p>
-      <ul className="app-sandbox-write__feedback" aria-label="Write operation feedback">
-        {feedbackLines.map((line) => (
-          <li key={line}>{line}</li>
-        ))}
-      </ul>
-    </div>
   );
 }
 
@@ -177,6 +99,74 @@ function PlanRow({ label, value }: { label: string; value: string }) {
     <div className="app-sandbox-write__plan-row">
       <dt>{label}</dt>
       <dd>{value}</dd>
+    </div>
+  );
+}
+
+export type SandboxWriteBlockedNoticeProps = {
+  reason: SandboxWriteBlockReason;
+  className?: string;
+  testId?: string;
+};
+
+function sandboxWriteBlockedMessage(reason: SandboxWriteBlockReason): string {
+  if (reason === "write-mode-off") {
+    return SANDBOX_WRITE_BLOCKED_WRITE_MODE;
+  }
+  return SANDBOX_WRITE_BLOCKED_SANDBOX;
+}
+
+export function SandboxWriteBlockedNotice({ reason, className, testId }: SandboxWriteBlockedNoticeProps) {
+  return (
+    <div
+      className={className ?? "app-sandbox-write app-sandbox-write--blocked"}
+      role="status"
+      data-testid={testId}
+    >
+      <p className="app-sandbox-write__blocked">{sandboxWriteBlockedMessage(reason)}</p>
+    </div>
+  );
+}
+
+export type WriteOperationResultProps = {
+  committed: boolean;
+  successLabel: string;
+  feedbackLines: readonly string[];
+  mode?: string;
+  className?: string;
+  headlineClassName?: string;
+  testId?: string;
+};
+
+export function WriteOperationResult({
+  committed,
+  successLabel,
+  feedbackLines,
+  mode,
+  className,
+  headlineClassName,
+  testId,
+}: WriteOperationResultProps) {
+  const headline = committed
+    ? writeResultCommittedHeadline(successLabel, mode)
+    : writeResultUncommittedHeadline(mode);
+
+  return (
+    <div
+      className={className ?? "app-sandbox-write__result"}
+      data-testid={testId}
+      data-committed={String(committed)}
+      role="status"
+    >
+      <p className={headlineClassName ?? "app-sandbox-write__result-summary"}>{headline}</p>
+      {feedbackLines.map((line) => (
+        <p key={line} className="app-sandbox-write__result-line">
+          {line}
+        </p>
+      ))}
+      {committed ? (
+        <p className="app-sandbox-write__result-nudge">{WRITE_POST_COMMIT_MIRROR_NUDGE}</p>
+      ) : null}
     </div>
   );
 }

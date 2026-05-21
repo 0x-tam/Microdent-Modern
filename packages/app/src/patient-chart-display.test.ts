@@ -4,6 +4,8 @@ import {
   chartToothLabel,
   chartTreatedLabel,
   chartTypeLabel,
+  filterChartEntriesForDisplay,
+  groupChartEntriesByTooth,
   sortChartEntriesForDisplay,
 } from "./patient-chart-display.js";
 
@@ -34,5 +36,37 @@ describe("patient-chart-display", () => {
     expect(chartTypeLabel(null)).toBe("Type —");
     expect(chartTreatedLabel(true)).toBe("Treated");
     expect(chartTreatedLabel(false)).toBe("Not treated");
+  });
+
+  it("filters to treated entries only", () => {
+    const items = [
+      entry({ chartEntryId: "a", treated: true }),
+      entry({ chartEntryId: "b", treated: false }),
+    ];
+    expect(filterChartEntriesForDisplay(items, "treated").map((e) => e.chartEntryId)).toEqual(["a"]);
+    expect(filterChartEntriesForDisplay(items, "all")).toHaveLength(2);
+  });
+
+  it("groups entries by tooth with counts", () => {
+    const groups = groupChartEntriesByTooth([
+      entry({ chartEntryId: "14-1", toothNumber: 14 }),
+      entry({ chartEntryId: "14-2", toothNumber: 14 }),
+      entry({ chartEntryId: "32-1", toothNumber: 32 }),
+    ]);
+    expect(groups.map((g) => g.toothKey)).toEqual(["14", "32"]);
+    expect(groups[0]?.entries).toHaveLength(2);
+    expect(groups[0]?.toothLabel).toBe("Tooth 14");
+  });
+
+  it("uses safe filter and group labels without forbidden tokens", () => {
+    const labels = [
+      chartToothLabel(14),
+      chartTypeLabel(1),
+      chartTreatedLabel(true),
+      chartTreatedLabel(false),
+    ];
+    for (const label of labels) {
+      expect(label).not.toMatch(/\bPAT_NAME\b|\bNOTE\b|\bAMOUNT\b|\brawRow\b/i);
+    }
   });
 });

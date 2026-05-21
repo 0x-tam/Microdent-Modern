@@ -4,6 +4,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { AppointmentCreateWriteAction } from "./AppointmentCreateWriteAction.js";
 import { APPOINTMENT_CREATE_WRITE_CONFIRM } from "./appointment-create-write.js";
+import { WRITE_POST_COMMIT_MIRROR_NUDGE } from "./read-only-ui-copy.js";
 import { containsForbiddenWriteResultToken } from "./safe-write-plan-display.js";
 import { assertNoForbiddenDomTokens } from "./read-only-smoke-fixtures.js";
 
@@ -79,6 +80,24 @@ describe("AppointmentCreateWriteAction", () => {
     expect(container.querySelector('[data-testid="appt-create-write-pilot"]')).toBeNull();
   });
 
+  it("shows embedded blocked notice when sandbox is not write-ready", () => {
+    renderPilot({
+      writeCapability: {
+        writeMode: "disabled",
+        writesPermitted: false,
+        writableSandbox: false,
+        dataRootConfigured: false,
+        backupDirConfigured: false,
+        sqlitePathConfigured: false,
+      },
+    });
+    expect(container.querySelector('[data-testid="appt-create-write-blocked"]')).toBeTruthy();
+    const text = container.textContent ?? "";
+    expect(text).toMatch(/Sandbox writes are blocked/i);
+    assertNoForbiddenDomTokens(text);
+    expect(containsForbiddenWriteResultToken(text)).toBe(false);
+  });
+
   it("dry-run preview then commit refreshes parent", async () => {
     const fetchImpl = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const u = String(input);
@@ -115,9 +134,46 @@ describe("AppointmentCreateWriteAction", () => {
     expect(window.confirm).toHaveBeenCalledWith(APPOINTMENT_CREATE_WRITE_CONFIRM);
     expect(onCommitted).toHaveBeenCalledTimes(1);
     const text = container.textContent ?? "";
+    expect(text).toContain(WRITE_POST_COMMIT_MIRROR_NUDGE);
+    expect(text).toContain("numeric patient record id");
     assertNoForbiddenDomTokens(text);
     expect(containsForbiddenWriteResultToken(text)).toBe(false);
     expect(text).not.toMatch(/COMMENT/i);
+  });
+
+  it("re-disables Create after editing fields following preview", async () => {
+    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
+      if (String(input).includes("/v1/schedule/appointments")) {
+        return Promise.resolve(jsonResponse(dryRunPlan));
+      }
+      return Promise.reject(new Error("unexpected"));
+    });
+    renderPilot({ fetchImpl });
+
+    const details = container.querySelector('[data-testid="appt-create-write-pilot"]') as HTMLDetailsElement;
+    await act(async () => {
+      details.open = true;
+    });
+
+    await act(async () => {
+      [...container.querySelectorAll("button")]
+        .find((b) => b.textContent?.includes("Preview create"))
+        ?.click();
+    });
+    const applyBtn = [...container.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("Create appointment"),
+    );
+    expect(applyBtn?.disabled).toBe(false);
+
+    const timeInput = container.querySelector('input[aria-label="Appointment time"]') as HTMLInputElement;
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+      setter?.call(timeInput, "10:30");
+      timeInput.dispatchEvent(new Event("input", { bubbles: true }));
+      timeInput.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    expect(applyBtn?.disabled).toBe(true);
+    expect(container.querySelector('[data-testid="appt-create-plan"]')).toBeNull();
   });
 
   it("syncs defaultDate when defaultDate prop changes", async () => {

@@ -17,6 +17,7 @@ import { PATIENT_DEMOGRAPHICS_WRITE_CONFIRM } from "./patient-demographics-write
 import { PATIENT_TAB_HIDDEN_FIELDS_NOTE } from "./read-only-ui-copy.js";
 import { defaultPatientApptRange, inclusiveDayCount } from "./patient-appointments-range.js";
 import { assertNoForbiddenDomTokens } from "./read-only-smoke-fixtures.js";
+import { wrapFetchWithSummaryPrefetchFallback } from "./read-only-summary-prefetch-mock.js";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -45,7 +46,9 @@ const syntheticDoctors = {
 function withReferenceDoctors(
   inner: (input: RequestInfo | URL) => Promise<Response>,
   doctors: unknown | "fail" = syntheticDoctors,
+  patientId = "42",
 ): ReturnType<typeof vi.fn> {
+  const wrappedInner = wrapFetchWithSummaryPrefetchFallback(inner, patientId);
   return vi.fn((input: RequestInfo | URL) => {
     const u = String(input);
     if (u.includes("/v1/reference/doctors")) {
@@ -54,7 +57,7 @@ function withReferenceDoctors(
       }
       return Promise.resolve(jsonResponse(doctors));
     }
-    return inner(input);
+    return wrappedInner(input);
   });
 }
 
@@ -653,7 +656,13 @@ describe("PatientProfilePanel", () => {
   });
 
   it("does not render blocked field names as UI copy on profile summary", async () => {
-    const fetchImpl = vi.fn(() => Promise.resolve(jsonResponse(validProfile)));
+    const fetchImpl = withReferenceDoctors((input) => {
+      const u = String(input);
+      if (u.includes("/profile")) {
+        return Promise.resolve(jsonResponse(validProfile));
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
     await act(async () => {
       root.render(
         <PatientProfilePanel
@@ -724,8 +733,8 @@ describe("PatientProfilePanel", () => {
     expect(container.querySelector("#patient-panel-appointments")).toBeTruthy();
   });
 
-  it("fetches appointments only when the Appointments tab is active and bridge is connected", async () => {
-    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
+  it("prefetches appointments on Summary and refetches when Appointments tab opens", async () => {
+    const fetchImpl = withReferenceDoctors((input) => {
       const u = String(input);
       if (u.includes("/profile")) {
         return Promise.resolve(jsonResponse(validProfile));
@@ -749,15 +758,16 @@ describe("PatientProfilePanel", () => {
       );
     });
     await flush();
-    expect(fetchImpl.mock.calls.some((c) => String(c[0]).includes("/appointments"))).toBe(false);
+    expect(fetchImpl.mock.calls.some((c) => String(c[0]).includes("/appointments"))).toBe(true);
 
     await clickAppointmentsTab(container);
     await flush();
 
-    const apptUrl = fetchImpl.mock.calls.map((c) => String(c[0])).find((u) => u.includes("/appointments"));
-    expect(apptUrl).toContain("/v1/patients/42/appointments");
-    expect(apptUrl).toMatch(/from=\d{4}-\d{2}-\d{2}/);
-    expect(apptUrl).toMatch(/to=\d{4}-\d{2}-\d{2}/);
+    const apptUrls = fetchImpl.mock.calls.map((c) => String(c[0])).filter((u) => u.includes("/appointments"));
+    expect(apptUrls.length).toBeGreaterThanOrEqual(2);
+    expect(apptUrls[0]).toContain("/v1/patients/42/appointments");
+    expect(apptUrls[0]).toMatch(/from=\d{4}-\d{2}-\d{2}/);
+    expect(apptUrls[0]).toMatch(/to=\d{4}-\d{2}-\d{2}/);
   });
 
   it("does not fetch appointments when the bridge is offline", async () => {
@@ -970,7 +980,7 @@ describe("PatientProfilePanel", () => {
     expect(container.querySelector("#patient-panel-medical")).toBeTruthy();
   });
 
-  it("fetches medical summary only when Medical tab is active and bridge is connected", async () => {
+  it("prefetches medical summary on Summary and refetches when Medical tab opens", async () => {
     const fetchImpl = withReferenceDoctors(medicalFetchHandler({
       patientId: "42",
       hasMedicalRecord: false,
@@ -995,13 +1005,14 @@ describe("PatientProfilePanel", () => {
       );
     });
     await flush();
-    expect(fetchImpl.mock.calls.some((c) => String(c[0]).includes("/medical-summary"))).toBe(false);
+    expect(fetchImpl.mock.calls.some((c) => String(c[0]).includes("/medical-summary"))).toBe(true);
 
     await clickMedicalTab(container);
     await flush();
 
-    const medUrl = fetchImpl.mock.calls.map((c) => String(c[0])).find((u) => u.includes("/medical-summary"));
-    expect(medUrl).toContain("/v1/patients/42/medical-summary");
+    const medUrls = fetchImpl.mock.calls.map((c) => String(c[0])).filter((u) => u.includes("/medical-summary"));
+    expect(medUrls.length).toBeGreaterThanOrEqual(2);
+    expect(medUrls[0]).toContain("/v1/patients/42/medical-summary");
   });
 
   it("does not fetch medical summary when the bridge is offline", async () => {
@@ -1085,8 +1096,8 @@ describe("PatientProfilePanel", () => {
 
     const t = container.textContent ?? "";
     expect(t).toMatch(/Medical summary is read-only/i);
-    expect(t).toContain("2024-06-01");
-    expect(t).toContain("2024-01-10");
+    expect(t).toMatch(/Jun 1, 2024/i);
+    expect(t).toMatch(/Jan 10, 2024/i);
     expect(t).toContain("2");
     expect(t).toContain("Asthma (screening)");
     expect(t).toContain("Diabetes (screening)");
@@ -1125,7 +1136,7 @@ describe("PatientProfilePanel", () => {
     await flush();
 
     const t = container.textContent ?? "";
-    expect(t).toMatch(/Sensitive fields are hidden in this read-only viewer/i);
+    expect(t).toMatch(/Sensitive fields stay hidden in this read-only viewer/i);
     expect(t).toContain("3");
     expect(t).not.toContain("Asthma (screening)");
     expect(t).not.toContain("Diabetes (screening)");
@@ -1231,7 +1242,7 @@ describe("PatientProfilePanel", () => {
     expect(container.querySelector("#patient-panel-treatments")).toBeTruthy();
   });
 
-  it("fetches treatments only when Treatments tab is active and bridge is connected", async () => {
+  it("prefetches treatments on Summary and refetches when Treatments tab opens", async () => {
     const fetchImpl = withReferenceDoctors(
       treatmentsFetchHandler({
         patientId: "42",
@@ -1254,13 +1265,14 @@ describe("PatientProfilePanel", () => {
       );
     });
     await flush();
-    expect(fetchImpl.mock.calls.some((c) => String(c[0]).includes("/treatments"))).toBe(false);
+    expect(fetchImpl.mock.calls.some((c) => String(c[0]).includes("/treatments"))).toBe(true);
 
     await clickTreatmentsTab(container);
     await flush();
 
-    const txUrl = fetchImpl.mock.calls.map((c) => String(c[0])).find((u) => u.includes("/treatments"));
-    expect(txUrl).toContain("/v1/patients/42/treatments");
+    const txUrls = fetchImpl.mock.calls.map((c) => String(c[0])).filter((u) => u.includes("/treatments"));
+    expect(txUrls.length).toBeGreaterThanOrEqual(2);
+    expect(txUrls[0]).toContain("/v1/patients/42/treatments");
   });
 
   it("does not fetch treatments when the bridge is offline", async () => {
@@ -1471,7 +1483,7 @@ describe("PatientProfilePanel", () => {
     expect(container.querySelector("#patient-panel-ledger")).toBeTruthy();
   });
 
-  it("fetches ledger only when Ledger tab is active and bridge is connected", async () => {
+  it("prefetches ledger on Summary and refetches when Ledger tab opens", async () => {
     const fetchImpl = withReferenceDoctors(
       ledgerFetchHandler({
         patientId: "42",
@@ -1493,11 +1505,12 @@ describe("PatientProfilePanel", () => {
       );
     });
     await flush();
-    expect(fetchImpl.mock.calls.some((c) => String(c[0]).includes("/ledger"))).toBe(false);
+    expect(fetchImpl.mock.calls.some((c) => String(c[0]).includes("/ledger"))).toBe(true);
     await clickLedgerTab(container);
     await flush();
-    const ledgerUrl = fetchImpl.mock.calls.map((c) => String(c[0])).find((u) => u.includes("/ledger"));
-    expect(ledgerUrl).toContain("/v1/patients/42/ledger");
+    const ledgerUrls = fetchImpl.mock.calls.map((c) => String(c[0])).filter((u) => u.includes("/ledger"));
+    expect(ledgerUrls.length).toBeGreaterThanOrEqual(2);
+    expect(ledgerUrls[0]).toContain("/v1/patients/42/ledger");
   });
 
   it("renders safe ledger fields when load succeeds", async () => {
@@ -1596,7 +1609,7 @@ describe("PatientProfilePanel", () => {
     expect(container.querySelector("#patient-panel-chart")).toBeTruthy();
   });
 
-  it("fetches chart only when Chart tab is active and bridge is connected", async () => {
+  it("prefetches chart on Summary and refetches when Chart tab opens", async () => {
     const fetchImpl = withReferenceDoctors(
       chartFetchHandler({
         patientId: "42",
@@ -1618,11 +1631,12 @@ describe("PatientProfilePanel", () => {
       );
     });
     await flush();
-    expect(fetchImpl.mock.calls.some((c) => String(c[0]).includes("/chart"))).toBe(false);
+    expect(fetchImpl.mock.calls.some((c) => String(c[0]).includes("/chart"))).toBe(true);
     await clickChartTab(container);
     await flush();
-    const chartUrl = fetchImpl.mock.calls.map((c) => String(c[0])).find((u) => u.includes("/chart"));
-    expect(chartUrl).toContain("/v1/patients/42/chart");
+    const chartUrls = fetchImpl.mock.calls.map((c) => String(c[0])).filter((u) => u.includes("/chart"));
+    expect(chartUrls.length).toBeGreaterThanOrEqual(2);
+    expect(chartUrls[0]).toContain("/v1/patients/42/chart");
   });
 
   it("does not fetch chart when the bridge is offline", async () => {
@@ -2002,5 +2016,355 @@ describe("PatientProfilePanel", () => {
     expect(container.textContent).toContain("Updated Sandbox Label");
 
     vi.unstubAllGlobals();
+  });
+
+  describe("summary workspace mini-cards", () => {
+    it("prefetches domain summaries when Summary tab is active without forbidden tokens", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2026, 4, 15));
+
+      const fetchImpl = withReferenceDoctors((input) => {
+        const u = String(input);
+        if (u.includes("/profile")) {
+          return Promise.resolve(jsonResponse(validProfile));
+        }
+        if (u.includes("/appointments")) {
+          return Promise.resolve(jsonResponse({ appointments: [syntheticAppt] }));
+        }
+        if (u.includes("/medical-summary")) {
+          return Promise.resolve(
+            jsonResponse({
+              patientId: "42",
+              hasMedicalRecord: true,
+              hasSensitiveMedicalDetails: false,
+              lastUpdated: "2024-06-01",
+              lastDentalVisit: null,
+              flaggedConditionCount: 1,
+              conditions: { ...nullConditions, asthma: true },
+              privacyNote: PRIVACY_NOTE,
+            }),
+          );
+        }
+        if (u.includes("/treatments")) {
+          return Promise.resolve(
+            jsonResponse({
+              patientId: "42",
+              treatments: [syntheticTreatment],
+              truncated: false,
+              privacyNote: TREATMENTS_PRIVACY_NOTE,
+            }),
+          );
+        }
+        if (u.includes("/chart")) {
+          return Promise.resolve(
+            jsonResponse({
+              patientId: "42",
+              entries: [syntheticChartEntry],
+              truncated: false,
+              privacyNote: CHART_PRIVACY_NOTE,
+            }),
+          );
+        }
+        if (u.includes("/ledger")) {
+          return Promise.resolve(
+            jsonResponse({
+              patientId: "42",
+              entries: [syntheticLedgerEntry],
+              truncated: true,
+              privacyNote: LEDGER_PRIVACY_NOTE,
+            }),
+          );
+        }
+        return Promise.reject(new Error(`unexpected ${u}`));
+      });
+
+      await act(async () => {
+        root.render(
+          <PatientProfilePanel
+            patientId="42"
+            bridgePhase="connected"
+            bridgeBaseUrl="http://127.0.0.1:17890"
+            fetchImpl={fetchImpl}
+            onBackToday={() => {}}
+            onClearPatient={() => {}}
+          />,
+        );
+      });
+      await flush();
+
+      expect(container.querySelector(".app-patient-profile__summary-mini-grid")).toBeTruthy();
+      expect(fetchImpl.mock.calls.some((c) => String(c[0]).includes("/medical-summary"))).toBe(true);
+      expect(container.textContent).toMatch(/1 appointment in range/i);
+      assertNoForbiddenDomTokens(container.textContent ?? "");
+      vi.useRealTimers();
+    });
+
+    it("navigates to a tab when a mini-card is clicked", async () => {
+      const fetchImpl = withReferenceDoctors((input) => {
+        const u = String(input);
+        if (u.includes("/profile")) {
+          return Promise.resolve(jsonResponse(validProfile));
+        }
+        return Promise.reject(new Error(`unexpected ${u}`));
+      });
+
+      await act(async () => {
+        root.render(
+          <PatientProfilePanel
+            patientId="42"
+            bridgePhase="connected"
+            bridgeBaseUrl="http://127.0.0.1:17890"
+            fetchImpl={fetchImpl}
+            onBackToday={() => {}}
+            onClearPatient={() => {}}
+          />,
+        );
+      });
+      await flush();
+
+      const medicalCard = [...container.querySelectorAll(".app-patient-profile__summary-mini-card")].find((el) =>
+        el.textContent?.includes("Medical"),
+      );
+      expect(medicalCard).toBeTruthy();
+      await act(async () => {
+        (medicalCard as HTMLButtonElement).click();
+      });
+      expect(container.querySelector("#patient-tab-medical")?.getAttribute("aria-selected")).toBe("true");
+      assertNoForbiddenDomTokens(container.textContent ?? "");
+    });
+  });
+
+  describe("clinical tab filters", () => {
+    it("does not surface forbidden tokens in treatments filter UI", async () => {
+      const fetchImpl = withReferenceDoctors(
+        treatmentsFetchHandler({
+          patientId: "42",
+          treatments: [
+            syntheticTreatment,
+            {
+              ...syntheticTreatment,
+              treatmentId: "101",
+              date: "2023-06-01",
+              procedureCode: "SYN02",
+              doctorLabel: "Synthetic Provider Two",
+            },
+          ],
+          truncated: false,
+          privacyNote: TREATMENTS_PRIVACY_NOTE,
+        }),
+      );
+
+      await act(async () => {
+        root.render(
+          <PatientProfilePanel
+            patientId="42"
+            bridgePhase="connected"
+            bridgeBaseUrl="http://127.0.0.1:17890"
+            fetchImpl={fetchImpl}
+            onBackToday={() => {}}
+            onClearPatient={() => {}}
+          />,
+        );
+      });
+      await flush();
+      await clickTreatmentsTab(container);
+      await flush();
+
+      const yearBtn = [...container.querySelectorAll("button")].find((b) => b.textContent === "2024");
+      await act(async () => {
+        yearBtn?.click();
+      });
+      await flush();
+
+      assertNoForbiddenDomTokens(container.textContent ?? "");
+      expect(container.textContent).toMatch(/1 of 2 procedures shown \(filtered\)/i);
+    });
+
+    it("does not surface forbidden tokens in chart filter UI", async () => {
+      const fetchImpl = withReferenceDoctors(
+        chartFetchHandler({
+          patientId: "42",
+          entries: [
+            syntheticChartEntry,
+            {
+              ...syntheticChartEntry,
+              chartEntryId: "32-1-1",
+              toothNumber: 32,
+              treated: false,
+            },
+          ],
+          truncated: false,
+          privacyNote: CHART_PRIVACY_NOTE,
+        }),
+      );
+
+      await act(async () => {
+        root.render(
+          <PatientProfilePanel
+            patientId="42"
+            bridgePhase="connected"
+            bridgeBaseUrl="http://127.0.0.1:17890"
+            fetchImpl={fetchImpl}
+            onBackToday={() => {}}
+            onClearPatient={() => {}}
+          />,
+        );
+      });
+      await flush();
+      await clickChartTab(container);
+      await flush();
+
+      const treatedOnlyBtn = [...container.querySelectorAll("button")].find(
+        (b) => b.textContent === "Treated only",
+      );
+      await act(async () => {
+        treatedOnlyBtn?.click();
+      });
+      await flush();
+
+      assertNoForbiddenDomTokens(container.textContent ?? "");
+    });
+
+    it("does not surface forbidden tokens in ledger filter UI", async () => {
+      const fetchImpl = withReferenceDoctors(
+        ledgerFetchHandler({
+          patientId: "42",
+          entries: [
+            syntheticLedgerEntry,
+            {
+              ...syntheticLedgerEntry,
+              ledgerEntryId: "201",
+              date: "2024-05-01",
+              chargeTypeCode: 0,
+              adjustmentTypeCode: 0,
+              paymentTypeCode: 100,
+            },
+          ],
+          truncated: false,
+          privacyNote: LEDGER_PRIVACY_NOTE,
+        }),
+      );
+
+      await act(async () => {
+        root.render(
+          <PatientProfilePanel
+            patientId="42"
+            bridgePhase="connected"
+            bridgeBaseUrl="http://127.0.0.1:17890"
+            fetchImpl={fetchImpl}
+            onBackToday={() => {}}
+            onClearPatient={() => {}}
+          />,
+        );
+      });
+      await flush();
+      await clickLedgerTab(container);
+      await flush();
+
+      const paymentsBtn = [...container.querySelectorAll("button")].find((b) => b.textContent === "Payments");
+      await act(async () => {
+        paymentsBtn?.click();
+      });
+      await flush();
+
+      assertNoForbiddenDomTokens(container.textContent ?? "");
+      expect(container.textContent).toMatch(/Amounts intentionally hidden/i);
+    });
+  });
+
+  describe("appointment history filters", () => {
+    it("highlights Default preset and shows range count without forbidden tokens", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2026, 4, 15));
+
+      const fetchImpl = withReferenceDoctors((input) => {
+        const u = String(input);
+        if (u.includes("/profile")) {
+          return Promise.resolve(jsonResponse(validProfile));
+        }
+        if (u.includes("/appointments")) {
+          return Promise.resolve(jsonResponse({ appointments: [syntheticAppt] }));
+        }
+        return Promise.reject(new Error(`unexpected ${u}`));
+      });
+
+      await act(async () => {
+        root.render(
+          <PatientProfilePanel
+            patientId="42"
+            bridgePhase="connected"
+            bridgeBaseUrl="http://127.0.0.1:17890"
+            fetchImpl={fetchImpl}
+            onBackToday={() => {}}
+            onClearPatient={() => {}}
+          />,
+        );
+      });
+      await flush();
+      await clickAppointmentsTab(container);
+      await flush();
+
+      const defaultBtn = [...container.querySelectorAll("button")].find((b) => b.textContent === "Default");
+      expect(defaultBtn?.className).toMatch(/primary/);
+      expect(container.textContent).toMatch(/1 appointment in range/i);
+      assertNoForbiddenDomTokens(container.textContent ?? "");
+      vi.useRealTimers();
+    });
+
+    it("filters appointments by status and room without forbidden tokens", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2026, 4, 15));
+
+      const otherAppt = {
+        ...syntheticAppt,
+        id: "9002",
+        room: 1,
+        status: 3,
+        date: "2026-05-19",
+      };
+
+      const fetchImpl = withReferenceDoctors((input) => {
+        const u = String(input);
+        if (u.includes("/profile")) {
+          return Promise.resolve(jsonResponse(validProfile));
+        }
+        if (u.includes("/appointments")) {
+          return Promise.resolve(jsonResponse({ appointments: [syntheticAppt, otherAppt] }));
+        }
+        return Promise.reject(new Error(`unexpected ${u}`));
+      });
+
+      await act(async () => {
+        root.render(
+          <PatientProfilePanel
+            patientId="42"
+            bridgePhase="connected"
+            bridgeBaseUrl="http://127.0.0.1:17890"
+            fetchImpl={fetchImpl}
+            onBackToday={() => {}}
+            onClearPatient={() => {}}
+          />,
+        );
+      });
+      await flush();
+      await clickAppointmentsTab(container);
+      await flush();
+
+      const completedBtn = [...container.querySelectorAll("button")].find((b) => b.textContent === "Completed");
+      await act(async () => {
+        completedBtn?.click();
+      });
+      await flush();
+      expect(container.textContent).toMatch(/1 appointment in range/i);
+
+      const roomBtn = [...container.querySelectorAll("button")].find((b) => b.textContent === "Room 3");
+      await act(async () => {
+        roomBtn?.click();
+      });
+      await flush();
+      expect(container.textContent).toMatch(/No appointments match/i);
+      assertNoForbiddenDomTokens(container.textContent ?? "");
+      vi.useRealTimers();
+    });
   });
 });

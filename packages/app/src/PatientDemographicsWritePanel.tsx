@@ -9,7 +9,13 @@ import {
   profileToDemographicsForm,
   type PatientDemographicsFormState,
 } from "./patient-demographics-write.js";
-import { PATIENT_DEMOGRAPHICS_DOCTOR_ID_HINT } from "./read-only-ui-copy.js";
+import {
+  PATIENT_DEMOGRAPHICS_APPLY_LABEL,
+  PATIENT_DEMOGRAPHICS_APPLYING_LABEL,
+  PATIENT_DEMOGRAPHICS_DOCTOR_ID_HINT,
+  PATIENT_DEMOGRAPHICS_PREVIEW_LABEL,
+  PATIENT_DEMOGRAPHICS_PREVIEWING_LABEL,
+} from "./read-only-ui-copy.js";
 import { isSandboxWritePilotEnabled, resolveSandboxWriteBlockReason } from "./sandbox-write-pilot.js";
 import {
   SafeWritePlanResult,
@@ -296,7 +302,9 @@ export function PatientDemographicsWritePanel({
           data-testid="patient-demographics-preview"
           onClick={() => void runPreview()}
         >
-          {state.kind === "loading" && state.action === "preview" ? "Previewing…" : "Preview changes"}
+          {state.kind === "loading" && state.action === "preview"
+            ? PATIENT_DEMOGRAPHICS_PREVIEWING_LABEL
+            : PATIENT_DEMOGRAPHICS_PREVIEW_LABEL}
         </Button>
         <Button
           type="button"
@@ -305,10 +313,12 @@ export function PatientDemographicsWritePanel({
           disabled={applyDisabled}
           data-testid="patient-demographics-apply"
           aria-disabled={applyDisabled}
-          title={previewOk ? undefined : "Preview changes before applying"}
+          title={previewOk ? undefined : `${PATIENT_DEMOGRAPHICS_PREVIEW_LABEL} before applying`}
           onClick={() => void runCommit()}
         >
-          {state.kind === "loading" && state.action === "commit" ? "Applying…" : "Apply demographics"}
+          {state.kind === "loading" && state.action === "commit"
+            ? PATIENT_DEMOGRAPHICS_APPLYING_LABEL
+            : PATIENT_DEMOGRAPHICS_APPLY_LABEL}
         </Button>
       </div>
       {previewOk ? (

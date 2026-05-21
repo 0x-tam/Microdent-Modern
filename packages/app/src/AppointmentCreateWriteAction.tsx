@@ -8,7 +8,9 @@ import {
 } from "./appointment-create-write.js";
 import {
   APPOINTMENT_CREATE_APPLY_LABEL,
+  APPOINTMENT_CREATE_PATIENT_ID_HINT,
   APPOINTMENT_CREATE_PREVIEW_LABEL,
+  APPOINTMENT_CREATE_SUMMARY,
 } from "./read-only-ui-copy.js";
 import { isSandboxWritePilotEnabled, resolveSandboxWriteBlockReason } from "./sandbox-write-pilot.js";
 import {
@@ -170,12 +172,18 @@ export function AppointmentCreateWriteAction({
     );
   }
 
+  const invalidatePreview = () => {
+    setState((prev) => (prev.kind === "preview" ? { kind: "idle" } : prev));
+  };
+
   const loading = state.kind === "loading";
+  const previewOk = state.kind === "preview";
 
   return (
     <details className="app-sandbox-write app-appt-create-write" data-testid="appt-create-write-pilot">
-      <summary className="app-sandbox-write__summary">Sandbox: new appointment</summary>
+      <summary className="app-sandbox-write__summary">{APPOINTMENT_CREATE_SUMMARY}</summary>
       <SandboxWriteBanner />
+      <p className="app-sandbox-write__hint">{APPOINTMENT_CREATE_PATIENT_ID_HINT}</p>
       <div className="app-sandbox-write__fields app-sandbox-write__fields--grid">
         <label className="app-sandbox-write__label">
           <span>Date</span>
@@ -184,7 +192,10 @@ export function AppointmentCreateWriteAction({
             className="ui-focusable"
             value={date}
             disabled={loading}
-            onChange={(e) => setDate(e.target.value)}
+            onChange={(e) => {
+              setDate(e.target.value);
+              invalidatePreview();
+            }}
           />
         </label>
         <label className="app-sandbox-write__label">
@@ -194,7 +205,10 @@ export function AppointmentCreateWriteAction({
             className="ui-focusable"
             value={time}
             disabled={loading}
-            onChange={(e) => setTime(e.target.value)}
+            onChange={(e) => {
+              setTime(e.target.value);
+              invalidatePreview();
+            }}
             aria-label="Appointment time"
           />
         </label>
@@ -207,7 +221,10 @@ export function AppointmentCreateWriteAction({
             className="ui-focusable"
             value={room}
             disabled={loading}
-            onChange={(e) => setRoom(e.target.value)}
+            onChange={(e) => {
+              setRoom(e.target.value);
+              invalidatePreview();
+            }}
           />
         </label>
         <label className="app-sandbox-write__label">
@@ -217,7 +234,10 @@ export function AppointmentCreateWriteAction({
             className="ui-focusable"
             value={patId}
             disabled={loading}
-            onChange={(e) => setPatId(e.target.value)}
+            onChange={(e) => {
+              setPatId(e.target.value);
+              invalidatePreview();
+            }}
             aria-label="Patient id"
           />
         </label>
@@ -229,7 +249,10 @@ export function AppointmentCreateWriteAction({
             className="ui-focusable"
             value={docId}
             disabled={loading}
-            onChange={(e) => setDocId(e.target.value)}
+            onChange={(e) => {
+              setDocId(e.target.value);
+              invalidatePreview();
+            }}
           />
         </label>
         <label className="app-sandbox-write__label">
@@ -241,7 +264,10 @@ export function AppointmentCreateWriteAction({
             className="ui-focusable"
             value={durationSlots}
             disabled={loading}
-            onChange={(e) => setDurationSlots(e.target.value)}
+            onChange={(e) => {
+              setDurationSlots(e.target.value);
+              invalidatePreview();
+            }}
           />
         </label>
         <label className="app-sandbox-write__label">
@@ -250,7 +276,10 @@ export function AppointmentCreateWriteAction({
             className="ui-focusable"
             value={status}
             disabled={loading}
-            onChange={(e) => setStatus(e.target.value)}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              invalidatePreview();
+            }}
           >
             {APPOINTMENT_STATUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -274,7 +303,9 @@ export function AppointmentCreateWriteAction({
           type="button"
           variant="danger"
           className="ui-focusable"
-          disabled={loading || state.kind !== "preview"}
+          disabled={loading || !previewOk}
+          aria-disabled={loading || !previewOk}
+          title={previewOk ? undefined : `${APPOINTMENT_CREATE_PREVIEW_LABEL} before applying`}
           onClick={() => void runCommit()}
         >
           {state.kind === "loading" && state.action === "commit" ? "Creating…" : APPOINTMENT_CREATE_APPLY_LABEL}

@@ -1,14 +1,25 @@
 import { describe, expect, it } from "vitest";
 import {
+  filterLedgerEntriesByType,
   formatLedgerDate,
+  formatLedgerMonthHeading,
+  groupLedgerEntriesByMonth,
   ledgerAdjustmentTypeLabel,
   ledgerCardPaymentLabel,
   ledgerChargeTypeLabel,
+  ledgerEntryKinds,
+  ledgerEntryMatchesKind,
   ledgerPaymentTypeLabel,
+  ledgerTypeFiltersPresent,
   sortLedgerEntriesForDisplay,
 } from "./patient-ledger-display.js";
 
-const entry = (id: string, date: string | null): {
+const entry = (id: string, date: string | null, overrides: Partial<{
+  chargeTypeCode: number | null;
+  adjustmentTypeCode: number | null;
+  paymentTypeCode: number | null;
+  isCardPayment: boolean | null;
+}> = {}): {
   ledgerEntryId: string;
   patientId: string;
   date: string | null;
@@ -26,6 +37,7 @@ const entry = (id: string, date: string | null): {
   paymentTypeCode: 100,
   isCardPayment: false,
   hasDescription: false,
+  ...overrides,
 });
 
 describe("sortLedgerEntriesForDisplay", () => {
@@ -47,5 +59,49 @@ describe("ledger display labels", () => {
     expect(ledgerCardPaymentLabel(true)).toBe("Card payment");
     expect(ledgerCardPaymentLabel(false)).toBe("Not card payment");
     expect(formatLedgerDate("2024-06-01")).toMatch(/2024/);
+  });
+});
+
+describe("ledger grouping and filters", () => {
+  it("classifies entry kinds from non-zero type codes", () => {
+    const chargeOnly = entry("1", "2024-06-01", {
+      chargeTypeCode: 2,
+      adjustmentTypeCode: 0,
+      paymentTypeCode: 0,
+    });
+    expect(ledgerEntryKinds(chargeOnly)).toEqual(["charge"]);
+    expect(ledgerEntryMatchesKind(chargeOnly, "charge")).toBe(true);
+    expect(ledgerEntryMatchesKind(chargeOnly, "payment")).toBe(false);
+  });
+
+  it("filters by entry type", () => {
+    const items = [
+      entry("1", "2024-06-01", { chargeTypeCode: 2, adjustmentTypeCode: 0, paymentTypeCode: 0 }),
+      entry("2", "2024-05-01", { chargeTypeCode: 0, adjustmentTypeCode: 0, paymentTypeCode: 100 }),
+    ];
+    expect(ledgerTypeFiltersPresent(items)).toEqual(["charge", "payment"]);
+    expect(filterLedgerEntriesByType(items, "payment").map((e) => e.ledgerEntryId)).toEqual(["2"]);
+  });
+
+  it("groups ledger lines by month", () => {
+    const groups = groupLedgerEntriesByMonth([
+      entry("1", "2024-06-01"),
+      entry("2", "2024-01-15"),
+      entry("3", null),
+    ]);
+    expect(groups.map((g) => g.monthKey)).toEqual(["2024-06", "2024-01", "undated"]);
+    expect(formatLedgerMonthHeading("2024-06")).toMatch(/2024/);
+  });
+
+  it("uses safe filter labels without forbidden tokens", () => {
+    const labels = [
+      ledgerChargeTypeLabel(2),
+      ledgerAdjustmentTypeLabel(1),
+      ledgerPaymentTypeLabel(100),
+      ledgerCardPaymentLabel(true),
+    ];
+    for (const label of labels) {
+      expect(label).not.toMatch(/\bAMOUNT\b|\bSAMOUNT\b|\bDESCR\b|\bINSURANCE\b/i);
+    }
   });
 });

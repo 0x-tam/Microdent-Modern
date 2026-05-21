@@ -51,3 +51,25 @@ export function medicalConditionItemsForDisplay(
   items.sort((a, b) => a.label.localeCompare(b.label));
   return items;
 }
+
+/** Questionnaire dates — same Intl style as treatments and ledger. */
+export function formatMedicalQuestionnaireDate(iso: string | null): string | null {
+  if (!iso) return null;
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(new Date(iso + "T12:00:00"));
+  } catch {
+    return iso;
+  }
+}
+
+/** When API count exceeds named flags (med1/med2/aids omitted from list). */
+export function medicalFlaggedCountNeedsPartialNote(
+  flaggedConditionCount: number,
+  visibleNamedCount: number,
+): boolean {
+  return flaggedConditionCount > 0 && flaggedConditionCount > visibleNamedCount;
+}
