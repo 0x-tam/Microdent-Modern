@@ -46,6 +46,7 @@ import {
   SETTINGS_SANDBOX_SECTION,
   SETTINGS_SQLITE_MIRROR_SECTION,
   SETTINGS_TODAY_OVERVIEW_HINT,
+  SETTINGS_OPEN_TODAY_BUTTON,
   SETTINGS_WRITE_SECTION,
 } from "./read-only-ui-copy.js";
 import {
@@ -80,6 +81,8 @@ export type SettingsPanelProps = {
   /** When true, sandbox write pilot UI may appear elsewhere (from host env). */
   sandboxWritePilot?: boolean;
   showConnectionDiagnostics?: boolean;
+  /** Navigate to Today module from operator cross-link. */
+  onOpenToday?: () => void;
 };
 
 const MIRROR_DOC_PATH = "docs/phase-4-mirror-import-operator.md";
@@ -211,6 +214,7 @@ export function SettingsPanel({
   onMirrorStatusChange,
   sandboxWritePilot = false,
   showConnectionDiagnostics = false,
+  onOpenToday,
 }: SettingsPanelProps) {
   const [mirrorRefreshing, setMirrorRefreshing] = useState(false);
   const [mirrorRefreshError, setMirrorRefreshError] = useState(false);
@@ -302,6 +306,20 @@ export function SettingsPanel({
           </ul>
           <p className="app-settings__today-hint" role="note">
             {SETTINGS_TODAY_OVERVIEW_HINT}
+            {onOpenToday ? (
+              <>
+                {" "}
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="compact"
+                  className="ui-focusable app-settings__today-btn"
+                  onClick={onOpenToday}
+                >
+                  {SETTINGS_OPEN_TODAY_BUTTON}
+                </Button>
+              </>
+            ) : null}
           </p>
         </div>
       ) : null}

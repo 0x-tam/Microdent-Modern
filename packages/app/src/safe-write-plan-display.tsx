@@ -3,7 +3,9 @@ import {
   SANDBOX_WRITE_BLOCKED_SANDBOX,
   SANDBOX_WRITE_BLOCKED_WRITE_MODE,
   SANDBOX_WRITE_PILOT_PANEL_BANNER,
-  WRITE_POST_COMMIT_MIRROR_NUDGE,
+  WRITE_PLAN_LABEL_RECORD_ID,
+  WRITE_PLAN_LABEL_WORKFLOW,
+  WRITE_POST_COMMIT_COMBINED_NUDGE,
   writeResultCommittedHeadline,
   writeResultUncommittedHeadline,
 } from "./read-only-ui-copy.js";
@@ -80,11 +82,11 @@ export function SafeWritePlanResult({ summary, className, testId }: SafeWritePla
       aria-label="Safe write plan summary"
       data-testid={testId}
     >
-      <PlanRow label="Workflow" value={summary.workflow} />
+      <PlanRow label={WRITE_PLAN_LABEL_WORKFLOW} value={summary.workflow} />
       <PlanRow label="Mode" value={summary.mode} />
       <PlanRow label="Committed" value={String(summary.committed)} />
       <PlanRow label="Table" value={summary.table} />
-      <PlanRow label="Record id" value={summary.recordId} />
+      <PlanRow label={WRITE_PLAN_LABEL_RECORD_ID} value={summary.recordId} />
       <PlanRow label="Field changed" value={summary.field} />
       <PlanRow
         label="Warnings"
@@ -165,7 +167,7 @@ export function WriteOperationResult({
         </p>
       ))}
       {committed ? (
-        <p className="app-sandbox-write__result-nudge">{WRITE_POST_COMMIT_MIRROR_NUDGE}</p>
+        <p className="app-sandbox-write__result-nudge">{WRITE_POST_COMMIT_COMBINED_NUDGE}</p>
       ) : null}
     </div>
   );

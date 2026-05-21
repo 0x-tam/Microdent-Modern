@@ -80,7 +80,7 @@ describe("AppShell", () => {
     expect(html).toContain("Settings");
     expect(html).not.toMatch(/app-sidebar__btn-label">Dental Chart/);
     expect(html).toContain("app-sidebar__btn-sublabel");
-    expect(html).toMatch(/Payments and Reports are not available in this read-only viewer yet/i);
+    expect(html).toMatch(/Payments and Reports are not available yet/i);
   });
 
   it("renders page title and module description from nav metadata", () => {

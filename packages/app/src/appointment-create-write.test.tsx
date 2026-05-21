@@ -4,7 +4,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { AppointmentCreateWriteAction } from "./AppointmentCreateWriteAction.js";
 import { APPOINTMENT_CREATE_WRITE_CONFIRM } from "./appointment-create-write.js";
-import { WRITE_POST_COMMIT_MIRROR_NUDGE } from "./read-only-ui-copy.js";
+import { WRITE_POST_COMMIT_COMBINED_NUDGE } from "./read-only-ui-copy.js";
 import { containsForbiddenWriteResultToken } from "./safe-write-plan-display.js";
 import { assertNoForbiddenDomTokens } from "./read-only-smoke-fixtures.js";
 
@@ -161,7 +161,7 @@ describe("AppointmentCreateWriteAction", () => {
     expect(window.confirm).toHaveBeenCalledWith(APPOINTMENT_CREATE_WRITE_CONFIRM);
     expect(onCommitted).toHaveBeenCalledTimes(1);
     const text = container.textContent ?? "";
-    expect(text).toContain(WRITE_POST_COMMIT_MIRROR_NUDGE);
+    expect(text).toContain(WRITE_POST_COMMIT_COMBINED_NUDGE);
     expect(text).toContain("numeric patient record id");
     assertNoForbiddenDomTokens(text);
     expect(containsForbiddenWriteResultToken(text)).toBe(false);

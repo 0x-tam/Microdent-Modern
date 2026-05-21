@@ -181,7 +181,7 @@ describe("PatientSearchBar", () => {
     expect(url).toContain("q=De");
     expect(container.textContent).toContain("Demo Alpha");
     expect(container.textContent).toContain("Chart C-100");
-    expect(container.textContent).toContain("…9000");
+    expect(container.textContent).not.toContain("…9000");
   });
 
   it("calls onPatientRecordSelect when a result row is clicked", async () => {

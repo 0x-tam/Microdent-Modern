@@ -89,6 +89,8 @@ describe("read-only app smoke", () => {
     await waitForBridgeConnected(container);
     expect(container.querySelector("#app-main-heading")?.textContent).toBe("Today");
     expect(container.textContent).toMatch(/Clinic at a glance/i);
+    expect(container.textContent).toMatch(/Now/i);
+    expect(container.querySelector(".app-metric-row")).toBeTruthy();
     assertNoForbiddenDomTokens(container.textContent ?? "");
 
     const searchInput = container.querySelector("input#app-patient-search-input") as HTMLInputElement;
@@ -238,7 +240,7 @@ describe("read-only app smoke", () => {
       b.textContent?.trim(),
     );
     expect(labels).toEqual(["Today", "Patients", "Schedule", "Settings"]);
-    expect(container.textContent).toMatch(/Payments and Reports are not available in this read-only viewer yet/i);
+    expect(container.textContent).toMatch(/Payments and Reports are not available yet/i);
     assertNoForbiddenDomTokens(container.textContent ?? "");
   });
 

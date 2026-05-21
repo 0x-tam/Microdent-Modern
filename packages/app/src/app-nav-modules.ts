@@ -112,16 +112,5 @@ export function formatSelectedPatientContextLabel({
 
 /** Sidebar note for modules that are intentionally hidden from the rail. */
 export function resolveSidebarNavHint(): string {
-  const underPatients = APP_NAV_UNSUPPORTED_MODULES.filter(
-    (module) => module.id === "dental-chart" || module.id === "treatments",
-  )
-    .map((module) => module.label)
-    .join(", ");
-  const unavailable = APP_NAV_UNSUPPORTED_MODULES.filter(
-    (module) => module.id === "payments" || module.id === "reports",
-  )
-    .map((module) => module.label)
-    .join(" and ");
-
-  return `${underPatients}, and Ledger preview are under Patients when you open a record. ${unavailable} are not available in this read-only viewer yet.`;
+  return "Chart, Treatments, and Ledger are under Patients. Payments and Reports are not available yet. See Settings for operator status.";
 }

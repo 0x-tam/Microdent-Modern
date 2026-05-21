@@ -7,7 +7,7 @@ import type {
   PatientTreatmentItem,
   ScheduleAppointmentItem,
 } from "@microdent/contracts";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Badge, Button, Card, CardBody, CardHeader, EmptyState } from "@microdent/ui";
 import type { BridgeDevStatusResponse } from "@microdent/contracts";
 import type { BridgeHealthPhase } from "./bridge-health.js";
@@ -343,7 +343,7 @@ function ProfileTabHiddenNote({
             ? PATIENT_TAB_HIDDEN_CHART
             : PATIENT_TAB_HIDDEN_FIELDS_NOTE;
   return (
-    <p className="app-patient-profile__tab-hidden-note" role="note">
+    <p className="app-info-callout app-patient-profile__tab-hidden-note" role="note">
       {note}
     </p>
   );
@@ -380,29 +380,14 @@ function ProfileHeaderStrip({
   const provider = profileAssignedProviderLabel(profile.doctorId, doctorLabels);
 
   return (
-    <div className="app-patient-profile__header-strip" role="region" aria-label="Patient record context">
-      <dl className="app-patient-profile__header-dl">
-        <div className="app-patient-profile__header-row">
-          <dt>Patient</dt>
-          <dd className="app-patient-profile__header-name">{profile.displayName}</dd>
-        </div>
-        <div className="app-patient-profile__header-row">
-          <dt>Chart</dt>
-          <dd>{profile.chartNumber ?? "—"}</dd>
-        </div>
-        <div className="app-patient-profile__header-row">
-          <dt>Provider</dt>
-          <dd>{provider}</dd>
-        </div>
-        <div className="app-patient-profile__header-row">
-          <dt>Status</dt>
-          <dd>{activeLabel ?? "—"}</dd>
-        </div>
-        <div className="app-patient-profile__header-row">
-          <dt>Record id</dt>
-          <dd>{profile.patientId}</dd>
-        </div>
-      </dl>
+    <div className="app-patient-hero app-patient-profile__header-strip" role="region" aria-label="Patient record context">
+      <h3 className="app-patient-hero__name app-patient-profile__header-name">{profile.displayName}</h3>
+      <ul className="app-patient-hero__chips">
+        <li className="app-patient-hero__chip">Chart {profile.chartNumber ?? "—"}</li>
+        <li className="app-patient-hero__chip">{provider}</li>
+        <li className="app-patient-hero__chip">{activeLabel ?? "—"}</li>
+        <li className="app-patient-hero__chip">Record {profile.patientId}</li>
+      </ul>
     </div>
   );
 }
@@ -2136,6 +2121,25 @@ export function PatientProfilePanel({
     }
   }, [activeTab]);
 
+  const handleProfileTabKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLUListElement>) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      e.preventDefault();
+      const tabs = PROFILE_TAB_ORDER.map((t) => t.id);
+      const current = activeTab ?? tabs[0]!;
+      const idx = tabs.indexOf(current);
+      if (idx < 0) return;
+      const nextIdx =
+        e.key === "ArrowRight"
+          ? (idx + 1) % tabs.length
+          : (idx - 1 + tabs.length) % tabs.length;
+      setActiveTab(tabs[nextIdx]!);
+      const nextBtn = document.getElementById(`patient-tab-${tabs[nextIdx]}`);
+      if (nextBtn instanceof HTMLButtonElement) nextBtn.focus();
+    },
+    [activeTab],
+  );
+
   const applyRangePreset = (preset: PatientApptRangePreset) => {
     setRangePreset(preset);
     setApptRange(patientApptRangeForPreset(preset));
@@ -2273,7 +2277,7 @@ export function PatientProfilePanel({
             ) : null}
 
             <nav className="app-patient-profile__tabs" aria-label="Patient sections">
-              <ul className="app-patient-profile__tablist" role="tablist">
+              <ul className="app-patient-profile__tablist" role="tablist" onKeyDown={handleProfileTabKeyDown}>
                 {PROFILE_TAB_ORDER.map((tab) => (
                   <li key={tab.id} role="presentation">
                     <button
@@ -2282,6 +2286,7 @@ export function PatientProfilePanel({
                       id={`patient-tab-${tab.id}`}
                       aria-selected={activeTab === tab.id}
                       aria-controls={`patient-panel-${tab.id}`}
+                      tabIndex={activeTab === tab.id ? 0 : -1}
                       className={`app-patient-profile__tab ui-focusable${activeTab === tab.id ? " app-patient-profile__tab--active" : ""}`}
                       onClick={() => setActiveTab(tab.id)}
                     >
@@ -2326,24 +2331,24 @@ export function PatientProfilePanel({
                   data-testid="patient-summary-at-glance"
                 >
                   <p className="app-patient-profile__summary-at-glance-title">{PATIENT_SUMMARY_AT_GLANCE_TITLE}</p>
-                  <ul className="app-patient-profile__summary-at-glance-list">
+                  <ul className="app-metric-row app-patient-profile__summary-at-glance-list">
                     {summaryAtGlance.upcomingStatus ? (
-                      <li>{summaryAtGlance.upcomingStatus}</li>
+                      <li className="app-metric-row__chip">{summaryAtGlance.upcomingStatus}</li>
                     ) : null}
                     {summaryAtGlance.recentStatus ? (
-                      <li>{summaryAtGlance.recentStatus}</li>
+                      <li className="app-metric-row__chip">{summaryAtGlance.recentStatus}</li>
                     ) : null}
                     {summaryAtGlance.treatmentCount ? (
-                      <li>{summaryAtGlance.treatmentCount}</li>
+                      <li className="app-metric-row__chip">{summaryAtGlance.treatmentCount}</li>
                     ) : null}
                     {summaryAtGlance.chartCount ? (
-                      <li>{summaryAtGlance.chartCount}</li>
+                      <li className="app-metric-row__chip">{summaryAtGlance.chartCount}</li>
                     ) : null}
                     {summaryAtGlance.ledgerCount ? (
-                      <li>{summaryAtGlance.ledgerCount}</li>
+                      <li className="app-metric-row__chip">{summaryAtGlance.ledgerCount}</li>
                     ) : null}
                     {summaryAtGlance.medicalScreening ? (
-                      <li>{summaryAtGlance.medicalScreening}</li>
+                      <li className="app-metric-row__chip">{summaryAtGlance.medicalScreening}</li>
                     ) : null}
                   </ul>
                 </div>

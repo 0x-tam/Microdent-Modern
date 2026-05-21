@@ -14,7 +14,6 @@ import {
   APPOINTMENT_CREATE_PREVIEW_LABEL,
   APPOINTMENT_CREATE_SUMMARY,
   WRITE_BLOCKED_INVALID_HINT,
-  WRITE_REFRESH_NUDGE,
 } from "./read-only-ui-copy.js";
 import { roomDisplayLabel, type RoomLabelMap } from "./patient-appointments-display.js";
 import { isSandboxWritePilotEnabled, resolveSandboxWriteBlockReason } from "./sandbox-write-pilot.js";
@@ -229,7 +228,7 @@ export function AppointmentCreateWriteAction({
   const previewOk = state.kind === "preview";
 
   return (
-    <details className="app-sandbox-write app-appt-create-write" data-testid="appt-create-write-pilot">
+    <details className="app-sandbox-write app-sandbox-write-zone app-appt-create-write" data-testid="appt-create-write-pilot">
       <summary className="app-sandbox-write__summary">{APPOINTMENT_CREATE_SUMMARY}</summary>
       <SandboxWriteBanner />
       {selectedPatientHeadline ? (
@@ -379,19 +378,12 @@ export function AppointmentCreateWriteAction({
         <SafeWritePlanResult summary={state.summary} testId="appt-create-plan" />
       ) : null}
       {state.kind === "result" ? (
-        <>
-          <WriteOperationResult
-            committed={state.committed}
-            successLabel="appointment created"
-            feedbackLines={state.feedbackLines}
-            testId="appt-create-write-result"
-          />
-          {state.committed ? (
-            <p className="app-sandbox-write__refresh-nudge" role="note">
-              {WRITE_REFRESH_NUDGE}
-            </p>
-          ) : null}
-        </>
+        <WriteOperationResult
+          committed={state.committed}
+          successLabel="appointment created"
+          feedbackLines={state.feedbackLines}
+          testId="appt-create-write-result"
+        />
       ) : null}
       {state.kind === "error" ? (
         <p className="app-sandbox-write__error" role="alert">

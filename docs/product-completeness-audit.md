@@ -41,7 +41,27 @@
 
 ## Mac-side ROI assessment
 
-This is likely the **last high-value Mac-side polish batch** before diminishing returns. Remaining gaps are either Windows-field-gated (decoded catalogs) or intentionally deferred (dual search sync, session persistence).
+Mac-side UI polish ROI is **likely exhausted** after the **clinic UI elevation** batch (`feat: elevate clinic app UI and workflow experience`). Further Mac work should be bugfix-only unless Windows field execution surfaces new requirements.
+
+---
+
+## UX polish (clinic UI elevation batch)
+
+### What now feels professional
+
+- **Shell** — Primary read-only banner + compact secondary status row; sticky selected-patient strip; dev diagnostics behind disclosure
+- **Today** — Dominant appointment list with metric chips; merged “Now” aside (next + selected patient); reminders de-emphasized to footnote
+- **Patients** — Search-first empty hero; patient hero header with calm chips; summary at-a-glance as metric row
+- **Timeline** — Sticky kind filters; metric summary chips; `EmptyState` for range/filter/undated variants; consolidated limitations callout
+- **Schedule** — Unified filter bar; operational summary as metric chips; scannable row hierarchy preserved
+- **Write panels** — Unified `.app-sandbox-write-zone`; single post-commit nudge; plan labels in copy module
+- **Settings** — “Open Today overview” button; readiness strip hierarchy unchanged but clearer cross-link
+
+### Remaining visual rough edges
+
+- Dual search (topbar vs Patients page) not query-synced — intentional
+- Collapsible schedule filters on narrow viewports use existing toolbar wrap (no `<details>` yet)
+- Some clinical tab filter chips still use button variant instead of explicit `aria-pressed` on every chip
 
 ---
 

@@ -1,4 +1,4 @@
-import { Button } from "@microdent/ui";
+import { Button, EmptyState } from "@microdent/ui";
 import type {
   TimelineDisplayModel,
   TimelineEvent,
@@ -12,7 +12,6 @@ import {
 } from "./patient-timeline-display.js";
 import {
   partitionTimelineEventsByTemporal,
-  timelineSummaryBarLine,
   timelineTemporalCounts,
 } from "./patient-workspace-intelligence.js";
 import {
@@ -106,11 +105,12 @@ export function PatientTimeline({
 
   return (
     <div className="app-patient-profile__timeline-body" data-testid="patient-timeline-body">
-      <div
-        className="app-patient-profile__timeline-kind-filters"
-        role="group"
-        aria-label={PATIENT_TIMELINE_KIND_FILTER_ARIA}
-      >
+      <div className="app-patient-profile__timeline-sticky-bar">
+        <div
+          className="app-patient-profile__timeline-kind-filters app-filter-bar"
+          role="group"
+          aria-label={PATIENT_TIMELINE_KIND_FILTER_ARIA}
+        >
         {TIMELINE_KIND_FILTER_OPTIONS.map((option) => (
           <Button
             key={option.id}
@@ -135,27 +135,33 @@ export function PatientTimeline({
             {FILTER_CLEAR_LABEL}
           </Button>
         ) : null}
+        </div>
+
+        {temporalCounts ? (
+          <ul className="app-metric-row app-patient-profile__timeline-summary-bar" role="status" data-testid="patient-timeline-summary-bar">
+            <li className="app-metric-row__chip app-metric-row__chip--emphasis">{temporalCounts.total} total</li>
+            {temporalCounts.upcoming > 0 ? (
+              <li className="app-metric-row__chip">{temporalCounts.upcoming} upcoming</li>
+            ) : null}
+            {temporalCounts.recent > 0 ? (
+              <li className="app-metric-row__chip">{temporalCounts.recent} recent</li>
+            ) : null}
+            {temporalCounts.older > 0 ? (
+              <li className="app-metric-row__chip">{temporalCounts.older} older</li>
+            ) : null}
+          </ul>
+        ) : null}
       </div>
 
-      {temporalCounts ? (
-        <p className="app-patient-profile__timeline-summary-bar" role="status" data-testid="patient-timeline-summary-bar">
-          {timelineSummaryBarLine(temporalCounts)}
+      {(model.rangeBanner || model.truncatedBanner) ? (
+        <p className="app-info-callout app-patient-profile__timeline-limitations" role="note">
+          {[model.rangeBanner, model.truncatedBanner, PATIENT_TIMELINE_LIMITATIONS].filter(Boolean).join(" ")}
         </p>
-      ) : null}
-
-      {model.rangeBanner ? (
-        <p className="app-patient-profile__timeline-banner" role="note">
-          {model.rangeBanner}
+      ) : (
+        <p className="app-info-callout app-patient-profile__timeline-limitations" role="note">
+          {PATIENT_TIMELINE_LIMITATIONS}
         </p>
-      ) : null}
-      <p className="app-patient-profile__timeline-limitations" role="note">
-        {PATIENT_TIMELINE_LIMITATIONS}
-      </p>
-      {model.truncatedBanner ? (
-        <p className="app-patient-profile__timeline-banner app-patient-profile__timeline-banner--truncated" role="note">
-          {model.truncatedBanner}
-        </p>
-      ) : null}
+      )}
 
       {model.snapshotEvents.length > 0 ? (
         <section className="app-patient-profile__timeline-snapshots" aria-label="Undated snapshots">
@@ -205,17 +211,23 @@ export function PatientTimeline({
               </section>
             ))
           : model.eventCount === 0 ? (
-              <p className="app-patient-profile__timeline-empty" role="status">
-                {PATIENT_TIMELINE_EMPTY_RANGE}
-              </p>
+              <EmptyState
+                className="ui-empty--start app-patient-profile__timeline-empty"
+                title="No timeline events"
+                description={PATIENT_TIMELINE_EMPTY_RANGE}
+              />
             ) : !hasFilteredContent && kindFilterActive ? (
-              <p className="app-patient-profile__timeline-empty" role="status">
-                {PATIENT_TIMELINE_EMPTY_FILTER}
-              </p>
+              <EmptyState
+                className="ui-empty--start app-patient-profile__timeline-empty"
+                title="No matching events"
+                description={PATIENT_TIMELINE_EMPTY_FILTER}
+              />
             ) : !hasDatedEvents && model.snapshotEvents.length === 0 && model.eventCount > 0 ? (
-              <p className="app-patient-profile__timeline-empty" role="status">
-                {PATIENT_TIMELINE_UNDATED_ONLY}
-              </p>
+              <EmptyState
+                className="ui-empty--start app-patient-profile__timeline-empty"
+                title="Undated events only"
+                description={PATIENT_TIMELINE_UNDATED_ONLY}
+              />
             ) : null}
     </div>
   );

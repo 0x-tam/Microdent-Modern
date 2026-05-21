@@ -159,7 +159,7 @@ describe("DashboardHome (Today schedule)", () => {
 
     expect(container.textContent).toContain("Today's appointments");
     expect(container.textContent).toContain("2");
-    expect(container.textContent).toContain("On the schedule today");
+    expect(container.textContent).toContain("appointments");
     expect(container.textContent).toContain("08:00");
     expect(container.textContent).toContain("Synthetic Dashboard One");
     expect(container.textContent).toContain("DASH-501");
@@ -169,7 +169,7 @@ describe("DashboardHome (Today schedule)", () => {
     expect(container.textContent).toContain("Synthetic Dashboard Two");
     assertNoForbiddenDomTokens(container.textContent ?? "");
     expect(container.textContent).not.toContain("555-");
-    expect(container.textContent).toMatch(/Next appointment/i);
+    expect(container.textContent).toMatch(/Now/i);
     expect(container.textContent).toContain("14:00");
     expect(container.textContent).toContain("Synthetic Dashboard Two");
   });
@@ -233,7 +233,7 @@ describe("DashboardHome (Today schedule)", () => {
       await Promise.resolve();
     });
     const t = container.textContent ?? "";
-    const idx = t.indexOf("Next appointment");
+    const idx = t.indexOf("Now");
     expect(idx).toBeGreaterThan(-1);
     const slice = t.slice(idx, idx + 400);
     expect(slice).toContain("13:30");
@@ -664,7 +664,7 @@ describe("DashboardHome (Today schedule)", () => {
     });
 
     expect(container.textContent).toMatch(/Local copy may be outdated/i);
-    expect(container.textContent).toMatch(/older than 48 hours/i);
+    expect(container.querySelector(".app-metric-row")).toBeTruthy();
     assertNoForbiddenDomTokens(container.textContent ?? "");
   });
 
@@ -690,8 +690,9 @@ describe("DashboardHome (Today schedule)", () => {
       await Promise.resolve();
     });
 
-    expect(container.textContent).toContain("Selected patient");
     expect(container.textContent).toContain("Synthetic Selected Patient");
+    expect(container.textContent).toContain("SEL-501");
+    expect(container.textContent).toMatch(/Now/i);
     expect(container.textContent).toContain("Chart SEL-501");
     expect(container.textContent).toContain("Open record");
     assertNoForbiddenDomTokens(container.textContent ?? "");
@@ -967,7 +968,7 @@ describe("DashboardHome (Today schedule)", () => {
       await Promise.resolve();
     });
 
-    const idx = container.textContent?.indexOf("Next appointment") ?? -1;
+    const idx = container.textContent?.indexOf("Now") ?? -1;
     expect(idx).toBeGreaterThan(-1);
     const slice = container.textContent?.slice(idx, idx + 500) ?? "";
     const scheduleBtn = Array.from(container.querySelectorAll("button")).find(

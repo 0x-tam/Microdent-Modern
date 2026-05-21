@@ -16,7 +16,6 @@ import {
   PATIENT_DEMOGRAPHICS_PREVIEW_LABEL,
   PATIENT_DEMOGRAPHICS_PREVIEWING_LABEL,
   APPOINTMENT_CREATE_DOCTOR_NONE,
-  WRITE_REFRESH_NUDGE,
 } from "./read-only-ui-copy.js";
 import { isSandboxWritePilotEnabled, resolveSandboxWriteBlockReason } from "./sandbox-write-pilot.js";
 import { useDoctorLabels } from "./useDoctorLabels.js";
@@ -181,7 +180,7 @@ export function PatientDemographicsWritePanel({
 
   return (
     <div
-      className="app-sandbox-write app-patient-demographics-write"
+      className="app-sandbox-write app-sandbox-write-zone app-patient-demographics-write"
       data-testid="patient-demographics-write-pilot"
       aria-labelledby="patient-demographics-write-heading"
     >
@@ -342,19 +341,12 @@ export function PatientDemographicsWritePanel({
         <SafeWritePlanResult summary={state.summary} testId="patient-demographics-plan" />
       ) : null}
       {state.kind === "result" ? (
-        <>
-          <WriteOperationResult
-            committed={state.committed}
-            successLabel="demographics updated"
-            feedbackLines={state.feedbackLines}
-            testId="patient-demographics-write-result"
-          />
-          {state.committed ? (
-            <p className="app-sandbox-write__refresh-nudge" role="note">
-              {WRITE_REFRESH_NUDGE}
-            </p>
-          ) : null}
-        </>
+        <WriteOperationResult
+          committed={state.committed}
+          successLabel="demographics updated"
+          feedbackLines={state.feedbackLines}
+          testId="patient-demographics-write-result"
+        />
       ) : null}
       {state.kind === "error" ? (
         <p className="app-sandbox-write__error" role="alert">

@@ -4,7 +4,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { PatientDemographicsWritePanel } from "./PatientDemographicsWritePanel.js";
 import { PATIENT_DEMOGRAPHICS_WRITE_CONFIRM } from "./patient-demographics-write.js";
-import { WRITE_POST_COMMIT_MIRROR_NUDGE } from "./read-only-ui-copy.js";
+import { WRITE_POST_COMMIT_COMBINED_NUDGE } from "./read-only-ui-copy.js";
 import { containsForbiddenWriteResultToken } from "./safe-write-plan-display.js";
 import { assertNoForbiddenDomTokens } from "./read-only-smoke-fixtures.js";
 
@@ -233,7 +233,7 @@ describe("PatientDemographicsWritePanel", () => {
     const text = container.textContent ?? "";
     assertNoForbiddenDomTokens(text);
     expect(containsForbiddenWriteResultToken(text)).toBe(false);
-    expect(text).toContain(WRITE_POST_COMMIT_MIRROR_NUDGE);
+    expect(text).toContain(WRITE_POST_COMMIT_COMBINED_NUDGE);
     expect(text).not.toContain("TELEPHONE");
   });
 

@@ -11,7 +11,6 @@ import {
   APPOINTMENT_TIME_MOVE_PREVIEW_LABEL,
   APPOINTMENT_MOVE_CONTEXT_TITLE,
   WRITE_BLOCKED_INVALID_HINT,
-  WRITE_REFRESH_NUDGE,
 } from "./read-only-ui-copy.js";
 import {
   patientApptStatusLabel,
@@ -181,7 +180,7 @@ export function AppointmentTimeMoveWriteAction({
   const previewOk = state.kind === "preview";
   const rootClass = embedded
     ? "app-appt-time-move-write app-appt-time-move-write--embedded"
-    : "app-sandbox-write app-appt-time-move-write";
+    : "app-sandbox-write app-sandbox-write-zone app-appt-time-move-write";
 
   const effectiveRoomOptions = roomOptions.length > 0 ? roomOptions : [appointment.room];
 
@@ -288,19 +287,12 @@ export function AppointmentTimeMoveWriteAction({
         <SafeWritePlanResult summary={state.summary} testId="appt-time-move-plan" />
       ) : null}
       {state.kind === "result" ? (
-        <>
-          <WriteOperationResult
-            committed={state.committed}
-            successLabel="appointment time updated"
-            feedbackLines={state.feedbackLines}
-            testId="appt-time-move-write-result"
-          />
-          {state.committed ? (
-            <p className="app-sandbox-write__refresh-nudge" role="note">
-              {WRITE_REFRESH_NUDGE}
-            </p>
-          ) : null}
-        </>
+        <WriteOperationResult
+          committed={state.committed}
+          successLabel="appointment time updated"
+          feedbackLines={state.feedbackLines}
+          testId="appt-time-move-write-result"
+        />
       ) : null}
       {state.kind === "error" ? (
         <p className="app-sandbox-write__error" role="alert">

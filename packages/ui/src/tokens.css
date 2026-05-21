@@ -9,9 +9,19 @@
   --ui-bg-canvas-wash: #edf4f5;
   --ui-bg-surface: #ffffff;
   --ui-bg-subtle: #eef1f4;
+  /** Muted inset panels (callouts, secondary strips). */
+  --ui-bg-muted: #f3f5f7;
+  /** Raised surface above flat cards (banner inners, filter bars). */
+  --ui-bg-surface-raised: #fafbfc;
   /** Sidebar / rail tint — distinct from flat gray admin templates. */
   --ui-bg-rail: #f5fafb;
   --ui-border-subtle: #e2e6eb;
+  /** Warning-tinted borders and backgrounds for status banners. */
+  --ui-border-warning: #e8c88a;
+  --ui-bg-warning-subtle: #fef9f0;
+  /** Danger-tinted borders and backgrounds for operator alerts. */
+  --ui-border-danger: #e8b4b4;
+  --ui-bg-danger-subtle: #fef5f5;
   --ui-border-strong: #c9d0d8;
   --ui-text-primary: #1a1f26;
   --ui-text-secondary: #5c6570;
@@ -91,7 +101,13 @@
   --ui-bg-canvas-wash: #121a20;
   --ui-bg-surface: #161c24;
   --ui-bg-subtle: #1e2630;
+  --ui-bg-muted: #1a222c;
+  --ui-bg-surface-raised: #1c242e;
   --ui-bg-rail: #141b22;
+  --ui-border-warning: #6b4f1a;
+  --ui-bg-warning-subtle: #2a2218;
+  --ui-border-danger: #6b3030;
+  --ui-bg-danger-subtle: #2a1818;
   --ui-border-subtle: #2a3441;
   --ui-border-strong: #3d4a5c;
   --ui-text-primary: #e8eaed;

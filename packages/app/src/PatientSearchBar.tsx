@@ -75,9 +75,6 @@ function formatHitSecondary(hit: PatientSearchHit): string | null {
   if (hit.chartNumber) {
     parts.push(`Chart ${hit.chartNumber}`);
   }
-  if (hit.phoneMask) {
-    parts.push(hit.phoneMask);
-  }
   if (!hit.chartNumber && hit.patientId) {
     parts.push(`Record ${hit.patientId}`);
   }

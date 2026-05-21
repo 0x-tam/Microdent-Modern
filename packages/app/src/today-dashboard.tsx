@@ -41,6 +41,8 @@ import {
   TODAY_MIRROR_STALE_ADVISORY,
   TODAY_NEXT_LOADING,
   TODAY_NEXT_NO_UPCOMING,
+  TODAY_NOW_CARD_TITLE,
+  TODAY_REMINDERS_FOOTNOTE,
   TODAY_NEXT_OFFLINE,
   TODAY_OPEN_PATIENT,
   TODAY_OPEN_SCHEDULE,
@@ -612,27 +614,11 @@ export function DashboardHome({
     }
     if (sorted.length === 0) {
       return (
-        <>
-          <p className="app-next-patient__hint">{TODAY_EMPTY_TITLE}</p>
-          <div className="app-dashboard-cta-row">
-            <Button
-              type="button"
-              variant="primary"
-              className="ui-focusable app-dashboard-cta-row__primary"
-              onClick={() => onOpenModule("schedule")}
-            >
-              {TODAY_OPEN_SCHEDULE}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              className="ui-focusable app-dashboard-cta-row__secondary"
-              onClick={() => onOpenModule("patients")}
-            >
-              {TODAY_SEARCH_PATIENT}
-            </Button>
-          </div>
-        </>
+        <EmptyState
+          className="ui-empty--start app-next-patient__empty"
+          title={TODAY_EMPTY_TITLE}
+          description={TODAY_NEXT_NO_UPCOMING}
+        />
       );
     }
     if (!nextUpcoming) {
@@ -728,6 +714,18 @@ export function DashboardHome({
                 </p>
               ) : null}
               <p className="app-dashboard-sched__privacy">{TODAY_PRIVACY_LEDE}</p>
+              <ul className="app-metric-row app-dashboard-sched__metrics" aria-label="Today schedule metrics">
+                <li className="app-metric-row__chip app-metric-row__chip--emphasis">
+                  {countCardValue} appointments
+                </li>
+                {statusMixLine ? (
+                  <li className="app-metric-row__chip">{statusMixLine}</li>
+                ) : null}
+                <li className={`app-metric-row__chip app-metric-row__chip--${mirrorFreshness.tone}`}>
+                  {mirrorFreshness.label}
+                </li>
+                <li className="app-metric-row__chip">{scheduleReadinessLine}</li>
+              </ul>
               {primaryBody}
               {sorted.length > 0 ? (
                 <div className="app-appt-list__footer app-dashboard-cta-row">
@@ -754,37 +752,37 @@ export function DashboardHome({
         </div>
 
         <aside className="app-dashboard__aside" aria-label="Status, next visit, and shortcuts">
-          <div className="app-dashboard-status-strip">
-            <Card className="app-dashboard-status-card">
-              <CardHeader>
-                <p className="ui-card__title app-card-title-lg">{TODAY_STATUS_COUNT_TITLE}</p>
-              </CardHeader>
-              <CardBody>
-                {countCardValue}
-                <p className="app-dashboard-status__hint">{countCardHint}</p>
-                {statusMixLine ? (
-                  <p className="app-dashboard-status__mix" role="status">
-                    {statusMixLine}
+          <Card className="app-dashboard-now-card">
+            <CardHeader>
+              <p className="ui-card__title app-card-title-lg">{TODAY_NOW_CARD_TITLE}</p>
+            </CardHeader>
+            <CardBody>
+              {nextCardBody}
+              {selectedPatientId ? (
+                <div className="app-dashboard-selected-patient app-dashboard-selected-patient--inline">
+                  <p className="app-dashboard-selected-patient__name">
+                    {selectedPatientHeadline(selectedPatientId, selectedPatientDisplayName)}
                   </p>
-                ) : canLoad && (loading || error) ? (
-                  <p className="app-dashboard-status__mix app-dashboard-status__mix--muted" role="status">
-                    {TODAY_STATUS_MIX_UNAVAILABLE}
-                  </p>
-                ) : null}
-              </CardBody>
-            </Card>
-            <Card className={`app-dashboard-status-card app-dashboard-status-card--${mirrorFreshness.tone}`}>
-              <CardHeader>
-                <p className="ui-card__title app-card-title-lg">{TODAY_STATUS_MIRROR_TITLE}</p>
-              </CardHeader>
-              <CardBody>
-                <p className="app-dashboard-status__label">{mirrorFreshness.label}</p>
-                <p className="app-dashboard-status__hint">{mirrorFreshness.body}</p>
-              </CardBody>
-            </Card>
-          </div>
+                  {selectedPatientChartNumber ? (
+                    <p className="app-dashboard-selected-patient__chart">Chart {selectedPatientChartNumber}</p>
+                  ) : (
+                    <p className="app-dashboard-selected-patient__chart">Record {selectedPatientId}</p>
+                  )}
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="compact"
+                    className="ui-focusable app-dashboard-selected-patient__btn"
+                    onClick={() => onOpenModule("patients")}
+                  >
+                    {TODAY_SELECTED_PATIENT_OPEN}
+                  </Button>
+                </div>
+              ) : null}
+            </CardBody>
+          </Card>
 
-          <Card className="app-dashboard-clinic-overview">
+          <Card className="app-dashboard-clinic-overview app-dashboard-clinic-overview--compact">
             <CardHeader>
               <p className="ui-card__title app-card-title-lg">{CLINIC_AT_A_GLANCE_TITLE}</p>
             </CardHeader>
@@ -818,72 +816,18 @@ export function DashboardHome({
             </CardBody>
           </Card>
 
-          <Card className="app-next-patient-card">
-            <CardHeader>
-              <p className="ui-card__title app-card-title-lg">Next appointment</p>
-            </CardHeader>
-            <CardBody>{nextCardBody}</CardBody>
-          </Card>
-
-          {selectedPatientId ? (
-            <Card className="app-dashboard-selected-patient">
-              <CardHeader>
-                <p className="ui-card__title app-card-title-lg">{TODAY_SELECTED_PATIENT_TITLE}</p>
-              </CardHeader>
-              <CardBody>
-                <p className="app-dashboard-selected-patient__name">
-                  {selectedPatientHeadline(selectedPatientId, selectedPatientDisplayName)}
-                </p>
-                {selectedPatientChartNumber ? (
-                  <p className="app-dashboard-selected-patient__chart">Chart {selectedPatientChartNumber}</p>
-                ) : (
-                  <p className="app-dashboard-selected-patient__chart">Record {selectedPatientId}</p>
-                )}
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="ui-focusable app-dashboard-selected-patient__btn"
-                  onClick={() => onOpenModule("patients")}
-                >
-                  {TODAY_SELECTED_PATIENT_OPEN}
-                </Button>
-                <div className="app-dashboard-selected-patient__actions">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="compact"
-                    className="ui-focusable"
-                    disabled={!canLoad}
-                    onClick={openScheduleToday}
-                  >
-                    {TODAY_OPEN_SCHEDULE_FOR_TODAY}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="compact"
-                    className="ui-focusable"
-                    onClick={() => onOpenModule("patients")}
-                  >
-                    {TODAY_OPEN_PATIENT_APPOINTMENTS}
-                  </Button>
-                </div>
-              </CardBody>
-            </Card>
-          ) : null}
-
           {recentPatients.length > 0 && onRecentPatientSelect ? (
             <Card className="app-dashboard-recent-patients">
               <CardHeader>
                 <p className="ui-card__title app-card-title-lg">{TODAY_RECENT_PATIENTS_TITLE}</p>
               </CardHeader>
               <CardBody>
-                <ul className="app-dashboard-recent-patients__list" aria-label={TODAY_RECENT_PATIENTS_TITLE}>
+                <ul className="app-recent-list app-dashboard-recent-patients__list" aria-label={TODAY_RECENT_PATIENTS_TITLE}>
                   {recentPatients.slice(0, 5).map((entry) => (
                     <li key={entry.patientId}>
                       <button
                         type="button"
-                        className="app-dashboard-recent-patients__btn ui-focusable"
+                        className="app-recent-list__btn app-dashboard-recent-patients__btn ui-focusable"
                         onClick={() => onRecentPatientSelect(entry)}
                       >
                         <span className="app-dashboard-recent-patients__name">{entry.displayName}</span>
@@ -950,29 +894,12 @@ export function DashboardHome({
                 >
                   {TODAY_OPEN_SETTINGS}
                 </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="ui-focusable app-quick-actions__btn"
-                  disabled
-                  title={TAB_UNAVAILABLE_TITLE}
-                >
-                  Record payment
-                </Button>
               </div>
               <p className="app-quick-actions__pilot-hint" role="note">
                 {TODAY_PILOT_READINESS_HINT}
               </p>
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <p className="ui-card__title app-card-title-lg">Reminders</p>
-            </CardHeader>
-            <CardBody>
-              <p className="app-reminder-list__empty" role="status">
-                {TODAY_REMINDERS_PILOT_UNAVAILABLE}
+              <p className="app-dashboard__reminders-footnote" role="note">
+                {TODAY_REMINDERS_FOOTNOTE}
               </p>
             </CardBody>
           </Card>

@@ -430,20 +430,23 @@ export function AppShell({
             ) : null}
           </div>
           {showBridgeConnectionDiagnostics && bridgeBaseUrl?.trim() ? (
-            <div className="app-topbar__bridge-diag" role="note" aria-label="Development bridge connection details">
-              <div className="app-topbar__bridge-diag__line">App origin: {previewOrigin}</div>
-              <div className="app-topbar__bridge-diag__line">Bridge URL: {bridgeBaseUrl.trim()}</div>
-              <div className="app-topbar__bridge-diag__line">
-                Last check:{" "}
-                {lastHealthCheckAt !== null ? formatDevCheckTime(lastHealthCheckAt) : "—"}
+            <details className="app-topbar__bridge-diag-details">
+              <summary className="app-topbar__bridge-diag-summary ui-focusable">Dev connection details</summary>
+              <div className="app-topbar__bridge-diag" role="note" aria-label="Development bridge connection details">
+                <div className="app-topbar__bridge-diag__line">App origin: {previewOrigin}</div>
+                <div className="app-topbar__bridge-diag__line">Bridge URL: {bridgeBaseUrl.trim()}</div>
+                <div className="app-topbar__bridge-diag__line">
+                  Last check:{" "}
+                  {lastHealthCheckAt !== null ? formatDevCheckTime(lastHealthCheckAt) : "—"}
+                </div>
+                {bridgePhase === "offline" && lastHealthOfflineReason ? (
+                  <div className="app-topbar__bridge-diag__line app-topbar__bridge-diag__reason">{lastHealthOfflineReason}</div>
+                ) : null}
+                {showMirrorConnectionDiagnostics && mirrorDiagLabel ? (
+                  <div className="app-topbar__bridge-diag__line">{mirrorDiagLabel}</div>
+                ) : null}
               </div>
-              {bridgePhase === "offline" && lastHealthOfflineReason ? (
-                <div className="app-topbar__bridge-diag__line app-topbar__bridge-diag__reason">{lastHealthOfflineReason}</div>
-              ) : null}
-              {showMirrorConnectionDiagnostics && mirrorDiagLabel ? (
-                <div className="app-topbar__bridge-diag__line">{mirrorDiagLabel}</div>
-              ) : null}
-            </div>
+            </details>
           ) : null}
         </div>
       </header>
@@ -454,16 +457,45 @@ export function AppShell({
         </ReadOnlyBanner>
       </div>
 
-      {shellStatusBanners.map((banner) => (
-        <div key={banner.key} className={`app-shell__status-banner app-shell__status-banner--${banner.tone}`}>
-          <ReadOnlyBanner
-            label={banner.label}
-            className="ui-readonly-banner--compact app-shell__status-banner-inner"
-          >
-            {banner.body}
-          </ReadOnlyBanner>
+      {shellStatusBanners.length > 0 ? (
+        <div className="app-shell__status-row" role="region" aria-label="Clinic service status">
+          {shellStatusBanners.map((banner) => (
+            <div
+              key={banner.key}
+              className={`app-shell__status-chip app-shell__status-chip--${banner.tone}`}
+            >
+              <ReadOnlyBanner
+                label={banner.label}
+                className="ui-readonly-banner--compact app-shell__status-chip-inner"
+              >
+                {banner.body}
+              </ReadOnlyBanner>
+            </div>
+          ))}
         </div>
-      ))}
+      ) : null}
+
+      {selectedPatientContextLabel ? (
+        <div className="app-patient-context-bar" role="status" aria-label={`Selected patient: ${selectedPatientContextLabel}`}>
+          <span className="app-patient-context-bar__label">Selected</span>
+          <button
+            type="button"
+            className="app-main__patient-context-chip ui-focusable"
+            onClick={() => setActive("patients")}
+          >
+            {selectedPatientContextLabel}
+          </button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="compact"
+            className="ui-focusable app-main__patient-context-clear"
+            onClick={handlePatientSelectionClear}
+          >
+            Clear
+          </Button>
+        </div>
+      ) : null}
 
       {topSlot}
 
@@ -474,15 +506,22 @@ export function AppShell({
           </p>
           <nav aria-labelledby="sidebar-nav-label">{sidebar}</nav>
           <p className="app-sidebar__hint" role="note">
-            {sidebarNavHint}
+            {sidebarNavHint}{" "}
+            <button
+              type="button"
+              className="app-sidebar__hint-link ui-focusable"
+              onClick={() => setActive("settings")}
+            >
+              Settings
+            </button>
           </p>
         </aside>
 
         <main className="app-main" id="app-main-region" role="main" aria-labelledby={mainHeadingId}>
           <div className="app-main__inner">
-            <div className="app-main__head">
-              <div className="app-main__head-row">
-                <h2 className="app-main__heading" id={mainHeadingId}>
+            <div className="app-page-header app-main__head">
+              <div className="app-page-header__row app-main__head-row">
+                <h2 className="app-page-header__title app-main__heading" id={mainHeadingId}>
                   {activeModule.label}
                 </h2>
                 <div className="app-main__head-actions">
@@ -497,33 +536,9 @@ export function AppShell({
                       Back to Today
                     </Button>
                   ) : null}
-                  {selectedPatientContextLabel ? (
-                    <div
-                      className="app-main__patient-context"
-                      role="status"
-                      aria-label={`Selected patient: ${selectedPatientContextLabel}`}
-                    >
-                      <button
-                        type="button"
-                        className="app-main__patient-context-chip ui-focusable"
-                        onClick={() => setActive("patients")}
-                      >
-                        {selectedPatientContextLabel}
-                      </button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="compact"
-                        className="ui-focusable app-main__patient-context-clear"
-                        onClick={handlePatientSelectionClear}
-                      >
-                        Clear
-                      </Button>
-                    </div>
-                  ) : null}
                 </div>
               </div>
-              <p className="app-main__lede">{activeModule.description}</p>
+              <p className="app-page-header__lede app-main__lede">{activeModule.description}</p>
             </div>
 
             <div className="app-main__content">
@@ -572,6 +587,7 @@ export function AppShell({
                   onMirrorStatusChange={setMirrorStatus}
                   sandboxWritePilot={sandboxWritePilot}
                   showConnectionDiagnostics={showBridgeConnectionDiagnostics}
+                  onOpenToday={() => setActive("today")}
                 />
               ) : (
                 <PatientProfilePanel

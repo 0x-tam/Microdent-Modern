@@ -174,6 +174,14 @@ export const TODAY_REOPEN_RECENT = "Re-open recent";
 
 export const WRITE_REFRESH_NUDGE = "Refresh the profile or schedule view after a successful commit to see updated read-only data.";
 
+/** Single post-commit operator note (replaces separate refresh + mirror nudges). */
+export const WRITE_POST_COMMIT_COMBINED_NUDGE =
+  "Refresh the profile or schedule view to see updated data. Mirror may lag — refresh import from Settings when ready.";
+
+export const WRITE_PLAN_LABEL_WORKFLOW = "Workflow";
+
+export const WRITE_PLAN_LABEL_RECORD_ID = "Record id";
+
 export const PATIENT_CHART_TOOTH_FILTER_LABEL = "Showing chart entries for";
 
 export const PATIENT_CHART_TOOTH_FILTER_CLEAR = "Show all teeth";
@@ -334,6 +342,11 @@ export const TODAY_NEXT_OFFLINE =
   "Connect the clinic service to see the next appointment on today's copy.";
 
 export const TODAY_NEXT_NO_UPCOMING = "No upcoming appointments on the schedule for today.";
+
+export const TODAY_NOW_CARD_TITLE = "Now";
+
+export const TODAY_REMINDERS_FOOTNOTE =
+  "Reminders are not available in this pilot build.";
 
 export const TODAY_REMINDERS_EMPTY =
   "No reminders in this read-only viewer. Connect the clinic service and use Schedule or Patients for live data from your copy.";
@@ -1003,6 +1016,8 @@ export const FRONT_DESK_OVERVIEW_BACKUP_LABEL = "Backup";
 /** Settings cross-link (Workstream J). */
 export const SETTINGS_TODAY_OVERVIEW_HINT =
   "Front-desk overview on Today shows bridge, mirror, and write readiness at a glance.";
+
+export const SETTINGS_OPEN_TODAY_BUTTON = "Open Today overview";
 
 /** Medical clinical toolbar (Workstream F). */
 export function medicalToolbarSummary(flaggedCount: number, sectionCount: number): string {

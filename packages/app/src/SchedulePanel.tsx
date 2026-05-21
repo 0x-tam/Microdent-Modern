@@ -616,8 +616,8 @@ export function SchedulePanel({
 
   return (
     <div className="app-schedule">
-      <div className="app-schedule__toolbar">
-        <div className="app-schedule__toolbar-row">
+        <div className="app-schedule__toolbar app-filter-bar">
+          <div className="app-schedule__toolbar-row app-filter-bar__group">
           <div className="app-schedule__granularity" role="group" aria-label={SCHEDULE_VIEW_LABEL}>
             <Button
               type="button"
@@ -734,28 +734,23 @@ export function SchedulePanel({
           </p>
           {!loading && !error && canLoad ? (
             <>
-              <p className="app-schedule__range-meta" role="status">
-                {operationalSummary.shownLabel}
+              <ul className="app-metric-row app-schedule__range-meta" role="status">
+                <li className="app-metric-row__chip app-metric-row__chip--emphasis">{operationalSummary.shownLabel}</li>
                 {includesToday ? (
-                  <span className="app-schedule__range-today-badge"> · {SCHEDULE_RANGE_INCLUDES_TODAY}</span>
+                  <li className="app-metric-row__chip">{SCHEDULE_RANGE_INCLUDES_TODAY}</li>
                 ) : null}
-                {roomFilterContext ? (
-                  <span className="app-schedule__range-room-context"> · {roomFilterContext}</span>
-                ) : operationalSummary.roomMix ? (
-                  <span className="app-schedule__range-room-context"> · {operationalSummary.roomMix}</span>
-                ) : null}
-                {roomsInUseCount !== null && roomsInUseCount > 0 ? (
-                  <span className="app-schedule__range-rooms-in-use"> · {SCHEDULE_ROOMS_IN_USE(roomsInUseCount)}</span>
+                {operationalSummary.statusMix ? (
+                  <li className="app-metric-row__chip">{operationalSummary.statusMix}</li>
                 ) : null}
                 {operationalSummary.providerMix ? (
-                  <span className="app-schedule__range-provider-mix"> · {operationalSummary.providerMix}</span>
+                  <li className="app-metric-row__chip">{operationalSummary.providerMix}</li>
                 ) : null}
-              </p>
-              {operationalSummary.statusMix ? (
-                <p className="app-schedule__status-mix-line" role="status" aria-label="Status mix in range">
-                  {operationalSummary.statusMix}
-                </p>
-              ) : null}
+                {roomFilterContext ? (
+                  <li className="app-metric-row__chip">{roomFilterContext}</li>
+                ) : operationalSummary.roomMix ? (
+                  <li className="app-metric-row__chip">{operationalSummary.roomMix}</li>
+                ) : null}
+              </ul>
               {operationalSummary.filterActiveLabel ? (
                 <p className="app-schedule__filter-active-label" role="status">
                   {operationalSummary.filterActiveLabel}

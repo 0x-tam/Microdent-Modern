@@ -62,7 +62,7 @@ describe("app-nav-modules", () => {
 
   it("explains hidden modules in the sidebar hint", () => {
     const hint = resolveSidebarNavHint();
-    expect(hint).toMatch(/Dental Chart, Treatments, and Ledger preview are under Patients/i);
-    expect(hint).toMatch(/Payments and Reports are not available in this read-only viewer yet/i);
+    expect(hint).toMatch(/Chart, Treatments, and Ledger are under Patients/i);
+    expect(hint).toMatch(/Payments and Reports are not available yet/i);
   });
 });
