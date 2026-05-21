@@ -124,7 +124,8 @@ describe("AppShell", () => {
 
   it("shows read-only viewer pill with privacy note in header", () => {
     const html = renderToStaticMarkup(<AppShell />);
-    expect(html).toContain("app-workspace-header__readonly-pill");
+    expect(html).toContain("app-workspace-header__status-cluster");
+    expect(html).toContain("app-chip--readonly");
     expect(html).toContain("payment amounts stay hidden");
   });
 

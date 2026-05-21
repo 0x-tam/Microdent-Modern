@@ -2,7 +2,7 @@
 .app-status-strip {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: stretch;
   gap: var(--ui-space-2);
   padding: var(--ui-space-2) var(--app-workspace-pad);
   border-bottom: 1px solid var(--ui-border-subtle);
@@ -13,32 +13,45 @@
 .app-status-strip__item {
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--ui-space-2);
-  padding: var(--ui-space-1) var(--ui-space-3);
+  padding: var(--ui-space-2) var(--ui-space-3);
   border-radius: var(--ui-radius-sm);
   font-size: var(--app-text-meta);
   line-height: 1.4;
   max-width: 100%;
 }
 
+/* Critical — danger left bar + soft red surface */
 .app-status-strip__item--critical,
 .app-status-strip__item--danger {
   border: 1px solid var(--ui-border-danger);
+  border-left: 3px solid var(--ui-danger-600);
   background: var(--ui-bg-danger-subtle);
   color: var(--ui-text-primary);
   font-weight: 500;
 }
 
+/* Warning — amber compact strip */
 .app-status-strip__item--warning {
-  border: 1px solid var(--ui-border-warning);
-  background: var(--ui-bg-warning-subtle);
-  color: var(--ui-text-primary);
+  border: 1px solid var(--ui-status-sandbox-border);
+  border-left: 3px solid var(--ui-warning-600);
+  background: var(--ui-status-sandbox-bg);
+  color: var(--ui-status-sandbox-text);
 }
 
+/* Info — cyan quiet chip */
 .app-status-strip__item--info {
-  border: 1px solid var(--ui-border-subtle);
-  background: var(--ui-bg-muted);
-  color: var(--ui-text-secondary);
+  border: 1px solid var(--ui-status-readonly-border);
+  background: var(--ui-status-readonly-bg);
+  color: var(--ui-status-readonly-text);
+}
+
+/* Healthy — small green/neutral chip (mirror fresh, writes off) */
+.app-status-strip__item--healthy {
+  border: 1px solid color-mix(in srgb, var(--ui-success-600) 30%, transparent);
+  background: var(--ui-success-50);
+  color: var(--ui-success-600);
 }
 
 .app-status-strip__label {
@@ -50,28 +63,31 @@
   color: inherit;
 }
 
-.app-workspace-header__readonly-pill {
+/* Header status cluster — readonly cyan pill */
+.app-workspace-header__readonly-pill,
+.app-workspace-header__status-chip.app-chip--readonly {
   display: inline-flex;
   align-items: center;
   gap: var(--ui-space-1);
   padding: var(--ui-space-1) var(--ui-space-3);
   border-radius: 999px;
-  border: 1px solid var(--ui-border-subtle);
-  background: var(--ui-bg-muted);
+  border: 1px solid var(--ui-status-readonly-border);
+  background: var(--ui-status-readonly-bg);
   font-size: var(--app-text-meta);
-  font-weight: 500;
-  color: var(--ui-text-secondary);
+  font-weight: 600;
+  color: var(--ui-status-readonly-text);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-.app-workspace-header__readonly-pill::before {
+.app-workspace-header__readonly-pill::before,
+.app-workspace-header__status-chip.app-chip--readonly::before {
   content: "";
   width: 6px;
   height: 6px;
   border-radius: 999px;
-  background: var(--ui-primary-600);
-  opacity: 0.7;
+  background: var(--ui-accent-cyan);
+  opacity: 0.85;
 }
 
 /* Legacy banner classes — hidden in workspace shell */

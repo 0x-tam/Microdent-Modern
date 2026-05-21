@@ -1,114 +1,264 @@
-# Product completeness audit — clinic workflow completion batch
+# Product completeness audit — clinic visual identity batch
 
-**Purpose:** Gap report after the **clinic workflow completion** batch (Workstreams A–O). Guides the next batch without expanding write scope.
+**Purpose:** Gap report after the **clinic visual identity & command-center color pass** (Waves 0–4 complete). Guides bugfix-only Mac work until Windows Tier 3 field execution.
 
-**Reviewed:** `packages/app/src/` after PatientWorkspace, ScheduleOps, WriteCompletion, ClinicalIntel, SearchToday, LabelsSettings, UXCohesion, SafetyRegression, and full Mac checkpoint.
+**Reviewed:** `packages/app/src/` after visual identity batch (tokens, shell chrome, page surfaces, microcopy, empty/offline panels, a11y polish, safety regression, checkpoint). **Mac visual identity pass complete** at audit time.
 
-**Baseline:** `929b662` — `feat: elevate clinic app UI and workflow experience`  
-**Post-restructure:** clinic workspace UI batch — full-width shell, CSS split, compact status system
+**Baseline:** `e862976` — `feat: rebuild clinic app layout and command center UX` (command-center structure). This batch adds teal-forward identity without layout restructure.
 
-**Related guardrails:** [out-of-scope-guardrails.md](./out-of-scope-guardrails.md) · **Windows field test entry:** [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md) · **Design spec:** [clinic-workspace-design-spec.md](./clinic-workspace-design-spec.md)
+**Related guardrails:** [out-of-scope-guardrails.md](./out-of-scope-guardrails.md) · **Windows field test entry:** [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md)
 
-**Tier status:** Mac-side UI restructure is **complete** for operator demo. **Clinic go-live remains BLOCKED** until Tier 3 Windows field execution completes.
+**Tier status:** Mac-side read workflows, patient workspace depth, and **visual identity** are substantially usable. **Mac-side further work = bugfix-only until Windows Tier 3.** **Clinic go-live remains BLOCKED** until Tier 3 Windows field execution completes per [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md). Mac checkpoint ≠ clinic acceptance.
+
+**Windows execution status:** **Deferred / Not yet run** — no NSIS or clinic PC field log from this batch.
 
 ---
 
-## Executive summary (post workspace restructure)
+## Executive summary
 
 | Area | Daily-use ready? | Notes |
 | --- | --- | --- |
-| **Shell** | Yes | Rail + workspace column; patient in rail; read-only pill; compact status strip |
-| **Today** | Yes | Full-width grid; page hero; operations aside consolidated |
-| **Patients** | Yes | Search hero empty state; rail patient slot |
-| **Profile** | Yes | Page hero; existing hero band + tabs; data-list patterns available |
-| **Schedule** | Yes | Full-width; page hero with date range; unified toolbar |
-| **Settings** | Yes | Page hero; 2-column card grid preserved |
-| **Writes (4 routes)** | Unchanged | Layout refresh via write.css; no new domains |
-| **Windows clinic PC** | **Not yet run — deferred** | **Next strategic gate** |
+| **Today** | Yes (connected bridge) | Teal stat tones, clinical wash hero, ops highlight card, semantic status accents; unified visit meta unchanged |
+| **Patients** | Yes | Search hero + recent grid tinting; profile hero chips; segmented tabs; timeline rail accents — **Seven tabs** including Timeline |
+| **Schedule** | Yes | Status-colored rows/badges, date header accent, room inset grouping — interactive filters unchanged |
+| **Settings** | Yes | Tone-colored status hero tiles; section cards with severity accents; Windows execution **Deferred / not yet run** |
+| **Writes (4 routes)** | Sandbox + pilot flag only | Doctor `<select>` from reference on create; discoverability hint above write panels; preview invalidation; blocked notice; mirror lag nudge |
+| **Payments / memos / clinical writes** | Blocked by design | See [out-of-scope-guardrails.md](./out-of-scope-guardrails.md) |
+| **Windows clinic PC** | **Not yet run — deferred** | **Next strategic gate**; no NSIS until field log exists |
 
 ---
 
-## Mac-side ROI assessment
+## What works now (by module)
 
-Mac-side UI restructure ROI is **exhausted** after this batch. Further Mac work should be **bugfix-only** unless Windows field execution surfaces new requirements.
+### Today (`today-dashboard.tsx` + shell wiring)
+
+When the bridge is **connected**:
+
+- **Today's appointments** — sorted list with time, safe patient headline/chart, **unified visit meta** via `appointmentVisitMeta()` (room name from `GET /v1/schedule/rooms` when loaded, duration, provider, procedure), status badges with human `semanticLabel`, **current** / **next** row emphasis, **Open patient record** when `patId !== "0"`.
+- **Status strip (aside)** — count card with **status mix** via `formatAppointmentStatusMix`; **Data freshness** card from `mirrorStatus`.
+- **Clinic at a glance** — extended `resolveFrontDeskOverview()` rows: bridge, mirror, write mode, **sandbox pilot on/off**, today count, **optional status mix one-liner**, **session recent patient count** (when &gt; 0), selected patient; **Open Settings** text link (module switch); connect guidance when offline.
+- **Next appointment** — upcoming visit today with unified meta; empty/offline/error paths use shared readonly copy.
+- **Selected patient** — when shell has selection, name/chart + **Open record** → Patients.
+- **Quick actions** — Search patient, Open schedule, Open settings; disabled **Record payment**; pilot-readiness hint.
+- **Reminders** — honest pilot placeholder (no fake data).
+- **Refresh today** — reloads today's schedule in place.
+- **Mirror stale advisory** — copy-only on schedule card when import is stale.
+
+### Patients (`PatientSearchBar.tsx`, `PatientProfilePanel.tsx`, `patient-summary-mini-cards.tsx`, `patient-timeline.tsx`)
+
+**Search:**
+
+- Debounced combobox (2+ chars), keyboard navigation, topbar open-record chip.
+- **Session recent patients** (max 5, in-memory only): footer in search dropdown when query &lt; 2 chars; also on Patients page empty state — `{patientId, displayName, chartNumber}` only (no phone, no `localStorage`).
+
+**Profile:**
+
+- **Header strip** — display name, chart, provider (`Doctor {id}` when set, `—` when null), status, record id.
+- **Seven tabs** with one-line descriptions: Summary, **Timeline**, Appointments, Medical, Treatments, Chart, Ledger preview.
+- **Summary workspace** — mini-card grid below `ProfileSummaryCard`: appointments (±90 count + next upcoming **with provider/procedure meta**), medical screening status, treatments/chart/ledger entry counts, **Timeline** mini-card; skeleton → loaded → empty/error; **click card** → tab; cross-tab action row; **Last refreshed** on toolbar; **toolbar Refresh bumps `summaryRefreshNonce`** so mini-cards reload.
+- **Timeline tab (new)** — `patient-timeline-display.ts` merges safe dated events (appointments ±365 default, treatments, ledger, medical snapshot, profile anchor) plus undated **chart snapshot** row; month/day grouping, truncated + range banners; row click → source tab (+ optional chart tooth filter from treatment rows); parallel fetch on tab active.
+- **Appointments tab** — Default ±90 preset, Past/Upcoming presets and toggle, **interactive status chips**, **provider filter chips** (when multiple `docId` in range), room filter with **room display names**, range count line, unified visit meta, **Open in Schedule** per row.
+- **Treatments** — month grouping; year / provider / procedure-code filters; **procedure category** from reference when label is code-only; **top-3 provider stats** toolbar line; optional **tooth filter** chips; descriptions hidden.
+- **Chart** — **tooth summary strip** (treated vs not treated, unique teeth); tooth grouping; treated-only filter; optional **chart-type filter** chips (`Type N` opaque codes only); expanded read-only explainer (no odontogram).
+- **Medical** — **General screening** vs **Additional markers** sections; `Intl` questionnaire dates with last-updated prominence; flagged-count vs visible-flags copy when `med1/med2/aids` omitted; improved sensitive-path bullet copy; offline parity.
+- **Ledger preview** — month grouping with **entry count per month**; **type distribution** summary (e.g. “3 charges · 1 payment” — counts only); entry-type filter; amounts-hidden chip; truncated banners.
+- **Sandbox demographics (pilot)** — Summary when `VITE_SANDBOX_WRITE_PILOT` + sandbox ready; preview → confirm → commit.
+
+Navigation: **Back to Today**, clear patient, change-patient search, recent-patient picks.
+
+### Schedule (`SchedulePanel.tsx`)
+
+- Week/day nav, room filter, grouped rows, keyboard shortcuts, empty/error/offline.
+- **Summary header** — **interactive status breakdown chips** (toggle client-side status filter), **provider filter chips** when multiple providers in range, room filter context with display names, mirror stale advisory (extended when filters active).
+- **Per-day headers** — `N appointments` count on each day card.
+- **Current appointment highlight** — `--current` row when visible range includes today (`findCurrentAppointmentInRange`).
+- **Unified visit meta** on rows; status badges use human semantic labels.
+- **Open patient** on rows when `patId !== "0"`.
+- **`initialDate`** — applied from profile “Open in Schedule”; resets range to that day; preserved after filter changes.
+- **Write-mode/sandbox chip** near footer; discoverability hint above write `<details>`: “Expand row for sandbox write actions (pilot env required).”
+- **Sandbox write pilots** — status, time move, create with doctor `<select>` from reference doctors; unified preview/confirm; `SandboxWriteBlockedNotice` inside open panel when blocked.
+
+### Settings (`SettingsPanel.tsx`, `settings-status.ts`)
+
+Unchanged product scope from prior UX batch: readiness strip, 8-item checklist, masked paths, mirror refresh status, **Windows execution: Deferred / not yet run**.
+
+`resolveFrontDeskOverview()` lives in `settings-status.ts` but renders on **Today**, not Settings.
+
+### App shell (`AppShell.tsx`)
+
+- Four-module sidebar; global/shell banners.
+- **Session recent patients** state (`pushSessionRecentPatient`, cap 5) on search select; count surfaced on Today overview.
+- Schedule `initialDate` + `handleOpenScheduleAtDate` from profile.
+- `onOpenPatient` from Today and Schedule.
 
 ---
 
-## Prior audit (clinic workflow completion batch)
+## What this batch added (Wave 1 — Workstreams A–K)
 
-| Area | Daily-use ready? | Notes |
+| Workstream | User-visible improvement |
+| --- | --- |
+| **A — Reference labels** | `appointmentVisitMeta()`, `roomDisplayLabel()`, unified status `semanticLabel`, `procClassDisplayLabel` category fallback, profile provider fallback, treatment procedure reference join; wired on Today, Schedule, Profile, mini-cards |
+| **B — Patient timeline** | New Timeline tab; `patient-timeline-display.ts` + `patient-timeline.tsx`; merge/sort/group safe events; chart snapshot row; truncated + range banners |
+| **C — Interactive filters** | Provider filter on Appointments + Schedule; **clickable** schedule status breakdown chips; daily appointment counts on schedule day headers |
+| **D — Schedule intelligence** | Current-appointment highlight in visible range; write-mode chip; mirror stale copy when filters active |
+| **E — Treatments intelligence** | Procedure category from reference; provider stats (top 3); optional tooth filter chips |
+| **F — Chart intelligence** | Tooth summary strip; chart-type filter chips; expanded limitation explainer |
+| **G — Ledger intelligence** | Type distribution counts; month headers with entry counts |
+| **H — Medical clarity** | General vs additional screening sections; improved sensitive-path copy; clearer questionnaire dates |
+| **I — Cross-navigation** | Summary refresh fix; timeline row → tab (+ tooth filter hint); Timeline mini-card; treatment → Chart cross-link |
+| **J — Write refinement** | Doctor `<select>` on create from reference; schedule write discoverability hint; mirror nudge parity on status/move/create |
+| **K — Overview extension** | Sandbox pilot row, session recent count, status mix one-liner on Today; Open Settings link |
+
+**Prior deepening batch (229a79a):** mini-cards, clinical filters/grouping, static schedule status breakdown display, Clinic at a glance foundation, session recent patients, write UX unify — see `qa-runs/2026-05-27-clinic-app-ux-completion-batch-report.md`.
+
+**Wave 2 (in progress at audit time):**
+
+| Workstream | Status |
+| --- | --- |
+| **L — Safety regression** | Forbidden-token tests + smoke extensions for timeline, reference labels, interactive filters, ledger distribution, overview rows — in flight |
+| **M — Product audit** | This document |
+| **N — Checkpoint** | Pending: full `pnpm test` / build / `qa:sandbox` / batch report; auto-commit only if green per plan |
+
+---
+
+## What still feels rough
+
+UX gaps, not safety blockers:
+
+1. **Dual search inputs** — top bar and Patients page remain separate; recent patients help re-entry but **query text does not sync** between instances.
+2. **Recent patients policy** — session-only by design; no product decision on optional safe persistence (would need explicit privacy review).
+3. **Selected patient on Today** — shell summary only until profile load on Patients; no inline profile fetch on Today.
+4. **Reminders / payments** — intentionally absent; disabled controls may still feel like missing product to front desk.
+5. **Mirror lag after writes** — copy nudge added; SQLite mirror still does not auto-refresh; operators must CLI import + Settings refresh.
+6. **Write pilots still gated** — `VITE_SANDBOX_WRITE_PILOT` + sandbox + row-level `<details>`; hint added but env flag remains required.
+7. **Decoded status/chart/ledger catalogs deferred** — numeric status codes and opaque procedure/chart codes remain; **post–Windows field log only** if mappings confirm safe (see plan). Category fallback helps treatments; full decode not shipped.
+8. **No odontogram** — chart is grouped list preview only; **out of scope**.
+9. **Timeline window honesty** — default ±365-day appointment window; truncated lists show banners but not full history.
+10. **Opaque chart types** — filter chips use `Type N` only; no clinical decode without field validation.
+11. **Filter scope limits** — provider/status filters apply to **loaded range only**; changing week/day may reset filter context unexpectedly for some operators.
+12. **CSS cohesion** — `app-shell.css` touched in batch; minor chip/card variance may remain across modules.
+13. **Windows packaging** — desktop Mac build green ≠ clinic PC validation ([FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md)).
+14. **No installer / NSIS** — portable staged tree only until Tier 3 field log.
+
+---
+
+## Intentionally blocked
+
+Per [out-of-scope-guardrails.md](./out-of-scope-guardrails.md) — **do not implement** without a new scope decision:
+
+| Domain | UI signal | Backend |
 | --- | --- | --- |
-| **Today** | Yes (connected bridge) | At-a-glance overview rows, backup configured, schedule readiness, selected-patient quick actions |
-| **Patients** | Yes | Summary at-a-glance strip, timeline temporal sections + summary bar, patient-switch filter reset, per-tab reload |
-| **Schedule** | Yes | Clear filters includes room; operational summary (shown/total, provider/room mix, filter state) |
-| **Settings** | Yes | Today cross-link hint, next-action prominence, Windows **Deferred / Not yet run** |
-| **Writes (4 routes)** | Sandbox + pilot flag only | Refresh nudge parity on create/move/status; room select; patient pre-fill on create |
-| **Windows clinic PC** | **Not yet run — deferred** | **Next strategic gate** |
+| **Payments / ledger writes** | Disabled “Record payment”; ledger tab read-only, amounts hidden | No write routes; `AMOUNT` / `SAMOUNT` rejected |
+| **Treatment / procedure memos** | Treatments tab read-only; truncated lists | Out of scope |
+| **Chart / odontogram writes** | Chart tab read-only preview | Out of scope |
+| **Medical summary writes** | Medical tab read-only; sensitive banner | Out of scope |
+| **Memos / comments** | “Note hidden” badges; body keys blocked on schedule writes | `findBlockedScheduleBodyKeys` + strict Zod |
+| **In-app mirror import** | Settings CLI command + Refresh status only | No shell exec |
+| **Production legacy DATA_ROOT** | Settings danger paths | Never `Microdent-Legacy` |
+
+**Allowed sandbox writes only (four):**
+
+1. `appointment.statusUpdate`
+2. `appointment.timeMove`
+3. `appointment.create`
+4. `patient.demographics.update` (allowlisted name fields)
 
 ---
 
-## What this batch completes
+## Read-only vs sandbox-only vs Windows-test-needed
 
-- **Patient workspace at-a-glance** — Safe status/count strip below Summary mini-cards (upcoming/recent visit, treatment/chart/ledger counts, screening state)
-- **Timeline temporal view** — Upcoming / Recent (30d) / Older sections, summary bar, limitations copy, kind-filter reset on patient switch
-- **Timeline count honesty** — Mini-card shows “About N events” until Timeline tab loads exact count
-- **Schedule operational summary** — Shown vs total, status mix, provider/room mix, active filter label; clear filters resets room
-- **Write parity** — Room `<select>` from schedule rooms, patient context pre-fill, move context panel, `WRITE_REFRESH_NUDGE` on all write routes
-- **Medical toolbar parity** — Flagged-count + section count line matching treatments/chart/ledger
-- **Search recent CSS** — Styled recent session list mirroring Today dashboard; keyboard roving focus
-- **Front desk command center (v2)** — Stat strip + command grid on Today; contextual status resolver; full-width schedule/profile/patients; board/ops panels replace Card soup for stats. Mac UI layout ROI **exhausted** — bugfix-only until Windows field execution.
-- **Front desk command center** — Backup row, schedule readiness, open schedule for today / open patient appointments
-- **UX cohesion** — Shared filter chip tokens, write form spacing, readonly empty-state hierarchy
+| Capability | Classification | Requirements |
+| --- | --- | --- |
+| Today schedule + status mix + Clinic at a glance | **Read-only** | Bridge connected; safe DTOs |
+| Patient search, profile tabs (incl. Timeline), mini-cards, filters | **Read-only** | Mirror or DBF fallback |
+| Schedule view, interactive status/provider filters, open patient | **Read-only** | Same |
+| Session recent patients | **Read-only (session)** | In-memory only; cleared on reload |
+| Settings status cards | **Read-only** | Bridge + capability endpoints |
+| Appointment status / time / create | **Sandbox-only** | `writeMode: enabled`, valid sandbox, `BACKUP_DIR`, `VITE_SANDBOX_WRITE_PILOT`, `pnpm qa:sandbox` |
+| Demographics update | **Sandbox-only** | Same gates |
+| Dry-run dev diagnostics | **Dev-only** | `import.meta.env.DEV` |
+| Desktop supervisor + bridge on clinic PC | **Windows-test-needed** | [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md) |
+| Field execution EXEC-01–16 | **Windows-test-needed** | Tier 3 gate |
+| Clinic go-live / production writes | **Blocked** | Tier 3 field log + go/no-go |
 
----
-
-## Mac-side ROI assessment
-
-Mac-side UI polish ROI is **likely exhausted** after the **clinic UI elevation** batch (`feat: elevate clinic app UI and workflow experience`). Further Mac work should be bugfix-only unless Windows field execution surfaces new requirements.
-
----
-
-## UX polish (clinic UI elevation batch)
-
-### What now feels professional
-
-- **Shell** — Primary read-only banner + compact secondary status row; sticky selected-patient strip; dev diagnostics behind disclosure
-- **Today** — Dominant appointment list with metric chips; merged “Now” aside (next + selected patient); reminders de-emphasized to footnote
-- **Patients** — Search-first empty hero; patient hero header with calm chips; summary at-a-glance as metric row
-- **Timeline** — Sticky kind filters; metric summary chips; `EmptyState` for range/filter/undated variants; consolidated limitations callout
-- **Schedule** — Unified filter bar; operational summary as metric chips; scannable row hierarchy preserved
-- **Write panels** — Unified `.app-sandbox-write-zone`; single post-commit nudge; plan labels in copy module
-- **Settings** — “Open Today overview” button; readiness strip hierarchy unchanged but clearer cross-link
-
-### Remaining visual rough edges
-
-- Dual search (topbar vs Patients page) not query-synced — intentional
-- Collapsible schedule filters on narrow viewports use existing toolbar wrap (no `<details>` yet)
-- Some clinical tab filter chips still use button variant instead of explicit `aria-pressed` on every chip
+**Privacy:** Safe DTOs + display helpers; forbidden-token tests on timeline, reference-enriched labels, interactive filters, ledger type distribution, overview rows (Wave 2 L extending coverage).
 
 ---
 
-## Remaining rough edges
+## Future data / write support needs
 
-- Dual search (topbar vs Patients page) not query-synced — intentional
-- Session recent patients not persisted (`localStorage` deferred)
-- Mirror refresh remains manual (no auto import after writes)
-- Decoded status/chart/ledger catalogs still blocked pending Windows field log
+Ordered by likely next work — **not committed**:
+
+### Tier 3 — Windows field execution (**next batch — primary gate**)
+
+- Single clinic PC run via [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md) + [`qa-runs/TEMPLATE-windows-field-run.md`](../qa-runs/TEMPLATE-windows-field-run.md).
+- Validate desktop first-run, supervisor, bridge health, read-only smoke, optional sandbox writes on Windows.
+- Resolve path/permission issues from [windows-pilot-permission-and-path-risks.md](./windows-pilot-permission-and-path-risks.md).
+- **No NSIS/installer** until field log exists.
+
+### After field log (optional Mac polish — no new write domains)
+
+- **Decoded procedure/status/chart/ledger reference labels** — only if field log confirms safe mappings (currently deferred).
+- Recent-patients persistence policy (if ever desired — explicit privacy sign-off).
+- Visual odontogram (large scope; currently out).
+- Stronger search query sync (display-only).
+- Reminders product decision — integrate or remove placeholder permanently.
+
+### Data / mirror
+
+- Operator workflow for post-commit → mirror import → Settings refresh (partially documented; copy nudge on writes).
+
+### Write scope expansion
+
+Requires guardrail review, route inventory, blocked-key audit, `qa:sandbox` extension. **Do not ad-hoc.**
 
 ---
 
-## Intentionally unsupported / read-only / sandbox-only
+## Test coverage snapshot
 
-- Payments, memos, clinical writes, odontogram — per [out-of-scope-guardrails.md](./out-of-scope-guardrails.md)
-- Sandbox writes only when pilot flag + bridge capability permit
-- No PHI/raw rows in UI surfaces
+Wave 1 + partial Wave 2 (representative):
+
+| File | Focus |
+| --- | --- |
+| `patient-timeline-display.test.ts` | Timeline merge, sort, group, chart snapshot, range/truncated banners |
+| `patient-timeline.tsx` | Timeline render (via profile panel tests) |
+| `patient-appointments-display.test.ts` | `appointmentVisitMeta`, room labels, interactive status/provider filters, current-in-range, per-day count |
+| `doctor-labels.test.ts` | Provider display labels |
+| `procedure-reference.test.ts` | Category fallback, `procClassDisplayLabel` |
+| `patient-profile-panel.test.tsx` | Timeline tab, cross-nav, summary refresh, provider filters, clinical bodies |
+| `patient-treatments-display.test.ts` | Category label, provider stats, tooth filter |
+| `patient-chart-display.test.ts` | Summary stats, chart-type filter |
+| `patient-ledger-display.test.ts` | Type distribution, month entry counts |
+| `patient-medical-summary-display.test.ts` | Screening sections, dates, sensitive copy |
+| `patient-summary-mini-cards.tsx` | Timeline card, visit meta on appointments card |
+| `today-dashboard.test.tsx` | Extended overview rows, Open Settings, unified meta |
+| `schedule-panel.test.tsx` | Interactive status/provider filters, per-day counts, current highlight, write hint |
+| `settings-status.test.ts` | Sandbox pilot, session recent, status mix in overview |
+| `appointment-create-write.test.tsx` | Doctor select from reference |
+| `read-only-flow-smoke.test.tsx` | Timeline navigation, schedule filter interaction (Wave 2 L extending) |
+
+Prior deepening batch tests (`patient-summary-mini-cards`, session recent, write invalidation, etc.) remain valid.
 
 ---
 
-## Next recommended batch
+## Recommended next batch
 
-**Tier 3 — Windows field execution:** single clinic PC run per [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md) + [qa-runs/TEMPLATE-windows-field-run.md](../qa-runs/TEMPLATE-windows-field-run.md). Optional post-field: decoded status/chart/ledger catalogs **only if** field log confirms safe mappings.
+1. **Windows field execution batch (Tier 3)** — **primary go-live gate**; consolidated clinic PC run using [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md).
+2. **Mac bugfix-only** — visual identity pass complete; no further Mac feature batches until Windows field log exists.
 
-**Mac-side app functionality after this batch:** Near-complete for daily clinic demo on Mac.
+Optional follow-ups **after field log:** decoded status/chart/ledger catalogs (if mappings validated), recent-patients policy, odontogram — only with explicit scope.
 
-**Windows execution status:** **Deferred / Not yet run**.
+---
+
+## Quick reference links
+
+- **Scope lock:** [out-of-scope-guardrails.md](./out-of-scope-guardrails.md)
+- **Windows field test:** [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md)
+- **Pilot handoff:** [PILOT-START-HERE.md](./PILOT-START-HERE.md)
+- **Sandbox QA:** [phase-7-sandbox-pilot-qa-runbook.md](./phase-7-sandbox-pilot-qa-runbook.md)
+- **Reference context plan:** `.cursor/plans/reference_context_enrichment_01ced259.plan.md` (local)
+- **Prior deepening plan:** `.cursor/plans/clinic_app_deepening_batch_6eb1da3a.plan.md` (local)
+
+---
+
+*Audit author: Agent ProductAudit (Workstream R). Mac visual identity pass complete; Windows deferred.*

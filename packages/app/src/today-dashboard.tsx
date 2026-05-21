@@ -1,7 +1,8 @@
 import { createBridgeClient } from "@microdent/bridge-client";
 import type { BridgeDevStatusResponse, MirrorStatusResponse, ScheduleAppointmentItem } from "@microdent/contracts";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Badge, Button, EmptyState } from "@microdent/ui";
+import { Badge, Button } from "@microdent/ui";
+import { AppEmptyPanel } from "./app-empty-panel.js";
 import type { AppSidebarModuleId } from "./app-nav-modules.js";
 import type { SessionRecentPatient } from "./session-recent-patients.js";
 import type { BridgeHealthPhase } from "./bridge-health.js";
@@ -26,6 +27,7 @@ import {
   CLINIC_AT_A_GLANCE_TITLE,
   CLINIC_SERVICE_CHECKING,
   CLINIC_SERVICE_CONNECT_TODAY,
+  CLINIC_SERVICE_OFFLINE_TITLE,
   FRONT_DESK_OVERVIEW_OPEN_SETTINGS,
   MIRROR_ACTIVE_BANNER_LABEL,
   MIRROR_FALLBACK_BANNER_LABEL,
@@ -456,13 +458,12 @@ export function DashboardHome({
   const primaryBody: ReactNode = (() => {
     if (!base || bridgePhase === "offline") {
       return (
-        <div className="app-dashboard-sched__empty-wrap">
-          <EmptyState
-            className="ui-empty--start app-dashboard-sched__empty-state"
-            title="Clinic service offline"
-            description={CLINIC_SERVICE_CONNECT_TODAY}
-          />
-          <div className="app-dashboard-cta-row app-dashboard-cta-row--empty">
+        <AppEmptyPanel
+          className="app-dashboard-sched__empty-wrap"
+          offline
+          title={CLINIC_SERVICE_OFFLINE_TITLE}
+          body={CLINIC_SERVICE_CONNECT_TODAY}
+          actions={
             <Button
               type="button"
               variant="secondary"
@@ -471,8 +472,8 @@ export function DashboardHome({
             >
               {TODAY_OPEN_SETTINGS}
             </Button>
-          </div>
-        </div>
+          }
+        />
       );
     }
     if (bridgePhase === "checking") {
@@ -501,31 +502,31 @@ export function DashboardHome({
     }
     if (sorted.length === 0) {
       return (
-        <div className="app-dashboard-sched__empty-wrap">
-          <EmptyState
-            className="ui-empty--start app-dashboard-sched__empty-state"
-            title={TODAY_EMPTY_TITLE}
-            description={TODAY_EMPTY_DESCRIPTION}
-          />
-          <div className="app-dashboard-cta-row app-dashboard-cta-row--empty">
-            <Button
-              type="button"
-              variant="primary"
-              className="ui-focusable app-dashboard-cta-row__primary"
-              onClick={() => onOpenModule("schedule")}
-            >
-              {TODAY_OPEN_SCHEDULE}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              className="ui-focusable app-dashboard-cta-row__secondary"
-              onClick={() => onOpenModule("patients")}
-            >
-              {TODAY_SEARCH_PATIENT}
-            </Button>
-          </div>
-        </div>
+        <AppEmptyPanel
+          className="app-dashboard-sched__empty-wrap"
+          title={TODAY_EMPTY_TITLE}
+          body={TODAY_EMPTY_DESCRIPTION}
+          actions={
+            <>
+              <Button
+                type="button"
+                variant="primary"
+                className="ui-focusable app-dashboard-cta-row__primary"
+                onClick={() => onOpenModule("schedule")}
+              >
+                {TODAY_OPEN_SCHEDULE}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="ui-focusable app-dashboard-cta-row__secondary"
+                onClick={() => onOpenModule("patients")}
+              >
+                {TODAY_SEARCH_PATIENT}
+              </Button>
+            </>
+          }
+        />
       );
     }
     return (
@@ -540,6 +541,7 @@ export function DashboardHome({
         {sorted.map((a) => {
           const rowClass = [
             "app-data-row",
+            `app-data-row--status-${statusBadgeVariant(a.status)}`,
             currentAppt?.id === a.id ? "app-data-row--current" : "",
             nextUpcoming?.id === a.id && currentAppt?.id !== a.id ? "app-data-row--next" : "",
           ]
@@ -627,10 +629,10 @@ export function DashboardHome({
     }
     if (sorted.length === 0) {
       return (
-        <EmptyState
-          className="ui-empty--start app-next-patient__empty"
+        <AppEmptyPanel
+          className="app-next-patient__empty"
           title={TODAY_EMPTY_TITLE}
-          description={TODAY_NEXT_NO_UPCOMING}
+          body={TODAY_NEXT_NO_UPCOMING}
         />
       );
     }
@@ -638,8 +640,9 @@ export function DashboardHome({
       return <p className="app-next-patient__hint">{TODAY_NEXT_NO_UPCOMING}</p>;
     }
     return (
-      <>
-        <p className="app-next-patient__time">{nextUpcoming.time.trim()}</p>
+      <div className="app-ops-highlight">
+        <p className="app-ops-highlight__label">Next up</p>
+        <p className="app-next-patient__time app-ops-highlight__value">{nextUpcoming.time.trim()}</p>
         <p
           className={
             nextUpcoming.patId === "0"
@@ -690,7 +693,7 @@ export function DashboardHome({
         >
           {TODAY_OPEN_SCHEDULE}
         </Button>
-      </>
+      </div>
     );
   })();
 

@@ -1,0 +1,225 @@
+/* ----- Clinic visual identity — shared tone, hero, empty, chip patterns ----- */
+
+/* Page hero — clinical wash band */
+.app-page-hero {
+  padding: var(--ui-space-4);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid color-mix(in srgb, var(--ui-primary-600) 10%, var(--ui-border-subtle));
+  border-bottom-color: var(--ui-border-subtle);
+  background: linear-gradient(
+    165deg,
+    var(--ui-bg-clinical-wash) 0%,
+    var(--ui-bg-clinical) 55%,
+    var(--ui-bg-surface) 100%
+  );
+}
+
+.app-page-hero__title {
+  font-size: var(--app-text-display, var(--ui-text-display));
+}
+
+/* Stat strip tone variants */
+.app-stat--success {
+  border-color: color-mix(in srgb, var(--ui-success-600) 35%, var(--ui-border-subtle));
+  background: var(--ui-success-50);
+}
+
+.app-stat--success .app-stat__value {
+  color: var(--ui-success-600);
+}
+
+.app-stat--info {
+  border-color: color-mix(in srgb, var(--ui-accent-cyan) 35%, var(--ui-border-subtle));
+  background: var(--ui-status-readonly-bg);
+}
+
+.app-stat--info .app-stat__value {
+  color: var(--ui-status-readonly-text);
+}
+
+.app-stat--warning {
+  border-color: var(--ui-status-mirror-stale-border);
+  background: var(--ui-status-mirror-stale-bg);
+}
+
+.app-stat--warning .app-stat__value {
+  color: var(--ui-status-mirror-stale-text);
+}
+
+.app-stat--danger {
+  border-color: color-mix(in srgb, var(--ui-danger-600) 35%, var(--ui-border-subtle));
+  background: var(--ui-danger-50);
+}
+
+.app-stat--danger .app-stat__value {
+  color: var(--ui-danger-600);
+}
+
+.app-stat--neutral {
+  border-color: var(--ui-status-offline-border);
+  background: var(--ui-status-offline-bg);
+}
+
+.app-stat--neutral .app-stat__value {
+  color: var(--ui-status-offline-text);
+}
+
+/* Operational highlight — next appointment / primary ops card */
+.app-ops-highlight {
+  padding: var(--ui-space-3) var(--ui-space-4);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-primary-alpha-40);
+  border-left: 3px solid var(--ui-primary-600);
+  background: color-mix(in srgb, var(--ui-primary-50) 65%, var(--ui-bg-surface));
+  box-shadow: var(--ui-shadow-panel);
+}
+
+.app-ops-highlight__label {
+  margin: 0 0 var(--ui-space-1);
+  font-size: var(--app-text-meta);
+  font-weight: 600;
+  color: var(--ui-primary-700);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.app-ops-highlight__value {
+  margin: 0;
+  font-size: var(--app-text-body);
+  font-weight: 600;
+  color: var(--ui-text-primary);
+}
+
+/* Empty / offline panel pattern */
+.app-empty-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-5) var(--ui-space-4);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-border-subtle);
+  background: linear-gradient(
+    160deg,
+    var(--ui-bg-clinical-wash) 0%,
+    var(--ui-bg-surface) 70%
+  );
+  text-align: center;
+}
+
+.app-empty-panel__title {
+  margin: 0;
+  font-size: var(--ui-text-section);
+  font-weight: 600;
+  color: var(--ui-text-primary);
+}
+
+.app-empty-panel__body {
+  margin: 0 auto;
+  max-width: 42ch;
+  font-size: var(--app-text-body);
+  line-height: 1.5;
+  color: var(--ui-text-secondary);
+}
+
+.app-empty-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--ui-space-2);
+}
+
+.app-empty-panel--offline {
+  border-color: var(--ui-status-offline-border);
+  background: var(--ui-status-offline-bg);
+}
+
+/* Shared app chips / badges (semantic tones) */
+.app-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-1);
+  padding: 2px var(--ui-space-2);
+  border-radius: var(--ui-radius-sm);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-surface);
+  font-size: var(--app-text-meta);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ui-text-secondary);
+}
+
+.app-chip--success {
+  border-color: color-mix(in srgb, var(--ui-success-600) 30%, transparent);
+  background: var(--ui-success-50);
+  color: var(--ui-success-600);
+}
+
+.app-chip--info,
+.app-chip--readonly {
+  border-color: var(--ui-status-readonly-border);
+  background: var(--ui-status-readonly-bg);
+  color: var(--ui-status-readonly-text);
+}
+
+.app-chip--warning,
+.app-chip--sandbox {
+  border-color: var(--ui-status-sandbox-border);
+  background: var(--ui-status-sandbox-bg);
+  color: var(--ui-status-sandbox-text);
+}
+
+.app-chip--danger {
+  border-color: color-mix(in srgb, var(--ui-danger-600) 30%, transparent);
+  background: var(--ui-danger-50);
+  color: var(--ui-danger-600);
+}
+
+.app-chip--neutral,
+.app-chip--offline {
+  border-color: var(--ui-status-offline-border);
+  background: var(--ui-status-offline-bg);
+  color: var(--ui-status-offline-text);
+}
+
+.app-chip--mirror-stale {
+  border-color: var(--ui-status-mirror-stale-border);
+  background: var(--ui-status-mirror-stale-bg);
+  color: var(--ui-status-mirror-stale-text);
+}
+
+.app-chip--emphasis {
+  border-color: var(--ui-primary-alpha-40);
+  background: var(--ui-primary-50);
+  color: var(--ui-primary-700);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .app-ops-highlight {
+    transition: box-shadow var(--ui-duration-hover) var(--ui-ease-out);
+  }
+
+  .app-ops-highlight:hover {
+    box-shadow: var(--ui-shadow-elevated);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-ops-highlight:hover {
+    box-shadow: var(--ui-shadow-panel);
+  }
+}
+
+/* Focus-visible on shared chips, cards, and recent buttons */
+.app-chip:focus-visible,
+.app-recent-list__btn:focus-visible,
+.app-patient-search__recent-card:focus-visible,
+.app-patient-profile__summary-mini-card:focus-visible {
+  outline: var(--ui-focus-ring-width) solid var(--ui-focus-ring-color);
+  outline-offset: 2px;
+}
+
+.app-empty-panel a:focus-visible,
+.app-empty-panel button:focus-visible {
+  outline: var(--ui-focus-ring-width) solid var(--ui-focus-ring-color);
+  outline-offset: 2px;
+}

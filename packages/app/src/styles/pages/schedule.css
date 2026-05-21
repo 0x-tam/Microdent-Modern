@@ -156,3 +156,132 @@
   margin: 0 0 var(--ui-space-2);
 }
 
+
+/* ----- Visual identity: schedule board ----- */
+.app-schedule__hero {
+  border-bottom: 2px solid color-mix(in srgb, var(--ui-primary-600) 28%, var(--ui-border-subtle));
+}
+
+.app-schedule__hero-date {
+  font-weight: 600;
+  color: var(--ui-primary-700);
+}
+
+.app-schedule__range-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+}
+
+.app-schedule__stat-strip {
+  margin: 0;
+}
+
+.app-schedule__stat-strip .app-stat:not(.app-stat--emphasis):not(.app-stat--info) .app-stat__value {
+  font-size: clamp(0.95rem, 0.88rem + 0.25vw, 1.125rem);
+}
+
+.app-schedule__day-card {
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-surface);
+  overflow: hidden;
+  box-shadow: var(--ui-shadow-panel);
+}
+
+.app-schedule__day-title.app-board-day-header {
+  border-bottom: 2px solid color-mix(in srgb, var(--ui-primary-600) 22%, transparent);
+  color: var(--ui-primary-800, var(--ui-primary-700));
+}
+
+.app-schedule__room-block {
+  margin: 0 0 var(--ui-space-3);
+  padding: var(--ui-space-3);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid color-mix(in srgb, var(--ui-primary-600) 12%, var(--ui-border-subtle));
+  border-left: 3px solid var(--ui-primary-600);
+  background: color-mix(in srgb, var(--ui-bg-clinical-wash) 45%, var(--ui-bg-subtle));
+}
+
+.app-schedule__room-block:last-child {
+  margin-bottom: 0;
+}
+
+.app-schedule__room-heading {
+  color: var(--ui-primary-700);
+}
+
+.app-schedule__status-badge--success {
+  border-color: color-mix(in srgb, var(--ui-success-600) 35%, var(--ui-border-subtle));
+  background: var(--ui-success-50);
+  color: var(--ui-success-700, var(--ui-success-600));
+}
+
+.app-schedule__status-badge--info {
+  border-color: color-mix(in srgb, var(--ui-accent-cyan) 35%, var(--ui-border-subtle));
+  background: var(--ui-status-readonly-bg);
+  color: var(--ui-status-readonly-text);
+}
+
+.app-schedule__status-badge--warning {
+  border-color: var(--ui-status-mirror-stale-border);
+  background: var(--ui-status-mirror-stale-bg);
+  color: var(--ui-status-mirror-stale-text);
+}
+
+.app-schedule__status-badge--danger {
+  border-color: color-mix(in srgb, var(--ui-danger-600) 35%, var(--ui-border-subtle));
+  background: var(--ui-danger-50);
+  color: var(--ui-danger-600);
+}
+
+.app-schedule__status-badge--neutral {
+  border-color: var(--ui-status-offline-border);
+  background: var(--ui-status-offline-bg);
+  color: var(--ui-status-offline-text);
+}
+
+.app-schedule__status-chip--success[aria-pressed="true"],
+.app-schedule__status-chip--success:focus-visible {
+  border-color: var(--ui-success-600);
+  background: var(--ui-success-50);
+}
+
+.app-schedule__status-chip--info[aria-pressed="true"],
+.app-schedule__status-chip--info:focus-visible {
+  border-color: var(--ui-status-readonly-border);
+  background: var(--ui-status-readonly-bg);
+}
+
+.app-schedule__status-chip--warning[aria-pressed="true"],
+.app-schedule__status-chip--warning:focus-visible {
+  border-color: var(--ui-status-mirror-stale-border);
+  background: var(--ui-status-mirror-stale-bg);
+}
+
+.app-schedule__status-chip--danger[aria-pressed="true"],
+.app-schedule__status-chip--danger:focus-visible {
+  border-color: var(--ui-danger-600);
+  background: var(--ui-danger-50);
+}
+
+.app-schedule__status-chip--neutral[aria-pressed="true"],
+.app-schedule__status-chip--neutral:focus-visible {
+  border-color: var(--ui-status-offline-border);
+  background: var(--ui-status-offline-bg);
+}
+
+.app-schedule__empty-panel {
+  text-align: left;
+  align-items: flex-start;
+}
+
+.app-schedule__empty-panel .app-empty-panel__body {
+  margin: 0;
+  max-width: none;
+  text-align: left;
+}
+
+.app-schedule__empty-panel .app-empty-panel__actions {
+  justify-content: flex-start;
+}

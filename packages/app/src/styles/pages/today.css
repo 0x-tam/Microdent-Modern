@@ -500,3 +500,118 @@
   margin: var(--ui-space-2) 0 var(--ui-space-3);
 }
 
+
+/* ----- Wave 2 D: Today command center visual life ----- */
+.app-workspace-page.app-dashboard .app-page-hero {
+  margin-bottom: var(--ui-space-1);
+  border-bottom: 2px solid color-mix(in srgb, var(--ui-primary-600) 18%, transparent);
+}
+
+.app-workspace-page.app-dashboard .app-page-hero__title {
+  color: var(--ui-primary-800, var(--ui-primary-700));
+}
+
+.app-workspace-page.app-dashboard .app-dashboard__date {
+  font-weight: 600;
+  color: var(--ui-primary-700);
+  white-space: nowrap;
+}
+
+.app-workspace-page.app-dashboard .app-stat-strip {
+  background: linear-gradient(
+    165deg,
+    var(--ui-bg-clinical-wash) 0%,
+    var(--ui-bg-clinical) 100%
+  );
+}
+
+.app-workspace-page.app-dashboard .app-stat--emphasis {
+  box-shadow: var(--ui-shadow-panel);
+}
+
+.app-workspace-page.app-dashboard .app-board-panel__title {
+  border-bottom-color: color-mix(in srgb, var(--ui-primary-600) 42%, transparent);
+}
+
+.app-workspace-page.app-dashboard .app-data-list--today .app-data-row--status-success:not(.app-data-row--current):not(.app-data-row--next) {
+  box-shadow: inset 3px 0 0 var(--ui-success-600);
+}
+
+.app-workspace-page.app-dashboard .app-data-list--today .app-data-row--status-info:not(.app-data-row--current):not(.app-data-row--next) {
+  box-shadow: inset 3px 0 0 var(--ui-accent-cyan, var(--ui-primary-500));
+}
+
+.app-workspace-page.app-dashboard .app-data-list--today .app-data-row--status-warning:not(.app-data-row--current):not(.app-data-row--next) {
+  box-shadow: inset 3px 0 0 var(--ui-warning-600);
+}
+
+.app-workspace-page.app-dashboard .app-data-list--today .app-data-row--status-danger:not(.app-data-row--current):not(.app-data-row--next) {
+  box-shadow: inset 3px 0 0 var(--ui-danger-600);
+}
+
+.app-workspace-page.app-dashboard .app-data-list--today .app-data-row--status-neutral:not(.app-data-row--current):not(.app-data-row--next) {
+  box-shadow: inset 3px 0 0 var(--ui-border-strong, var(--ui-border-subtle));
+}
+
+.app-workspace-page.app-dashboard .app-ops-panel__section {
+  padding-top: var(--ui-space-3);
+  margin-top: var(--ui-space-3);
+  border-top: 1px solid color-mix(in srgb, var(--ui-primary-600) 12%, var(--ui-border-subtle));
+}
+
+.app-workspace-page.app-dashboard .app-ops-panel__section:first-of-type {
+  padding-top: 0;
+  margin-top: 0;
+  border-top: none;
+}
+
+.app-workspace-page.app-dashboard .app-ops-panel .app-ops-highlight {
+  margin-bottom: var(--ui-space-3);
+}
+
+.app-workspace-page.app-dashboard .app-dashboard-sched__empty-wrap.app-empty-panel,
+.app-workspace-page.app-dashboard .app-dashboard-sched__empty-wrap {
+  align-items: stretch;
+  text-align: left;
+  padding: var(--ui-space-4);
+}
+
+.app-workspace-page.app-dashboard .app-dashboard-sched__empty-wrap .app-empty-panel__actions,
+.app-workspace-page.app-dashboard .app-dashboard-sched__empty-wrap .app-dashboard-cta-row--empty {
+  justify-content: flex-start;
+}
+
+.app-workspace-page.app-dashboard .app-next-patient__empty.app-empty-panel {
+  padding: var(--ui-space-3);
+  border-radius: var(--ui-radius-md);
+  background: color-mix(in srgb, var(--ui-bg-clinical-wash) 55%, var(--ui-bg-surface));
+}
+
+.app-workspace-page.app-dashboard .app-quick-actions {
+  gap: var(--ui-space-2);
+}
+
+.app-workspace-page.app-dashboard .app-quick-actions__btn:first-of-type {
+  order: -1;
+}
+
+.app-workspace-page.app-dashboard .app-quick-actions .ui-btn--primary {
+  font-weight: 600;
+}
+
+.app-workspace-page.app-dashboard .app-quick-actions .ui-btn--ghost {
+  color: var(--ui-text-muted);
+}
+
+.app-workspace-page.app-dashboard .app-quick-actions__pilot-hint,
+.app-workspace-page.app-dashboard .app-dashboard__reminders-footnote {
+  margin: var(--ui-space-2) 0 0;
+  font-size: var(--app-text-meta);
+  color: var(--ui-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-workspace-page.app-dashboard .app-data-list--today .app-data-row {
+    transition: none;
+  }
+}

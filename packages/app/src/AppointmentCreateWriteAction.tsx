@@ -21,6 +21,8 @@ import { useDoctorLabels } from "./useDoctorLabels.js";
 import {
   SafeWritePlanResult,
   SandboxWriteBanner,
+  SandboxWriteStepIndicator,
+  type SandboxWriteStep,
   SandboxWriteBlockedNotice,
   summarizeWritePlan,
   WriteOperationResult,
@@ -54,6 +56,12 @@ type UiState =
   | { kind: "preview"; summary: WritePlanResultSummary }
   | { kind: "result"; committed: boolean; feedbackLines: string[] }
   | { kind: "error"; message: string };
+
+function resolveWriteStep(state: UiState): SandboxWriteStep {
+  if (state.kind === "result") return "result";
+  if (state.kind === "preview" || (state.kind === "loading" && state.action === "commit")) return "preview";
+  return "edit";
+}
 
 export function AppointmentCreateWriteAction({
   bridgeBaseUrl,
@@ -229,8 +237,9 @@ export function AppointmentCreateWriteAction({
 
   return (
     <details className="app-sandbox-write app-sandbox-write-zone app-appt-create-write" data-testid="appt-create-write-pilot">
-      <summary className="app-sandbox-write__summary">{APPOINTMENT_CREATE_SUMMARY}</summary>
+      <summary className="app-sandbox-write__summary app-sandbox-write-zone__header">{APPOINTMENT_CREATE_SUMMARY}</summary>
       <SandboxWriteBanner />
+      <SandboxWriteStepIndicator step={resolveWriteStep(state)} />
       {selectedPatientHeadline ? (
         <p className="app-sandbox-write__patient-context" role="status">
           {APPOINTMENT_CREATE_PATIENT_CONTEXT}: {selectedPatientHeadline}
@@ -239,7 +248,7 @@ export function AppointmentCreateWriteAction({
       <p className="app-sandbox-write__hint">{APPOINTMENT_CREATE_PATIENT_ID_HINT}</p>
       <div className="app-sandbox-write__fields app-sandbox-write__fields--grid">
         <label className="app-sandbox-write__label">
-          <span>Date</span>
+          <span className="app-sandbox-write__label-text">Date</span>
           <input
             type="date"
             className="ui-focusable"
@@ -252,7 +261,7 @@ export function AppointmentCreateWriteAction({
           />
         </label>
         <label className="app-sandbox-write__label">
-          <span>Time</span>
+          <span className="app-sandbox-write__label-text">Time</span>
           <input
             type="text"
             className="ui-focusable"
@@ -266,7 +275,7 @@ export function AppointmentCreateWriteAction({
           />
         </label>
         <label className="app-sandbox-write__label">
-          <span>Room</span>
+          <span className="app-sandbox-write__label-text">Room</span>
           <select
             className="ui-focusable"
             value={room}
@@ -285,7 +294,7 @@ export function AppointmentCreateWriteAction({
           </select>
         </label>
         <label className="app-sandbox-write__label">
-          <span>Patient id</span>
+          <span className="app-sandbox-write__label-text">Patient id</span>
           <input
             type="text"
             className="ui-focusable"
@@ -299,7 +308,7 @@ export function AppointmentCreateWriteAction({
           />
         </label>
         <label className="app-sandbox-write__label">
-          <span>Doctor</span>
+          <span className="app-sandbox-write__label-text">Doctor</span>
           <select
             className="ui-focusable"
             value={docId}
@@ -319,7 +328,7 @@ export function AppointmentCreateWriteAction({
           </select>
         </label>
         <label className="app-sandbox-write__label">
-          <span>Duration slots</span>
+          <span className="app-sandbox-write__label-text">Duration slots</span>
           <input
             type="number"
             min={1}
@@ -334,7 +343,7 @@ export function AppointmentCreateWriteAction({
           />
         </label>
         <label className="app-sandbox-write__label">
-          <span>Status</span>
+          <span className="app-sandbox-write__label-text">Status</span>
           <select
             className="ui-focusable"
             value={status}
@@ -375,7 +384,7 @@ export function AppointmentCreateWriteAction({
         </Button>
       </div>
       {state.kind === "preview" ? (
-        <SafeWritePlanResult summary={state.summary} testId="appt-create-plan" />
+        <SafeWritePlanResult className="app-sandbox-write__plan app-sandbox-write__surface app-sandbox-write__surface--preview" summary={state.summary} testId="appt-create-plan" />
       ) : null}
       {state.kind === "result" ? (
         <WriteOperationResult
@@ -386,7 +395,7 @@ export function AppointmentCreateWriteAction({
         />
       ) : null}
       {state.kind === "error" ? (
-        <p className="app-sandbox-write__error" role="alert">
+        <p className="app-sandbox-write__error app-sandbox-write__surface app-sandbox-write__surface--danger" role="alert">
           {state.message}
         </p>
       ) : null}

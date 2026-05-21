@@ -7,7 +7,8 @@
   padding: var(--ui-space-3) var(--ui-space-4);
   border-radius: var(--ui-radius-md);
   border: 1px solid var(--ui-border-subtle);
-  background: var(--ui-bg-surface-raised);
+  background: var(--ui-bg-clinical);
+  box-shadow: var(--app-panel-shadow, var(--ui-shadow-panel));
 }
 
 .app-stat {
@@ -23,8 +24,12 @@
 }
 
 .app-stat--emphasis {
-  border-color: var(--app-primary-alpha-40);
-  background: var(--ui-primary-50);
+  border-color: var(--app-stat-border-emphasis, var(--app-primary-alpha-40));
+  background: var(--app-stat-accent-emphasis, var(--ui-primary-50));
+}
+
+.app-stat--emphasis .app-stat__value {
+  color: var(--ui-primary-700);
 }
 
 .app-stat__label {
@@ -73,7 +78,7 @@
   border-radius: var(--ui-radius-md);
   border: 1px solid var(--ui-border-subtle);
   background: var(--ui-bg-surface);
-  box-shadow: var(--ui-shadow-card, 0 1px 2px rgba(15, 23, 42, 0.06));
+  box-shadow: var(--app-panel-shadow, var(--ui-shadow-panel));
   min-width: 0;
 }
 
@@ -89,10 +94,12 @@
 .app-board-panel__title,
 .app-ops-panel__title {
   margin: 0;
-  font-size: clamp(1rem, 0.92rem + 0.35vw, 1.125rem);
+  font-size: var(--app-text-section, var(--ui-text-section));
   font-weight: 600;
   line-height: 1.3;
   color: var(--ui-text-primary);
+  padding-bottom: var(--ui-space-2);
+  border-bottom: 2px solid color-mix(in srgb, var(--app-panel-accent, var(--ui-primary-600)) 22%, transparent);
 }
 
 .app-board-day-header {

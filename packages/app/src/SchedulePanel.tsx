@@ -1,9 +1,10 @@
 import { createBridgeClient } from "@microdent/bridge-client";
 import type { BridgeDevStatusResponse, MirrorStatusResponse, ScheduleAppointmentItem, ScheduleRoomItem } from "@microdent/contracts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Badge, Button, EmptyState } from "@microdent/ui";
+import { Badge, Button } from "@microdent/ui";
 import type { BridgeHealthPhase } from "./bridge-health.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
+import { AppEmptyPanel } from "./app-empty-panel.js";
 import {
   appointmentVisitMeta,
   buildRoomLabelMap,
@@ -14,6 +15,8 @@ import { useProcedureReference } from "./useProcedureReference.js";
 import {
   CLINIC_SERVICE_CHECKING,
   CLINIC_SERVICE_CONNECT_SCHEDULE,
+  CLINIC_SERVICE_OFFLINE_TITLE,
+  PATIENT_PROFILE_WAITING_TITLE,
   SCHEDULE_DAY_APPOINTMENT_COUNT,
   SCHEDULE_EMPTY_DESCRIPTION,
   SCHEDULE_EMPTY_TITLE,
@@ -173,6 +176,10 @@ function statusBadgeVariant(
   code: number,
 ): "neutral" | "success" | "warning" | "danger" | "info" {
   return patientApptStatusBadgeVariant(code);
+}
+
+function statusBadgeClassName(code: number): string {
+  return `app-schedule__status-badge app-schedule__status-badge--${statusBadgeVariant(code)}`;
 }
 
 function formatDuration(a: ScheduleAppointmentItem): string {
@@ -620,12 +627,12 @@ export function SchedulePanel({
 
   return (
     <div className="app-workspace-page app-schedule">
-      <header className="app-page-hero">
+      <header className="app-page-hero app-schedule__hero">
         <div>
           <h2 className="app-page-hero__title">{moduleTitle}</h2>
           {moduleDescription ? <p className="app-page-hero__meta">{moduleDescription}</p> : null}
         </div>
-        <p className="app-page-hero__meta">{rangeHeading}</p>
+        <p className="app-page-hero__meta app-schedule__hero-date">{rangeHeading}</p>
       </header>
         <div className="app-schedule__toolbar app-toolbar app-filter-bar">
           <div className="app-schedule__toolbar-row app-filter-bar__group">
@@ -751,7 +758,7 @@ export function SchedulePanel({
                   <p className="app-stat__value">{operationalSummary.shownLabel}</p>
                 </div>
                 {includesToday ? (
-                  <div className="app-stat">
+                  <div className="app-stat app-stat--info">
                     <p className="app-stat__label">Range</p>
                     <p className="app-stat__value">{SCHEDULE_RANGE_INCLUDES_TODAY}</p>
                   </div>
@@ -862,12 +869,12 @@ export function SchedulePanel({
       </div>
 
       {!canLoad ? (
-        <p
-          className={`app-readonly-state app-schedule__state app-schedule__state--muted${bridgePhase === "checking" ? " app-readonly-state--checking" : " app-readonly-state--offline"}`}
-          role="status"
-        >
-          {offlineMessage}
-        </p>
+        <AppEmptyPanel
+          className="app-schedule__empty-panel"
+          offline={bridgePhase !== "checking"}
+          title={bridgePhase === "checking" ? PATIENT_PROFILE_WAITING_TITLE : CLINIC_SERVICE_OFFLINE_TITLE}
+          body={offlineMessage}
+        />
       ) : loading ? (
         <p
           className="app-readonly-state app-readonly-state--loading app-schedule__state app-schedule__state--muted"
@@ -892,19 +899,47 @@ export function SchedulePanel({
         </div>
       ) : appointments.length === 0 ? (
         <AppErrorBoundary>
-          <EmptyState
-            className="ui-empty--start"
-            title={SCHEDULE_EMPTY_TITLE}
-            description={SCHEDULE_EMPTY_DESCRIPTION}
-          />
+          <div className="app-empty-panel app-schedule__empty-panel" role="status">
+            <h3 className="app-empty-panel__title">{SCHEDULE_EMPTY_TITLE}</h3>
+            <p className="app-empty-panel__body">{SCHEDULE_EMPTY_DESCRIPTION}</p>
+            <div className="app-empty-panel__actions">
+              <Button type="button" variant="secondary" size="compact" className="ui-focusable" disabled={!canLoad || loading} onClick={goToday}>
+                {SCHEDULE_NAV_TODAY}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="compact"
+                className="ui-focusable"
+                disabled={!canLoad || loading}
+                onClick={() => setRefreshTick((x) => x + 1)}
+              >
+                Refresh
+              </Button>
+            </div>
+          </div>
         </AppErrorBoundary>
       ) : displayAppointments.length === 0 ? (
         <AppErrorBoundary>
-          <EmptyState
-            className="ui-empty--start"
-            title={SCHEDULE_FILTER_EMPTY_TITLE}
-            description={SCHEDULE_FILTER_EMPTY_DESCRIPTION}
-          />
+          <div className="app-empty-panel app-schedule__empty-panel" role="status">
+            <h3 className="app-empty-panel__title">{SCHEDULE_FILTER_EMPTY_TITLE}</h3>
+            <p className="app-empty-panel__body">{SCHEDULE_FILTER_EMPTY_DESCRIPTION}</p>
+            <div className="app-empty-panel__actions">
+              <Button type="button" variant="secondary" size="compact" className="ui-focusable" onClick={clearClientFilters}>
+                {FILTER_CLEAR_LABEL}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="compact"
+                className="ui-focusable"
+                disabled={loading}
+                onClick={() => setRefreshTick((x) => x + 1)}
+              >
+                Refresh
+              </Button>
+            </div>
+          </div>
         </AppErrorBoundary>
       ) : (
         <div className="app-schedule__days">
@@ -959,7 +994,11 @@ export function SchedulePanel({
                                 </span>
                               </div>
                               <div className="app-schedule__appt-badges">
-                                <Badge variant={statusBadgeVariant(appt.status)} semanticLabel={patientApptStatusSemanticLabel(appt.status)}>
+                                <Badge
+                                  variant={statusBadgeVariant(appt.status)}
+                                  className={statusBadgeClassName(appt.status)}
+                                  semanticLabel={patientApptStatusSemanticLabel(appt.status)}
+                                >
                                   {statusLabel(appt.status)}
                                 </Badge>
                                 {appt.missed ? (

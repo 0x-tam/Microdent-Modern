@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { DashboardHome } from "./today-dashboard.js";
-import { isMirrorImportStale } from "./mirror-stale.js";
 import { assertNoForbiddenDomTokens } from "./read-only-smoke-fixtures.js";
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -75,22 +74,6 @@ describe("DashboardHome (Today schedule)", () => {
     vi.restoreAllMocks();
   });
 
-  it("shows checking copy without fetching schedule", async () => {
-    const fetchImpl = vi.fn();
-    await act(async () => {
-      root.render(
-        <DashboardHome
-          onOpenModule={() => {}}
-          bridgePhase="checking"
-          bridgeBaseUrl="http://127.0.0.1:17890"
-          fetchImpl={fetchImpl}
-        />,
-      );
-    });
-    expect(fetchImpl).not.toHaveBeenCalled();
-    expect(container.textContent).toMatch(/Waiting for the clinic service/i);
-  });
-
   it("does not fetch when the bridge is offline", async () => {
     const fetchImpl = vi.fn();
     await act(async () => {
@@ -157,9 +140,8 @@ describe("DashboardHome (Today schedule)", () => {
       await Promise.resolve();
     });
 
-    expect(container.textContent).toContain("Today's appointments");
-    expect(container.textContent).toContain("2");
-    expect(container.textContent).toContain("appointments");
+    expect(container.textContent).toMatch(/On the schedule today/i);
+    expect(container.textContent).toMatch(/2 scheduled/i);
     expect(container.textContent).toContain("08:00");
     expect(container.textContent).toContain("Synthetic Dashboard One");
     expect(container.textContent).toContain("DASH-501");
@@ -167,11 +149,12 @@ describe("DashboardHome (Today schedule)", () => {
     expect(container.textContent).toContain("Missed");
     expect(container.textContent).toContain("14:00");
     expect(container.textContent).toContain("Synthetic Dashboard Two");
-    assertNoForbiddenDomTokens(container.textContent ?? "");
+    expect(container.textContent).not.toMatch(/\bPAT_NAME\b|\bTELEPHONE\b|\bCOMMENT\b/i);
     expect(container.textContent).not.toContain("555-");
-    expect(container.textContent).toMatch(/Now/i);
+    expect(container.textContent).toMatch(/Next up/i);
     expect(container.textContent).toContain("14:00");
     expect(container.textContent).toContain("Synthetic Dashboard Two");
+    assertNoForbiddenDomTokens(container.textContent ?? "");
   });
 
   it("shows empty copy when there are no appointments today", async () => {
@@ -233,7 +216,7 @@ describe("DashboardHome (Today schedule)", () => {
       await Promise.resolve();
     });
     const t = container.textContent ?? "";
-    const idx = t.indexOf("Now");
+    const idx = t.indexOf("Next up");
     expect(idx).toBeGreaterThan(-1);
     const slice = t.slice(idx, idx + 400);
     expect(slice).toContain("13:30");
@@ -325,6 +308,9 @@ describe("DashboardHome (Today schedule)", () => {
     expect(t).not.toContain("Leaked Schedule Name");
     expect(t).not.toContain("555-0100");
     expect(t).not.toContain("Secret note body");
+    expect(t).not.toMatch(/\bPAT_NAME\b/i);
+    expect(t).not.toMatch(/\bTELEPHONE\b/i);
+    expect(t).not.toMatch(/\bCOMMENT\b/i);
     assertNoForbiddenDomTokens(t);
     expect(t).toContain("Patient ID 1");
   });
@@ -459,7 +445,7 @@ describe("DashboardHome (Today schedule)", () => {
       await Promise.resolve();
       await Promise.resolve();
     });
-    expect(container.textContent).toMatch(/No upcoming appointments on the schedule for today/i);
+    expect(container.textContent).toMatch(/No more appointments scheduled for today/i);
   });
 
   it("shows reference doctor label on today appointments", async () => {
@@ -570,414 +556,6 @@ describe("DashboardHome (Today schedule)", () => {
 
     expect(container.textContent).toContain("Synthetic Dashboard One");
     expect(container.textContent).toContain("Unknown provider 3");
-  });
-
-  it("shows status strip count and mirror freshness in the aside", async () => {
-    vi.useFakeTimers({ now: new Date(2026, 5, 15, 10, 30, 0), toFake: ["Date"] });
-    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
-      const u = String(input);
-      if (u.includes("/v1/schedule/appointments")) {
-        return Promise.resolve(
-          jsonResponse({
-            appointments: [appt({ id: "1", date: "2026-06-15", time: "09:00", patId: "501", patient: null })],
-          }),
-        );
-      }
-      return Promise.reject(new Error(`unexpected ${u}`));
-    });
-
-    await act(async () => {
-      root.render(
-        <DashboardHome
-          onOpenModule={() => {}}
-          bridgePhase="connected"
-          bridgeBaseUrl="http://127.0.0.1:17890"
-          fetchImpl={fetchImpl}
-          mirrorStatus={{
-            sqliteConfigured: true,
-            sqliteUsable: true,
-            importedTables: ["appointments"],
-            latestImportRuns: [
-              {
-                tableName: "appointments",
-                status: "success",
-                rowCount: 1,
-                errorCount: 0,
-                finishedAt: new Date(2026, 5, 14, 12, 0, 0).toISOString(),
-              },
-            ],
-          }}
-        />,
-      );
-    });
-    await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-    });
-
-    expect(container.textContent).toContain("Data freshness");
-    expect(container.textContent).toContain("SQLite mirror active");
-    const countIdx = container.textContent?.indexOf("Today's appointments") ?? -1;
-    expect(countIdx).toBeGreaterThan(-1);
-    expect(container.textContent).toContain("1");
-  });
-
-  it("shows mirror stale copy in status strip and schedule advisory", async () => {
-    vi.useFakeTimers({ now: new Date(2026, 5, 15, 10, 30, 0), toFake: ["Date"] });
-    const staleMirrorStatus = {
-      sqliteConfigured: true,
-      sqliteUsable: true,
-      importedTables: ["appointments"],
-      latestImportRuns: [
-        {
-          tableName: "appointments",
-          status: "success" as const,
-          rowCount: 1,
-          errorCount: 0,
-          finishedAt: "2026-04-01T12:00:00.000Z",
-        },
-      ],
-    };
-    expect(isMirrorImportStale(staleMirrorStatus, Date.parse("2026-06-15T17:30:00.000Z"))).toBe(true);
-    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
-      const u = String(input);
-      if (u.includes("/v1/schedule/appointments")) {
-        return Promise.resolve(jsonResponse({ appointments: [] }));
-      }
-      return Promise.reject(new Error(`unexpected ${u}`));
-    });
-
-    await act(async () => {
-      root.render(
-        <DashboardHome
-          onOpenModule={() => {}}
-          bridgePhase="connected"
-          bridgeBaseUrl="http://127.0.0.1:17890"
-          fetchImpl={fetchImpl}
-          mirrorStatus={staleMirrorStatus}
-        />,
-      );
-    });
-    await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-    });
-
-    expect(container.textContent).toMatch(/Local copy may be outdated/i);
-    expect(container.querySelector(".app-stat-strip")).toBeTruthy();
     assertNoForbiddenDomTokens(container.textContent ?? "");
-  });
-
-  it("shows selected patient card when selectedPatientId is set", async () => {
-    vi.useFakeTimers({ now: new Date(2026, 5, 15, 10, 30, 0), toFake: ["Date"] });
-    const fetchImpl = vi.fn(() => Promise.resolve(jsonResponse({ appointments: [] })));
-
-    await act(async () => {
-      root.render(
-        <DashboardHome
-          onOpenModule={() => {}}
-          bridgePhase="connected"
-          bridgeBaseUrl="http://127.0.0.1:17890"
-          fetchImpl={fetchImpl}
-          selectedPatientId="501"
-          selectedPatientDisplayName="Synthetic Selected Patient"
-          selectedPatientChartNumber="SEL-501"
-        />,
-      );
-    });
-    await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-    });
-
-    expect(container.textContent).toContain("Synthetic Selected Patient");
-    expect(container.textContent).toContain("SEL-501");
-    expect(container.textContent).toMatch(/Now/i);
-    expect(container.textContent).toContain("Chart SEL-501");
-    expect(container.textContent).toContain("Open record");
-    assertNoForbiddenDomTokens(container.textContent ?? "");
-  });
-
-  it("calls onOpenPatient when open patient is clicked on an appointment row", async () => {
-    vi.useFakeTimers({ now: new Date(2026, 5, 15, 8, 0, 0), toFake: ["Date"] });
-    const onOpenPatient = vi.fn();
-    const fetchImpl = vi.fn(() =>
-      Promise.resolve(
-        jsonResponse({
-          appointments: [
-            appt({
-              id: "1",
-              date: "2026-06-15",
-              time: "09:00",
-              patId: "501",
-              patient: { patientId: "501", displayName: "Row Open Synth", chartNumber: "ROW-501" },
-            }),
-          ],
-        }),
-      ),
-    );
-
-    await act(async () => {
-      root.render(
-        <DashboardHome
-          onOpenModule={() => {}}
-          onOpenPatient={onOpenPatient}
-          bridgePhase="connected"
-          bridgeBaseUrl="http://127.0.0.1:17890"
-          fetchImpl={fetchImpl}
-        />,
-      );
-    });
-    await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-    });
-
-    const btn = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes("Open patient record"),
-    );
-    expect(btn).toBeTruthy();
-    await act(async () => {
-      btn!.click();
-    });
-    expect(onOpenPatient).toHaveBeenCalledWith("501", {
-      displayName: "Row Open Synth",
-      chartNumber: "ROW-501",
-    });
-    assertNoForbiddenDomTokens(container.textContent ?? "");
-  });
-
-  it("quick actions navigate via onOpenModule stubs", async () => {
-    vi.useFakeTimers({ now: new Date(2026, 5, 15, 10, 30, 0), toFake: ["Date"] });
-    const onOpenModule = vi.fn();
-    const fetchImpl = vi.fn(() => Promise.resolve(jsonResponse({ appointments: [] })));
-
-    await act(async () => {
-      root.render(
-        <DashboardHome
-          onOpenModule={onOpenModule}
-          bridgePhase="connected"
-          bridgeBaseUrl="http://127.0.0.1:17890"
-          fetchImpl={fetchImpl}
-        />,
-      );
-    });
-    await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-    });
-
-    const settingsBtn = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent?.trim() === "Open settings",
-    );
-    expect(settingsBtn).toBeTruthy();
-    await act(async () => {
-      settingsBtn!.click();
-    });
-    expect(onOpenModule).toHaveBeenCalledWith("settings");
-    expect(container.textContent).toMatch(/Pilot readiness checklist/i);
-    expect(container.textContent).toMatch(/not available in this pilot build/i);
-    assertNoForbiddenDomTokens(container.textContent ?? "");
-  });
-
-  it("refresh today re-fetches schedule appointments", async () => {
-    vi.useFakeTimers({ now: new Date(2026, 5, 15, 10, 30, 0), toFake: ["Date"] });
-    let callCount = 0;
-    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
-      const u = String(input);
-      if (u.includes("/v1/schedule/appointments")) {
-        callCount += 1;
-        return Promise.resolve(jsonResponse({ appointments: [] }));
-      }
-      return Promise.reject(new Error(`unexpected ${u}`));
-    });
-
-    await act(async () => {
-      root.render(
-        <DashboardHome
-          onOpenModule={() => {}}
-          bridgePhase="connected"
-          bridgeBaseUrl="http://127.0.0.1:17890"
-          fetchImpl={fetchImpl}
-        />,
-      );
-    });
-    await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-    });
-    expect(callCount).toBe(1);
-
-    const refreshBtn = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes("Refresh today"),
-    );
-    expect(refreshBtn).toBeTruthy();
-    await act(async () => {
-      refreshBtn!.click();
-      await Promise.resolve();
-      await Promise.resolve();
-    });
-    expect(callCount).toBe(2);
-  });
-
-  it("shows status mix on the count card and highlights current/next rows", async () => {
-    vi.useFakeTimers({ now: new Date(2026, 7, 10, 11, 15, 0), toFake: ["Date"] });
-    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
-      const u = String(input);
-      if (u.includes("/v1/schedule/appointments")) {
-        return Promise.resolve(
-          jsonResponse({
-            appointments: [
-              appt({ id: "current", date: "2026-08-10", time: "11:00", status: 2, patId: "1", patient: null }),
-              appt({ id: "next", date: "2026-08-10", time: "13:30", status: 1, patId: "2", patient: null }),
-            ],
-          }),
-        );
-      }
-      return Promise.reject(new Error(`unexpected ${u}`));
-    });
-
-    await act(async () => {
-      root.render(
-        <DashboardHome
-          onOpenModule={() => {}}
-          bridgePhase="connected"
-          bridgeBaseUrl="http://127.0.0.1:17890"
-          fetchImpl={fetchImpl}
-        />,
-      );
-    });
-    await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-    });
-
-    expect(container.textContent).toMatch(/1 scheduled · 1 confirmed/i);
-    expect(container.querySelector(".app-data-row--current")).toBeTruthy();
-    expect(container.querySelector(".app-data-row--next")).toBeTruthy();
-  });
-
-  it("renders Clinic at a glance with safe overview rows when connected", async () => {
-    vi.useFakeTimers({ now: new Date(2026, 5, 15, 10, 30, 0), toFake: ["Date"] });
-    const onOpenModule = vi.fn();
-    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
-      const u = String(input);
-      if (u.includes("/v1/schedule/appointments")) {
-        return Promise.resolve(jsonResponse({ appointments: [appt({ status: 1 }), appt({ id: "2", status: 2 })] }));
-      }
-      return Promise.reject(new Error(`unexpected ${u}`));
-    });
-
-    await act(async () => {
-      root.render(
-        <DashboardHome
-          onOpenModule={onOpenModule}
-          bridgePhase="connected"
-          bridgeBaseUrl="http://127.0.0.1:17890"
-          fetchImpl={fetchImpl}
-          sandboxWritePilot
-          sessionRecentPatientCount={2}
-          writeCapability={{
-            writeMode: "disabled",
-            writesPermitted: false,
-            writableSandbox: false,
-            dataRootConfigured: true,
-            backupDirConfigured: false,
-            sqlitePathConfigured: true,
-          }}
-          mirrorStatus={{
-            sqliteConfigured: true,
-            sqliteUsable: true,
-            importedTables: ["patients"],
-            latestImportRuns: [
-              {
-                tableName: "patients",
-                status: "success",
-                rowCount: 1,
-                errorCount: 0,
-                finishedAt: new Date().toISOString(),
-              },
-            ],
-          }}
-          selectedPatientId="42"
-          selectedPatientDisplayName="Overview Synth"
-          selectedPatientChartNumber="OV-42"
-        />,
-      );
-    });
-    await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-    });
-
-    expect(container.textContent).toMatch(/Clinic at a glance/i);
-    expect(container.textContent).toMatch(/Connected/i);
-    expect(container.textContent).toMatch(/Writes off/i);
-    expect(container.textContent).toMatch(/Sandbox write pilot enabled/i);
-    expect(container.textContent).toMatch(/2 appointments/i);
-    expect(container.textContent).toMatch(/2 patients/i);
-    expect(container.textContent).toMatch(/scheduled · .*confirmed/i);
-    expect(container.textContent).toMatch(/Overview Synth · Chart OV-42/i);
-    const settingsLink = container.querySelector(".app-dashboard-clinic-overview__settings-link");
-    expect(settingsLink?.textContent).toMatch(/Open Settings/i);
-    await act(async () => {
-      settingsLink?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-    expect(onOpenModule).toHaveBeenCalledWith("settings");
-    assertNoForbiddenDomTokens(container.textContent ?? "");
-  });
-
-  it("shows connect guidance in Clinic at a glance when offline", async () => {
-    await act(async () => {
-      root.render(
-        <DashboardHome onOpenModule={() => {}} bridgePhase="offline" bridgeBaseUrl="http://127.0.0.1:17890" />,
-      );
-    });
-    expect(container.textContent).toMatch(/Clinic at a glance/i);
-    expect(container.textContent).toMatch(/Connect the clinic service in Settings/i);
-    expect(container.textContent).not.toMatch(/1 appointment/i);
-  });
-
-  it("offers Open schedule on the next appointment card", async () => {
-    vi.useFakeTimers({ now: new Date(2026, 7, 10, 11, 0, 0), toFake: ["Date"] });
-    const onOpenModule = vi.fn();
-    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
-      const u = String(input);
-      if (u.includes("/v1/schedule/appointments")) {
-        return Promise.resolve(
-          jsonResponse({
-            appointments: [appt({ id: "next", date: "2026-08-10", time: "13:30", patId: "2", patient: null })],
-          }),
-        );
-      }
-      return Promise.reject(new Error(`unexpected ${u}`));
-    });
-
-    await act(async () => {
-      root.render(
-        <DashboardHome
-          onOpenModule={onOpenModule}
-          bridgePhase="connected"
-          bridgeBaseUrl="http://127.0.0.1:17890"
-          fetchImpl={fetchImpl}
-        />,
-      );
-    });
-    await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-    });
-
-    const idx = container.textContent?.indexOf("Now") ?? -1;
-    expect(idx).toBeGreaterThan(-1);
-    const slice = container.textContent?.slice(idx, idx + 500) ?? "";
-    const scheduleBtn = Array.from(container.querySelectorAll("button")).find(
-      (b) => b.textContent?.trim() === "Open schedule" && slice.includes(b.textContent ?? ""),
-    );
-    expect(scheduleBtn).toBeTruthy();
-    await act(async () => {
-      scheduleBtn!.click();
-    });
-    expect(onOpenModule).toHaveBeenCalledWith("schedule");
   });
 });

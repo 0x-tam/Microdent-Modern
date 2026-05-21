@@ -7,11 +7,13 @@
 @import "./styles/shell-status.css";
 @import "./styles/shared/command-center.css";
 @import "./styles/shared/surface.css";
+@import "./styles/shared/visual-identity.css";
 @import "./styles/shared/toolbar.css";
 @import "./styles/shared/data-list.css";
 @import "./styles/pages/today.css";
 @import "./styles/pages/patients.css";
 @import "./styles/pages/profile.css";
+@import "./styles/pages/clinical.css";
 @import "./styles/pages/schedule.css";
 @import "./styles/pages/settings.css";
 @import "./styles/pages/write.css";

@@ -61,9 +61,36 @@ export type SandboxWriteBannerProps = {
   className?: string;
 };
 
+
+export type SandboxWriteStep = "edit" | "preview" | "result";
+
+export function SandboxWriteStepIndicator({ step }: { step: SandboxWriteStep }) {
+  const steps: SandboxWriteStep[] = ["edit", "preview", "result"];
+  const labels = ["Edit", "Preview", "Apply"];
+  const activeIdx = steps.indexOf(step);
+  return (
+    <ol className="app-sandbox-write-zone__steps" aria-label="Sandbox write flow">
+      {steps.map((name, idx) => {
+        const className = [
+          "app-sandbox-write-zone__step",
+          idx === activeIdx ? "app-sandbox-write-zone__step--active" : "",
+          idx < activeIdx ? "app-sandbox-write-zone__step--done" : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
+        return (
+          <li key={name} className={className}>
+            {labels[idx]}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 export function SandboxWriteBanner({ className }: SandboxWriteBannerProps) {
   return (
-    <p className={className ?? "app-sandbox-write__banner"} role="status">
+    <p className={[className ?? "app-sandbox-write__banner", "app-sandbox-write-zone__header"].filter(Boolean).join(" ")} role="status">
       {SANDBOX_WRITE_PILOT_PANEL_BANNER}
     </p>
   );
@@ -78,7 +105,7 @@ export type SafeWritePlanResultProps = {
 export function SafeWritePlanResult({ summary, className, testId }: SafeWritePlanResultProps) {
   return (
     <dl
-      className={className ?? "app-sandbox-write__plan"}
+      className={className ?? "app-sandbox-write__plan app-sandbox-write__surface app-sandbox-write__surface--preview"}
       aria-label="Safe write plan summary"
       data-testid={testId}
     >
@@ -153,9 +180,14 @@ export function WriteOperationResult({
     ? writeResultCommittedHeadline(successLabel, mode)
     : writeResultUncommittedHeadline(mode);
 
+  const surfaceTone = committed ? "success" : "warning";
+
   return (
     <div
-      className={className ?? "app-sandbox-write__result"}
+      className={
+        className ??
+        `app-sandbox-write__result app-sandbox-write__surface app-sandbox-write__surface--${surfaceTone}`
+      }
       data-testid={testId}
       data-committed={String(committed)}
       role="status"

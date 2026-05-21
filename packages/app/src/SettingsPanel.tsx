@@ -141,6 +141,14 @@ function showDevPathHints(showConnectionDiagnostics: boolean): boolean {
   return import.meta.env.DEV && showConnectionDiagnostics;
 }
 
+
+function settingsHeroStatTone(tone: SettingsStatusTone | "connected" | "checking" | "offline"): string {
+  if (tone === "ok" || tone === "connected") return "success";
+  if (tone === "warn" || tone === "offline") return "warning";
+  if (tone === "danger") return "danger";
+  return "neutral";
+}
+
 function settingsCardClassName(
   tone: SettingsStatusTone | null,
   options?: { primary?: boolean; wide?: boolean },
@@ -283,6 +291,32 @@ export function SettingsPanel({
           {moduleDescription ? <p className="app-page-hero__meta">{moduleDescription}</p> : null}
         </div>
       </header>
+
+      <div className="app-settings__hero-stats app-stat-strip" role="region" aria-label="Settings status overview">
+        <div className={`app-stat app-settings__hero-stat app-stat--${settingsHeroStatTone(bridgePhase)}`}>
+          <p className="app-stat__label">{SETTINGS_BRIDGE_SECTION}</p>
+          <p className="app-stat__value">{bridgeLabel}</p>
+        </div>
+        <div
+          className={`app-stat app-settings__hero-stat app-stat--${settingsHeroStatTone(mirrorStale ? "warn" : sqliteMirrorStatus.tone)}`}
+        >
+          <p className="app-stat__label">{SETTINGS_SQLITE_MIRROR_SECTION}</p>
+          <p className="app-stat__value">{sqliteMirrorStatus.label}</p>
+        </div>
+        <div className={`app-stat app-settings__hero-stat app-stat--${settingsHeroStatTone(writeCardTone(writeCapability))}`}>
+          <p className="app-stat__label">{SETTINGS_WRITE_SECTION}</p>
+          <p className="app-stat__value">{writeChip?.label ?? "—"}</p>
+        </div>
+        <div className={`app-stat app-settings__hero-stat app-stat--${settingsHeroStatTone(sandboxStatus.tone)}`}>
+          <p className="app-stat__label">{SETTINGS_SANDBOX_SECTION}</p>
+          <p className="app-stat__value">{sandboxStatus.label}</p>
+        </div>
+        <div className={`app-stat app-settings__hero-stat app-stat--${settingsHeroStatTone(backupStatus.tone)}`}>
+          <p className="app-stat__label">{SETTINGS_BACKUP_SECTION}</p>
+          <p className="app-stat__value">{backupStatus.label}</p>
+        </div>
+      </div>
+
       <p className="app-settings__lede">{SETTINGS_PANEL_LEDE}</p>
 
       {dangerBanners.length > 0 ? (

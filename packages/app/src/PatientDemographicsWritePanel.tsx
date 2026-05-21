@@ -22,6 +22,8 @@ import { useDoctorLabels } from "./useDoctorLabels.js";
 import {
   SafeWritePlanResult,
   SandboxWriteBanner,
+  SandboxWriteStepIndicator,
+  type SandboxWriteStep,
   SandboxWriteBlockedNotice,
   summarizeWritePlan,
   WriteOperationResult,
@@ -48,6 +50,12 @@ type UiState =
   | { kind: "preview"; summary: WritePlanResultSummary }
   | { kind: "result"; committed: boolean; feedbackLines: string[] }
   | { kind: "error"; message: string };
+
+function resolveWriteStep(state: UiState): SandboxWriteStep {
+  if (state.kind === "result") return "result";
+  if (state.kind === "preview" || (state.kind === "loading" && state.action === "commit")) return "preview";
+  return "edit";
+}
 
 export function PatientDemographicsWritePanel({
   patientId,
@@ -188,6 +196,7 @@ export function PatientDemographicsWritePanel({
         Edit allowlisted fields
       </h4>
       <SandboxWriteBanner />
+      <SandboxWriteStepIndicator step={resolveWriteStep(state)} />
       <p className="app-sandbox-write__hint">
         Preview runs a dry-run backup plan first. Apply stays disabled until preview succeeds. Only allowlisted
         name/chart fields — phone, address, and notes are not editable. Once committed, check operation id and backup
@@ -201,7 +210,7 @@ export function PatientDemographicsWritePanel({
           </p>
           <div className="app-sandbox-write__fields app-sandbox-write__fields--grid">
             <label className="app-sandbox-write__label">
-              <span>First name</span>
+              <span className="app-sandbox-write__label-text">First name</span>
               <input
                 type="text"
                 className="ui-focusable"
@@ -213,7 +222,7 @@ export function PatientDemographicsWritePanel({
               />
             </label>
             <label className="app-sandbox-write__label">
-              <span>Last name</span>
+              <span className="app-sandbox-write__label-text">Last name</span>
               <input
                 type="text"
                 className="ui-focusable"
@@ -225,7 +234,7 @@ export function PatientDemographicsWritePanel({
               />
             </label>
             <label className="app-sandbox-write__label">
-              <span>Display name</span>
+              <span className="app-sandbox-write__label-text">Display name</span>
               <input
                 type="text"
                 className="ui-focusable"
@@ -237,7 +246,7 @@ export function PatientDemographicsWritePanel({
               />
             </label>
             <label className="app-sandbox-write__label">
-              <span>Reverse name</span>
+              <span className="app-sandbox-write__label-text">Reverse name</span>
               <input
                 type="text"
                 className="ui-focusable"
@@ -255,7 +264,7 @@ export function PatientDemographicsWritePanel({
           <p className="app-sandbox-write__group-hint">Chart number and active flag shown on the summary card.</p>
           <div className="app-sandbox-write__fields app-sandbox-write__fields--grid">
             <label className="app-sandbox-write__label">
-              <span>Chart number</span>
+              <span className="app-sandbox-write__label-text">Chart number</span>
               <input
                 type="text"
                 className="ui-focusable"
@@ -267,7 +276,7 @@ export function PatientDemographicsWritePanel({
               />
             </label>
             <label className="app-sandbox-write__label">
-              <span>Active</span>
+              <span className="app-sandbox-write__label-text">Active</span>
               <select
                 className="ui-focusable"
                 value={form.active}
@@ -289,7 +298,7 @@ export function PatientDemographicsWritePanel({
           </p>
           <div className="app-sandbox-write__fields">
             <label className="app-sandbox-write__label">
-              <span>Assigned provider</span>
+              <span className="app-sandbox-write__label-text">Assigned provider</span>
               <select
                 className="ui-focusable"
                 value={form.doctorId}
@@ -338,7 +347,7 @@ export function PatientDemographicsWritePanel({
         </Button>
       </div>
       {previewOk ? (
-        <SafeWritePlanResult summary={state.summary} testId="patient-demographics-plan" />
+        <SafeWritePlanResult className="app-sandbox-write__plan app-sandbox-write__surface app-sandbox-write__surface--preview" summary={state.summary} testId="patient-demographics-plan" />
       ) : null}
       {state.kind === "result" ? (
         <WriteOperationResult
@@ -349,7 +358,7 @@ export function PatientDemographicsWritePanel({
         />
       ) : null}
       {state.kind === "error" ? (
-        <p className="app-sandbox-write__error" role="alert">
+        <p className="app-sandbox-write__error app-sandbox-write__surface app-sandbox-write__surface--danger" role="alert">
           {state.message}
         </p>
       ) : null}

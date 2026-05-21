@@ -17,7 +17,7 @@ export const HIDDEN_IN_READONLY_VIEWER = "hidden in this read-only viewer";
 export const CLINIC_SERVICE_OFFLINE_TITLE = "Clinic service offline";
 
 export const CLINIC_SERVICE_OFFLINE_PANEL =
-  "Connect the bridge and wait until the top bar shows Connected, then try again.";
+  "Start the bridge and wait for Connected in the top bar, then try again.";
 
 export const CLINIC_SERVICE_OFFLINE_SECTION = "Connect the bridge to load this section.";
 
@@ -29,7 +29,7 @@ export const SCHEDULE_LOAD_ERROR =
   "Could not load the schedule. Check the clinic service connection and tap Refresh.";
 
 export const CLINIC_SERVICE_CONNECT_TODAY =
-  "Connect the clinic service to load today’s appointments from your copied data.";
+  "Connect the clinic service to load today’s appointments from your copy.";
 
 export const PATIENT_PROFILE_READONLY_NOTE =
   "Read-only patient record — safe fields from your copied data only. Nothing here can be edited.";
@@ -53,7 +53,7 @@ export const PATIENT_MODULE_TABS_HINT =
 export const PATIENT_CHANGE_PATIENT_LABEL = "Search another patient";
 
 export const PATIENT_NO_SELECTION_DESCRIPTION =
-  "Search below or in the top bar, pick a row when the clinic service is connected, and this area will open their record.";
+  "Search below or in the top bar and pick a row to open a patient record.";
 
 export const PATIENT_RECENT_SESSION_TITLE = "Recent this session";
 
@@ -332,16 +332,16 @@ export const SCHEDULE_PRIVACY_LEDE =
   "Read-only schedule. Names and chart numbers use a safe patient summary; notes and phone numbers stay hidden.";
 
 export const TODAY_PRIVACY_LEDE =
-  "Read-only day list. Names and chart numbers use a safe patient summary; notes, phones, and payment fields stay hidden.";
+  "Read-only today list — safe names and chart numbers only. Notes, phones, and payment fields stay hidden.";
 
 export const TODAY_LOADING = "Loading today's schedule from your clinic copy…";
 
 export const TODAY_NEXT_LOADING = "Loading next appointment…";
 
 export const TODAY_NEXT_OFFLINE =
-  "Connect the clinic service to see the next appointment on today's copy.";
+  "Connect the clinic service to see the next appointment today.";
 
-export const TODAY_NEXT_NO_UPCOMING = "No upcoming appointments on the schedule for today.";
+export const TODAY_NEXT_NO_UPCOMING = "No more appointments scheduled for today.";
 
 export const TODAY_NOW_CARD_TITLE = "Now";
 
@@ -349,10 +349,10 @@ export const TODAY_REMINDERS_FOOTNOTE =
   "Reminders are not available in this pilot build.";
 
 export const TODAY_REMINDERS_EMPTY =
-  "No reminders in this read-only viewer. Connect the clinic service and use Schedule or Patients for live data from your copy.";
+  "Reminders are not in this pilot. Use Schedule or Patients for live data from your copy.";
 
 export const TODAY_REMINDERS_PILOT_UNAVAILABLE =
-  "Reminders are not available in this pilot build. Use Schedule and Patients for live data from your copied clinic data.";
+  "Reminders are not in this pilot. Use Schedule or Patients for live data.";
 
 export const TODAY_STATUS_COUNT_TITLE = "Today's appointments";
 
@@ -362,7 +362,7 @@ export const TODAY_STATUS_MIRROR_ACTIVE =
   "SQLite mirror active — search and schedule use your imported copy.";
 
 export const TODAY_STATUS_MIRROR_STALE =
-  "Mirror metadata is older than 48 hours. Schedule may show older data until you run a safe mirror import (Settings → Mirror import).";
+  "Mirror is older than 48 hours — today’s list may be stale until you re-import (Settings → Mirror import).";
 
 export const TODAY_STATUS_MIRROR_FALLBACK =
   "SQLite mirror unavailable — schedule reads legacy DBF files until mirror import succeeds.";
@@ -374,7 +374,7 @@ export const TODAY_STATUS_MIRROR_UNKNOWN =
   "Mirror status unknown until the clinic service connects.";
 
 export const TODAY_MIRROR_STALE_ADVISORY =
-  "Local copy may be outdated — today's list may not reflect the latest DBF changes until mirror import runs again.";
+  "Local copy may be outdated — re-import the mirror if today’s list looks wrong.";
 
 export const TODAY_SCHEDULE_UNAVAILABLE =
   "Schedule unavailable. Connect the clinic service and tap Refresh today.";
@@ -395,13 +395,13 @@ export const TODAY_REFRESH = "Refresh today";
 export const TODAY_EMPTY_TITLE = "No appointments today";
 
 export const TODAY_EMPTY_DESCRIPTION =
-  "Today's list is clear. Open the full schedule to check other days, or search for a patient.";
+  "Nothing on today’s schedule. Check other days in Schedule or search for a patient.";
 
 export const TODAY_OPEN_SCHEDULE = "Open schedule";
 
 export const TODAY_SEARCH_PATIENT = "Search patient";
 
-export const TODAY_QUICK_ACTIONS_LEDE = "Front-desk shortcuts when the clinic service is connected.";
+export const TODAY_QUICK_ACTIONS_LEDE = "Shortcuts to schedule, patients, and settings.";
 
 export const PATIENT_SEARCH_HINT_CONNECTED = "Uses your copied clinic data. Names and safe hints only.";
 
@@ -446,7 +446,7 @@ export const READONLY_STATE_RETRY = "Retry";
 export const SCHEDULE_EMPTY_TITLE = "No appointments in this range";
 
 export const SCHEDULE_EMPTY_DESCRIPTION =
-  "Try another day or week, change the room filter, or refresh after the clinic service loads data.";
+  "Try another day or week, adjust filters, or refresh after the clinic service connects.";
 
 export const SCHEDULE_ROOM_FILTER_LABEL = "Room";
 
@@ -839,7 +839,7 @@ export const SETTINGS_CHECKLIST_MIRROR_IMPORT = "Latest mirror import healthy";
 export const SETTINGS_NEXT_STEP_LABEL = "Next step";
 
 export const SETTINGS_NEXT_STEP_BRIDGE =
-  "Start the clinic service (desktop app or bridge) and wait until Settings shows Connected.";
+  "Start the clinic service and wait until Settings shows Connected.";
 
 export const SETTINGS_NEXT_STEP_DESKTOP_SETUP =
   "Complete desktop first-run setup to configure DATA_ROOT and SQLITE_PATH before the clinic service can start.";
@@ -854,7 +854,7 @@ export const SETTINGS_NEXT_STEP_WRITE_DISABLED =
   "Writes are off. Enable dry-run or enabled only on a disposable sandbox after backup is configured.";
 
 export const SETTINGS_NEXT_STEP_WRITE_DRY_RUN =
-  "Dry-run plans changes only. Use Schedule or Patient write pilots to preview, then enable commits when ready.";
+  "Dry-run validates only. Preview in Schedule or Patient pilots, then enable commits when ready.";
 
 export const SETTINGS_NEXT_STEP_WRITE_ENABLED =
   "Writes are enabled on the sandbox. Use pilot panels only; never point DATA_ROOT at production legacy.";
@@ -874,7 +874,7 @@ export const SETTINGS_NEXT_STEP_MIRROR_IMPORT =
 export const SETTINGS_NEXT_STEP_MIRROR_REFRESH = "Tap Refresh status after the clinic service connects.";
 
 export const SETTINGS_NEXT_STEP_MIRROR_STALE =
-  "Mirror metadata is stale. Re-run safe import; DBF remains the source of truth for writes.";
+  "Mirror is stale. Re-run safe import — DBF stays the write source of truth.";
 
 /** Recovery pointers — link to repo docs/PILOT-START-HERE.md (no URL with PHI). */
 export const PILOT_TROUBLESHOOTING_DOC = "PILOT-START-HERE.md";
@@ -954,6 +954,36 @@ export const PATIENT_TAB_HIDDEN_MEDICAL = "Clinical free text and allergy detail
 
 export const PATIENT_TAB_HIDDEN_CHART = "Chart memos and decoded legends stay hidden in this preview.";
 
+/** Profile / tab empty-state titles (Wave 3). */
+export const PATIENT_NOT_FOUND_TITLE = "Patient not found";
+
+export const PATIENT_NOT_FOUND_DESCRIPTION =
+  "That record may be missing from the copy. Search again.";
+
+export const PATIENT_TAB_EMPTY_APPOINTMENTS_TITLE = "No appointments in range";
+
+export const PATIENT_TAB_EMPTY_APPOINTMENTS_BODY =
+  "Nothing scheduled in this date range. Try another preset or refresh.";
+
+export const PATIENT_TAB_EMPTY_APPOINTMENTS_FILTERED_TITLE = "No appointments match";
+
+export const PATIENT_TAB_EMPTY_APPOINTMENTS_FILTERED_BODY =
+  "Clear filters or widen the date preset.";
+
+export const PATIENT_TAB_EMPTY_TREATMENTS_TITLE = "No procedures found";
+
+export const PATIENT_TAB_EMPTY_CHART_TITLE = "No chart entries";
+
+export const PATIENT_TAB_EMPTY_LEDGER_TITLE = "No ledger lines";
+
+export const PATIENT_TIMELINE_EMPTY_TITLE = "No timeline events";
+
+export const PATIENT_TIMELINE_EMPTY_FILTER_TITLE = "No matching events";
+
+export const PATIENT_TIMELINE_UNDATED_TITLE = "Undated events only";
+
+export const PATIENT_SEARCH_NO_MATCH_TITLE = "No patients matched";
+
 /** Sparse-data guided empty states (Workstream A). */
 export const PATIENT_TAB_EMPTY_TREATMENTS = "No procedures in the loaded preview range.";
 
@@ -966,6 +996,8 @@ export const PATIENT_TAB_EMPTY_CHART_FILTERED = "No chart entries match the acti
 export const PATIENT_TAB_EMPTY_LEDGER = "No ledger lines in the loaded preview.";
 
 export const PATIENT_TAB_EMPTY_LEDGER_FILTERED = "No ledger lines match the active type filter.";
+
+export const PATIENT_TAB_EMPTY_MEDICAL_TITLE = "No medical record";
 
 export const PATIENT_TAB_EMPTY_MEDICAL = "No medical questionnaire on file for this patient.";
 

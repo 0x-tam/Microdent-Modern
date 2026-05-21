@@ -8,7 +8,7 @@ import {
   READ_ONLY_CONNECTED_LABEL,
   READ_ONLY_VIEWER_LABEL,
 } from "./read-only-ui-copy.js";
-import { resolveContextualStatusForModule } from "./shell-status-banners.js";
+import { resolveContextualStatusForModule, resolveWriteModeChip } from "./shell-status-banners.js";
 
 export function resolveMirrorDiagnosticLabel(
   enabled: boolean,
@@ -354,6 +354,20 @@ export function AppShell({
     return undefined;
   }, [bridgePhase, shellStatusBanners]);
 
+  const writeModeChip = useMemo(() => resolveWriteModeChip(writeCapability), [writeCapability]);
+
+  const bridgeStatusChipClass =
+    bridgePhase === "connected"
+      ? "app-chip--success"
+      : bridgePhase === "checking"
+        ? "app-chip--info"
+        : "app-chip--offline";
+
+  const writeModeChipClass =
+    writeModeChip?.variant === "warning" || writeModeChip?.variant === "danger"
+      ? "app-chip--sandbox"
+      : "app-chip--neutral";
+
   const sidebar = useMemo(
     () => (
       <ul className="app-sidebar__nav">
@@ -391,7 +405,11 @@ export function AppShell({
           {sidebar}
         </nav>
 
-        <div className="app-rail__patient" role="region" aria-label="Selected patient">
+        <div
+          className={`app-rail__patient${selectedPatientContextLabel ? " app-rail__patient--selected" : ""}`}
+          role="region"
+          aria-label="Selected patient"
+        >
           {selectedPatientContextLabel ? (
             <>
               <span className="app-rail__patient-label">Patient</span>
@@ -458,49 +476,66 @@ export function AppShell({
           </div>
 
           <div className="app-workspace-header__actions">
-            <span
-              className="app-workspace-header__readonly-pill"
-              title={READ_ONLY_BANNER_BODY}
-              aria-label={`${READ_ONLY_VIEWER_LABEL}. ${READ_ONLY_BANNER_BODY}`}
+            <div
+              className="app-workspace-header__status-cluster"
+              role="group"
+              aria-label="Clinic service status"
             >
-              {READ_ONLY_VIEWER_LABEL}
-            </span>
-            <div className="app-topbar__status-wrap">
-              <div className="app-topbar__status-row">
-                <div
-                  className={`app-topbar__status app-topbar__status--${bridgePhase}`}
+              <span
+                className="app-chip app-chip--readonly app-workspace-header__status-chip"
+                title={READ_ONLY_BANNER_BODY}
+                aria-label={`${READ_ONLY_VIEWER_LABEL}. ${READ_ONLY_BANNER_BODY}`}
+              >
+                {READ_ONLY_VIEWER_LABEL}
+              </span>
+              <span
+                className={`app-chip app-workspace-header__status-chip ${bridgeStatusChipClass}`}
+                role="status"
+                aria-live="polite"
+                aria-label={
+                  bridgePhase === "connected"
+                    ? "Clinic service: connected"
+                    : bridgePhase === "checking"
+                      ? "Clinic service: checking"
+                      : "Clinic service: offline"
+                }
+              >
+                {bridgePhase === "connected"
+                  ? "Connected"
+                  : bridgePhase === "checking"
+                    ? "Checking…"
+                    : "Offline"}
+              </span>
+              {writeModeChip && bridgePhase === "connected" ? (
+                <span
+                  className={`app-chip app-workspace-header__status-chip ${writeModeChipClass}`}
                   role="status"
-                  aria-live="polite"
-                  aria-label={
-                    bridgePhase === "connected"
-                      ? "Clinic service: connected"
-                      : bridgePhase === "checking"
-                        ? "Clinic service: checking"
-                        : "Clinic service: offline"
-                  }
+                  aria-label={`Bridge write mode: ${writeModeChip.label}`}
                 >
-                  <span className="app-topbar__status-dot" aria-hidden />
-                  <span className="app-topbar__status-label">
-                    {bridgePhase === "connected"
-                      ? "Connected"
-                      : bridgePhase === "checking"
-                        ? "Checking…"
-                        : "Offline"}
-                  </span>
-                </div>
-                {bridgeBaseUrl?.trim() ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="compact"
-                    className="ui-focusable app-topbar__refresh"
-                    onClick={() => void runBridgeHealthCheck()}
-                  >
-                    ↻ Refresh
-                  </Button>
-                ) : null}
-              </div>
+                  {writeModeChip.label}
+                </span>
+              ) : null}
+              {sandboxWritePilot ? (
+                <span
+                  className="app-chip app-chip--sandbox app-workspace-header__status-chip"
+                  role="status"
+                  aria-label="Sandbox write pilot enabled in this build"
+                >
+                  Sandbox pilot
+                </span>
+              ) : null}
             </div>
+            {bridgeBaseUrl?.trim() ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="compact"
+                className="ui-focusable app-topbar__refresh"
+                onClick={() => void runBridgeHealthCheck()}
+              >
+                ↻ Refresh
+              </Button>
+            ) : null}
           </div>
 
           {showBridgeConnectionDiagnostics && bridgeBaseUrl?.trim() ? (

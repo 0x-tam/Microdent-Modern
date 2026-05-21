@@ -90,17 +90,24 @@ function SummaryMiniCardButton({
   title,
   detail,
   tab,
+  tone = "neutral",
   onOpenTab,
 }: {
   title: string;
   detail: string;
   tab: ProfileTab;
+  tone?: "upcoming" | "neutral";
   onOpenTab: (tab: ProfileTab) => void;
 }) {
+  const toneClass =
+    tone === "upcoming"
+      ? "app-patient-profile__summary-mini-card--tone-upcoming"
+      : "app-patient-profile__summary-mini-card--tone-neutral";
+
   return (
     <button
       type="button"
-      className="app-patient-profile__summary-mini-card ui-focusable"
+      className={`app-patient-profile__summary-mini-card ui-focusable ${toneClass}`}
       onClick={() => onOpenTab(tab)}
       aria-label={`${title}. ${detail}. Open tab.`}
     >
@@ -245,6 +252,7 @@ export function PatientSummaryMiniCards({
             title={PATIENT_SUMMARY_MINI_CARD_APPOINTMENTS}
             detail={appointmentsDetail(appt, doctorLabels, procedureMaps, roomMap)}
             tab="appointments"
+            tone="upcoming"
             onOpenTab={onOpenTab}
           />
         )}

@@ -1,4 +1,5 @@
-import { Button, EmptyState } from "@microdent/ui";
+import { Button } from "@microdent/ui";
+import { AppEmptyPanel } from "./app-empty-panel.js";
 import type {
   TimelineDisplayModel,
   TimelineEvent,
@@ -17,7 +18,10 @@ import {
 import {
   FILTER_CLEAR_LABEL,
   PATIENT_TIMELINE_EMPTY_FILTER,
+  PATIENT_TIMELINE_EMPTY_FILTER_TITLE,
   PATIENT_TIMELINE_EMPTY_RANGE,
+  PATIENT_TIMELINE_EMPTY_TITLE,
+  PATIENT_TIMELINE_UNDATED_TITLE,
   PATIENT_TIMELINE_KIND_FILTER_ARIA,
   PATIENT_TIMELINE_LIMITATIONS,
   PATIENT_TIMELINE_ROW_ARIA,
@@ -54,6 +58,23 @@ function timelineKindIcon(kind: TimelineEvent["kind"]): string {
   }
 }
 
+function timelineRowKindClass(kind: TimelineEvent["kind"]): string {
+  switch (kind) {
+    case "appointment":
+      return "app-patient-profile__timeline-row--appointment";
+    case "treatment":
+      return "app-patient-profile__timeline-row--treatment";
+    case "chartSnapshot":
+      return "app-patient-profile__timeline-row--chart";
+    case "ledger":
+      return "app-patient-profile__timeline-row--ledger";
+    case "medicalSnapshot":
+      return "app-patient-profile__timeline-row--medical";
+    default:
+      return "app-patient-profile__timeline-row--neutral";
+  }
+}
+
 function TimelineRow({
   event,
   onRowClick,
@@ -69,7 +90,7 @@ function TimelineRow({
     <li>
       <button
         type="button"
-        className="app-patient-profile__timeline-row ui-focusable"
+        className={`app-patient-profile__timeline-row ui-focusable ${timelineRowKindClass(event.kind)}`}
         aria-label={`${ariaParts.join(". ")}. ${PATIENT_TIMELINE_ROW_ARIA}.`}
         onClick={() => onRowClick(event.sourceTab, event.navigateHint)}
         data-testid={`patient-timeline-row-${event.eventId}`}
@@ -118,6 +139,7 @@ export function PatientTimeline({
             size="compact"
             variant={kindFilter === option.id ? "primary" : "secondary"}
             className="ui-focusable app-patient-profile__timeline-kind-chip"
+            data-kind={option.id}
             aria-pressed={kindFilter === option.id}
             onClick={() => onKindFilterChange(option.id)}
           >
@@ -211,22 +233,22 @@ export function PatientTimeline({
               </section>
             ))
           : model.eventCount === 0 ? (
-              <EmptyState
-                className="ui-empty--start app-patient-profile__timeline-empty"
-                title="No timeline events"
-                description={PATIENT_TIMELINE_EMPTY_RANGE}
+              <AppEmptyPanel
+                className="app-patient-profile__timeline-empty"
+                title={PATIENT_TIMELINE_EMPTY_TITLE}
+                body={PATIENT_TIMELINE_EMPTY_RANGE}
               />
             ) : !hasFilteredContent && kindFilterActive ? (
-              <EmptyState
-                className="ui-empty--start app-patient-profile__timeline-empty"
-                title="No matching events"
-                description={PATIENT_TIMELINE_EMPTY_FILTER}
+              <AppEmptyPanel
+                className="app-patient-profile__timeline-empty"
+                title={PATIENT_TIMELINE_EMPTY_FILTER_TITLE}
+                body={PATIENT_TIMELINE_EMPTY_FILTER}
               />
             ) : !hasDatedEvents && model.snapshotEvents.length === 0 && model.eventCount > 0 ? (
-              <EmptyState
-                className="ui-empty--start app-patient-profile__timeline-empty"
-                title="Undated events only"
-                description={PATIENT_TIMELINE_UNDATED_ONLY}
+              <AppEmptyPanel
+                className="app-patient-profile__timeline-empty"
+                title={PATIENT_TIMELINE_UNDATED_TITLE}
+                body={PATIENT_TIMELINE_UNDATED_ONLY}
               />
             ) : null}
     </div>

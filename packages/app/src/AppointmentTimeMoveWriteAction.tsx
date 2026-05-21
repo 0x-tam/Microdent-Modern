@@ -21,6 +21,8 @@ import { isSandboxWritePilotEnabled, resolveSandboxWriteBlockReason } from "./sa
 import {
   SafeWritePlanResult,
   SandboxWriteBanner,
+  SandboxWriteStepIndicator,
+  type SandboxWriteStep,
   SandboxWriteBlockedNotice,
   summarizeWritePlan,
   WriteOperationResult,
@@ -49,6 +51,12 @@ type UiState =
   | { kind: "preview"; summary: WritePlanResultSummary }
   | { kind: "result"; committed: boolean; feedbackLines: string[] }
   | { kind: "error"; message: string };
+
+function resolveWriteStep(state: UiState): SandboxWriteStep {
+  if (state.kind === "result") return "result";
+  if (state.kind === "preview" || (state.kind === "loading" && state.action === "commit")) return "preview";
+  return "edit";
+}
 
 function bodyFromAppointment(
   appointment: ScheduleAppointmentItem,
@@ -186,7 +194,8 @@ export function AppointmentTimeMoveWriteAction({
 
   const fields = (
     <>
-      <div className="app-sandbox-write__context-panel" role="note" data-testid="appt-move-context">
+      <SandboxWriteStepIndicator step={resolveWriteStep(state)} />
+      <div className="app-sandbox-write__context-panel app-sandbox-write__section" role="note" data-testid="appt-move-context">
         <p className="app-sandbox-write__context-title">{APPOINTMENT_MOVE_CONTEXT_TITLE}</p>
         <p className="app-sandbox-write__context-line">
           {appointment.date} · {appointment.time} · {roomDisplayLabel(appointment.room, roomMap)} ·{" "}
@@ -195,7 +204,7 @@ export function AppointmentTimeMoveWriteAction({
       </div>
       <div className="app-sandbox-write__fields">
         <label className="app-sandbox-write__label">
-          <span>Date</span>
+          <span className="app-sandbox-write__label-text">Date</span>
           <input
             type="date"
             className="ui-focusable"
@@ -208,7 +217,7 @@ export function AppointmentTimeMoveWriteAction({
           />
         </label>
         <label className="app-sandbox-write__label">
-          <span>Time</span>
+          <span className="app-sandbox-write__label-text">Time</span>
           <input
             type="text"
             className="ui-focusable"
@@ -223,7 +232,7 @@ export function AppointmentTimeMoveWriteAction({
           />
         </label>
         <label className="app-sandbox-write__label">
-          <span>Room</span>
+          <span className="app-sandbox-write__label-text">Room</span>
           <select
             className="ui-focusable"
             value={room}
@@ -242,7 +251,7 @@ export function AppointmentTimeMoveWriteAction({
           </select>
         </label>
         <label className="app-sandbox-write__label">
-          <span>Duration slots</span>
+          <span className="app-sandbox-write__label-text">Duration slots</span>
           <input
             type="number"
             min={1}
@@ -284,7 +293,7 @@ export function AppointmentTimeMoveWriteAction({
         </Button>
       </div>
       {state.kind === "preview" ? (
-        <SafeWritePlanResult summary={state.summary} testId="appt-time-move-plan" />
+        <SafeWritePlanResult className="app-sandbox-write__plan app-sandbox-write__surface app-sandbox-write__surface--preview" summary={state.summary} testId="appt-time-move-plan" />
       ) : null}
       {state.kind === "result" ? (
         <WriteOperationResult
@@ -295,7 +304,7 @@ export function AppointmentTimeMoveWriteAction({
         />
       ) : null}
       {state.kind === "error" ? (
-        <p className="app-sandbox-write__error" role="alert">
+        <p className="app-sandbox-write__error app-sandbox-write__surface app-sandbox-write__surface--danger" role="alert">
           {state.message}
         </p>
       ) : null}
@@ -312,7 +321,7 @@ export function AppointmentTimeMoveWriteAction({
 
   return (
     <details className={rootClass} data-testid="appt-time-move-write-pilot">
-      <summary className="app-sandbox-write__summary">Sandbox: move time</summary>
+      <summary className="app-sandbox-write__summary app-sandbox-write-zone__header">Sandbox: move time</summary>
       <SandboxWriteBanner />
       {fields}
     </details>

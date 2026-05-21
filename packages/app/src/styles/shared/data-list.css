@@ -39,7 +39,14 @@
 }
 
 .app-data-row:hover {
-  background: var(--ui-bg-subtle);
+  background: color-mix(in srgb, var(--ui-primary-50) 40%, var(--ui-bg-surface));
+  box-shadow: inset 3px 0 0 var(--ui-primary-600);
+}
+
+.app-data-row--interactive:focus-visible {
+  outline: var(--ui-focus-ring-width) solid var(--ui-focus-ring-color);
+  outline-offset: -2px;
+  background: color-mix(in srgb, var(--ui-primary-50) 35%, var(--ui-bg-surface));
 }
 
 .app-data-row--interactive {
@@ -75,6 +82,11 @@
 
 .app-data-row__badge {
   justify-self: end;
+}
+
+.app-data-row__badge .ui-badge {
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .app-data-row__actions {

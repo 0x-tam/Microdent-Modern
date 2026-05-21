@@ -15,6 +15,9 @@
   --ui-bg-surface-raised: #fafbfc;
   /** Sidebar / rail tint — distinct from flat gray admin templates. */
   --ui-bg-rail: #f5fafb;
+  /** Warm clinical canvas — soft mint/teal, not pure white admin. */
+  --ui-bg-clinical: #f0f7f8;
+  --ui-bg-clinical-wash: #e4f2f4;
   --ui-border-subtle: #e2e6eb;
   /** Warning-tinted borders and backgrounds for status banners. */
   --ui-border-warning: #e8c88a;
@@ -34,6 +37,28 @@
   --ui-primary-50: #e8f4f5;
   /** Deep brand step for small accents (nav bar, kicker text). */
   --ui-primary-700: #145a63;
+  /** Brand alpha stops for tinted surfaces (app bridge maps these). */
+  --ui-primary-alpha-12: rgba(27, 111, 122, 0.12);
+  --ui-primary-alpha-40: rgba(27, 111, 122, 0.4);
+
+  /** Connection / read-only / informational accents. */
+  --ui-accent: var(--ui-primary-600);
+  --ui-accent-cyan: #0e8a9a;
+  --ui-accent-blue: #2563eb;
+
+  /** App-state status surfaces (connection, sandbox, mirror, offline). */
+  --ui-status-readonly-bg: #e6f6f8;
+  --ui-status-readonly-border: #7ecbd4;
+  --ui-status-readonly-text: #145a63;
+  --ui-status-sandbox-bg: #fef6e7;
+  --ui-status-sandbox-border: #e8c88a;
+  --ui-status-sandbox-text: #b45309;
+  --ui-status-mirror-stale-bg: #fef6e7;
+  --ui-status-mirror-stale-border: #d4a054;
+  --ui-status-mirror-stale-text: #b45309;
+  --ui-status-offline-bg: #eef1f4;
+  --ui-status-offline-border: #c9d0d8;
+  --ui-status-offline-text: #5c6570;
 
   /** Third stop for shell canvas gradient (cool neutral). */
   --ui-bg-shell-fade: #f1f4f8;
@@ -62,12 +87,20 @@
   --ui-shadow-card: 0 2px 12px rgba(26, 31, 38, 0.06);
   /** Slightly deeper lift for interactive tiles on the canvas. */
   --ui-shadow-card-hover: 0 6px 20px rgba(27, 111, 122, 0.1);
+  /** Panel depth without heavy shadows. */
+  --ui-shadow-panel: 0 1px 3px rgba(26, 31, 38, 0.05), 0 1px 2px rgba(26, 31, 38, 0.04);
+  --ui-shadow-elevated: 0 4px 16px rgba(26, 31, 38, 0.07);
   --ui-shadow-modal: 0 4px 24px rgba(26, 31, 38, 0.08);
   --ui-overlay-scrim: rgba(26, 31, 38, 0.45);
 
   /* Typography */
   --ui-font-sans: system-ui, -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neue", arial, sans-serif;
   --ui-font-mono: ui-monospace, sfmono-regular, menlo, monospace;
+
+  /** Typography scale — mapped in app CSS via --app-text-* bridge tokens. */
+  --ui-text-display: clamp(1.75rem, 1.4rem + 1.2vw, 2rem);
+  --ui-text-section: clamp(1rem, 0.92rem + 0.35vw, 1.125rem);
+  --ui-text-body: 16px;
 
   /* Spacing (4px grid) */
   --ui-space-1: 4px;

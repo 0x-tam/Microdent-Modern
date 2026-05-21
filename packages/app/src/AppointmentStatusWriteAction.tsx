@@ -16,6 +16,8 @@ import { isSandboxWritePilotEnabled, resolveSandboxWriteBlockReason } from "./sa
 import {
   SafeWritePlanResult,
   SandboxWriteBanner,
+  SandboxWriteStepIndicator,
+  type SandboxWriteStep,
   SandboxWriteBlockedNotice,
   summarizeWritePlan,
   WriteOperationResult,
@@ -41,6 +43,12 @@ type WriteUiState =
   | { kind: "preview"; summary: WritePlanResultSummary }
   | { kind: "result"; committed: boolean; mode: string; feedbackLines: string[] }
   | { kind: "error"; message: string };
+
+function resolveWriteStep(state: WriteUiState): SandboxWriteStep {
+  if (state.kind === "result") return "result";
+  if (state.kind === "preview" || (state.kind === "loading" && state.action === "commit")) return "preview";
+  return "edit";
+}
 
 export function AppointmentStatusWriteAction({
   appointment,
@@ -150,9 +158,10 @@ export function AppointmentStatusWriteAction({
   return (
     <div className={rootClass} data-testid="appt-status-write-pilot">
       {!embedded ? <SandboxWriteBanner className="app-appt-status-write__banner" /> : null}
+      <SandboxWriteStepIndicator step={resolveWriteStep(state)} />
       <div className="app-appt-status-write__controls">
         <label className="app-appt-status-write__label">
-          <span className="app-appt-status-write__label-text">New status</span>
+          <span className="app-appt-status-write__label-text app-sandbox-write__label-text">New status</span>
           <select
             className="ui-focusable app-appt-status-write__select"
             value={nextStatus}
@@ -196,7 +205,7 @@ export function AppointmentStatusWriteAction({
         </Button>
       </div>
       {state.kind === "preview" ? (
-        <SafeWritePlanResult summary={state.summary} testId="appt-status-write-plan" />
+        <SafeWritePlanResult className="app-sandbox-write__plan app-sandbox-write__surface app-sandbox-write__surface--preview" summary={state.summary} testId="appt-status-write-plan" />
       ) : null}
       {state.kind === "result" ? (
         <WriteOperationResult
@@ -210,7 +219,7 @@ export function AppointmentStatusWriteAction({
         />
       ) : null}
       {state.kind === "error" ? (
-        <p className="app-appt-status-write__error" role="alert">
+        <p className="app-appt-status-write__error app-sandbox-write__surface app-sandbox-write__surface--danger" role="alert">
           {state.message}
         </p>
       ) : null}

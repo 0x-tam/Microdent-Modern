@@ -342,3 +342,32 @@
   opacity: 0.75;
 }
 
+
+/* ----- Visual identity: settings control center ----- */
+.app-settings__hero-stats {
+  margin: 0 0 var(--ui-space-4);
+}
+
+.app-settings__hero-stat {
+  min-width: min(9rem, 100%);
+}
+
+.app-settings__hero-stat .app-stat__value {
+  font-size: clamp(0.9rem, 0.85rem + 0.2vw, 1rem);
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.app-settings__card--ok,
+.app-settings__card[data-tone="ok"] {
+  border-left: 4px solid var(--ui-status-success, #0d7a3a);
+}
+
+.app-settings__card--warn,
+.app-settings__card[data-tone="warn"] {
+  border-left: 4px solid var(--ui-status-warning, #9a6700);
+}
+
+.app-settings__card--primary {
+  box-shadow: var(--ui-shadow-panel);
+}

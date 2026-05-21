@@ -147,6 +147,48 @@ function withLeakyAppointmentFields<T extends Record<string, unknown>>(dto: T): 
   };
 }
 
+function withLeakyProfileFields<T extends Record<string, unknown>>(dto: T): T & Record<string, unknown> {
+  return {
+    ...dto,
+    HOME_PHONE: SMOKE_LEAKED_VALUES.telephone,
+    STREET: SMOKE_LEAKED_VALUES.address,
+    ADDRESS: SMOKE_LEAKED_VALUES.address,
+    EMAIL: SMOKE_LEAKED_VALUES.email,
+    INSURANCE: SMOKE_LEAKED_VALUES.insurance,
+    rawRow: SMOKE_LEAKED_VALUES.rawRow,
+  };
+}
+
+function withLeakyMedicalFields<T extends Record<string, unknown>>(dto: T): T & Record<string, unknown> {
+  return {
+    ...dto,
+    PROBLEM: SMOKE_LEAKED_VALUES.medicalText,
+    ALLERGY_TO: "SYNTHETIC_LEAKED_ALLERGY_TEXT",
+    NOTES: "SYNTHETIC_LEAKED_MEDICAL_NOTES",
+    rawRow: SMOKE_LEAKED_VALUES.rawRow,
+  };
+}
+
+function withLeakyChartEntryFields<T extends Record<string, unknown>>(dto: T): T & Record<string, unknown> {
+  return {
+    ...dto,
+    NOTE: SMOKE_LEAKED_VALUES.chartMemo,
+    PAT_NAME: "LEAKED PATIENT NAME FROM CHART",
+    rawRow: SMOKE_LEAKED_VALUES.rawRow,
+  };
+}
+
+function withLeakyLedgerEntryFields<T extends Record<string, unknown>>(dto: T): T & Record<string, unknown> {
+  return {
+    ...dto,
+    AMOUNT: SMOKE_LEAKED_VALUES.paymentAmount,
+    SAMOUNT: SMOKE_LEAKED_VALUES.amount,
+    DESCR: SMOKE_LEAKED_VALUES.ledgerMemo,
+    INSURANCE: SMOKE_LEAKED_VALUES.insurance,
+    rawRow: SMOKE_LEAKED_VALUES.rawRow,
+  };
+}
+
 function smokeAppointment(date: string) {
   return withLeakyAppointmentFields({
     id: "9001",
@@ -385,6 +427,10 @@ export function assertNoForbiddenDomTokens(text: string): void {
   expect(text).not.toMatch(/\bNOTE body\b/i);
   expect(text).not.toMatch(/\braw row\b/i);
   expect(text).not.toMatch(/\braw json\b/i);
+  expect(text).not.toMatch(/\brawRow\b/i);
+  expect(text).not.toMatch(/"before"/i);
+  expect(text).not.toMatch(/"after"/i);
+  expect(text).not.toMatch(/\bmedicalText\b/i);
   expect(text).not.toContain("rawRow");
 
   expect(text).not.toContain(SMOKE_LEAKED_VALUES.telephone);

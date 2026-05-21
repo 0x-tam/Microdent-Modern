@@ -14,7 +14,7 @@ import {
   safePatientTreatmentsError,
 } from "./PatientProfilePanel.js";
 import { PATIENT_DEMOGRAPHICS_WRITE_CONFIRM } from "./patient-demographics-write.js";
-import { PATIENT_TAB_HIDDEN_MEDICAL, PATIENT_TAB_HIDDEN_TREATMENTS } from "./read-only-ui-copy.js";
+import { PATIENT_TAB_HIDDEN_FIELDS_NOTE, PATIENT_TAB_HIDDEN_TREATMENTS } from "./read-only-ui-copy.js";
 import { defaultPatientApptRange, inclusiveDayCount } from "./patient-appointments-range.js";
 import { assertNoForbiddenDomTokens } from "./read-only-smoke-fixtures.js";
 import { wrapFetchWithSummaryPrefetchFallback } from "./read-only-summary-prefetch-mock.js";
@@ -1061,7 +1061,7 @@ describe("PatientProfilePanel", () => {
     await flush();
     await clickMedicalTab(container);
     await flush();
-    expect(container.textContent).toMatch(/No medical record found for this patient/i);
+    expect(container.textContent).toMatch(/No medical record/i);
   });
 
   it("shows medical record with screening flags when not sensitive", async () => {
@@ -1136,7 +1136,7 @@ describe("PatientProfilePanel", () => {
     await flush();
 
     const t = container.textContent ?? "";
-    expect(t).toMatch(/Clinical free text and allergy details stay hidden/i);
+    expect(t).toMatch(/Clinical free text and allergy details stay hidden in this preview/i);
     expect(t).toContain("3");
     expect(t).not.toContain("Asthma (screening)");
     expect(t).not.toContain("Diabetes (screening)");
@@ -1324,7 +1324,7 @@ describe("PatientProfilePanel", () => {
     expect(t).toContain("Synthetic dictionary label");
     expect(t).toContain("Tooth 14");
     expect(t).toContain("Synthetic Provider Three");
-    expect(t).toContain("Legacy status code 2 (unmapped)");
+    expect(t).toContain("Legacy status code 2");
     expect(t).toContain("Description hidden");
     expect(t).toContain(TREATMENTS_PRIVACY_NOTE);
     expect(t).not.toMatch(/\bDoctor 3\b/);
@@ -1540,8 +1540,8 @@ describe("PatientProfilePanel", () => {
     const t = container.textContent ?? "";
     expect(t).toMatch(/Ledger lines are read-only/i);
     expect(t).toMatch(/Dollar amounts, running balances, and payment totals are never shown/i);
-    expect(t).toContain("Legacy charge type code 2 (unmapped)");
-    expect(t).toContain("Legacy payment type code 100 (unmapped)");
+    expect(t).toContain("Legacy charge type code 2");
+    expect(t).toContain("Legacy payment type code 100");
     expect(t).toContain("Card payment");
     expect(t).toContain("Description hidden");
     expect(t).toContain(LEDGER_PRIVACY_NOTE);
@@ -1691,7 +1691,7 @@ describe("PatientProfilePanel", () => {
     const t = container.textContent ?? "";
     expect(t).toMatch(/Dental chart is read-only/i);
     expect(t).toContain("Tooth 14");
-    expect(t).toContain("Legacy chart type code 1 (unmapped)");
+    expect(t).toContain("Legacy chart type code 1");
     expect(t).toContain("Treated");
     expect(t).toContain("Note hidden");
     expect(t).toContain(CHART_PRIVACY_NOTE);
