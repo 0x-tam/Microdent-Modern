@@ -20,6 +20,8 @@ import {
   SCHEDULE_FILTER_EMPTY_DESCRIPTION,
   SCHEDULE_FILTER_EMPTY_TITLE,
   SCHEDULE_FILTER_PROVIDER_ARIA,
+  FILTER_CLEAR_LABEL,
+  SCHEDULE_ROOMS_IN_USE,
   SCHEDULE_KEYBOARD_HINT,
   SCHEDULE_LOAD_ERROR,
   SCHEDULE_LOADING,
@@ -536,6 +538,16 @@ export function SchedulePanel({
   const clientFiltersActive =
     statusFilter !== null || providerFilter !== null || roomFilter !== "";
 
+  const roomsInUseCount = useMemo(() => {
+    if (roomFilter !== "" || appointments.length === 0) return null;
+    return new Set(appointments.map((a) => a.room)).size;
+  }, [appointments, roomFilter]);
+
+  const clearClientFilters = useCallback(() => {
+    setStatusFilter(null);
+    setProviderFilter(null);
+  }, []);
+
   const roomOptions = useMemo(() => {
     const nums = [...new Set(rooms.map((r) => r.room))].sort((a, b) => a - b);
     return nums;
@@ -708,6 +720,9 @@ export function SchedulePanel({
                 {roomFilterContext ? (
                   <span className="app-schedule__range-room-context"> · {roomFilterContext}</span>
                 ) : null}
+                {roomsInUseCount !== null && roomsInUseCount > 0 ? (
+                  <span className="app-schedule__range-rooms-in-use"> · {SCHEDULE_ROOMS_IN_USE(roomsInUseCount)}</span>
+                ) : null}
               </p>
               {statusBreakdown.length > 0 ? (
                 <div className="app-schedule__status-breakdown" role="group" aria-label="Status breakdown">
@@ -756,6 +771,17 @@ export function SchedulePanel({
                     </Button>
                   ))}
                 </div>
+              ) : null}
+              {(statusFilter !== null || providerFilter !== null) ? (
+                <Button
+                  type="button"
+                  size="compact"
+                  variant="ghost"
+                  className="ui-focusable app-schedule__clear-filters"
+                  onClick={clearClientFilters}
+                >
+                  {FILTER_CLEAR_LABEL}
+                </Button>
               ) : null}
             </>
           ) : null}

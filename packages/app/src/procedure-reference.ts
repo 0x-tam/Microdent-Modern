@@ -1,4 +1,5 @@
 import type { ReferenceProcedureItem } from "@microdent/contracts";
+import { unknownProcedureLabel } from "./legacy-code-label.js";
 
 /** Trimmed `PROCNB` — join key for dictionary lookups (no width padding). */
 export function normalizeProcedureCode(code: string): string {
@@ -116,7 +117,7 @@ export function procedureReferenceLabelForCode(
   }
   const entry = maps.byProcedureCode.get(key);
   if (entry === undefined) {
-    return null;
+    return unknownProcedureLabel(key);
   }
   return pickEntryLabel(entry);
 }

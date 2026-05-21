@@ -597,7 +597,7 @@ describe("SchedulePanel", () => {
     expect(container.textContent).not.toMatch(/\bDoctor 3\b/);
   });
 
-  it("falls back to Doctor {id} when doctor is not in reference", async () => {
+  it("falls back to Unknown provider {id} when doctor is not in reference", async () => {
     const fetchImpl = withReferenceDoctors((input) => {
       const u = String(input);
       if (u.includes("/v1/schedule/rooms")) {
@@ -632,7 +632,7 @@ describe("SchedulePanel", () => {
       await Promise.resolve();
     });
 
-    expect(container.textContent).toContain("Doctor 99");
+    expect(container.textContent).toContain("Unknown provider 99");
   });
 
   it("still renders schedule when reference doctors fail", async () => {
@@ -670,7 +670,7 @@ describe("SchedulePanel", () => {
     });
 
     expect(container.textContent).toContain("Synthetic Schedule Panel Patient");
-    expect(container.textContent).toContain("Doctor 3");
+    expect(container.textContent).toContain("Unknown provider 3");
   });
 
   it("does not render private doctor fields in the DOM", async () => {
@@ -722,7 +722,7 @@ describe("SchedulePanel", () => {
       container.querySelector(".app-schedule__appt-row")?.textContent ??
       container.textContent ??
       "";
-    expect(rowText).toContain("Doctor 3");
+    expect(rowText).toContain("Unknown provider 3");
     expect(rowText).not.toContain("Leaked staff street");
     expect(rowText).not.toContain("LEAK-LIC");
     expect(rowText).not.toContain("Leaked staff memo");

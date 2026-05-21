@@ -1,4 +1,5 @@
 import type { PatientChartEntry } from "@microdent/contracts";
+import { legacyCodeLabel } from "./legacy-code-label.js";
 
 /** Sort by tooth number, then chart type; stable tie-break on entry id. */
 export function sortChartEntriesForDisplay(items: readonly PatientChartEntry[]): PatientChartEntry[] {
@@ -21,7 +22,7 @@ export function chartToothLabel(toothNumber: number | null): string {
 /** Opaque legacy chart variant code — no decoded clinical labels. */
 export function chartTypeLabel(chartType: number | null): string {
   if (chartType === null) return "Type —";
-  return `Type ${chartType}`;
+  return legacyCodeLabel("chart type", chartType);
 }
 
 export function chartTreatedLabel(treated: boolean): string {

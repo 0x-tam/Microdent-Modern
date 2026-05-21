@@ -150,4 +150,21 @@ describe("AppShell", () => {
     expect(html).not.toContain("Mirror: active");
     expect(html).not.toContain("Mirror: DBF fallback");
   });
+
+  it("retains AppShell navigation wiring for recents and schedule handoff (regression guard)", async () => {
+    const fs = await import("node:fs/promises");
+    const path = new URL("./AppShell.tsx", import.meta.url);
+    const src = await fs.readFile(path, "utf8");
+    expect(src).toContain("scheduleInitialDate");
+    expect(src).toContain("handleOpenScheduleAtDate");
+    expect(src).toContain("handleScheduleInitialDateApplied");
+    expect(src).toContain("handleRecentPatientSelect");
+    expect(src).toContain("recentPatients={recentPatients}");
+    expect(src).toContain("onRecentPatientSelect={handleRecentPatientSelect}");
+    expect(src).toContain("onOpenScheduleAtDate={handleOpenScheduleAtDate}");
+    expect(src).toContain("initialDate={scheduleInitialDate}");
+    expect(src).toContain("onInitialDateApplied={handleScheduleInitialDateApplied}");
+    expect(src).toContain("onOpenPatient={handleOpenPatient}");
+    expect(src).toMatch(/mirrorStatus=\{mirrorStatus\}/);
+  });
 });

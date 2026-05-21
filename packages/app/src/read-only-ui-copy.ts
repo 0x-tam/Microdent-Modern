@@ -146,6 +146,34 @@ export const PATIENT_TIMELINE_EVENT_PROFILE = "Profile";
 
 export const PATIENT_TIMELINE_ROW_ARIA = "Open related patient section";
 
+export const PATIENT_TIMELINE_KIND_FILTER_ARIA = "Filter timeline by event type";
+
+export const PATIENT_TIMELINE_VIEW_IN_TAB = (tabLabel: string): string => `View in ${tabLabel}`;
+
+export const PATIENT_TIMELINE_EMPTY_RANGE =
+  "No dated events in this read-only timeline yet. Connect the bridge or refresh after data loads.";
+
+export const PATIENT_TIMELINE_EMPTY_FILTER = "No events match the selected kind filter. Try another filter or clear filters.";
+
+export const PATIENT_TIMELINE_UNDATED_ONLY =
+  "Only undated chart snapshot rows are available — open the Chart tab for tooth-level detail.";
+
+export const FILTER_CLEAR_LABEL = "Clear filters";
+
+export const PATIENT_APPT_RANGE_CAP_BANNER =
+  "This year preset is capped at 365 days by the appointments API. Results may not include the full calendar year.";
+
+export const PATIENT_APPT_STATUS_MIX_ARIA = "Visit status mix in range";
+
+export const SCHEDULE_ROOMS_IN_USE = (count: number): string =>
+  count === 1 ? "1 room in use" : `${count} rooms in use`;
+
+export const TODAY_RECENT_PATIENTS_TITLE = "Recent patients";
+
+export const TODAY_REOPEN_RECENT = "Re-open recent";
+
+export const WRITE_REFRESH_NUDGE = "Refresh the profile or schedule view after a successful commit to see updated read-only data.";
+
 export const PATIENT_CHART_TOOTH_FILTER_LABEL = "Showing chart entries for";
 
 export const PATIENT_CHART_TOOTH_FILTER_CLEAR = "Show all teeth";

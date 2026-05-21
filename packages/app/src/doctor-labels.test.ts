@@ -39,8 +39,8 @@ describe("doctorDisplayLabel", () => {
     expect(doctorDisplayLabel("5", labels)).toBe("Synthetic Provider Gamma");
   });
 
-  it("falls back to Doctor {id} when missing from reference", () => {
-    expect(doctorDisplayLabel(9, labels)).toBe("Doctor 9");
+  it("falls back to Unknown provider {id} when missing from reference", () => {
+    expect(doctorDisplayLabel(9, labels)).toBe("Unknown provider 9");
   });
 
   it("returns null when there is no provider id", () => {
@@ -54,8 +54,8 @@ describe("profileAssignedProviderLabel", () => {
     { doctorId: "5", displayName: "Synthetic Provider Gamma", active: true },
   ]);
 
-  it("uses Doctor {id} fallback when reference is missing", () => {
-    expect(profileAssignedProviderLabel(9, labels)).toBe("Doctor 9");
+  it("uses Unknown provider {id} fallback when reference is missing", () => {
+    expect(profileAssignedProviderLabel(9, labels)).toBe("Unknown provider 9");
   });
 
   it("returns em dash when provider id is absent", () => {

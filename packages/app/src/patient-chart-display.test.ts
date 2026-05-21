@@ -34,7 +34,7 @@ describe("patient-chart-display", () => {
   it("formats safe row labels", () => {
     expect(chartToothLabel(14)).toBe("Tooth 14");
     expect(chartToothLabel(null)).toBe("Tooth —");
-    expect(chartTypeLabel(1)).toBe("Type 1");
+    expect(chartTypeLabel(1)).toBe("Legacy chart type code 1 (unmapped)");
     expect(chartTypeLabel(null)).toBe("Type —");
     expect(chartTreatedLabel(true)).toBe("Treated");
     expect(chartTreatedLabel(false)).toBe("Not treated");

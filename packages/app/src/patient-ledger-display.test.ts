@@ -56,9 +56,9 @@ describe("sortLedgerEntriesForDisplay", () => {
 
 describe("ledger display labels", () => {
   it("formats opaque type codes without amount fields", () => {
-    expect(ledgerChargeTypeLabel(2)).toBe("Charge type 2");
-    expect(ledgerAdjustmentTypeLabel(1)).toBe("Adjustment type 1");
-    expect(ledgerPaymentTypeLabel(100)).toBe("Payment type 100");
+    expect(ledgerChargeTypeLabel(2)).toBe("Legacy charge type code 2 (unmapped)");
+    expect(ledgerAdjustmentTypeLabel(1)).toBe("Legacy adjustment type code 1 (unmapped)");
+    expect(ledgerPaymentTypeLabel(100)).toBe("Legacy payment type code 100 (unmapped)");
     expect(ledgerCardPaymentLabel(true)).toBe("Card payment");
     expect(ledgerCardPaymentLabel(false)).toBe("Not card payment");
     expect(formatLedgerDate("2024-06-01")).toMatch(/2024/);

@@ -899,7 +899,7 @@ describe("PatientProfilePanel", () => {
     expect(container.textContent).toMatch(/Appointment history could not be loaded|Try again/i);
   });
 
-  it("falls back to Doctor {id} on appointments when doctor is missing from reference", async () => {
+  it("falls back to Unknown provider {id} on appointments when doctor is missing from reference", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 4, 15));
 
@@ -930,7 +930,7 @@ describe("PatientProfilePanel", () => {
     await clickAppointmentsTab(container);
     await flush();
 
-    expect(container.textContent).toContain("Doctor 5");
+    expect(container.textContent).toContain("Unknown provider 5");
   });
 
   it("does not show Medical tab when no patient is selected", async () => {
@@ -1324,7 +1324,7 @@ describe("PatientProfilePanel", () => {
     expect(t).toContain("Synthetic dictionary label");
     expect(t).toContain("Tooth 14");
     expect(t).toContain("Synthetic Provider Three");
-    expect(t).toContain("Status 2");
+    expect(t).toContain("Legacy status code 2 (unmapped)");
     expect(t).toContain("Description hidden");
     expect(t).toContain(TREATMENTS_PRIVACY_NOTE);
     expect(t).not.toMatch(/\bDoctor 3\b/);
@@ -1540,8 +1540,8 @@ describe("PatientProfilePanel", () => {
     const t = container.textContent ?? "";
     expect(t).toMatch(/Ledger lines are read-only/i);
     expect(t).toMatch(/Dollar amounts, running balances, and payment totals are never shown/i);
-    expect(t).toContain("Charge type 2");
-    expect(t).toContain("Payment type 100");
+    expect(t).toContain("Legacy charge type code 2 (unmapped)");
+    expect(t).toContain("Legacy payment type code 100 (unmapped)");
     expect(t).toContain("Card payment");
     expect(t).toContain("Description hidden");
     expect(t).toContain(LEDGER_PRIVACY_NOTE);
@@ -1691,7 +1691,7 @@ describe("PatientProfilePanel", () => {
     const t = container.textContent ?? "";
     expect(t).toMatch(/Dental chart is read-only/i);
     expect(t).toContain("Tooth 14");
-    expect(t).toContain("Type 1");
+    expect(t).toContain("Legacy chart type code 1 (unmapped)");
     expect(t).toContain("Treated");
     expect(t).toContain("Note hidden");
     expect(t).toContain(CHART_PRIVACY_NOTE);
@@ -1765,7 +1765,7 @@ describe("PatientProfilePanel", () => {
     await clickAppointmentsTab(container);
     await flush();
 
-    expect(container.textContent).toContain("Doctor 5");
+    expect(container.textContent).toContain("Unknown provider 5");
     expect(container.textContent).toContain("Room 3");
   });
 

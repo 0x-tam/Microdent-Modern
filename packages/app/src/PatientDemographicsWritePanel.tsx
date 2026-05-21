@@ -1,6 +1,6 @@
 import { createBridgeClient, BridgeClientError } from "@microdent/bridge-client";
 import type { BridgeDevStatusResponse, PatientProfileResponse } from "@microdent/contracts";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@microdent/ui";
 import {
   buildDemographicsUpdateBody,
@@ -15,8 +15,11 @@ import {
   PATIENT_DEMOGRAPHICS_DOCTOR_ID_HINT,
   PATIENT_DEMOGRAPHICS_PREVIEW_LABEL,
   PATIENT_DEMOGRAPHICS_PREVIEWING_LABEL,
+  APPOINTMENT_CREATE_DOCTOR_NONE,
+  WRITE_REFRESH_NUDGE,
 } from "./read-only-ui-copy.js";
 import { isSandboxWritePilotEnabled, resolveSandboxWriteBlockReason } from "./sandbox-write-pilot.js";
+import { useDoctorLabels } from "./useDoctorLabels.js";
 import {
   SafeWritePlanResult,
   SandboxWriteBanner,
@@ -63,6 +66,15 @@ export function PatientDemographicsWritePanel({
     profileToDemographicsForm(profile),
   );
   const [state, setState] = useState<UiState>({ kind: "idle" });
+  const { labels: doctorLabels } = useDoctorLabels({
+    bridgePhase: "connected",
+    bridgeBaseUrl,
+    fetchImpl,
+  });
+  const doctorOptions = useMemo(
+    () => [...doctorLabels.entries()].sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true })),
+    [doctorLabels],
+  );
 
   useEffect(() => {
     const next = profileToDemographicsForm(profile);
@@ -278,17 +290,22 @@ export function PatientDemographicsWritePanel({
           </p>
           <div className="app-sandbox-write__fields">
             <label className="app-sandbox-write__label">
-              <span>Doctor id</span>
-              <input
-                type="text"
-                inputMode="numeric"
+              <span>Assigned provider</span>
+              <select
                 className="ui-focusable"
                 value={form.doctorId}
                 disabled={loading}
                 onChange={(e) => patchField("doctorId", e.target.value)}
-                aria-label="Doctor id"
+                aria-label="Assigned provider"
                 aria-describedby="patient-demographics-doctor-hint"
-              />
+              >
+                <option value="">{APPOINTMENT_CREATE_DOCTOR_NONE}</option>
+                {doctorOptions.map(([id, label]) => (
+                  <option key={id} value={id}>
+                    {label}
+                  </option>
+                ))}
+              </select>
             </label>
           </div>
         </fieldset>
@@ -325,12 +342,19 @@ export function PatientDemographicsWritePanel({
         <SafeWritePlanResult summary={state.summary} testId="patient-demographics-plan" />
       ) : null}
       {state.kind === "result" ? (
-        <WriteOperationResult
-          committed={state.committed}
-          successLabel="demographics updated"
-          feedbackLines={state.feedbackLines}
-          testId="patient-demographics-write-result"
-        />
+        <>
+          <WriteOperationResult
+            committed={state.committed}
+            successLabel="demographics updated"
+            feedbackLines={state.feedbackLines}
+            testId="patient-demographics-write-result"
+          />
+          {state.committed ? (
+            <p className="app-sandbox-write__refresh-nudge" role="note">
+              {WRITE_REFRESH_NUDGE}
+            </p>
+          ) : null}
+        </>
       ) : null}
       {state.kind === "error" ? (
         <p className="app-sandbox-write__error" role="alert">

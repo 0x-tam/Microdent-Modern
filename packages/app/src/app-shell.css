@@ -3841,3 +3841,93 @@
     font-size: 14px;
   }
 }
+
+/* Clinic workflow polish — unified filter chips, timeline kind filters, write hints */
+.app-patient-profile__timeline-kind-filters,
+.app-patient-profile__appts-filters,
+.app-schedule__status-breakdown,
+.app-schedule__provider-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-1);
+}
+
+.app-patient-profile__timeline-kind-chip,
+.app-patient-profile__timeline-clear-filters,
+.app-patient-profile__appts-clear-filters,
+.app-patient-profile__clinical-clear-filters,
+.app-schedule__clear-filters {
+  min-height: 30px;
+  font-size: 12px;
+}
+
+.app-patient-profile__timeline-row-action {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--ui-primary-600);
+}
+
+.app-patient-profile__appt-row--current {
+  border-left: 3px solid var(--ui-primary-500);
+  padding-left: calc(var(--ui-space-2) - 3px);
+  background: color-mix(in srgb, var(--ui-primary-50) 35%, var(--ui-bg-surface));
+}
+
+.app-patient-profile__appts-status-mix,
+.app-patient-profile__appts-cap-banner {
+  margin: 0 0 var(--ui-space-2);
+  font-size: var(--app-text-meta);
+  color: var(--ui-text-secondary);
+}
+
+.app-schedule__write-discoverability-hint {
+  margin: var(--ui-space-2) 0 0;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-radius: var(--ui-radius-md);
+  background: color-mix(in srgb, var(--ui-primary-50) 45%, var(--ui-bg-surface));
+  font-size: var(--app-text-meta);
+  color: var(--ui-text-secondary);
+}
+
+.app-schedule__range-rooms-in-use {
+  color: var(--ui-text-secondary);
+}
+
+.app-dashboard-recent-patients__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-1);
+}
+
+.app-dashboard-recent-patients__btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: var(--ui-space-2);
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-dashboard-recent-patients__btn:hover {
+  border-color: rgba(27, 111, 122, 0.35);
+}
+
+.app-dashboard-recent-patients__chart {
+  font-size: var(--app-text-meta);
+  color: var(--ui-text-secondary);
+}
+
+.app-sandbox-write__refresh-nudge {
+  margin: var(--ui-space-2) 0 0;
+  font-size: var(--app-text-meta);
+  color: var(--ui-text-secondary);
+}

@@ -29,6 +29,7 @@ import {
 export type ProfileTab = "summary" | "timeline" | "appointments" | "medical" | "treatments" | "chart" | "ledger";
 
 const SUMMARY_CROSS_TABS: readonly { id: Exclude<ProfileTab, "summary">; label: string }[] = [
+  { id: "timeline", label: "Timeline" },
   { id: "appointments", label: "Appointments" },
   { id: "medical", label: "Medical" },
   { id: "treatments", label: "Treatments" },
@@ -62,6 +63,7 @@ export type PatientSummaryMiniCardsProps = {
   treatments: SummaryCountPrefetch;
   chart: SummaryCountPrefetch;
   ledger: SummaryCountPrefetch;
+  timeline?: SummaryCountPrefetch;
   doctorLabels?: ReadonlyMap<string, string>;
   procedureMaps?: ProcedureReferenceMaps;
   roomMap?: RoomLabelMap;
@@ -167,12 +169,27 @@ function countDetail(prefetch: SummaryCountPrefetch, emptyLabel: string): string
   return `${prefetch.count} entr${prefetch.count === 1 ? "y" : "ies"}${suffix}`;
 }
 
+function timelineDetail(timeline: SummaryCountPrefetch | undefined): string {
+  if (!timeline || timeline.phase === "loading" || timeline.phase === "idle") {
+    return PATIENT_SUMMARY_MINI_LOADING;
+  }
+  if (timeline.phase === "offline" || timeline.phase === "error") {
+    return PATIENT_SUMMARY_MINI_UNAVAILABLE;
+  }
+  if (timeline.phase === "empty" || timeline.count === 0) {
+    return "No merged events yet";
+  }
+  const suffix = timeline.truncated ? ` · ${PATIENT_SUMMARY_MINI_TRUNCATED}` : "";
+  return `${timeline.count} safe event${timeline.count === 1 ? "" : "s"}${suffix}`;
+}
+
 export function PatientSummaryMiniCards({
   appt,
   medical,
   treatments,
   chart,
   ledger,
+  timeline,
   doctorLabels = new Map(),
   procedureMaps,
   roomMap = new Map(),
@@ -238,12 +255,16 @@ export function PatientSummaryMiniCards({
           />
         )}
 
-        <SummaryMiniCardButton
-          title={PATIENT_SUMMARY_MINI_CARD_TIMELINE}
-          detail="Merged safe events"
-          tab="timeline"
-          onOpenTab={onOpenTab}
-        />
+        {!timeline || timeline.phase === "loading" || timeline.phase === "idle" ? (
+          miniCardSkeleton(PATIENT_SUMMARY_MINI_CARD_TIMELINE)
+        ) : (
+          <SummaryMiniCardButton
+            title={PATIENT_SUMMARY_MINI_CARD_TIMELINE}
+            detail={timelineDetail(timeline)}
+            tab="timeline"
+            onOpenTab={onOpenTab}
+          />
+        )}
       </div>
 
       <div className="app-patient-profile__summary-cross-tabs" role="group" aria-label={PATIENT_SUMMARY_CROSS_TAB_ARIA}>

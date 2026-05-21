@@ -130,10 +130,10 @@ describe("PatientDemographicsWritePanel", () => {
     expect(previewBtn(container)).toBeNull();
   });
 
-  it("links doctor id field to helper hint via aria-describedby", () => {
+  it("links assigned provider select to helper hint via aria-describedby", () => {
     renderPilot();
-    const doctorInput = container.querySelector<HTMLInputElement>('input[aria-label="Doctor id"]');
-    expect(doctorInput?.getAttribute("aria-describedby")).toBe("patient-demographics-doctor-hint");
+    const doctorSelect = container.querySelector<HTMLSelectElement>('select[aria-label="Assigned provider"]');
+    expect(doctorSelect?.getAttribute("aria-describedby")).toBe("patient-demographics-doctor-hint");
     expect(container.querySelector("#patient-demographics-doctor-hint")?.textContent).toMatch(/doctor id/i);
   });
 

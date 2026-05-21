@@ -168,7 +168,7 @@ describe("read-only app smoke", () => {
     await flush();
     expect(container.querySelector("#patient-panel-ledger")).toBeTruthy();
     expect(container.textContent).toMatch(/Ledger lines are read-only/i);
-    expect(container.textContent).toContain("Charge type 2");
+    expect(container.textContent).toContain("Legacy charge type code 2 (unmapped)");
 
     const paymentsBtn = [...container.querySelectorAll("button")].find((b) => b.textContent === "Payments");
     if (paymentsBtn) {

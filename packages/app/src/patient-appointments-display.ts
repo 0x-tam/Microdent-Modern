@@ -1,5 +1,6 @@
 import type { ScheduleAppointmentItem, ScheduleRoomItem } from "@microdent/contracts";
 import { doctorDisplayLabel } from "./doctor-labels.js";
+import { legacyCodeLabel } from "./legacy-code-label.js";
 import { procClassDisplayLabel, type ProcedureReferenceMaps } from "./procedure-reference.js";
 import { toLocalIsoDate } from "./patient-appointments-range.js";
 
@@ -42,7 +43,7 @@ export function patientApptStatusLabel(code: number): string {
     4: "Cancelled",
     5: "No-show",
   };
-  return map[code] ?? `Status ${code}`;
+  return map[code] ?? legacyCodeLabel("status", code);
 }
 
 /** Accessible status label — always human text, never raw status code. */

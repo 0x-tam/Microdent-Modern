@@ -495,7 +495,7 @@ describe("DashboardHome (Today schedule)", () => {
     expect(container.textContent).not.toMatch(/\bDoc 3\b/);
   });
 
-  it("falls back to Doctor {id} when doctor is not in reference", async () => {
+  it("falls back to Unknown provider {id} when doctor is not in reference", async () => {
     vi.useFakeTimers({ now: new Date(2026, 5, 15, 10, 30, 0), toFake: ["Date"] });
     const fetchImpl = withReferenceDoctors((input) => {
       const u = String(input);
@@ -524,7 +524,7 @@ describe("DashboardHome (Today schedule)", () => {
       await Promise.resolve();
     });
 
-    expect(container.textContent).toContain("Doctor 88");
+    expect(container.textContent).toContain("Unknown provider 88");
   });
 
   it("still renders today schedule when reference doctors fail", async () => {
@@ -569,7 +569,7 @@ describe("DashboardHome (Today schedule)", () => {
     });
 
     expect(container.textContent).toContain("Synthetic Dashboard One");
-    expect(container.textContent).toContain("Doctor 3");
+    expect(container.textContent).toContain("Unknown provider 3");
   });
 
   it("shows status strip count and mirror freshness in the aside", async () => {

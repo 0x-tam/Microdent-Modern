@@ -9,6 +9,8 @@ import type {
 import {
   patientApptRowMeta,
   patientApptStatusLabel,
+  roomDisplayLabel,
+  type RoomLabelMap,
 } from "./patient-appointments-display.js";
 import {
   ledgerAdjustmentTypeLabel,
@@ -101,6 +103,7 @@ export type BuildTimelineDisplayInput = {
   truncated: { treatments: boolean; ledger: boolean; chart: boolean };
   doctorLabels: ReadonlyMap<string, string>;
   procedureMaps?: ProcedureReferenceMaps;
+  roomMap?: RoomLabelMap;
 };
 
 const UNDATED_MONTH_KEY = "undated";
@@ -165,10 +168,11 @@ function appointmentEvents(
   appointments: readonly ScheduleAppointmentItem[],
   doctorLabels: ReadonlyMap<string, string>,
   procedureMaps?: ProcedureReferenceMaps,
+  roomMap: RoomLabelMap = new Map(),
 ): TimelineEvent[] {
   return appointments.map((appt) => {
     const status = patientApptStatusLabel(appt.status);
-    const meta = patientApptRowMeta(appt, doctorLabels, procedureMaps);
+    const meta = patientApptRowMeta(appt, doctorLabels, procedureMaps, roomMap);
     return {
       eventId: `appt-${appt.id}`,
       kind: "appointment",
@@ -378,7 +382,7 @@ function groupTimelineEvents(events: TimelineEvent[]): TimelineMonthGroup[] {
 
 export function buildTimelineDisplayModel(input: BuildTimelineDisplayInput): TimelineDisplayModel {
   const datedEvents: TimelineEvent[] = [
-    ...appointmentEvents(input.appointments, input.doctorLabels, input.procedureMaps),
+    ...appointmentEvents(input.appointments, input.doctorLabels, input.procedureMaps, input.roomMap),
     ...treatmentEvents(input.treatments, input.doctorLabels),
     ...ledgerEvents(input.ledgerEntries),
     ...medicalSnapshotEvents(input.medicalSummary),
@@ -414,6 +418,89 @@ export function buildTimelineDisplayModel(input: BuildTimelineDisplayInput): Tim
 
 export function timelineChartToothFilterLabel(tooth: number): string {
   return chartToothLabel(tooth);
+}
+
+/** Client-side kind filter groups for timeline toolbar chips. */
+export type TimelineKindFilter =
+  | "all"
+  | "appointments"
+  | "treatments"
+  | "chartMetadata"
+  | "ledgerMetadata"
+  | "medicalStatus";
+
+export const TIMELINE_KIND_FILTER_OPTIONS: readonly { id: TimelineKindFilter; label: string }[] = [
+  { id: "all", label: "All events" },
+  { id: "appointments", label: "Appointments" },
+  { id: "treatments", label: "Procedures" },
+  { id: "chartMetadata", label: "Chart metadata" },
+  { id: "ledgerMetadata", label: "Ledger metadata" },
+  { id: "medicalStatus", label: "Medical status" },
+];
+
+function eventMatchesKindFilter(event: TimelineEvent, filter: TimelineKindFilter): boolean {
+  if (filter === "all") return true;
+  switch (filter) {
+    case "appointments":
+      return event.kind === "appointment";
+    case "treatments":
+      return event.kind === "treatment";
+    case "chartMetadata":
+      return event.kind === "chartSnapshot" || event.kind === "profileAnchor";
+    case "ledgerMetadata":
+      return event.kind === "ledger";
+    case "medicalStatus":
+      return event.kind === "medicalSnapshot";
+    default:
+      return true;
+  }
+}
+
+/** Filter a built timeline model by kind — preserves banners; recomputes eventCount. */
+export function filterTimelineDisplayModel(
+  model: TimelineDisplayModel,
+  kindFilter: TimelineKindFilter,
+): TimelineDisplayModel {
+  if (kindFilter === "all") return model;
+
+  const snapshotEvents = model.snapshotEvents.filter((e) => eventMatchesKindFilter(e, kindFilter));
+  const monthGroups: TimelineMonthGroup[] = model.monthGroups
+    .map((month) => ({
+      ...month,
+      dayGroups: month.dayGroups
+        .map((day) => ({
+          ...day,
+          events: day.events.filter((e) => eventMatchesKindFilter(e, kindFilter)),
+        }))
+        .filter((day) => day.events.length > 0),
+    }))
+    .filter((month) => month.dayGroups.length > 0);
+
+  const eventCount =
+    snapshotEvents.length +
+    monthGroups.reduce(
+      (sum, month) => sum + month.dayGroups.reduce((daySum, day) => daySum + day.events.length, 0),
+      0,
+    );
+
+  return {
+    ...model,
+    monthGroups,
+    snapshotEvents,
+    eventCount,
+  };
+}
+
+export function timelineSourceTabLabel(sourceTab: TimelineSourceTab): string {
+  const labels: Record<TimelineSourceTab, string> = {
+    summary: "Summary",
+    appointments: "Appointments",
+    medical: "Medical",
+    treatments: "Treatments",
+    chart: "Chart",
+    ledger: "Ledger",
+  };
+  return labels[sourceTab];
 }
 
 /** Re-export month heading helper for tests comparing ledger/treatment parity. */

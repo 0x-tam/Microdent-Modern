@@ -73,13 +73,13 @@ describe("patient-treatments-display", () => {
       treatmentProviderLabel({ ...base, doctorId: "3", doctorLabel: "Api name" }, labels),
     ).toBe("Api name");
     expect(treatmentProviderLabel({ ...base, doctorId: "3", doctorLabel: null }, labels)).toBe("Reference name");
-    expect(treatmentProviderLabel({ ...base, doctorId: "9", doctorLabel: null }, labels)).toBe("Doctor 9");
+    expect(treatmentProviderLabel({ ...base, doctorId: "9", doctorLabel: null }, labels)).toBe("Unknown provider 9");
   });
 
   it("formats tooth and status as opaque labels", () => {
     expect(treatmentToothLabel(14)).toBe("Tooth 14");
     expect(treatmentToothLabel(null)).toBeNull();
-    expect(treatmentStatusLabel(2)).toBe("Status 2");
+    expect(treatmentStatusLabel(2)).toBe("Legacy status code 2 (unmapped)");
     expect(treatmentStatusLabel(null)).toBeNull();
   });
 

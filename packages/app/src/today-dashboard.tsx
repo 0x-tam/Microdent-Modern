@@ -3,6 +3,7 @@ import type { BridgeDevStatusResponse, MirrorStatusResponse, ScheduleAppointment
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Badge, Button, Card, CardBody, CardHeader, EmptyState } from "@microdent/ui";
 import type { AppSidebarModuleId } from "./app-nav-modules.js";
+import type { SessionRecentPatient } from "./session-recent-patients.js";
 import type { BridgeHealthPhase } from "./bridge-health.js";
 import { FixtureConnectionPanel } from "./FixtureConnectionPanel.js";
 import { LegacyCatalogPanel } from "./LegacyCatalogPanel.js";
@@ -48,6 +49,8 @@ import {
   TODAY_PRIVACY_LEDE,
   TODAY_QUICK_ACTIONS_LEDE,
   TODAY_REFRESH,
+  TODAY_RECENT_PATIENTS_TITLE,
+  TODAY_REOPEN_RECENT,
   TODAY_REMINDERS_PILOT_UNAVAILABLE,
   TODAY_SCHEDULE_UNAVAILABLE,
   TODAY_SEARCH_PATIENT,
@@ -168,12 +171,15 @@ export type DashboardPatientSummary = {
 export type DashboardHomeProps = {
   onOpenModule: (id: AppSidebarModuleId) => void;
   onOpenPatient?: (patientId: string, summary?: DashboardPatientSummary) => void;
+  onOpenScheduleAtDate?: (dateIso: string) => void;
   bridgeBaseUrl?: string;
   bridgePhase: BridgeHealthPhase;
   fetchImpl?: typeof fetch;
   selectedPatientId?: string | null;
   selectedPatientDisplayName?: string | null;
   selectedPatientChartNumber?: string | null;
+  recentPatients?: readonly SessionRecentPatient[];
+  onRecentPatientSelect?: (entry: SessionRecentPatient) => void;
   mirrorStatus?: MirrorStatusResponse | null;
   writeCapability?: BridgeDevStatusResponse | null;
   sandboxWritePilot?: boolean;
@@ -221,12 +227,15 @@ function selectedPatientHeadline(
 export function DashboardHome({
   onOpenModule,
   onOpenPatient,
+  onOpenScheduleAtDate,
   bridgeBaseUrl,
   bridgePhase,
   fetchImpl,
   selectedPatientId = null,
   selectedPatientDisplayName = null,
   selectedPatientChartNumber = null,
+  recentPatients = [],
+  onRecentPatientSelect,
   mirrorStatus = null,
   writeCapability = null,
   sandboxWritePilot = false,
@@ -252,6 +261,14 @@ export function DashboardHome({
   );
   const mirrorStale =
     bridgePhase === "connected" && mirrorStatus !== null && isMirrorImportStale(mirrorStatus, Date.now());
+
+  const openScheduleToday = useCallback(() => {
+    if (onOpenScheduleAtDate) {
+      onOpenScheduleAtDate(todayIso);
+      return;
+    }
+    onOpenModule("schedule");
+  }, [onOpenModule, onOpenScheduleAtDate, todayIso]);
 
   const openPatientFromAppt = useCallback(
     (appt: ScheduleAppointmentItem) => {
@@ -815,6 +832,32 @@ export function DashboardHome({
             </Card>
           ) : null}
 
+          {recentPatients.length > 0 && onRecentPatientSelect ? (
+            <Card className="app-dashboard-recent-patients">
+              <CardHeader>
+                <p className="ui-card__title app-card-title-lg">{TODAY_RECENT_PATIENTS_TITLE}</p>
+              </CardHeader>
+              <CardBody>
+                <ul className="app-dashboard-recent-patients__list" aria-label={TODAY_RECENT_PATIENTS_TITLE}>
+                  {recentPatients.slice(0, 5).map((entry) => (
+                    <li key={entry.patientId}>
+                      <button
+                        type="button"
+                        className="app-dashboard-recent-patients__btn ui-focusable"
+                        onClick={() => onRecentPatientSelect(entry)}
+                      >
+                        <span className="app-dashboard-recent-patients__name">{entry.displayName}</span>
+                        {entry.chartNumber ? (
+                          <span className="app-dashboard-recent-patients__chart">Chart {entry.chartNumber}</span>
+                        ) : null}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </CardBody>
+            </Card>
+          ) : null}
+
           <Card>
             <CardHeader>
               <p className="ui-card__title app-card-title-lg">Quick actions</p>
@@ -822,6 +865,16 @@ export function DashboardHome({
             <CardBody>
               <p className="app-quick-actions__lede">{TODAY_QUICK_ACTIONS_LEDE}</p>
               <div className="app-quick-actions">
+                {recentPatients.length > 0 && onRecentPatientSelect ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="ui-focusable app-quick-actions__btn"
+                    onClick={() => onRecentPatientSelect(recentPatients[0]!)}
+                  >
+                    {TODAY_REOPEN_RECENT}
+                  </Button>
+                ) : null}
                 <Button
                   type="button"
                   variant="primary"
@@ -835,7 +888,7 @@ export function DashboardHome({
                   variant="secondary"
                   className="ui-focusable app-quick-actions__btn"
                   disabled={!canLoad}
-                  onClick={() => onOpenModule("schedule")}
+                  onClick={openScheduleToday}
                 >
                   {TODAY_OPEN_SCHEDULE}
                 </Button>

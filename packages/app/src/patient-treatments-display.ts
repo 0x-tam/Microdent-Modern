@@ -1,5 +1,6 @@
 import type { PatientTreatmentItem } from "@microdent/contracts";
 import { doctorDisplayLabel } from "./doctor-labels.js";
+import { legacyCodeLabel } from "./legacy-code-label.js";
 import {
   normalizeProcedureCode,
   procedureReferenceLabelForCode,
@@ -93,7 +94,7 @@ export function treatmentProviderLabel(
 /** Opaque legacy status code — no free-text status fields. */
 export function treatmentStatusLabel(status: number | null): string | null {
   if (status === null) return null;
-  return `Status ${status}`;
+  return legacyCodeLabel("status", status);
 }
 
 export function formatTreatmentDate(iso: string | null): string | null {

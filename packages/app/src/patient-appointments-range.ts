@@ -72,3 +72,13 @@ export function patientApptRangeForPreset(
     }
   }
 }
+
+/** True when a preset's natural span exceeds the 365-day API cap (e.g. leap-year thisYear). */
+export function patientApptPresetWasRangeCapped(preset: PatientApptRangePreset, ref = new Date()): boolean {
+  if (preset !== "thisYear") return false;
+  const today = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
+  const y = today.getFullYear();
+  const natural = { from: `${y}-01-01`, to: `${y}-12-31` };
+  const capped = capPatientApptRange(natural.from, natural.to);
+  return capped.from !== natural.from || capped.to !== natural.to;
+}

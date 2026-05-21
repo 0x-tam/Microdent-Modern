@@ -1,4 +1,5 @@
 import type { LedgerEntryV1 } from "@microdent/contracts";
+import { legacyCodeLabel } from "./legacy-code-label.js";
 import { PATIENT_TAB_SECTION_UNDATED } from "./read-only-ui-copy.js";
 
 /** Sort newest first; stable tie-break on ledger entry id. */
@@ -26,17 +27,17 @@ export function formatLedgerDate(iso: string | null): string | null {
 
 export function ledgerChargeTypeLabel(code: number | null): string | null {
   if (code === null) return null;
-  return `Charge type ${code}`;
+  return legacyCodeLabel("charge type", code);
 }
 
 export function ledgerAdjustmentTypeLabel(code: number | null): string | null {
   if (code === null) return null;
-  return `Adjustment type ${code}`;
+  return legacyCodeLabel("adjustment type", code);
 }
 
 export function ledgerPaymentTypeLabel(code: number | null): string | null {
   if (code === null) return null;
-  return `Payment type ${code}`;
+  return legacyCodeLabel("payment type", code);
 }
 
 export function ledgerCardPaymentLabel(isCard: boolean | null): string | null {

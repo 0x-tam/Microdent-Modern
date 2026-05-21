@@ -16,6 +16,8 @@ import { AppErrorBoundary } from "./AppErrorBoundary.js";
 import {
   buildRoomLabelMap,
   filterPatientAppointments,
+  formatAppointmentStatusMix,
+  findCurrentAppointmentInRange,
   patientApptFormatDuration,
   patientApptProviderFilterOptions,
   patientApptRangeCountLabel,
@@ -32,6 +34,7 @@ import {
 import {
   defaultPatientApptRange,
   patientApptRangeForPreset,
+  patientApptPresetWasRangeCapped,
   timelinePatientApptRange,
   type PatientApptRangePreset,
 } from "./patient-appointments-range.js";
@@ -134,6 +137,9 @@ import {
   PATIENT_TAB_LOADING_TIMELINE,
   PATIENT_TAB_OFFLINE_TIMELINE,
   PATIENT_TAB_TIMELINE_LEDE,
+  FILTER_CLEAR_LABEL,
+  PATIENT_APPT_RANGE_CAP_BANNER,
+  PATIENT_APPT_STATUS_MIX_ARIA,
   PATIENT_TAB_HIDDEN_FIELDS_NOTE,
   PATIENT_TAB_LEDGER_LEDE,
   PATIENT_TAB_LEDGER_AMOUNTS_HIDDEN,
@@ -178,7 +184,9 @@ import { PatientSummaryMiniCards, type SummaryApptPrefetch, type SummaryCountPre
 import { PatientTimeline } from "./patient-timeline.js";
 import {
   buildTimelineDisplayModel,
+  filterTimelineDisplayModel,
   timelineChartToothFilterLabel,
+  type TimelineKindFilter,
   type TimelineNavigateHint,
   type TimelineSourceTab,
 } from "./patient-timeline-display.js";
@@ -743,6 +751,19 @@ function TreatmentsBody({
             </div>
           ) : null}
         </div>
+        {filterActive ? (
+          <Button
+            type="button"
+            size="compact"
+            variant="ghost"
+            className="ui-focusable app-patient-profile__clinical-clear-filters"
+            onClick={() =>
+              setFilters({ year: null, provider: null, procedureCode: null, tooth: null })
+            }
+          >
+            {FILTER_CLEAR_LABEL}
+          </Button>
+        ) : null}
       </div>
 
       {filtered.length === 0 ? (
@@ -820,6 +841,7 @@ function ChartBody({
   const showTreatedFilter = hasUntreated;
   const showTypeFilter = typeOptions.length > 1;
   const showFilterToolbar = showTreatedFilter || showTypeFilter;
+  const chartFiltersActive = treatedFilter !== "all" || chartTypeFilter !== null;
 
   return (
     <div className="app-patient-profile__chart-body">
@@ -887,6 +909,20 @@ function ChartBody({
               </div>
             ) : null}
           </div>
+          {chartFiltersActive ? (
+            <Button
+              type="button"
+              size="compact"
+              variant="ghost"
+              className="ui-focusable app-patient-profile__clinical-clear-filters"
+              onClick={() => {
+                setTreatedFilter("all");
+                setChartTypeFilter(null);
+              }}
+            >
+              {FILTER_CLEAR_LABEL}
+            </Button>
+          ) : null}
         </div>
       ) : (
         <p className="app-patient-profile__clinical-toolbar-summary" aria-live="polite">
@@ -1072,6 +1108,17 @@ function LedgerBody({
               </Button>
             ) : null}
           </div>
+        ) : null}
+        {filterActive ? (
+          <Button
+            type="button"
+            size="compact"
+            variant="ghost"
+            className="ui-focusable app-patient-profile__clinical-clear-filters"
+            onClick={() => setTypeFilter(null)}
+          >
+            {FILTER_CLEAR_LABEL}
+          </Button>
         ) : null}
       </div>
 
@@ -1369,6 +1416,7 @@ export function PatientProfilePanel({
 
   const [timelineState, setTimelineState] = useState<TimelineLoadState>({ phase: "idle" });
   const [timelineRefreshNonce, setTimelineRefreshNonce] = useState(0);
+  const [timelineKindFilter, setTimelineKindFilter] = useState<TimelineKindFilter>("all");
   const timelineRequestSeq = useRef(0);
   const [chartToothFilter, setChartToothFilter] = useState<number | null>(null);
 
@@ -1904,7 +1952,7 @@ export function PatientProfilePanel({
 
   const timelineModel = useMemo(() => {
     if (timelineState.phase !== "loaded" || state.phase !== "loaded") return null;
-    return buildTimelineDisplayModel({
+    const built = buildTimelineDisplayModel({
       profile: state.profile,
       appointments: timelineState.appointments,
       treatments: timelineState.treatments,
@@ -1915,8 +1963,86 @@ export function PatientProfilePanel({
       truncated: timelineState.truncated,
       doctorLabels,
       procedureMaps,
+      roomMap,
     });
-  }, [timelineState, state, doctorLabels, procedureMaps]);
+    return filterTimelineDisplayModel(built, timelineKindFilter);
+  }, [timelineState, state, doctorLabels, procedureMaps, roomMap, timelineKindFilter]);
+
+  const summaryTimeline = useMemo((): SummaryCountPrefetch => {
+    if (state.phase !== "loaded") {
+      return { phase: "idle", count: 0, truncated: false };
+    }
+    const phases = [summaryAppt.phase, summaryMed.phase, summaryTx.phase, summaryChart.phase, summaryLedger.phase];
+    if (phases.some((p) => p === "loading" || p === "idle")) {
+      return { phase: "loading", count: 0, truncated: false };
+    }
+    if (phases.some((p) => p === "offline")) {
+      return { phase: "offline", count: 0, truncated: false };
+    }
+    if (phases.some((p) => p === "error")) {
+      return { phase: "error", count: 0, truncated: false };
+    }
+    const model = buildTimelineDisplayModel({
+      profile: state.profile,
+      appointments: summaryAppt.phase === "loaded" ? summaryAppt.appointments : [],
+      treatments: [],
+      ledgerEntries: [],
+      chartEntries: [],
+      medicalSummary: null,
+      apptRange: defaultPatientApptRange(),
+      truncated: {
+        treatments: summaryTx.truncated,
+        ledger: summaryLedger.truncated,
+        chart: summaryChart.truncated,
+      },
+      doctorLabels,
+      procedureMaps,
+      roomMap,
+    });
+    const medBonus = summaryMed.phase === "loaded" && summaryMed.hasMedicalRecord ? 1 : 0;
+    const relatedCount =
+      model.eventCount +
+      medBonus +
+      (summaryTx.phase === "loaded" ? summaryTx.count : 0) +
+      (summaryChart.phase === "loaded" ? summaryChart.count : 0) +
+      (summaryLedger.phase === "loaded" ? summaryLedger.count : 0);
+    const truncated = summaryTx.truncated || summaryChart.truncated || summaryLedger.truncated;
+    if (relatedCount === 0) {
+      return { phase: "empty", count: 0, truncated };
+    }
+    return { phase: "loaded", count: relatedCount, truncated };
+  }, [
+    state,
+    summaryAppt,
+    summaryMed,
+    summaryTx,
+    summaryChart,
+    summaryLedger,
+    doctorLabels,
+    procedureMaps,
+    roomMap,
+  ]);
+
+  const apptClientFiltersActive =
+    apptStatusFilter !== null ||
+    apptRoomFilter !== null ||
+    apptProviderFilter !== null ||
+    apptTimeDirection !== "all";
+
+  const apptStatusMixLine = useMemo(() => {
+    if (apptState.phase !== "loaded" || apptState.appointments.length === 0) return null;
+    return formatAppointmentStatusMix(apptState.appointments);
+  }, [apptState]);
+
+  const currentPatientAppt = useMemo(() => {
+    if (apptState.phase !== "loaded") return null;
+    return findCurrentAppointmentInRange(apptState.appointments);
+  }, [apptState]);
+
+  const apptRangeCapBanner =
+    rangePreset === "thisYear" && patientApptPresetWasRangeCapped("thisYear")
+      ? PATIENT_APPT_RANGE_CAP_BANNER
+      : null;
 
   const chartEntriesForDisplay = useMemo(() => {
     if (chartState.phase !== "loaded") return [];
@@ -2131,6 +2257,7 @@ export function PatientProfilePanel({
                   treatments={summaryTx}
                   chart={summaryChart}
                   ledger={summaryLedger}
+                  timeline={summaryTimeline}
                   doctorLabels={doctorLabels}
                   procedureMaps={procedureMaps}
                   roomMap={roomMap}
@@ -2205,7 +2332,12 @@ export function PatientProfilePanel({
                     onRetry={() => setTimelineRefreshNonce((n) => n + 1)}
                   />
                 ) : timelineState.phase === "loaded" && timelineModel ? (
-                  <PatientTimeline model={timelineModel} onRowClick={handleTimelineRowClick} />
+                  <PatientTimeline
+                    model={timelineModel}
+                    kindFilter={timelineKindFilter}
+                    onKindFilterChange={setTimelineKindFilter}
+                    onRowClick={handleTimelineRowClick}
+                  />
                 ) : null}
               </section>
             ) : null}
@@ -2264,6 +2396,18 @@ export function PatientProfilePanel({
                       Refresh
                     </Button>
                   </div>
+
+                  {apptRangeCapBanner ? (
+                    <p className="app-patient-profile__appts-cap-banner" role="note">
+                      {apptRangeCapBanner}
+                    </p>
+                  ) : null}
+
+                  {apptStatusMixLine ? (
+                    <p className="app-patient-profile__appts-status-mix" role="status" aria-label={PATIENT_APPT_STATUS_MIX_ARIA}>
+                      {apptStatusMixLine}
+                    </p>
+                  ) : null}
 
                   <div className="app-patient-profile__appts-filters">
                     <div className="app-patient-profile__appts-filter-group" role="group" aria-label="Past or upcoming">
@@ -2348,7 +2492,7 @@ export function PatientProfilePanel({
                             className="ui-focusable app-patient-profile__appts-filter-chip"
                             onClick={() => setApptRoomFilter(room)}
                           >
-                            Room {room}
+                            {roomDisplayLabel(room, roomMap)}
                           </Button>
                         ))}
                       </div>
@@ -2382,6 +2526,23 @@ export function PatientProfilePanel({
                           </Button>
                         ))}
                       </div>
+                    ) : null}
+
+                    {apptClientFiltersActive ? (
+                      <Button
+                        type="button"
+                        size="compact"
+                        variant="ghost"
+                        className="ui-focusable app-patient-profile__appts-clear-filters"
+                        onClick={() => {
+                          setApptStatusFilter(null);
+                          setApptRoomFilter(null);
+                          setApptProviderFilter(null);
+                          setApptTimeDirection("all");
+                        }}
+                      >
+                        {FILTER_CLEAR_LABEL}
+                      </Button>
                     ) : null}
                   </div>
                 </div>
@@ -2436,7 +2597,10 @@ export function PatientProfilePanel({
                         <CardBody>
                           <ul className="app-patient-profile__appt-list" aria-label={`Appointments on ${dateIso}`}>
                             {list.map((appt) => (
-                              <li key={appt.id} className="app-patient-profile__appt-row">
+                              <li
+                                key={appt.id}
+                                className={`app-patient-profile__appt-row${currentPatientAppt?.id === appt.id ? " app-patient-profile__appt-row--current" : ""}`}
+                              >
                                 <div className="app-patient-profile__appt-time">{appt.time}</div>
                                 <div className="app-patient-profile__appt-main">
                                   <div className="app-patient-profile__appt-line1">

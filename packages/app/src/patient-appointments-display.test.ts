@@ -59,8 +59,8 @@ describe("patientApptRowMeta doctor labels", () => {
     expect(patientApptRowMeta(appt, doctorLabels, maps)).not.toMatch(/\bDoctor 5\b/);
   });
 
-  it("falls back to Doctor {id} when reference is missing", () => {
-    expect(patientApptRowMeta({ ...baseAppt, docId: 5 }, new Map(), maps)).toContain("Doctor 5");
+  it("falls back to Unknown provider {id} when reference is missing", () => {
+    expect(patientApptRowMeta({ ...baseAppt, docId: 5 }, new Map(), maps)).toContain("Unknown provider 5");
   });
 });
 
@@ -166,7 +166,7 @@ describe("patient appointment filters", () => {
     expect(patientApptUniqueDocIds(withTwo)).toEqual([5, 9]);
     expect(patientApptProviderFilterOptions(withTwo, doctorLabels)).toEqual([
       { docId: 5, label: "Synthetic Provider Appt" },
-      { docId: 9, label: "Doctor 9" },
+      { docId: 9, label: "Unknown provider 9" },
     ]);
   });
 

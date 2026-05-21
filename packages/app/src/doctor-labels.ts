@@ -1,4 +1,5 @@
 import type { ReferenceDoctorItem } from "@microdent/contracts";
+import { unknownProviderLabel } from "./legacy-code-label.js";
 
 /** Positive integer doctor id as string; `null` when absent or zero. */
 export function normalizeDoctorId(id: string | number | null | undefined): string | null {
@@ -43,7 +44,7 @@ export function doctorDisplayLabel(
   if (key === null) {
     return null;
   }
-  return labels.get(key) ?? `Doctor ${key}`;
+  return labels.get(key) ?? unknownProviderLabel(key);
 }
 
 /** Profile assigned provider — `Doctor {id}` when set, em dash when absent (matches appointment rows). */
