@@ -1,0 +1,117 @@
+/* ----- Schedule (read-only) ----- */
+.app-schedule {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(var(--ui-space-3), 1.4vw, var(--ui-space-4));
+  max-width: min(960px, 100%);
+  width: 100%;
+}
+
+.app-schedule__toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+}
+
+.app-schedule__toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-2) var(--ui-space-3);
+}
+
+.app-schedule__granularity,
+.app-schedule__nav {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-1);
+  flex-wrap: wrap;
+}
+
+.app-schedule__toolbar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.app-schedule__room-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  font-size: 13px;
+  color: var(--ui-text-secondary);
+}
+
+.app-schedule__room-filter-label {
+  font-weight: 500;
+}
+
+.app-schedule__select {
+  min-height: 36px;
+  padding: 0 var(--ui-space-2);
+  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-surface);
+  color: var(--ui-text-primary);
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.app-schedule__select:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.app-schedule__range {
+  margin: 0;
+  font-size: clamp(15px, 0.88rem + 0.3vw, 17px);
+  font-weight: 600;
+  color: var(--ui-text-primary);
+}
+
+.app-schedule__privacy {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ui-text-muted);
+}
+
+.app-schedule__keyboard-hint {
+  margin: var(--ui-space-1) 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ui-text-muted);
+}
+
+.app-schedule__sandbox-write-banner {
+  margin: var(--ui-space-2) 0 0;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--ui-danger-600);
+  background: var(--ui-danger-50);
+  border: 1px solid var(--ui-danger-600);
+  border-radius: var(--ui-radius-md);
+}
+
+.app-schedule__state {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.app-schedule__state--muted {
+  color: var(--ui-text-secondary);
+}
+
+.app-schedule__state--error {
+  color: var(--ui-text-primary);
+}
+
+.app-schedule__state--error p {
+  margin: 0 0 var(--ui-space-2);
+}
+

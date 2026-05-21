@@ -4,28 +4,25 @@ export const APP_SIDEBAR_MODULES = [
     id: "today",
     label: "Today",
     sublabel: "Front desk dashboard",
-    description: "Who is on the schedule, what is next, and where to go next.",
+    description: "Schedule overview, what's next, and quick actions.",
   },
   {
     id: "patients",
     label: "Patients",
     sublabel: "Search and open records",
-    description:
-      "Search by name or chart number to open a record — or use the top bar. Summary, visits, medical screening, treatments, chart, and ledger preview are read-only tabs; sensitive fields stay hidden.",
+    description: "Search by name or chart number. Summary, visits, medical, treatments, chart, and ledger tabs are read-only.",
   },
   {
     id: "schedule",
     label: "Schedule",
     sublabel: "Day and week views",
-    description:
-      "Day and week views from your copied schedule. Patient names use a safe summary; notes and phones stay hidden.",
+    description: "Day and week views from your copied schedule. Notes and phones stay hidden.",
   },
   {
     id: "settings",
     label: "Settings",
     sublabel: "Operator control center",
-    description:
-      "Bridge health, mirror import metadata, write mode, and sandbox status — operator-safe summaries only.",
+    description: "Bridge health, mirror import, write mode, and sandbox status.",
   },
 ] as const;
 

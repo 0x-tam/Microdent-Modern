@@ -45,6 +45,8 @@ describe("AppShell", () => {
     expect(html).toContain("<nav");
     expect(html).toContain("Read-only");
     expect(html).toContain("Offline");
+    expect(html).toContain("app-workspace-shell");
+    expect(html).toContain("app-rail");
   });
 
   it("renders dev-only Today aside panels only when import.meta.env.DEV", () => {
@@ -86,14 +88,19 @@ describe("AppShell", () => {
   it("renders page title and module description from nav metadata", () => {
     const html = renderToStaticMarkup(<AppShell />);
     expect(html).toContain('id="app-main-heading"');
-    expect(html).toContain("Who is on the schedule, what is next, and where to go next.");
+    expect(html).toMatch(/Schedule overview.*quick actions/);
     expect(html).toContain("Front desk dashboard");
   });
 
-  it("does not show Back to Today or patient context chip on the default Today view", () => {
+  it("does not show Back to Today on the default Today view", () => {
     const html = renderToStaticMarkup(<AppShell />);
     expect(html).not.toContain("app-main__back-today");
-    expect(html).not.toContain("app-main__patient-context-chip");
+  });
+
+  it("shows patient context in the rail when a patient would be selected (class present in shell markup)", () => {
+    const html = renderToStaticMarkup(<AppShell />);
+    expect(html).toContain("app-rail__patient");
+    expect(html).not.toContain("app-patient-context-bar");
   });
 
   it("marks the default section with aria-current on the active module control", () => {
@@ -115,8 +122,9 @@ describe("AppShell", () => {
     assertNoForbiddenDomTokens(html);
   });
 
-  it("shows the global privacy note under the read-only banner", () => {
+  it("shows read-only viewer pill with privacy note in header", () => {
     const html = renderToStaticMarkup(<AppShell />);
+    expect(html).toContain("app-workspace-header__readonly-pill");
     expect(html).toContain("payment amounts stay hidden");
   });
 

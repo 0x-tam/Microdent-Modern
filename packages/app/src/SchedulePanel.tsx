@@ -68,6 +68,8 @@ import { scheduleOperationalSummary } from "./patient-workspace-intelligence.js"
 import type { DashboardPatientSummary } from "./today-dashboard.js";
 
 export type SchedulePanelProps = {
+  moduleTitle?: string;
+  moduleDescription?: string;
   isActive: boolean;
   bridgePhase: BridgeHealthPhase;
   bridgeBaseUrl?: string;
@@ -260,6 +262,8 @@ function groupByDateThenRoom(
 }
 
 export function SchedulePanel({
+  moduleTitle = "Schedule",
+  moduleDescription,
   isActive,
   bridgePhase,
   bridgeBaseUrl,
@@ -615,8 +619,15 @@ export function SchedulePanel({
   );
 
   return (
-    <div className="app-schedule">
-        <div className="app-schedule__toolbar app-filter-bar">
+    <div className="app-workspace-page app-schedule">
+      <header className="app-page-hero">
+        <div>
+          <h2 className="app-page-hero__title">{moduleTitle}</h2>
+          {moduleDescription ? <p className="app-page-hero__meta">{moduleDescription}</p> : null}
+        </div>
+        <p className="app-page-hero__meta">{rangeHeading}</p>
+      </header>
+        <div className="app-schedule__toolbar app-toolbar app-filter-bar">
           <div className="app-schedule__toolbar-row app-filter-bar__group">
           <div className="app-schedule__granularity" role="group" aria-label={SCHEDULE_VIEW_LABEL}>
             <Button

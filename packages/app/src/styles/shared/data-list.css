@@ -1,0 +1,112 @@
+/* ----- Shared data list / row grid (schedule, timeline, search) ----- */
+.app-data-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-bg-surface);
+  overflow: hidden;
+}
+
+.app-data-list__header {
+  display: grid;
+  align-items: center;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-2) var(--ui-space-4);
+  font-size: var(--app-text-meta);
+  font-weight: 600;
+  color: var(--ui-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--ui-border-subtle);
+  background: var(--ui-bg-surface-raised);
+}
+
+.app-data-row {
+  display: grid;
+  align-items: center;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-3) var(--ui-space-4);
+  border-bottom: 1px solid var(--ui-border-subtle);
+  font-size: var(--app-text-body);
+  line-height: 1.4;
+  transition: background-color var(--ui-duration-hover) var(--ui-ease-out);
+}
+
+.app-data-row:last-child {
+  border-bottom: none;
+}
+
+.app-data-row:hover {
+  background: var(--ui-bg-subtle);
+}
+
+.app-data-row--interactive {
+  cursor: pointer;
+}
+
+.app-data-row--current {
+  background: var(--app-primary-alpha-12);
+  box-shadow: inset 3px 0 0 var(--ui-primary-600);
+}
+
+.app-data-row__time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--ui-text-primary);
+  min-width: 72px;
+}
+
+.app-data-row__primary {
+  font-weight: 600;
+  color: var(--ui-text-primary);
+}
+
+.app-data-row__meta {
+  font-size: var(--app-text-meta);
+  color: var(--ui-text-secondary);
+}
+
+.app-data-row__badge {
+  justify-self: end;
+}
+
+.app-data-row__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-2);
+  justify-self: end;
+}
+
+.app-data-list--schedule .app-data-row,
+.app-data-list--schedule .app-data-list__header {
+  grid-template-columns: 72px 1fr minmax(120px, 1.5fr) auto auto;
+}
+
+.app-data-list--timeline .app-data-row,
+.app-data-list--timeline .app-data-list__header {
+  grid-template-columns: auto 72px 1fr auto;
+}
+
+.app-data-list--search .app-data-row {
+  grid-template-columns: 1fr auto;
+  cursor: pointer;
+}
+
+.app-data-list--search .app-data-row:focus-visible {
+  outline: var(--ui-focus-ring-width) solid var(--ui-focus-ring-color);
+  outline-offset: -2px;
+}
+
+@media (max-width: 768px) {
+  .app-data-list--schedule .app-data-row,
+  .app-data-list--schedule .app-data-list__header {
+    grid-template-columns: 64px 1fr auto;
+  }
+
+  .app-data-list--schedule .app-data-row__meta {
+    grid-column: 2 / -1;
+  }
+}

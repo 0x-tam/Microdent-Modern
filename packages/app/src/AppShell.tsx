@@ -1,12 +1,11 @@
 import { createBridgeClient } from "@microdent/bridge-client";
 import type { BridgeDevStatusResponse, MirrorStatusResponse } from "@microdent/contracts";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Button, ReadOnlyBanner } from "@microdent/ui";
+import { Button } from "@microdent/ui";
 import { probeBridgeHealth, describeBridgeHealthProbeError, type BridgeHealthPhase } from "./bridge-health.js";
 import {
   READ_ONLY_BANNER_BODY,
   READ_ONLY_CONNECTED_LABEL,
-  READ_ONLY_MODE_LABEL,
   READ_ONLY_VIEWER_LABEL,
 } from "./read-only-ui-copy.js";
 import { omitShellBannersDetailedInSettings, resolveShellStatusBanners } from "./shell-status-banners.js";
@@ -349,6 +348,13 @@ export function AppShell({
     });
   }, [selectedPatientChartNumber, selectedPatientDisplayName, selectedPatientId]);
 
+  const railStatusTone = useMemo(() => {
+    if (shellStatusBanners.some((b) => b.tone === "danger")) return "danger";
+    if (shellStatusBanners.some((b) => b.tone === "warning")) return "warning";
+    if (bridgePhase === "connected") return "connected";
+    return undefined;
+  }, [bridgePhase, shellStatusBanners]);
+
   const sidebar = useMemo(
     () => (
       <ul className="app-sidebar__nav">
@@ -373,62 +379,131 @@ export function AppShell({
   );
 
   return (
-    <div className="app-shell">
-      <header className="app-topbar" role="banner">
-        <div className="app-topbar__brand">
+    <div className="app-workspace-shell app-shell">
+      <aside className="app-rail app-sidebar" aria-labelledby="sidebar-nav-label">
+        <div className="app-rail__brand">
           <h1 className="app-brand">Microdent</h1>
-          <span className="app-topbar__clinic">{displayClinicLabel}</span>
+          <span className="app-rail__clinic app-topbar__clinic">{displayClinicLabel}</span>
         </div>
+        <p id="sidebar-nav-label" className="app-sr-only">
+          Main navigation
+        </p>
+        <nav className="app-rail__nav" aria-labelledby="sidebar-nav-label">
+          {sidebar}
+        </nav>
 
-        <div className="app-topbar__search" role="search">
-          <PatientSearchBar
-            bridgePhase={bridgePhase}
-            bridgeBaseUrl={bridgeBaseUrl}
-            selectedPatientId={selectedPatientId}
-            selectedDisplayName={selectedPatientDisplayName}
-            fetchImpl={fetchImpl}
-            recentPatients={recentPatients}
-            onRecentPatientSelect={handleRecentPatientSelect}
-            onPatientRecordSelect={handlePatientRecordSelect}
-            onPatientSelectionClear={handlePatientSelectionClear}
-          />
-        </div>
-
-        <div className="app-topbar__status-wrap">
-          <div className="app-topbar__status-row">
-            <div
-              className={`app-topbar__status app-topbar__status--${bridgePhase}`}
-              role="status"
-              aria-live="polite"
-              aria-label={
-                bridgePhase === "connected"
-                  ? "Clinic service: connected"
-                  : bridgePhase === "checking"
-                    ? "Clinic service: checking"
-                    : "Clinic service: offline"
-              }
-            >
-              <span className="app-topbar__status-dot" aria-hidden />
-              <span className="app-topbar__status-label">
-                {bridgePhase === "connected"
-                  ? "Connected"
-                  : bridgePhase === "checking"
-                    ? "Checking…"
-                    : "Offline"}
-              </span>
-            </div>
-            {bridgeBaseUrl?.trim() ? (
+        <div className="app-rail__patient" role="region" aria-label="Selected patient">
+          {selectedPatientContextLabel ? (
+            <>
+              <span className="app-rail__patient-label">Patient</span>
+              <button
+                type="button"
+                className="app-rail__patient-chip app-main__patient-context-chip ui-focusable"
+                onClick={() => setActive("patients")}
+              >
+                {selectedPatientContextLabel}
+              </button>
               <Button
                 type="button"
                 variant="ghost"
                 size="compact"
-                className="ui-focusable app-topbar__refresh"
-                onClick={() => void runBridgeHealthCheck()}
+                className="ui-focusable app-rail__patient-clear app-main__patient-context-clear"
+                onClick={handlePatientSelectionClear}
               >
-                Refresh
+                Clear
               </Button>
-            ) : null}
+            </>
+          ) : (
+            <p className="app-rail__patient-empty">No patient selected</p>
+          )}
+        </div>
+
+        <div className="app-rail__footer">
+          <span
+            className={`app-rail__status-dot${railStatusTone ? ` app-rail__status-dot--${railStatusTone}` : ""}`}
+            role="status"
+          >
+            {bridgePhase === "connected"
+              ? "Service connected"
+              : bridgePhase === "checking"
+                ? "Checking service…"
+                : "Service offline"}
+          </span>
+          <p className="app-sidebar__hint" role="note">
+            {sidebarNavHint}{" "}
+            <button
+              type="button"
+              className="app-sidebar__hint-link ui-focusable"
+              onClick={() => setActive("settings")}
+            >
+              Settings
+            </button>
+          </p>
+        </div>
+      </aside>
+
+      <div className="app-workspace">
+        <header className="app-workspace-header app-topbar" role="banner">
+          <div className="app-workspace-header__search app-topbar__search" role="search">
+            <PatientSearchBar
+              bridgePhase={bridgePhase}
+              bridgeBaseUrl={bridgeBaseUrl}
+              selectedPatientId={selectedPatientId}
+              selectedDisplayName={selectedPatientDisplayName}
+              fetchImpl={fetchImpl}
+              recentPatients={recentPatients}
+              onRecentPatientSelect={handleRecentPatientSelect}
+              onPatientRecordSelect={handlePatientRecordSelect}
+              onPatientSelectionClear={handlePatientSelectionClear}
+            />
           </div>
+
+          <div className="app-workspace-header__actions">
+            <span
+              className="app-workspace-header__readonly-pill"
+              title={READ_ONLY_BANNER_BODY}
+              aria-label={`${READ_ONLY_VIEWER_LABEL}. ${READ_ONLY_BANNER_BODY}`}
+            >
+              {READ_ONLY_VIEWER_LABEL}
+            </span>
+            <div className="app-topbar__status-wrap">
+              <div className="app-topbar__status-row">
+                <div
+                  className={`app-topbar__status app-topbar__status--${bridgePhase}`}
+                  role="status"
+                  aria-live="polite"
+                  aria-label={
+                    bridgePhase === "connected"
+                      ? "Clinic service: connected"
+                      : bridgePhase === "checking"
+                        ? "Clinic service: checking"
+                        : "Clinic service: offline"
+                  }
+                >
+                  <span className="app-topbar__status-dot" aria-hidden />
+                  <span className="app-topbar__status-label">
+                    {bridgePhase === "connected"
+                      ? "Connected"
+                      : bridgePhase === "checking"
+                        ? "Checking…"
+                        : "Offline"}
+                  </span>
+                </div>
+                {bridgeBaseUrl?.trim() ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="compact"
+                    className="ui-focusable app-topbar__refresh"
+                    onClick={() => void runBridgeHealthCheck()}
+                  >
+                    ↻ Refresh
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
           {showBridgeConnectionDiagnostics && bridgeBaseUrl?.trim() ? (
             <details className="app-topbar__bridge-diag-details">
               <summary className="app-topbar__bridge-diag-summary ui-focusable">Dev connection details</summary>
@@ -448,102 +523,40 @@ export function AppShell({
               </div>
             </details>
           ) : null}
-        </div>
-      </header>
+        </header>
 
-      <div className="app-shell__banner">
-        <ReadOnlyBanner label={READ_ONLY_MODE_LABEL} className="ui-readonly-banner--compact">
-          {READ_ONLY_BANNER_BODY}
-        </ReadOnlyBanner>
-      </div>
-
-      {shellStatusBanners.length > 0 ? (
-        <div className="app-shell__status-row" role="region" aria-label="Clinic service status">
-          {shellStatusBanners.map((banner) => (
-            <div
-              key={banner.key}
-              className={`app-shell__status-chip app-shell__status-chip--${banner.tone}`}
-            >
-              <ReadOnlyBanner
-                label={banner.label}
-                className="ui-readonly-banner--compact app-shell__status-chip-inner"
+        {shellStatusBanners.length > 0 ? (
+          <div className="app-status-strip" role="region" aria-label="Clinic service status">
+            {shellStatusBanners.map((banner) => (
+              <div
+                key={banner.key}
+                className={`app-status-strip__item app-status-strip__item--${banner.tone === "danger" ? "critical" : banner.tone}`}
               >
-                {banner.body}
-              </ReadOnlyBanner>
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      {selectedPatientContextLabel ? (
-        <div className="app-patient-context-bar" role="status" aria-label={`Selected patient: ${selectedPatientContextLabel}`}>
-          <span className="app-patient-context-bar__label">Selected</span>
-          <button
-            type="button"
-            className="app-main__patient-context-chip ui-focusable"
-            onClick={() => setActive("patients")}
-          >
-            {selectedPatientContextLabel}
-          </button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="compact"
-            className="ui-focusable app-main__patient-context-clear"
-            onClick={handlePatientSelectionClear}
-          >
-            Clear
-          </Button>
-        </div>
-      ) : null}
-
-      {topSlot}
-
-      <div className="app-shell__body">
-        <aside className="app-sidebar" aria-labelledby="sidebar-nav-label">
-          <p id="sidebar-nav-label" className="app-sr-only">
-            Main navigation
-          </p>
-          <nav aria-labelledby="sidebar-nav-label">{sidebar}</nav>
-          <p className="app-sidebar__hint" role="note">
-            {sidebarNavHint}{" "}
-            <button
-              type="button"
-              className="app-sidebar__hint-link ui-focusable"
-              onClick={() => setActive("settings")}
-            >
-              Settings
-            </button>
-          </p>
-        </aside>
-
-        <main className="app-main" id="app-main-region" role="main" aria-labelledby={mainHeadingId}>
-          <div className="app-main__inner">
-            <div className="app-page-header app-main__head">
-              <div className="app-page-header__row app-main__head-row">
-                <h2 className="app-page-header__title app-main__heading" id={mainHeadingId}>
-                  {activeModule.label}
-                </h2>
-                <div className="app-main__head-actions">
-                  {active !== "today" ? (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="compact"
-                      className="ui-focusable app-main__back-today"
-                      onClick={() => setActive("today")}
-                    >
-                      Back to Today
-                    </Button>
-                  ) : null}
-                </div>
+                <span className="app-status-strip__label">{banner.label}</span>
+                <span className="app-status-strip__body">{banner.body}</span>
               </div>
-              <p className="app-page-header__lede app-main__lede">{activeModule.description}</p>
-            </div>
+            ))}
+          </div>
+        ) : null}
 
+        {topSlot}
+
+        <main
+          className="app-workspace-main app-main"
+          id="app-main-region"
+          role="main"
+          aria-labelledby={mainHeadingId}
+          data-page={active}
+        >
+          <div className="app-main__inner">
+            <h2 className="app-sr-only app-main__heading" id={mainHeadingId}>
+              {activeModule.label}
+            </h2>
             <div className="app-main__content">
               {active === "today" ? (
                 <DashboardHome
+                  moduleTitle={activeModule.label}
+                  moduleDescription={activeModule.description}
                   onOpenModule={setActive}
                   onOpenPatient={handleOpenPatient}
                   onOpenScheduleAtDate={handleOpenScheduleAtDate}
@@ -562,6 +575,8 @@ export function AppShell({
                 />
               ) : active === "schedule" ? (
                 <SchedulePanel
+                  moduleTitle={activeModule.label}
+                  moduleDescription={activeModule.description}
                   isActive={active === "schedule"}
                   bridgePhase={bridgePhase}
                   bridgeBaseUrl={bridgeBaseUrl}
@@ -579,6 +594,8 @@ export function AppShell({
                 />
               ) : active === "settings" ? (
                 <SettingsPanel
+                  moduleTitle={activeModule.label}
+                  moduleDescription={activeModule.description}
                   bridgePhase={bridgePhase}
                   bridgeBaseUrl={bridgeBaseUrl}
                   fetchImpl={fetchImpl}
@@ -591,6 +608,8 @@ export function AppShell({
                 />
               ) : (
                 <PatientProfilePanel
+                  moduleTitle={activeModule.label}
+                  moduleDescription={activeModule.description}
                   patientId={selectedPatientId}
                   bridgePhase={bridgePhase}
                   bridgeBaseUrl={bridgeBaseUrl}

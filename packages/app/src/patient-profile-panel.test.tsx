@@ -403,7 +403,7 @@ describe("PatientProfilePanel", () => {
     });
     expect(container.querySelector("input#app-patients-page-search-input")).toBeTruthy();
     expect(container.textContent).toMatch(/Find a patient/i);
-    expect(container.textContent).toMatch(/no full patient directory/i);
+    expect(container.textContent).toMatch(/Only query matches are shown/i);
     expect(container.textContent).not.toMatch(/No patient selected/i);
     expect(container.textContent).not.toContain("Synthetic Profile Patient");
   });

@@ -176,6 +176,8 @@ export type DashboardPatientSummary = {
 };
 
 export type DashboardHomeProps = {
+  moduleTitle?: string;
+  moduleDescription?: string;
   onOpenModule: (id: AppSidebarModuleId) => void;
   onOpenPatient?: (patientId: string, summary?: DashboardPatientSummary) => void;
   onOpenScheduleAtDate?: (dateIso: string) => void;
@@ -232,6 +234,8 @@ function selectedPatientHeadline(
 }
 
 export function DashboardHome({
+  moduleTitle = "Today",
+  moduleDescription,
   onOpenModule,
   onOpenPatient,
   onOpenScheduleAtDate,
@@ -682,10 +686,14 @@ export function DashboardHome({
   })();
 
   return (
-    <div className="app-dashboard">
-      <p className="app-dashboard__kicker">
-        <span className="app-dashboard__date">{formatTodayLine()}</span>
-      </p>
+    <div className="app-workspace-page app-dashboard">
+      <header className="app-page-hero">
+        <div>
+          <h2 className="app-page-hero__title">{moduleTitle}</h2>
+          {moduleDescription ? <p className="app-page-hero__meta">{moduleDescription}</p> : null}
+        </div>
+        <p className="app-page-hero__meta app-dashboard__date">{formatTodayLine()}</p>
+      </header>
 
       <div className="app-dashboard__layout">
         <div className="app-dashboard__primary">

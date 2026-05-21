@@ -207,6 +207,8 @@ import {
 } from "./patient-timeline-display.js";
 
 export type PatientProfilePanelProps = {
+  moduleTitle?: string;
+  moduleDescription?: string;
   /** When null, shows the embedded patient search/open area. */
   patientId: string | null;
   bridgePhase: BridgeHealthPhase;
@@ -1356,6 +1358,8 @@ function PatientPageSearchBlock({
 }
 
 export function PatientProfilePanel({
+  moduleTitle = "Patients",
+  moduleDescription,
   patientId,
   bridgePhase,
   bridgeBaseUrl,
@@ -2146,7 +2150,13 @@ export function PatientProfilePanel({
   };
 
   return (
-    <div className="app-patient-profile">
+    <div className="app-workspace-page app-patient-profile">
+      <header className="app-page-hero">
+        <div>
+          <h2 className="app-page-hero__title">{moduleTitle}</h2>
+          {moduleDescription ? <p className="app-page-hero__meta">{moduleDescription}</p> : null}
+        </div>
+      </header>
       <div className="app-patient-profile__toolbar">
         <Button type="button" variant="secondary" className="ui-focusable" onClick={onBackToday}>
           Back to Today
@@ -2184,7 +2194,8 @@ export function PatientProfilePanel({
 
       <AppErrorBoundary>
         {patientId === null ? (
-          <div className="app-patient-profile__open">
+          <div className="app-patient-profile__open app-state-panel">
+            <h3 className="app-page-hero__title">{PATIENT_PAGE_SEARCH_TITLE}</h3>
             <p className="app-patient-profile__open-lede">{PATIENT_PAGE_SEARCH_LEDE}</p>
             <p className="app-patient-profile__open-example">{PATIENT_PAGE_SEARCH_EXAMPLE}</p>
             <p className="app-patient-profile__open-hint">{PATIENT_MODULE_TABS_HINT}</p>

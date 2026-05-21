@@ -199,7 +199,7 @@ describe("read-only app smoke", () => {
     await flush();
 
     expect(container.querySelector("#app-main-heading")?.textContent).toBe("Schedule");
-    expect(container.querySelector(".app-main__back-today")).toBeTruthy();
+    expect(container.querySelector(".app-workspace-page.app-schedule")).toBeTruthy();
     expect(container.textContent).toContain("Synthetic Schedule Smoke Patient");
     expect(container.textContent).toContain("09:00");
     expect(container.textContent).toContain("Synthetic smoke bay");
@@ -260,8 +260,8 @@ describe("read-only app smoke", () => {
     const pageSearch = container.querySelector("input#app-patients-page-search-input") as HTMLInputElement;
     expect(pageSearch).toBeTruthy();
     expect(pageSearch.disabled).toBe(false);
-    expect(container.textContent).toMatch(/no full patient directory/i);
-    expect(container.textContent).not.toMatch(/No patient selected/i);
+    expect(container.textContent).toMatch(/Only query matches are shown/i);
+    expect(container.querySelector(".app-rail__patient-empty")).toBeTruthy();
 
     await act(async () => {
       setSearchInputValue(pageSearch, "Syn");

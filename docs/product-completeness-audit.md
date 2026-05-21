@@ -4,15 +4,37 @@
 
 **Reviewed:** `packages/app/src/` after PatientWorkspace, ScheduleOps, WriteCompletion, ClinicalIntel, SearchToday, LabelsSettings, UXCohesion, SafetyRegression, and full Mac checkpoint.
 
-**Baseline:** `578382c` — `feat: complete clinic workflow intelligence and polish`
+**Baseline:** `929b662` — `feat: elevate clinic app UI and workflow experience`  
+**Post-restructure:** clinic workspace UI batch — full-width shell, CSS split, compact status system
 
-**Related guardrails:** [out-of-scope-guardrails.md](./out-of-scope-guardrails.md) · **Windows field test entry:** [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md)
+**Related guardrails:** [out-of-scope-guardrails.md](./out-of-scope-guardrails.md) · **Windows field test entry:** [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md) · **Design spec:** [clinic-workspace-design-spec.md](./clinic-workspace-design-spec.md)
 
-**Tier status:** Mac-side read workflows and patient workspace are **near-complete** for operator demo. **Clinic go-live remains BLOCKED** until Tier 3 Windows field execution completes per [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md).
+**Tier status:** Mac-side UI restructure is **complete** for operator demo. **Clinic go-live remains BLOCKED** until Tier 3 Windows field execution completes.
 
 ---
 
-## Executive summary
+## Executive summary (post workspace restructure)
+
+| Area | Daily-use ready? | Notes |
+| --- | --- | --- |
+| **Shell** | Yes | Rail + workspace column; patient in rail; read-only pill; compact status strip |
+| **Today** | Yes | Full-width grid; page hero; operations aside consolidated |
+| **Patients** | Yes | Search hero empty state; rail patient slot |
+| **Profile** | Yes | Page hero; existing hero band + tabs; data-list patterns available |
+| **Schedule** | Yes | Full-width; page hero with date range; unified toolbar |
+| **Settings** | Yes | Page hero; 2-column card grid preserved |
+| **Writes (4 routes)** | Unchanged | Layout refresh via write.css; no new domains |
+| **Windows clinic PC** | **Not yet run — deferred** | **Next strategic gate** |
+
+---
+
+## Mac-side ROI assessment
+
+Mac-side UI restructure ROI is **exhausted** after this batch. Further Mac work should be **bugfix-only** unless Windows field execution surfaces new requirements.
+
+---
+
+## Prior audit (clinic workflow completion batch)
 
 | Area | Daily-use ready? | Notes |
 | --- | --- | --- |

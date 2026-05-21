@@ -1,4 +1,4 @@
-import { copyFileSync, mkdirSync } from "node:fs";
+import { copyFileSync, cpSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -9,3 +9,4 @@ const src = join(pkgRoot, "src");
 
 mkdirSync(dist, { recursive: true });
 copyFileSync(join(src, "app-shell.css"), join(dist, "app-shell.css"));
+cpSync(join(src, "styles"), join(dist, "styles"), { recursive: true });

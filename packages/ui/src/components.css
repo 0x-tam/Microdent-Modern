@@ -24,7 +24,7 @@
     border-color var(--ui-duration-hover) var(--ui-ease-out),
     color var(--ui-duration-hover) var(--ui-ease-out),
     box-shadow var(--ui-duration-hover) var(--ui-ease-out);
-  min-height: 36px;
+  min-height: 40px;
   padding: 0 16px;
 }
 
@@ -34,7 +34,7 @@
 }
 
 .ui-btn--compact {
-  min-height: 32px;
+  min-height: 36px;
   padding: 0 12px;
   font-size: 13px;
 }

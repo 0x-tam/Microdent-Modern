@@ -10,7 +10,7 @@ export const READ_ONLY_CONNECTED_LABEL = "Connected to copied clinic data";
 export const READ_ONLY_MODE_LABEL = "Read-only mode";
 
 export const READ_ONLY_BANNER_BODY =
-  "Pilot read-only viewer — clinic data cannot be changed here. Names, phones, notes, and payment amounts stay hidden.";
+  "Pilot read-only viewer. Names, phones, notes, and payment amounts stay hidden.";
 
 export const HIDDEN_IN_READONLY_VIEWER = "hidden in this read-only viewer";
 
@@ -37,7 +37,7 @@ export const PATIENT_PROFILE_READONLY_NOTE =
 export const PATIENT_PAGE_SEARCH_TITLE = "Find a patient";
 
 export const PATIENT_PAGE_SEARCH_LEDE =
-  "Search by name or chart number when the clinic service is connected. There is no full patient directory in this read-only viewer — only matches for your query are shown.";
+  "Search by name or chart number when connected. Only query matches are shown.";
 
 export const PATIENT_PAGE_SEARCH_EXAMPLE =
   "Example: type a last name or a chart number (at least 2 characters).";

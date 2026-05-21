@@ -72,6 +72,8 @@ import {
 } from "./shell-status-banners.js";
 
 export type SettingsPanelProps = {
+  moduleTitle?: string;
+  moduleDescription?: string;
   bridgePhase: BridgeHealthPhase;
   bridgeBaseUrl?: string;
   fetchImpl?: typeof fetch;
@@ -206,6 +208,8 @@ function SettingsNextStep({
 }
 
 export function SettingsPanel({
+  moduleTitle = "Settings",
+  moduleDescription,
   bridgePhase,
   bridgeBaseUrl,
   fetchImpl,
@@ -272,7 +276,13 @@ export function SettingsPanel({
   const runs = mirrorStatus?.latestImportRuns ?? [];
 
   return (
-    <div className="app-settings" aria-labelledby="settings-panel-title">
+    <div className="app-workspace-page app-settings" aria-labelledby="settings-panel-title">
+      <header className="app-page-hero">
+        <div>
+          <h2 className="app-page-hero__title" id="settings-panel-title">{moduleTitle}</h2>
+          {moduleDescription ? <p className="app-page-hero__meta">{moduleDescription}</p> : null}
+        </div>
+      </header>
       <p className="app-settings__lede">{SETTINGS_PANEL_LEDE}</p>
 
       {dangerBanners.length > 0 ? (
