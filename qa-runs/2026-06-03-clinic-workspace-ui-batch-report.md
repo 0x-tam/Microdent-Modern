@@ -58,7 +58,7 @@ Screenshots (local temp): `wave4-today.png`, `wave4-patients.png`, `wave4-schedu
 ## Commit
 
 **Message:** `feat: implement modern clinic workspace UI redesign`  
-**Commit hash:** _(filled after commit)_
+**Commit hash:** `9f2d54022474f16c0a85c637d06b41c4a70330df`
 
 ## Deferred
 
