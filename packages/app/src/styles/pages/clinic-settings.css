@@ -42,7 +42,36 @@
   font-size: var(--clinic-text-meta);
 }
 
-.clinic-settings-detail-grid {
+.clinic-settings-sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--clinic-page-gap);
+}
+
+.clinic-settings-section__title {
+  margin: 0;
+  font-size: var(--clinic-text-section);
+  font-weight: 700;
+  color: var(--ui-text-primary);
+}
+
+.clinic-settings-section__lede {
+  margin: var(--ui-space-1) 0 var(--ui-space-3);
+  max-width: 52rem;
+  font-size: var(--clinic-text-meta);
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+.clinic-settings-section__note {
+  margin: 0 0 var(--ui-space-2);
+  grid-column: 1 / -1;
+  font-size: var(--clinic-text-meta);
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+.clinic-settings-section__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
   gap: var(--clinic-page-gap);
@@ -50,9 +79,25 @@
 }
 
 @media (min-width: 1200px) {
-  .clinic-settings-detail-grid {
+  .clinic-settings-section__grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+}
+
+.app-settings__pilot-notes {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: var(--clinic-text-meta);
+  line-height: 1.5;
+  color: var(--ui-text-secondary);
+}
+
+.app-settings__pilot-notes li + li {
+  margin-top: var(--ui-space-2);
+}
+
+.app-settings__field-test-doc {
+  margin-top: var(--ui-space-3);
 }
 
 .clinic-settings-panel {

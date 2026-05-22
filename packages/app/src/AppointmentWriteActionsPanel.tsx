@@ -9,7 +9,11 @@ import {
   APPOINTMENT_WRITE_TAB_STATUS,
 } from "./read-only-ui-copy.js";
 import { isSandboxWritePilotEnabled, resolveSandboxWriteBlockReason } from "./sandbox-write-pilot.js";
-import { SandboxWriteBlockedNotice } from "./safe-write-plan-display.js";
+import {
+  SandboxWriteBanner,
+  SandboxWriteBlockedNotice,
+  SandboxWritePanelHint,
+} from "./safe-write-plan-display.js";
 
 import type { RoomLabelMap } from "./patient-appointments-display.js";
 
@@ -70,6 +74,8 @@ export function AppointmentWriteActionsPanel({
     <details className="clinic-panel clinic-write-panel app-appt-write-actions app-sandbox-write-zone" data-testid="appt-write-actions-panel">
       <summary className="app-appt-write-actions__summary">{APPOINTMENT_WRITE_ACTIONS_SUMMARY}</summary>
       <div className="app-appt-write-actions__body">
+        <SandboxWriteBanner className="app-appt-write-actions__banner" />
+        <SandboxWritePanelHint className="app-appt-write-actions__hint" />
         <div
           className="app-appt-write-actions__tabs"
           role="tablist"

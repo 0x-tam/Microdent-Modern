@@ -20,7 +20,7 @@ import { isSandboxWritePilotEnabled, resolveSandboxWriteBlockReason } from "./sa
 import { useDoctorLabels } from "./useDoctorLabels.js";
 import {
   SafeWritePlanResult,
-  SandboxWriteBanner,
+  SandboxWritePanelHint,
   SandboxWriteStepIndicator,
   type SandboxWriteStep,
   SandboxWriteBlockedNotice,
@@ -238,8 +238,8 @@ export function AppointmentCreateWriteAction({
   return (
     <details className="clinic-panel clinic-write-panel app-sandbox-write app-sandbox-write-zone app-appt-create-write" data-testid="appt-create-write-pilot">
       <summary className="app-sandbox-write__summary app-sandbox-write-zone__header">{APPOINTMENT_CREATE_SUMMARY}</summary>
-      <SandboxWriteBanner />
       <SandboxWriteStepIndicator step={resolveWriteStep(state)} />
+      <SandboxWritePanelHint />
       {selectedPatientHeadline ? (
         <p className="app-sandbox-write__patient-context" role="status">
           {APPOINTMENT_CREATE_PATIENT_CONTEXT}: {selectedPatientHeadline}

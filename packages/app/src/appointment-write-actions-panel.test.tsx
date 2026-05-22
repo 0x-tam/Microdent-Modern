@@ -132,7 +132,7 @@ describe("AppointmentWriteActionsPanel", () => {
     expect(container.textContent).not.toContain(SCHEDULE_SANDBOX_WRITE_PILOT_BANNER);
   });
 
-  it("shows status and move tabs when expanded", async () => {
+  it("shows status and move tabs when expanded with one shared sandbox banner", async () => {
     renderPanel();
     const details = container.querySelector('[data-testid="appt-write-actions-panel"]') as HTMLDetailsElement;
     await act(async () => {
@@ -143,6 +143,8 @@ describe("AppointmentWriteActionsPanel", () => {
     const text = container.textContent ?? "";
     expect(text).toContain(APPOINTMENT_WRITE_TAB_STATUS);
     expect(text).toContain(APPOINTMENT_WRITE_TAB_MOVE);
+    expect(text).toContain("Edit → Preview → Apply");
+    expect(text.match(/disposable test data only/g)?.length).toBe(1);
     expect(container.querySelector('[data-testid="appt-status-write-pilot"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="appt-time-move-write-pilot"]')).toBeNull();
     assertNoForbiddenDomTokens(text);

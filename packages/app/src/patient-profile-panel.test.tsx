@@ -16,7 +16,8 @@ import {
 import { PATIENT_DEMOGRAPHICS_WRITE_CONFIRM } from "./patient-demographics-write.js";
 import { PATIENT_TAB_HIDDEN_FIELDS_NOTE, PATIENT_TAB_HIDDEN_TREATMENTS } from "./read-only-ui-copy.js";
 import { defaultPatientApptRange, inclusiveDayCount } from "./patient-appointments-range.js";
-import { assertNoForbiddenDomTokens } from "./read-only-smoke-fixtures.js";
+import { PATIENT_WORKFLOW_STRIP_ARIA } from "./read-only-ui-copy.js";
+import { assertNoForbiddenDomTokens, assertNoMainPageJargonInDom } from "./read-only-smoke-fixtures.js";
 import { wrapFetchWithSummaryPrefetchFallback } from "./read-only-summary-prefetch-mock.js";
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -608,6 +609,13 @@ describe("PatientProfilePanel", () => {
     expect(container.textContent).not.toMatch(/\bProvider id\b/);
     expect(container.textContent).toContain("2020-03-01");
     expect(container.textContent).toContain("2024-01-15");
+    expect(container.querySelector(".clinic-profile-workflow")).toBeTruthy();
+    expect(container.querySelector(".clinic-profile-workflow-strip")).toBeTruthy();
+    expect(container.querySelector(".clinic-profile-stat-grid")).toBeFalsy();
+    expect(
+      container.querySelector(`section.clinic-profile-workflow[aria-label="${PATIENT_WORKFLOW_STRIP_ARIA}"]`),
+    ).toBeTruthy();
+    assertNoMainPageJargonInDom(container.textContent ?? "");
   });
 
   it("shows not found when the bridge returns PATIENT_NOT_FOUND", async () => {

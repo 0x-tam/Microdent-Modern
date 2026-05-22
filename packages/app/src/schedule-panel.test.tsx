@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { SchedulePanel } from "./SchedulePanel.js";
-import { assertNoForbiddenDomTokens } from "./read-only-smoke-fixtures.js";
+import { assertNoForbiddenDomTokens, assertNoMainPageJargonInDom } from "./read-only-smoke-fixtures.js";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -144,6 +144,39 @@ describe("SchedulePanel", () => {
     });
     expect(container.textContent).toMatch(/Waiting for the clinic service/i);
     expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("uses summary strip layout instead of five stat cards", async () => {
+    const fetchImpl = withReferenceDoctors((input: RequestInfo | URL) => {
+      const u = String(input);
+      if (u.includes("/v1/schedule/rooms")) {
+        return Promise.resolve(jsonResponse({ rooms: [] }));
+      }
+      if (u.includes("/v1/schedule/appointments")) {
+        return Promise.resolve(jsonResponse({ appointments: [] }));
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <SchedulePanel
+          isActive
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+          onBackToday={() => {}}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector(".clinic-schedule-summary-strip")).toBeTruthy();
+    expect(container.querySelector(".clinic-stat-grid--five")).toBeFalsy();
+    assertNoMainPageJargonInDom(container.textContent ?? "");
   });
 
   it("does not fetch when the bridge is offline", async () => {
@@ -957,7 +990,7 @@ describe("SchedulePanel", () => {
     });
 
     expect(container.querySelectorAll(".app-schedule__sandbox-write-banner")).toHaveLength(1);
-    expect(container.textContent).toMatch(/Sandbox write pilot/i);
+    expect(container.textContent).toMatch(/Sandbox edits use disposable test data/i);
     expect(container.textContent).toMatch(/Expand row for sandbox write actions/i);
     const writePanels = container.querySelectorAll('[data-testid="appt-write-actions-panel"]');
     expect(writePanels).toHaveLength(1);
@@ -1055,7 +1088,7 @@ describe("SchedulePanel", () => {
       await Promise.resolve();
     });
 
-    expect(container.textContent).toContain("Dry-run");
+    expect(container.textContent).toContain("Preview only");
     expect(container.querySelector(".app-schedule__write-mode-chip")).toBeTruthy();
   });
 

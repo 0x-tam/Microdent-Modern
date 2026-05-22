@@ -4,7 +4,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { BridgeClientError } from "@microdent/bridge-client";
 import { PatientSearchBar, safePatientSearchError } from "./PatientSearchBar.js";
-import { assertNoForbiddenDomTokens } from "./read-only-smoke-fixtures.js";
+import { assertNoForbiddenDomTokens, assertNoMainPageJargonInDom } from "./read-only-smoke-fixtures.js";
 
 function setSearchInputValue(input: HTMLInputElement, value: string): void {
   const proto = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value");
@@ -81,6 +81,18 @@ describe("PatientSearchBar", () => {
     });
     expect(container.querySelector("input#app-patients-page-search-input")).toBeTruthy();
     expect(container.querySelector("#app-patient-search-input")).toBeFalsy();
+  });
+
+  it("renders search-led 7+5 page workflow grid without diagnostics jargon", () => {
+    act(() => {
+      root.render(
+        <PatientSearchBar instanceId="page" bridgePhase="offline" bridgeBaseUrl="http://127.0.0.1:17890" />,
+      );
+    });
+    expect(container.querySelector(".clinic-patients-workspace")).toBeTruthy();
+    expect(container.querySelector(".clinic-col-7")).toBeTruthy();
+    expect(container.querySelector(".clinic-col-5")).toBeTruthy();
+    assertNoMainPageJargonInDom(container.textContent ?? "");
   });
 
   it("disables search when the bridge is offline", () => {

@@ -22,6 +22,7 @@ import { useDoctorLabels } from "./useDoctorLabels.js";
 import {
   SafeWritePlanResult,
   SandboxWriteBanner,
+  SandboxWritePanelHint,
   SandboxWriteStepIndicator,
   type SandboxWriteStep,
   SandboxWriteBlockedNotice,
@@ -197,10 +198,9 @@ export function PatientDemographicsWritePanel({
         Edit allowlisted fields
       </h4>
       <SandboxWriteStepIndicator step={resolveWriteStep(state)} />
-      <p className="app-sandbox-write__hint">
-        Preview runs a dry-run backup plan first. Apply stays disabled until preview succeeds. Only allowlisted
-        name/chart fields — phone, address, and notes are not editable. Once committed, check operation id and backup
-        lines below.
+      <SandboxWritePanelHint />
+      <p className="app-sandbox-write__hint app-sandbox-write__hint--secondary">
+        Only allowlisted name and chart fields — phone, address, and notes are not editable.
       </p>
       <div className="app-patient-demographics-write__groups">
         <fieldset className="app-sandbox-write__group" disabled={loading}>

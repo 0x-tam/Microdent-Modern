@@ -1,12 +1,21 @@
-/* Wave 2 E — Patients clinic workflow layout */
+/* Wave 2 D — Patients search-led 7+5 workspace */
+
 .clinic-patients-page {
   display: flex;
   flex-direction: column;
   gap: var(--clinic-page-gap);
 }
 
+.clinic-patients-workspace {
+  align-items: start;
+}
+
 .clinic-patients-search-panel .clinic-panel__body {
   padding-block: var(--ui-space-4);
+}
+
+.clinic-patients-results-panel .clinic-panel__body {
+  padding-block: var(--ui-space-3);
 }
 
 .clinic-patients-search {
@@ -28,7 +37,7 @@
 
 .clinic-patients-search__hint,
 .clinic-patients-search__status {
-  max-width: min(62ch, 100%);
+  max-width: min(52ch, 100%);
 }
 
 .clinic-patients-offline-inline {
@@ -39,20 +48,11 @@
   display: flex;
   flex-direction: column;
   gap: var(--ui-space-3);
+  min-height: 8rem;
 }
 
-.clinic-patients-results__empty {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ui-space-3);
-  padding: var(--ui-space-2) 0;
-}
-
-.clinic-patients-results__empty-lede {
+.clinic-patients-results__empty-state {
   margin: 0;
-  font-size: var(--clinic-text-body);
-  line-height: 1.5;
-  color: var(--ui-text-primary);
 }
 
 .clinic-patients-results__empty-list {
@@ -134,6 +134,22 @@
   font-size: var(--clinic-text-meta);
   line-height: 1.55;
   color: var(--ui-text-secondary);
+}
+
+.clinic-patients-aside-copy--safety {
+  line-height: 1.45;
+}
+
+.clinic-patients-aside-list {
+  margin: 0;
+  padding-left: var(--ui-space-5);
+  font-size: var(--clinic-text-meta);
+  line-height: 1.5;
+  color: var(--ui-text-secondary);
+}
+
+.clinic-patients-aside-list li + li {
+  margin-top: var(--ui-space-2);
 }
 
 .clinic-patients-aside-empty {

@@ -7,14 +7,11 @@ import { ClinicEmptyState } from "./clinic-empty-state.js";
 import { ClinicLoadingSkeleton } from "./clinic-loading-skeleton.js";
 import { ClinicPanel } from "./clinic-panel.js";
 import {
-  PATIENT_MODULE_TABS_HINT,
   PATIENT_NO_SELECTION_DESCRIPTION,
   PATIENT_NO_SELECTION_TITLE,
   PATIENT_PAGE_SEARCH_EXAMPLE,
   PATIENT_PAGE_SEARCH_LEDE,
-  PATIENT_PAGE_SEARCH_PRIVACY,
   PATIENT_PAGE_SEARCH_TITLE,
-  PATIENT_PROFILE_READONLY_NOTE,
   PATIENT_RECENT_SESSION_EMPTY,
   PATIENT_RECENT_SESSION_HINT,
   PATIENT_RECENT_SESSION_TITLE,
@@ -43,6 +40,16 @@ import {
 const SEARCH_DEBOUNCE_MS = 300;
 const PATIENTS_SAFETY_NOTE_TITLE = "Patient safety note";
 const PATIENTS_OPENS_NEXT_TITLE = "What opens next";
+const PATIENTS_PAGE_SEARCH_PRIVACY_SHORT =
+  "Copied clinic data only — safe names, chart numbers, and masked phone hints.";
+const PATIENTS_SAFETY_NOTE_LINE = "Read-only record — safe fields from your copied data only.";
+const PATIENTS_OPENS_NEXT_BULLETS = [
+  "Summary — demographics and at-a-glance cards.",
+  "Chart and Treatments — read-only dental chart and procedures.",
+  "Ledger preview — transaction metadata; amounts stay hidden.",
+] as const;
+const PATIENTS_RECENT_SESSION_HINT_SHORT =
+  "Up to five opened this session — not saved after you close the app.";
 
 export type PatientSearchHit = {
   patientId: string;
@@ -553,7 +560,7 @@ export function PatientSearchBar({
       <p id={domIds.hint} className="app-patient-search__hint clinic-patients-search__hint">
         {canSearch
           ? instanceId === "page"
-            ? PATIENT_PAGE_SEARCH_PRIVACY
+            ? PATIENTS_PAGE_SEARCH_PRIVACY_SHORT
             : PATIENT_SEARCH_HINT_CONNECTED
           : PATIENT_SEARCH_HINT_OFFLINE}
       </p>
@@ -733,7 +740,7 @@ export function PatientSearchBar({
 
   const renderRecentAside = () => (
     <ClinicPanel title={PATIENT_RECENT_SESSION_TITLE} testId="patients-page-recent">
-      <p className="clinic-patients-aside-copy">{PATIENT_RECENT_SESSION_HINT}</p>
+      <p className="clinic-patients-aside-copy">{PATIENTS_RECENT_SESSION_HINT_SHORT}</p>
       {recentPatients.length > 0 && onRecentPatientSelect ? (
         <ul className="clinic-patients-recent-list" aria-label={PATIENT_RECENT_SESSION_TITLE}>
           {recentPatients.map((entry) => {
@@ -774,22 +781,28 @@ export function PatientSearchBar({
           subtitle={pageSubtitle}
           meta={<span className="clinic-status-pill clinic-status-pill--info">{READ_ONLY_MODE_LABEL}</span>}
         />
-        <ClinicPanel title={PATIENT_PAGE_SEARCH_TITLE} className="clinic-patients-search-panel">
-          <div ref={rootRef} className={rootClassName}>
-            {searchControls}
-          </div>
-        </ClinicPanel>
-        <div className="clinic-command-grid">
-          <div className="clinic-command-grid__primary">
-            <ClinicPanel title={PATIENTS_PAGE_RESULTS_TITLE}>{renderPageResultsPanel()}</ClinicPanel>
-          </div>
-          <aside className="clinic-command-grid__aside">
-            {renderRecentAside()}
-            <ClinicPanel title={PATIENTS_SAFETY_NOTE_TITLE}>
-              <p className="clinic-patients-aside-copy">{PATIENT_PROFILE_READONLY_NOTE}</p>
+        <div className="clinic-workspace-grid clinic-patients-workspace">
+          <div className="clinic-col-7 clinic-workspace-grid__stack">
+            <ClinicPanel title={PATIENT_PAGE_SEARCH_TITLE} className="clinic-patients-search-panel">
+              <div ref={rootRef} className={rootClassName}>
+                {searchControls}
+              </div>
             </ClinicPanel>
-            <ClinicPanel title={PATIENTS_OPENS_NEXT_TITLE}>
-              <p className="clinic-patients-aside-copy">{PATIENT_MODULE_TABS_HINT}</p>
+            <ClinicPanel title={PATIENTS_PAGE_RESULTS_TITLE} className="clinic-patients-results-panel">
+              {renderPageResultsPanel()}
+            </ClinicPanel>
+          </div>
+          <aside className="clinic-col-5 clinic-workspace-grid__stack clinic-patients-aside" aria-label="Patients workflow shortcuts">
+            {renderRecentAside()}
+            <ClinicPanel title={PATIENTS_OPENS_NEXT_TITLE} className="clinic-patients-opens-panel">
+              <ul className="clinic-patients-aside-list">
+                {PATIENTS_OPENS_NEXT_BULLETS.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </ClinicPanel>
+            <ClinicPanel title={PATIENTS_SAFETY_NOTE_TITLE} className="clinic-patients-safety-panel">
+              <p className="clinic-patients-aside-copy clinic-patients-aside-copy--safety">{PATIENTS_SAFETY_NOTE_LINE}</p>
             </ClinicPanel>
           </aside>
         </div>

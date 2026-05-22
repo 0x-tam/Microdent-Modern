@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { DashboardHome } from "./today-dashboard.js";
-import { assertNoForbiddenDomTokens } from "./read-only-smoke-fixtures.js";
+import { TODAY_HERO_SUBTITLE } from "./read-only-ui-copy.js";
+import { assertNoForbiddenDomTokens, assertNoMainPageJargonInDom } from "./read-only-smoke-fixtures.js";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -72,6 +73,43 @@ describe("DashboardHome (Today schedule)", () => {
     container.remove();
     vi.useRealTimers();
     vi.restoreAllMocks();
+  });
+
+  it("uses workflow-first 8+4 layout without diagnostics stat grid", async () => {
+    vi.useFakeTimers({ now: new Date(2026, 5, 15, 10, 30, 0), toFake: ["Date"] });
+    const fetchImpl = vi.fn((input: RequestInfo | URL) => {
+      const u = String(input);
+      if (u.includes("/v1/schedule/appointments")) {
+        return Promise.resolve(jsonResponse({ appointments: [] }));
+      }
+      return Promise.reject(new Error(`unexpected ${u}`));
+    });
+
+    await act(async () => {
+      root.render(
+        <DashboardHome
+          onOpenModule={() => {}}
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl}
+        />,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector(".clinic-workspace-grid")).toBeTruthy();
+    expect(container.querySelector(".clinic-col-8")).toBeTruthy();
+    expect(container.querySelector(".clinic-col-4")).toBeTruthy();
+    expect(container.querySelector(".clinic-status-compact")).toBeTruthy();
+    expect(container.querySelector(".clinic-continue-strip")).toBeTruthy();
+    expect(container.querySelector(".clinic-stat-grid--five")).toBeFalsy();
+    expect(container.textContent).toContain(TODAY_HERO_SUBTITLE);
+    expect(container.textContent).toMatch(/Clinic status/i);
+    expect(container.textContent).not.toMatch(/Clinic at a glance/i);
+    assertNoMainPageJargonInDom(container.textContent ?? "");
   });
 
   it("does not fetch when the bridge is offline", async () => {
@@ -270,7 +308,7 @@ describe("DashboardHome (Today schedule)", () => {
       await Promise.resolve();
       await Promise.resolve();
     });
-    expect(container.textContent).toMatch(/Schedule unavailable/i);
+    expect(container.textContent).toMatch(/Could not load today's schedule/i);
     expect(container.textContent).toMatch(/Retry/i);
   });
 

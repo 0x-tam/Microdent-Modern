@@ -399,6 +399,30 @@ export function createReadOnlySmokeFetch(): (input: RequestInfo | URL) => Promis
   };
 }
 
+/**
+ * Technical / diagnostics jargon that must not appear on main workspace pages
+ * (Today, Patients, Schedule, Profile, shell header). Settings keeps technical terms.
+ */
+export const MAIN_PAGE_FORBIDDEN_JARGON = [
+  "SQLite",
+  "sqlite mirror",
+  "DBF fallback",
+  "DBF files",
+  "mirror stale",
+  "Mirror:",
+  "Mirror active",
+  "Mirror unavailable",
+  "write mode",
+  "Write mode",
+  "Writes off",
+  "sandbox write pilot",
+  "Sandbox pilot",
+  "capability loads",
+  "Clinic at a glance",
+  "Pilot notes",
+  "clinic-stat-grid--five",
+] as const;
+
 /** Legacy DBF field labels that must not appear as visible DOM tokens (excludes UI words like "before"). */
 export const DOM_FORBIDDEN_FIELD_LABELS = [
   "PAT_NAME",
@@ -418,6 +442,15 @@ export const DOM_FORBIDDEN_FIELD_LABELS = [
   "PROBLEM",
   "ALLERGY_TO",
 ] as const;
+
+/** Asserts main-page DOM does not surface diagnostics jargon (Settings excluded). */
+export function assertNoMainPageJargonInDom(text: string): void {
+  for (const token of MAIN_PAGE_FORBIDDEN_JARGON) {
+    expect(text).not.toContain(token);
+  }
+  expect(text).not.toMatch(/\bsqlite\b/i);
+  expect(text).not.toMatch(/\bmirror:\s/i);
+}
 
 /** Asserts read-only UI never surfaces legacy field labels or leaked mock values. */
 export function assertNoForbiddenDomTokens(text: string): void {

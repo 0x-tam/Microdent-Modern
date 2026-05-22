@@ -98,5 +98,18 @@ describe("CSS cascade guard — shell layout ownership", () => {
     expect(design).toMatch(/\.clinic-sidebar\b/);
     expect(design).toMatch(/\.clinic-header-search\b/);
     expect(design).toMatch(/\.clinic-workspace-main\b/);
+    expect(design).toMatch(/\.clinic-workspace-grid[\s\S]*grid-template-columns:\s*repeat\(12/);
+    expect(design).toMatch(/\.clinic-col-8\b/);
+    expect(design).toMatch(/\.clinic-col-4\b/);
+    expect(design).toMatch(/\.clinic-col-7\b/);
+    expect(design).toMatch(/\.clinic-col-5\b/);
+    expect(design).toMatch(/\.clinic-summary-strip\b/);
+    expect(design).toMatch(/\.clinic-status-compact\b/);
+    expect(design).toMatch(/\.clinic-continue-strip\b/);
+    expect(design).toMatch(/\.clinic-header-search[\s\S]*max-width:\s*min\(720px/);
+    expect(design).toMatch(/@media\s*\(max-width:\s*1099px\)/);
+    expect(design).toMatch(/@media\s*\(max-width:\s*899px\)/);
+    expect(design).toMatch(/@media\s*\(max-width:\s*799px\)/);
+    expect(design).toMatch(/overflow-x:\s*clip/);
   });
 });

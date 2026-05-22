@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   assertNoForbiddenDomTokens,
+  assertNoMainPageJargonInDom,
   DOM_FORBIDDEN_FIELD_LABELS,
+  MAIN_PAGE_FORBIDDEN_JARGON,
   SMOKE_LEAKED_VALUES,
 } from "./read-only-smoke-fixtures.js";
 
@@ -24,10 +26,10 @@ describe("assertNoForbiddenDomTokens", () => {
     );
   });
 
-  it("passes on safe operator copy", () => {
+  it("passes on safe operator copy without legacy field labels", () => {
     expect(() =>
       assertNoForbiddenDomTokens(
-        "Today command center. Clinic service Connected. Mirror unavailable — DBF fallback. Writes off.",
+        "Today's schedule and next visit. Clinic service connected. Local copy ready. Read-only.",
       ),
     ).not.toThrow();
   });
@@ -55,5 +57,31 @@ describe("assertNoForbiddenDomTokens", () => {
   it('rejects quoted JSON plan keys "before" and "after"', () => {
     expect(() => assertNoForbiddenDomTokens('plan "before" value')).toThrow();
     expect(() => assertNoForbiddenDomTokens('plan "after" value')).toThrow();
+  });
+});
+
+describe("assertNoMainPageJargonInDom", () => {
+  it("exports blocked jargon tokens for main pages", () => {
+    expect(MAIN_PAGE_FORBIDDEN_JARGON).toEqual(
+      expect.arrayContaining(["SQLite", "DBF fallback", "Clinic at a glance", "write mode"]),
+    );
+  });
+
+  it("passes on clinic-friendly main-page copy", () => {
+    expect(() =>
+      assertNoMainPageJargonInDom(
+        "Today's schedule. Local copy ready. Read-only. Clinic status. View details in Settings.",
+      ),
+    ).not.toThrow();
+  });
+
+  it.each([
+    ["SQLite mirror", "Settings panel SQLite mirror path"],
+    ["DBF fallback", "Mirror unavailable — DBF fallback"],
+    ["write mode", "Write mode is off"],
+    ["Clinic at a glance", "Clinic at a glance panel"],
+    ["Pilot notes", "Pilot notes for sandbox"],
+  ] as const)("rejects main-page jargon %s", (_label, sample) => {
+    expect(() => assertNoMainPageJargonInDom(sample)).toThrow();
   });
 });

@@ -206,22 +206,15 @@
   gap: var(--ui-space-2);
 }
 
-.clinic-today-pilot-notes {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ui-space-2);
-}
-
-.clinic-today-pilot-notes p {
+.clinic-today-continue-hint {
   margin: 0;
   font-size: var(--clinic-text-meta);
-  line-height: 1.5;
-  color: var(--ui-text-secondary);
+  line-height: 1.45;
+  color: var(--ui-text-muted);
 }
 
-.clinic-today-panel--compact .clinic-panel__body {
-  padding-top: var(--ui-space-3);
-  padding-bottom: var(--ui-space-3);
+.clinic-today-page .clinic-workspace-grid__stack > .clinic-panel {
+  min-width: 0;
 }
 
 .clinic-today-appt-count {

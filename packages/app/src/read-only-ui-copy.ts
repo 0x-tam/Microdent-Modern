@@ -17,9 +17,9 @@ export const HIDDEN_IN_READONLY_VIEWER = "hidden in this read-only viewer";
 export const CLINIC_SERVICE_OFFLINE_TITLE = "Clinic service offline";
 
 export const CLINIC_SERVICE_OFFLINE_PANEL =
-  "Start the bridge and wait for Connected in the top bar, then try again.";
+  "Start the clinic service and wait for Connected in the top bar, then try again.";
 
-export const CLINIC_SERVICE_OFFLINE_SECTION = "Connect the bridge to load this section.";
+export const CLINIC_SERVICE_OFFLINE_SECTION = "Connect the clinic service to load this section.";
 
 export const CLINIC_SERVICE_CHECKING = "Waiting for the clinic service…";
 
@@ -86,13 +86,13 @@ export const PATIENT_TAB_TREATMENTS_LEDE =
 
 export const PATIENT_TAB_LOADING_TREATMENTS = "Loading treatments…";
 
-export const PATIENT_TAB_OFFLINE_TREATMENTS = "Connect the bridge to load treatment history.";
+export const PATIENT_TAB_OFFLINE_TREATMENTS = "Connect the clinic service to load treatment history.";
 
-export const PATIENT_TAB_OFFLINE_MEDICAL = "Connect the bridge to load the medical summary.";
+export const PATIENT_TAB_OFFLINE_MEDICAL = "Connect the clinic service to load the medical summary.";
 
-export const PATIENT_TAB_OFFLINE_CHART = "Connect the bridge to load the dental chart.";
+export const PATIENT_TAB_OFFLINE_CHART = "Connect the clinic service to load the dental chart.";
 
-export const PATIENT_TAB_OFFLINE_LEDGER = "Connect the bridge to load the ledger preview.";
+export const PATIENT_TAB_OFFLINE_LEDGER = "Connect the clinic service to load the ledger preview.";
 
 export const PATIENT_TAB_CHART_LEDE =
   "Dental chart is read-only. Chart memos and clinical labels stay hidden.";
@@ -105,7 +105,7 @@ export const PATIENT_TAB_LEDGER_LEDE =
 export const PATIENT_TAB_LOADING_LEDGER = "Loading ledger preview…";
 
 export const PATIENT_TAB_DESC_SUMMARY =
-  "Safe demographics from your copied patient file. Sandbox pilot writes may appear when enabled.";
+  "Safe demographics from your copied patient file. Editing previews may appear when enabled in this build.";
 
 export const PATIENT_TAB_DESC_APPOINTMENTS =
   "Visit history for a date range. Schedule note text stays hidden.";
@@ -358,6 +358,25 @@ export const TODAY_REMINDERS_PILOT_UNAVAILABLE =
 
 export const TODAY_HERO_KICKER = "Command center";
 
+/** Today page hero (Wave 2 — workflow-first). */
+export const TODAY_HERO_SUBTITLE =
+  "Today's schedule, patient shortcuts, and clinic service status.";
+
+export const TODAY_SCHEDULE_PANEL_TITLE = "Today's schedule";
+
+export const TODAY_NEXT_PANEL_TITLE = "Next up";
+
+export const TODAY_QUICK_ACTIONS_TITLE = "Quick actions";
+
+export const TODAY_CLINIC_STATUS_TITLE = "Clinic status";
+
+export const TODAY_STATUS_VIEW_SETTINGS = "View details in Settings";
+
+export const TODAY_CONTINUE_WORKING_LABEL = "Continue working";
+
+export const TODAY_CONTINUE_EMPTY_HINT =
+  "Recent patients appear here after you open a record.";
+
 export const TODAY_STATUS_COUNT_TITLE = "Appointments";
 
 export const TODAY_METRIC_NEXT_LABEL = "Next visit";
@@ -369,25 +388,25 @@ export const TODAY_METRIC_ON_SCHEDULE = "On the schedule today";
 export const TODAY_STATUS_MIRROR_TITLE = "Data freshness";
 
 export const TODAY_STATUS_MIRROR_ACTIVE =
-  "SQLite mirror active — search and schedule use your imported copy.";
+  "Local copy ready — search and schedule use your imported data.";
 
 export const TODAY_STATUS_MIRROR_STALE =
-  "Mirror is older than 48 hours — today’s list may be stale until you re-import (Settings → Mirror import).";
+  "Local copy may be outdated — today’s list may be stale until you re-import (Settings → Local copy import).";
 
 export const TODAY_STATUS_MIRROR_FALLBACK =
-  "SQLite mirror unavailable — schedule reads legacy DBF files until mirror import succeeds.";
+  "Using copied clinic files — schedule reads legacy files until local copy import succeeds.";
 
 export const TODAY_STATUS_MIRROR_OFFLINE =
-  "Connect the clinic service to check mirror freshness.";
+  "Connect the clinic service to check local copy freshness.";
 
 export const TODAY_STATUS_MIRROR_UNKNOWN =
-  "Mirror status unknown until the clinic service connects.";
+  "Local copy status unknown until the clinic service connects.";
 
 export const TODAY_MIRROR_STALE_ADVISORY =
-  "Local copy may be outdated — re-import the mirror if today’s list looks wrong.";
+  "Local copy may be outdated — re-import from Settings if today’s list looks wrong.";
 
 export const TODAY_SCHEDULE_UNAVAILABLE =
-  "Schedule unavailable. Connect the clinic service and tap Refresh today.";
+  "Could not load today's schedule. Connect the clinic service, then tap Refresh today.";
 
 export const TODAY_SELECTED_PATIENT_TITLE = "Selected patient";
 
@@ -398,7 +417,7 @@ export const TODAY_OPEN_PATIENT = "Open patient record";
 export const TODAY_OPEN_SETTINGS = "Open settings";
 
 export const TODAY_PILOT_READINESS_HINT =
-  "Pilot readiness checklist, mirror import, and write mode status are in Settings.";
+  "Pilot readiness checklist, local copy import, and editing status are in Settings.";
 
 export const TODAY_REFRESH = "Refresh today";
 
@@ -418,7 +437,7 @@ export const PATIENT_SEARCH_HINT_CONNECTED = "Uses your copied clinic data. Name
 export const PATIENT_SEARCH_HINT_OFFLINE = "Search is off until the clinic service is connected.";
 
 export const PATIENT_SEARCH_OFFLINE_BANNER =
-  "Patient search needs the clinic service. Connect the bridge and wait until the top bar shows Connected.";
+  "Patient search needs the clinic service. Connect the clinic service and wait until the top bar shows Connected.";
 
 export const PATIENT_SEARCH_OFFLINE_STATUS = "Connect the clinic service to search patients.";
 
@@ -472,12 +491,30 @@ export const SCHEDULE_RANGE_INCLUDES_TODAY = "Includes today";
 export const SCHEDULE_RANGE_APPOINTMENT_COUNT = (count: number): string =>
   count === 1 ? "1 appointment in this range" : `${count} appointments in this range`;
 
+/** Wave 2 E — horizontal summary strip (not stat cards). */
+export const SCHEDULE_SUMMARY_ARIA = "Range at a glance";
+
+export const SCHEDULE_SUMMARY_SHOWN_LABEL = "In view";
+
+export const SCHEDULE_SUMMARY_SLOTS_LABEL = "Booked time";
+
+export const SCHEDULE_SUMMARY_SLOTS_HINT = "Total booked minutes in this range";
+
+export const SCHEDULE_SUMMARY_ROOMS_LABEL = "Rooms";
+
+export const SCHEDULE_SUMMARY_PROVIDERS_LABEL = "Providers";
+
+export const SCHEDULE_SUMMARY_STATUS_LABEL = "By status";
+
+export const SCHEDULE_PAGE_SUBTITLE =
+  "Day and week views from your copied schedule — filter by room, status, or provider.";
+
 export const SCHEDULE_ROOM_FILTER_LOADING = "Loading rooms…";
 
 export const SCHEDULE_ROOM_FILTER_EMPTY = "No rooms loaded";
 
 export const SCHEDULE_MIRROR_STALE_ADVISORY =
-  "Local copy may be outdated — this range may not reflect the latest DBF changes until mirror import runs again.";
+  "Local copy may be outdated — this range may not reflect the latest copied data until import runs again.";
 
 export const SCHEDULE_MIRROR_STALE_FILTER_NOTE =
   " Active room, status, or provider filters may hide rows that changed on the source system.";
@@ -562,17 +599,17 @@ export const TAB_UNAVAILABLE_TITLE = "Not available in this read-only viewer";
 export const MIRROR_STALE_BANNER_LABEL = "Local copy may be outdated";
 
 export const MIRROR_STALE_BANNER_BODY =
-  "The SQLite mirror has not been refreshed recently. Search and schedule may show older data until your operator runs a safe mirror import (see Settings → Mirror import).";
+  "The local copy has not been refreshed recently. Search and schedule may show older data until your operator runs a safe import (see Settings → Local copy import).";
 
-export const MIRROR_ACTIVE_BANNER_LABEL = "SQLite mirror active";
+export const MIRROR_ACTIVE_BANNER_LABEL = "Local copy ready";
 
 export const MIRROR_ACTIVE_BANNER_BODY =
-  "Search and schedule use your imported SQLite mirror. Run a safe mirror import when copied data must be fresher — DBF remains the write source of truth.";
+  "Search and schedule use your imported local copy. Run a safe import when copied data must be fresher.";
 
-export const MIRROR_FALLBACK_BANNER_LABEL = "Using DBF fallback";
+export const MIRROR_FALLBACK_BANNER_LABEL = "Using copied clinic files";
 
 export const MIRROR_FALLBACK_BANNER_BODY =
-  "The SQLite mirror is unavailable. Search and schedule read legacy DBF files directly until mirror import succeeds.";
+  "The local copy is unavailable. Search and schedule read copied clinic files directly until import succeeds.";
 
 export const WRITE_MODE_DISABLED_BANNER_LABEL = "Writes disabled";
 
@@ -594,12 +631,17 @@ export const SANDBOX_WRITE_WARNING_BANNER_LABEL = "Disposable sandbox";
 export const SANDBOX_WRITE_WARNING_BANNER_BODY =
   "Writable sandbox is active. Commits change disposable DATA only — never production legacy folders.";
 
-/** Shared sandbox write pilot warning — panels and schedule header stay aligned. */
+/** Schedule header when sandbox write pilots are visible (one line). */
 export const SANDBOX_WRITE_PILOT_BANNER =
-  "Sandbox write pilot — commits change disposable Write-Sandbox DATA only (never production legacy). Capture operation id and backup lines; use legacy-restore on sandbox DATA only if rollback is needed.";
+  "Sandbox edits use disposable test data only — never production legacy folders. Preview each row before applying.";
 
-/** Per-row / panel sandbox write pilot warning (schedule + patient). */
-export const SANDBOX_WRITE_PILOT_PANEL_BANNER = SANDBOX_WRITE_PILOT_BANNER;
+/** In-panel sandbox banner (friendly, no repeated restore CLI). */
+export const SANDBOX_WRITE_PILOT_PANEL_BANNER =
+  "Sandbox edits use disposable test data only. Follow Edit → Preview → Apply.";
+
+/** Short hint under the step strip inside write panels. */
+export const SANDBOX_WRITE_PANEL_HINT =
+  "Preview runs a dry-run plan first. Apply stays disabled until preview succeeds. Backup, restore, and audit details are in Settings.";
 
 /** Once per schedule view when sandbox write pilots are active. */
 export const SCHEDULE_SANDBOX_WRITE_PILOT_BANNER =
@@ -644,6 +686,7 @@ export const WRITE_AUDIT_UNAVAILABLE = "Audit log: unavailable.";
 
 export const WRITE_AUDIT_EMPTY = "Audit log: no recent entries.";
 
+/** Legacy long-form hints — Settings and operator docs only. */
 export const WRITE_RESTORE_CLI_HINT =
   "Restore (sandbox pilot only): use legacy-restore CLI on Write-Sandbox DATA — see docs/pilot-backup-restore-audit.md in your package.";
 
@@ -655,6 +698,10 @@ export const WRITE_FAILED_GUIDANCE =
 
 export const WRITE_AUDIT_STATUS_UPDATE_NOTE =
   "Audit detail is fullest for status-update commits today; other workflows show operation id, backup, and restore hints.";
+
+/** One-line pointer after sandbox commits (replaces repeated restore/audit paragraphs in panels). */
+export const WRITE_FEEDBACK_SETTINGS_LINK =
+  "Backup folder, restore steps, and audit log: open Settings.";
 
 /** Headline when a sandbox commit succeeded. */
 export function writeResultCommittedHeadline(successLabel: string, mode?: string): string {
@@ -937,8 +984,13 @@ export const SETTINGS_PILOT_BUILD_CHANNEL = "Channel";
 
 export const SETTINGS_PILOT_BUILD_BUILT = "Built";
 
+/** Patient profile workflow strip (Wave 2 F). */
+export const PATIENT_WORKFLOW_STRIP_ARIA = "Record workflow";
+
 /** Patient workspace at-a-glance strip (Workstream A). */
 export const PATIENT_SUMMARY_AT_GLANCE_TITLE = "At a glance";
+
+export const PATIENT_PROFILE_FRESHNESS_LOADED = "Loaded";
 
 export const PATIENT_SUMMARY_AT_GLANCE_APPT_UPCOMING = "Next visit";
 
@@ -1076,6 +1128,66 @@ export const SETTINGS_TODAY_OVERVIEW_HINT =
   "Front-desk overview on Today shows bridge, mirror, and write readiness at a glance.";
 
 export const SETTINGS_OPEN_TODAY_BUTTON = "Open Today overview";
+
+/** Grouped Settings sections (Wave 2 G). */
+export const SETTINGS_SECTION_DIAGNOSTICS = "Diagnostics";
+
+export const SETTINGS_SECTION_LOCAL_COPY = "Local copy & import";
+
+export const SETTINGS_SECTION_EDITING = "Editing & sandbox";
+
+export const SETTINGS_SECTION_BACKUP = "Backup & recovery";
+
+export const SETTINGS_SECTION_PACKAGE = "Package & build";
+
+export const SETTINGS_SECTION_FIELD_TEST = "Field test & pilot notes";
+
+export const SETTINGS_SECTION_DIAGNOSTICS_LEDE =
+  "Clinic service connection, data paths, desktop shell, and SQLite mirror path status.";
+
+export const SETTINGS_SECTION_LOCAL_COPY_LEDE =
+  "DBF source of truth, import runs, and freshness for search and schedule.";
+
+export const SETTINGS_SECTION_EDITING_LEDE =
+  "Write mode, disposable sandbox marker, and whether this build shows sandbox write panels.";
+
+export const SETTINGS_SECTION_BACKUP_LEDE =
+  "Backup folder required before commits; not needed while the bridge stays read-only.";
+
+export const SETTINGS_SECTION_PACKAGE_LEDE = "Packaged build id and release channel for support handoff.";
+
+export const SETTINGS_SECTION_FIELD_TEST_LEDE =
+  "Windows field execution checklist, operator walkthrough, and reminders moved off Today.";
+
+/** Absorbed from Today pilot notes / mirror advisory (Settings-only). */
+export const SETTINGS_PILOT_NOTES_READINESS =
+  "Pilot readiness checklist, local copy import, and editing status live on this page — use the chips and checklist above.";
+
+export const SETTINGS_PILOT_NOTES_REMINDERS =
+  "Reminders are not in this pilot. Use Schedule or Patients for live data from your copy.";
+
+export const SETTINGS_PILOT_NOTES_FOOTNOTE =
+  "Reminders are not available in this pilot build.";
+
+export const SETTINGS_PILOT_NOTES_TITLE = "Operator notes";
+
+export const SETTINGS_MIRROR_FRESHNESS_ACTIVE =
+  "Local copy ready — search and schedule use your imported data.";
+
+export const SETTINGS_MIRROR_FRESHNESS_STALE =
+  "Local copy may be outdated — re-import when today’s list or search looks wrong.";
+
+export const SETTINGS_MIRROR_FRESHNESS_FALLBACK =
+  "Using copied clinic files — schedule reads legacy files until local copy import succeeds.";
+
+export const SETTINGS_MIRROR_FRESHNESS_OFFLINE =
+  "Connect the clinic service to check local copy freshness.";
+
+export const SETTINGS_MIRROR_FRESHNESS_UNKNOWN =
+  "Local copy status unknown until the clinic service connects.";
+
+export const SETTINGS_BACKUP_READONLY_NOTE =
+  "Backup is not required while writes are off. Configure BACKUP_DIR before enabling sandbox commits.";
 
 /** Medical clinical toolbar (Workstream F). */
 export function medicalToolbarSummary(flaggedCount: number, sectionCount: number): string {

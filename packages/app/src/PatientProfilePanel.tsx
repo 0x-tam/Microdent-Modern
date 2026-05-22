@@ -18,8 +18,12 @@ import { ClinicPage } from "./clinic-page.js";
 import { ClinicEmptyState } from "./clinic-empty-state.js";
 import { ClinicLoadingSkeleton } from "./clinic-loading-skeleton.js";
 import { ClinicPanel } from "./clinic-panel.js";
-import { ClinicStatCard } from "./clinic-stat-card.js";
-import { patientWorkspaceAtGlance, type PatientWorkspacePrefetches } from "./patient-workspace-intelligence.js";
+import { friendlyEditingStatus, type ClinicFriendlyTone } from "./clinic-friendly-copy.js";
+import {
+  glancePrefetchLoading,
+  patientWorkflowStripItems,
+  type PatientWorkspacePrefetches,
+} from "./patient-workspace-intelligence.js";
 import {
   buildRoomLabelMap,
   filterPatientAppointments,
@@ -182,8 +186,10 @@ import {
   PATIENT_APPT_TIME_ALL,
   PATIENT_APPT_TIME_PAST,
   PATIENT_APPT_TIME_UPCOMING,
+  PATIENT_PROFILE_FRESHNESS_LOADED,
   PATIENT_PROFILE_LAST_REFRESHED,
-  PATIENT_SUMMARY_AT_GLANCE_TITLE,
+  PATIENT_WORKFLOW_STRIP_ARIA,
+  PATIENT_SUMMARY_AT_GLANCE_LEDGER,
   PATIENT_SUMMARY_CROSS_TAB_ARIA,
   patientSummaryCrossTabWithCount,
   READONLY_STATE_RETRY,
@@ -341,10 +347,25 @@ function formatApptDayHeading(dateIso: string): string {
   }
 }
 
+function profileFriendlyPillClass(tone: ClinicFriendlyTone): string {
+  switch (tone) {
+    case "ok":
+      return "clinic-status-pill--ok";
+    case "warn":
+      return "clinic-status-pill--warn";
+    case "danger":
+      return "clinic-status-pill--danger";
+    default:
+      return "clinic-status-pill--neutral";
+  }
+}
+
 function ProfileTabHiddenNote({
   variant = "default",
+  compact = false,
 }: {
   variant?: "default" | "treatments" | "ledger" | "medical" | "chart" | "timeline";
+  compact?: boolean;
 }) {
   const note =
     variant === "treatments"
@@ -357,7 +378,10 @@ function ProfileTabHiddenNote({
             ? PATIENT_TAB_HIDDEN_CHART
             : PATIENT_TAB_HIDDEN_FIELDS_NOTE;
   return (
-    <p className="app-info-callout app-patient-profile__tab-hidden-note" role="note">
+    <p
+      className={`app-info-callout app-patient-profile__tab-hidden-note${compact ? " app-patient-profile__tab-hidden-note--compact clinic-profile-hidden-note" : ""}`}
+      role="note"
+    >
       {note}
     </p>
   );
@@ -411,32 +435,13 @@ function summaryCrossTabCount(
   }
 }
 
-function glancePrefetchLoading(prefetches: PatientWorkspacePrefetches): boolean {
-  return (
-    prefetches.appt.phase === "loading" ||
-    prefetches.appt.phase === "idle" ||
-    prefetches.medical.phase === "loading" ||
-    prefetches.medical.phase === "idle" ||
-    prefetches.treatments.phase === "loading" ||
-    prefetches.treatments.phase === "idle" ||
-    prefetches.chart.phase === "loading" ||
-    prefetches.chart.phase === "idle" ||
-    prefetches.ledger.phase === "loading" ||
-    prefetches.ledger.phase === "idle"
-  );
-}
-
-function glanceStatValue(value: string | null, loading: boolean): string {
-  if (value) return value;
-  if (loading) return "Loading…";
-  return "—";
-}
-
 function ProfileClinicHero({
   profile,
   activeLabel,
   doctorLabels,
   lastLoadedAt,
+  writeCapability,
+  sandboxWritePilot,
   onRefresh,
   onBackToday,
   onToggleChangePatient,
@@ -446,12 +451,15 @@ function ProfileClinicHero({
   activeLabel: string | null;
   doctorLabels: ReadonlyMap<string, string>;
   lastLoadedAt: number | null;
+  writeCapability: BridgeDevStatusResponse | null;
+  sandboxWritePilot: boolean;
   onRefresh: () => void;
   onBackToday: () => void;
   onToggleChangePatient: () => void;
   changePatientSearchOpen: boolean;
 }) {
   const provider = profileAssignedProviderLabel(profile.doctorId, doctorLabels);
+  const editingChip = friendlyEditingStatus(writeCapability, sandboxWritePilot);
 
   return (
     <header
@@ -480,6 +488,18 @@ function ProfileClinicHero({
               {activeLabel ?? "—"}
             </span>
           </li>
+          <li className="app-patient-hero__chip app-patient-hero__chip--editing">
+            <span className={`clinic-status-pill ${profileFriendlyPillClass(editingChip.tone)}`}>
+              {editingChip.label}
+            </span>
+          </li>
+          {lastLoadedAt !== null ? (
+            <li className="app-patient-hero__chip app-patient-hero__chip--freshness">
+              <span className="clinic-chip clinic-chip--active" title={PATIENT_PROFILE_LAST_REFRESHED}>
+                {PATIENT_PROFILE_FRESHNESS_LOADED} {formatProfileLastRefreshed(lastLoadedAt)}
+              </span>
+            </li>
+          ) : null}
         </ul>
       </div>
       <div className="clinic-page-hero__meta clinic-profile-hero__actions">
@@ -508,46 +528,45 @@ function ProfileClinicHero({
   );
 }
 
-function ProfileAtGlanceRow({ prefetches }: { prefetches: PatientWorkspacePrefetches }) {
-  const glance = useMemo(() => patientWorkspaceAtGlance(prefetches), [prefetches]);
-  const loading = glancePrefetchLoading(prefetches);
+function ProfileWorkflowStrip({ prefetches }: { prefetches: PatientWorkspacePrefetches }) {
+  const items = useMemo(() => patientWorkflowStripItems(prefetches), [prefetches]);
 
   return (
-    <section className="clinic-profile-at-glance" aria-label={PATIENT_SUMMARY_AT_GLANCE_TITLE}>
-      <h2 className="clinic-profile-at-glance__title">{PATIENT_SUMMARY_AT_GLANCE_TITLE}</h2>
-      <div className="clinic-stat-grid clinic-profile-stat-grid">
-        <ClinicStatCard
-          label="Next appt"
-          value={glanceStatValue(glance.upcomingStatus, loading)}
-          tone="teal"
-        />
-        <ClinicStatCard
-          label="Recent activity"
-          value={glanceStatValue(glance.recentStatus, loading)}
-          tone="cyan"
-        />
-        <ClinicStatCard
-          label="Treatments"
-          value={glanceStatValue(glance.treatmentCount, loading)}
-          tone="green"
-        />
-        <ClinicStatCard
-          label="Chart"
-          value={glanceStatValue(glance.chartCount, loading)}
-          tone="blue"
-        />
-        <ClinicStatCard
-          label="Ledger metadata"
-          value={glanceStatValue(glance.ledgerCount, loading)}
-          tone="amber"
-        />
-        <ClinicStatCard
-          label="Medical status"
-          value={glanceStatValue(glance.medicalScreening, loading)}
-          tone="neutral"
-        />
+    <section
+      className="clinic-profile-workflow"
+      aria-label={PATIENT_WORKFLOW_STRIP_ARIA}
+    >
+      <div className="clinic-summary-strip clinic-profile-workflow-strip" role="status">
+        {items.map((item) => (
+          <span key={item.label} className="clinic-summary-strip__item clinic-profile-workflow-strip__item">
+            <span className="clinic-summary-strip__label">{item.label}</span>
+            <span className="clinic-summary-strip__value">{item.value}</span>
+          </span>
+        ))}
       </div>
     </section>
+  );
+}
+
+function ProfileLedgerMetaLine({ prefetches }: { prefetches: PatientWorkspacePrefetches }) {
+  const { ledger } = prefetches;
+  const loading = glancePrefetchLoading(prefetches);
+  let value: string;
+  if (ledger.phase === "loaded" && ledger.count > 0) {
+    value = `${PATIENT_SUMMARY_AT_GLANCE_LEDGER(ledger.count)} in preview`;
+  } else if (ledger.phase === "empty") {
+    value = `${PATIENT_SUMMARY_AT_GLANCE_LEDGER(0)} in preview`;
+  } else if (loading) {
+    value = "Loading…";
+  } else {
+    value = "—";
+  }
+
+  return (
+    <p className="clinic-profile-ledger-meta app-patient-profile__summary-ledger-meta" role="status">
+      <span className="clinic-profile-ledger-meta__label">Ledger</span>
+      <span className="clinic-profile-ledger-meta__value">{value}</span>
+    </p>
   );
 }
 
@@ -2266,13 +2285,15 @@ export function PatientProfilePanel({
               activeLabel={activeLabel}
               doctorLabels={doctorLabels}
               lastLoadedAt={lastLoadedAt}
+              writeCapability={writeCapability}
+              sandboxWritePilot={sandboxWritePilot}
               onRefresh={refreshOpenRecord}
               onBackToday={onBackToday}
               onToggleChangePatient={() => setChangePatientSearchOpen((open) => !open)}
               changePatientSearchOpen={changePatientSearchOpen}
             />
 
-            <ProfileAtGlanceRow prefetches={summaryPrefetches} />
+            <ProfileWorkflowStrip prefetches={summaryPrefetches} />
 
             <p className="app-patient-profile__readonly-note clinic-profile-readonly-note" role="note">
               {PATIENT_PROFILE_READONLY_NOTE}
@@ -2331,7 +2352,7 @@ export function PatientProfilePanel({
                 className="app-patient-profile__summary clinic-profile-summary"
               >
                 <p className="app-patient-profile__summary-lede">{PATIENT_TAB_SUMMARY_LEDE}</p>
-                <ProfileTabHiddenNote />
+                <ProfileTabHiddenNote compact />
 
                 <div className="clinic-workspace-grid clinic-profile-summary-grid">
                   <ClinicPanel
@@ -2355,6 +2376,7 @@ export function PatientProfilePanel({
                   <div className="clinic-profile-summary-clinical">
                     <ClinicPanel title="Clinical summary" className="clinic-profile-summary-clinical-panel">
                       <ProfileSummaryMetricGrid profile={state.profile} doctorLabels={doctorLabels} />
+                      <ProfileLedgerMetaLine prefetches={summaryPrefetches} />
                     </ClinicPanel>
                     <ProfileSummaryCrossTabs prefetches={summaryPrefetches} onOpenTab={setActiveTab} />
                   </div>

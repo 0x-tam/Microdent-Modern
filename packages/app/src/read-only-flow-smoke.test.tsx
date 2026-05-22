@@ -5,6 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { AppShell } from "./AppShell.js";
 import {
   assertNoForbiddenDomTokens,
+  assertNoMainPageJargonInDom,
   createReadOnlySmokeFetch,
   SMOKE_BRIDGE_BASE,
   smokeProfile,
@@ -88,8 +89,12 @@ describe("read-only app smoke", () => {
 
     await waitForBridgeConnected(container);
     expect(container.querySelector("#app-main-heading")?.textContent).toBe("Today");
-    expect(container.textContent).toMatch(/Clinic at a glance/i);
+    expect(container.querySelector(".clinic-workspace-grid")).toBeTruthy();
+    expect(container.querySelector(".clinic-status-compact")).toBeTruthy();
+    expect(container.textContent).toMatch(/Today's schedule/i);
+    expect(container.textContent).toMatch(/Clinic status/i);
     assertNoForbiddenDomTokens(container.textContent ?? "");
+    assertNoMainPageJargonInDom(container.textContent ?? "");
 
     const searchInput = container.querySelector("input#app-patient-search-input") as HTMLInputElement;
     expect(searchInput.disabled).toBe(false);
@@ -195,6 +200,7 @@ describe("read-only app smoke", () => {
     await flush();
 
     expect(container.querySelector("#app-main-heading")?.textContent).toBe("Schedule");
+    expect(container.querySelector(".clinic-schedule-summary-strip")).toBeTruthy();
     expect(Array.from(container.querySelectorAll("button")).some((b) => b.textContent?.includes("Back to Today"))).toBe(true);
     expect(container.textContent).toContain("Synthetic Schedule Smoke Patient");
     expect(container.textContent).toContain("09:00");
@@ -312,13 +318,19 @@ describe("read-only app smoke", () => {
 
     clickSidebarModule(container, "Today");
     await flush();
-    expect(container.textContent).toMatch(/Clinic at a glance/i);
+    expect(container.querySelector(".clinic-workspace-grid")).toBeTruthy();
+    expect(container.querySelector(".clinic-status-compact")).toBeTruthy();
+    expect(container.textContent).toMatch(/Today's schedule/i);
+    expect(container.textContent).toMatch(/Clinic status/i);
     assertNoForbiddenDomTokens(container.textContent ?? "");
+    assertNoMainPageJargonInDom(container.textContent ?? "");
 
     clickSidebarModule(container, "Schedule");
     await flush();
     await flush();
 
+    expect(container.querySelector(".clinic-schedule-summary-strip")).toBeTruthy();
     assertNoForbiddenDomTokens(container.textContent ?? "");
+    assertNoMainPageJargonInDom(container.textContent ?? "");
   });
 });

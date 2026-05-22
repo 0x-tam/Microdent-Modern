@@ -199,6 +199,49 @@ describe("SettingsPanel", () => {
     assertNoForbiddenDomTokens(html);
   });
 
+  it("renders grouped diagnostic sections and absorbed pilot notes", () => {
+    const html = renderToStaticMarkup(
+      <SettingsPanel
+        bridgePhase="connected"
+        writeCapability={{
+          ...writeCapBase,
+          writeMode: "disabled",
+        }}
+        mirrorStatus={mirrorWithRuns}
+        onMirrorStatusChange={() => {}}
+      />,
+    );
+    expect(html).toContain("Diagnostics");
+    expect(html).toContain("Local copy &amp; import");
+    expect(html).toContain("Editing &amp; sandbox");
+    expect(html).toContain("Backup &amp; recovery");
+    expect(html).toContain("Package &amp; build");
+    expect(html).toContain("Field test &amp; pilot notes");
+    expect(html).toContain("Operator notes");
+    expect(html).toContain("Pilot readiness checklist, local copy import");
+    expect(html).toContain("Reminders are not in this pilot");
+    expect(html).toContain("Local copy ready — search and schedule");
+    expect(html).toContain("clinic-settings-readiness-grid");
+    assertNoForbiddenDomTokens(html);
+  });
+
+  it("shows backup not required note while writes are off", () => {
+    const html = renderToStaticMarkup(
+      <SettingsPanel
+        bridgePhase="connected"
+        writeCapability={{
+          ...writeCapBase,
+          writeMode: "disabled",
+          backupDirConfigured: false,
+        }}
+        mirrorStatus={mirrorWithRuns}
+        onMirrorStatusChange={() => {}}
+      />,
+    );
+    expect(html).toContain("Backup is not required while writes are off");
+    assertNoForbiddenDomTokens(html);
+  });
+
   it("shows Windows execution deferred and field test doc in pilot readiness strip", () => {
     const html = renderToStaticMarkup(
       <SettingsPanel

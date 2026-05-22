@@ -1,10 +1,10 @@
-# Product completeness audit — clinic workspace UI rebuild
+# Product completeness audit — clinic structure & workflow UX
 
-**Purpose:** Gap report after the **clinic workspace UI rebuild** (Waves 0–4: `clinic-*` layout system, cascade fix, shell + five key pages, browser layout proof). Guides bugfix-only Mac work until Windows Tier 3 field execution.
+**Purpose:** Gap report after the **workflow-first structure redesign** (Waves 0–4: 12-column workspace grid, clinic-friendly copy, page-specific IA, diagnostics consolidated in Settings, browser structural proof). Guides bugfix-only Mac work until Windows Tier 3 field execution.
 
-**Reviewed:** `packages/app/src/` after rebuild batch (`clinic-design-system.css`, `ClinicPage`/`ClinicPanel` primitives, Today/Patients/Schedule/Profile/Settings DOM, microcopy, a11y, forbidden-token tests, checkpoint). **Mac layout rebuild complete** at audit time; `browser_matches_spec: yes` per [visual-qa-checklist.md](./visual-qa-checklist.md) and [qa-runs/2026-06-03-clinic-workspace-ui-batch-report.md](../qa-runs/2026-06-03-clinic-workspace-ui-batch-report.md).
+**Reviewed:** `packages/app/src/` after structure batch (`clinic-workspace-grid`, `clinic-friendly-copy.ts`, `resolveTodayClinicStatus()`, summary strips, compact status, forbidden main-page jargon tests, checkpoint). **Mac structure redesign complete** at audit time; `browser_structurally_changed: true` per [visual-qa-checklist.md](./visual-qa-checklist.md) and [qa-runs/2026-06-03-clinic-structure-workflow-batch-report.md](../qa-runs/2026-06-03-clinic-structure-workflow-batch-report.md).
 
-**Baseline:** `5cd3d13` — prior `feat: redesign clinic app into modern visual workspace`. This batch replaces incremental `app-*` layering with the `clinic-*` system and removes the inline hub CSS block that caused pale-admin regressions.
+**Baseline:** `bdb5a82` — pre-structure tree. Prior `9f2d540` clinic-* skin batch preserved tokens/components; this batch replaces diagnostics-first page IA (stat-card heroes, 6-row glance) with workflow-first layouts.
 
 **Related guardrails:** [out-of-scope-guardrails.md](./out-of-scope-guardrails.md) · **Windows field test entry:** [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md)
 
@@ -18,10 +18,10 @@
 
 | Area | Daily-use ready? | Notes |
 | --- | --- | --- |
-| **Today** | Yes (connected bridge) | `clinic-page-hero` + 5-up `clinic-stat-grid` + `clinic-command-grid` (2/3 appointments \| 1/3 glance/now/actions); status chips not `<dl>` |
-| **Patients** | Yes | `clinic-command-grid` workflow (search panel, results, aside cards); profile uses clinic hero + 6 stat cards + pill tabs |
-| **Schedule** | Yes | Clinic hero + stat summary row + filter toolbar + date/room `clinic-list-card` board (empty states when no data) |
-| **Settings** | Yes | 7-card `clinic-settings-readiness-grid` + `clinic-panel` detail sections; Windows execution **Deferred / not yet run** |
+| **Today** | Yes (connected bridge) | `clinic-workspace-grid` 8+4: schedule panel + continue strip \| next-up + quick actions + 3-row `clinic-status-compact` (friendly copy); no 5-card stat strip or glance grid |
+| **Patients** | Yes | 7+5 grid: search + results \| recent / what-opens-next / safety; profile opens in-module with workflow strip (not 6 diagnostic stat cards) |
+| **Schedule** | Yes | Hero controls + `clinic-schedule-summary-strip` (not stat cards) + filter toolbar + date/room board |
+| **Settings** | Yes | 7-card readiness grid + grouped diagnostics (mirror/write/backup technical terms here only); Windows execution **Deferred / not yet run** |
 | **Writes (4 routes)** | Sandbox + pilot flag only | Doctor `<select>` from reference on create; discoverability hint above write panels; preview invalidation; blocked notice; mirror lag nudge |
 | **Payments / memos / clinical writes** | Blocked by design | See [out-of-scope-guardrails.md](./out-of-scope-guardrails.md) |
 | **Windows clinic PC** | **Not yet run — deferred** | **Next strategic gate**; no NSIS until field log exists |
@@ -34,15 +34,12 @@
 
 When the bridge is **connected**:
 
-- **Today's appointments** — sorted list with time, safe patient headline/chart, **unified visit meta** via `appointmentVisitMeta()` (room name from `GET /v1/schedule/rooms` when loaded, duration, provider, procedure), status badges with human `semanticLabel`, **current** / **next** row emphasis, **Open patient record** when `patId !== "0"`.
-- **Status strip (aside)** — count card with **status mix** via `formatAppointmentStatusMix`; **Data freshness** card from `mirrorStatus`.
-- **Clinic at a glance** — extended `resolveFrontDeskOverview()` rows: bridge, mirror, write mode, **sandbox pilot on/off**, today count, **optional status mix one-liner**, **session recent patient count** (when &gt; 0), selected patient; **Open Settings** text link (module switch); connect guidance when offline.
-- **Next appointment** — upcoming visit today with unified meta; empty/offline/error paths use shared readonly copy.
-- **Selected patient** — when shell has selection, name/chart + **Open record** → Patients.
-- **Quick actions** — Search patient, Open schedule, Open settings; disabled **Record payment**; pilot-readiness hint.
-- **Reminders** — honest pilot placeholder (no fake data).
+- **Primary column (8)** — **Today's schedule** panel with in-panel next/current highlight; **Continue working** strip (session recent patients or hint).
+- **Aside (4)** — **Next up**, **Quick actions** (3 buttons), **Clinic status** via `resolveTodayClinicStatus()` — 3 compact rows (Service, Local copy, Editing) + link to Settings; no 6-row diagnostics grid or pilot notes panel.
+- **Hero** — workflow subtitle; max 3 header chips (Read-only, Connected, Local copy) on shell.
+- **Empty / error** — `ClinicEmptyState` with friendly schedule-unavailable copy.
 - **Refresh today** — reloads today's schedule in place.
-- **Mirror stale advisory** — copy-only on schedule card when import is stale.
+- Technical mirror/write/backup detail — **Settings only** (removed from Today main surface).
 
 ### Patients (`PatientSearchBar.tsx`, `PatientProfilePanel.tsx`, `patient-summary-mini-cards.tsx`, `patient-timeline.tsx`)
 
@@ -53,7 +50,8 @@ When the bridge is **connected**:
 
 **Profile:**
 
-- **Header strip** — display name, chart, provider (`Doctor {id}` when set, `—` when null), status, record id.
+- **Header hero** — name, chart, provider, read-only + friendly freshness chips.
+- **Workflow strip** — 5 items (next appointment, recent activity, treatments, chart, medical); ledger as summary metadata, not top stat card.
 - **Seven tabs** with one-line descriptions: Summary, **Timeline**, Appointments, Medical, Treatments, Chart, Ledger preview.
 - **Summary workspace** — mini-card grid below `ProfileSummaryCard`: appointments (±90 count + next upcoming **with provider/procedure meta**), medical screening status, treatments/chart/ledger entry counts, **Timeline** mini-card; skeleton → loaded → empty/error; **click card** → tab; cross-tab action row; **Last refreshed** on toolbar; **toolbar Refresh bumps `summaryRefreshNonce`** so mini-cards reload.
 - **Timeline tab (new)** — `patient-timeline-display.ts` merges safe dated events (appointments ±365 default, treatments, ledger, medical snapshot, profile anchor) plus undated **chart snapshot** row; month/day grouping, truncated + range banners; row click → source tab (+ optional chart tooth filter from treatment rows); parallel fetch on tab active.
@@ -69,7 +67,8 @@ Navigation: **Back to Today**, clear patient, change-patient search, recent-pati
 ### Schedule (`SchedulePanel.tsx`)
 
 - Week/day nav, room filter, grouped rows, keyboard shortcuts, empty/error/offline.
-- **Summary header** — **interactive status breakdown chips** (toggle client-side status filter), **provider filter chips** when multiple providers in range, room filter context with display names, mirror stale advisory (extended when filters active).
+- **Summary strip** — horizontal `clinic-schedule-summary-strip` (shown, range, rooms, providers, status mix) — not 5-up stat cards.
+- **Stale copy** — friendly “Local copy may be outdated” inline warning when needed (no mirror jargon in main body).
 - **Per-day headers** — `N appointments` count on each day card.
 - **Current appointment highlight** — `--current` row when visible range includes today (`findCurrentAppointmentInRange`).
 - **Unified visit meta** on rows; status badges use human semantic labels.
@@ -80,9 +79,11 @@ Navigation: **Back to Today**, clear patient, change-patient search, recent-pati
 
 ### Settings (`SettingsPanel.tsx`, `settings-status.ts`)
 
-Unchanged product scope from prior UX batch: readiness strip, 8-item checklist, masked paths, mirror refresh status, **Windows execution: Deferred / not yet run**.
+- **Readiness grid** — 7 cards with technical labels (Mirror, Write, Backup, etc.).
+- **Grouped sections** — Diagnostics, Local copy/import, Editing/sandbox, Backup, Package/build, Field test (absorbs pilot notes moved off Today).
+- **Windows execution:** Deferred / not yet run.
 
-`resolveFrontDeskOverview()` lives in `settings-status.ts` but renders on **Today**, not Settings.
+`resolveFrontDeskOverview()` remains for Settings/detail; Today uses `resolveTodayClinicStatus()` only.
 
 ### App shell (`AppShell.tsx`)
 

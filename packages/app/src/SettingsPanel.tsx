@@ -1,6 +1,6 @@
 import { createBridgeClient } from "@microdent/bridge-client";
 import type { BridgeDevStatusResponse, MirrorStatusResponse } from "@microdent/contracts";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Badge, Button } from "@microdent/ui";
 import { ClinicPage, ClinicPageHero } from "./clinic-page.js";
 import { ClinicPanel } from "./clinic-panel.js";
@@ -46,11 +46,34 @@ import {
   SETTINGS_PILOT_BUILD_PACKAGE_VERSION,
   SETTINGS_PILOT_BUILD_SECTION,
   SETTINGS_PILOT_BUILD_UNAVAILABLE,
+  SETTINGS_BACKUP_READONLY_NOTE,
+  SETTINGS_MIRROR_FRESHNESS_ACTIVE,
+  SETTINGS_MIRROR_FRESHNESS_FALLBACK,
+  SETTINGS_MIRROR_FRESHNESS_OFFLINE,
+  SETTINGS_MIRROR_FRESHNESS_STALE,
+  SETTINGS_MIRROR_FRESHNESS_UNKNOWN,
   SETTINGS_OPEN_TODAY_BUTTON,
   SETTINGS_PANEL_LEDE,
+  SETTINGS_PILOT_NOTES_FOOTNOTE,
+  SETTINGS_PILOT_NOTES_READINESS,
+  SETTINGS_PILOT_NOTES_REMINDERS,
+  SETTINGS_PILOT_NOTES_TITLE,
+  SETTINGS_READINESS_FIELD_TEST_DOC_HINT,
   SETTINGS_SANDBOX_PILOT_OFF,
   SETTINGS_SANDBOX_PILOT_ON,
   SETTINGS_SANDBOX_SECTION,
+  SETTINGS_SECTION_BACKUP,
+  SETTINGS_SECTION_BACKUP_LEDE,
+  SETTINGS_SECTION_DIAGNOSTICS,
+  SETTINGS_SECTION_DIAGNOSTICS_LEDE,
+  SETTINGS_SECTION_EDITING,
+  SETTINGS_SECTION_EDITING_LEDE,
+  SETTINGS_SECTION_FIELD_TEST,
+  SETTINGS_SECTION_FIELD_TEST_LEDE,
+  SETTINGS_SECTION_LOCAL_COPY,
+  SETTINGS_SECTION_LOCAL_COPY_LEDE,
+  SETTINGS_SECTION_PACKAGE,
+  SETTINGS_SECTION_PACKAGE_LEDE,
   SETTINGS_SQLITE_MIRROR_SECTION,
   SETTINGS_WRITE_SECTION,
 } from "./read-only-ui-copy.js";
@@ -322,6 +345,49 @@ type SettingsNextStepProps = {
   sandboxWritePilot?: boolean;
 };
 
+function resolveSettingsMirrorFreshnessNote(
+  bridgePhase: BridgeHealthPhase,
+  mirrorStatus: MirrorStatusResponse | null,
+  nowMs: number,
+): string {
+  if (bridgePhase !== "connected") {
+    return SETTINGS_MIRROR_FRESHNESS_OFFLINE;
+  }
+  if (mirrorStatus === null) {
+    return SETTINGS_MIRROR_FRESHNESS_UNKNOWN;
+  }
+  if (!mirrorStatus.sqliteUsable) {
+    return SETTINGS_MIRROR_FRESHNESS_FALLBACK;
+  }
+  if (isMirrorImportStale(mirrorStatus, nowMs)) {
+    return SETTINGS_MIRROR_FRESHNESS_STALE;
+  }
+  return SETTINGS_MIRROR_FRESHNESS_ACTIVE;
+}
+
+type SettingsSectionProps = {
+  title: string;
+  lede: string;
+  sectionId: string;
+  children: ReactNode;
+};
+
+function SettingsSection({ title, lede, sectionId, children }: SettingsSectionProps) {
+  return (
+    <section
+      className="clinic-settings-section"
+      role="region"
+      aria-labelledby={sectionId}
+    >
+      <h2 id={sectionId} className="clinic-settings-section__title">
+        {title}
+      </h2>
+      <p className="clinic-settings-section__lede">{lede}</p>
+      <div className="clinic-settings-section__grid">{children}</div>
+    </section>
+  );
+}
+
 function SettingsNextStep({
   card,
   bridgePhase,
@@ -424,6 +490,11 @@ export function SettingsPanel({
         : `${SETTINGS_PILOT_BUILD_CHANNEL}: ${pilotBuild.releaseChannel}`;
   const buildReadinessTone: SettingsStatusTone =
     pilotBuild === undefined ? "neutral" : pilotBuild === null ? "warn" : "ok";
+  const mirrorFreshnessNote = resolveSettingsMirrorFreshnessNote(bridgePhase, mirrorStatus, Date.now());
+  const showBackupReadonlyNote =
+    writeCapability !== null &&
+    writeCapability.writeMode === "disabled" &&
+    !writeCapability.backupDirConfigured;
 
   return (
     <ClinicPage className="clinic-settings-page app-settings" aria-labelledby="settings-panel-title">
@@ -588,7 +659,12 @@ export function SettingsPanel({
         />
       </div>
 
-      <div className="clinic-settings-detail-grid app-settings__grid">
+      <div className="clinic-settings-sections">
+        <SettingsSection
+          title={SETTINGS_SECTION_DIAGNOSTICS}
+          lede={SETTINGS_SECTION_DIAGNOSTICS_LEDE}
+          sectionId="settings-section-diagnostics"
+        >
         <ClinicPanel
           title={SETTINGS_BRIDGE_SECTION}
           className={settingsPanelClassName(bridgeCardTone(bridgePhase))}
@@ -620,89 +696,6 @@ export function SettingsPanel({
         </ClinicPanel>
 
         <ClinicPanel
-          title={SETTINGS_WRITE_SECTION}
-          className={settingsPanelClassName(writeCardTone(writeCapability), { primary: true })}
-          headerActions={<SettingsPanelStatusDot tone={writeCardTone(writeCapability)} />}
-        >
-          {writeChip ? (
-            <Badge
-              variant={writeChip.variant}
-              className="app-settings__chip"
-              semanticLabel={`Bridge write mode: ${writeChip.label}`}
-            >
-              {writeChip.label}
-            </Badge>
-          ) : (
-            <p className="app-settings__muted">Connect the clinic service to load write mode.</p>
-          )}
-          <SettingsNextStep card="write" {...{ bridgePhase, writeCapability, mirrorStatus, sandboxWritePilot }} />
-        </ClinicPanel>
-
-        <ClinicPanel
-          title={SETTINGS_SANDBOX_SECTION}
-          className={settingsPanelClassName(sandboxStatus.tone)}
-          headerActions={<SettingsPanelStatusDot tone={sandboxStatus.tone} />}
-        >
-          <p className={`app-settings__status app-settings__status--${sandboxStatus.tone}`}>{sandboxStatus.label}</p>
-          <SettingsNextStep card="sandbox" {...{ bridgePhase, writeCapability, mirrorStatus, sandboxWritePilot }} />
-        </ClinicPanel>
-
-        <ClinicPanel
-          title={SETTINGS_BACKUP_SECTION}
-          className={settingsPanelClassName(backupStatus.tone)}
-          headerActions={<SettingsPanelStatusDot tone={backupStatus.tone} />}
-        >
-          <p className={`app-settings__status app-settings__status--${backupStatus.tone}`}>{backupStatus.label}</p>
-          <SettingsNextStep card="backup" {...{ bridgePhase, writeCapability, mirrorStatus, sandboxWritePilot }} />
-          {devHints && writeCapability?.backupDirConfigured ? (
-            <p className="app-settings__path-hints" role="note">
-              <code>{MASKED_PATH_HINT_EXAMPLES.backup}</code>
-            </p>
-          ) : null}
-        </ClinicPanel>
-
-        <ClinicPanel
-          title={SETTINGS_PILOT_SECTION}
-          className={settingsPanelClassName("neutral")}
-          headerActions={<SettingsPanelStatusDot tone="neutral" />}
-        >
-          <p className="app-settings__muted">
-            {sandboxWritePilot ? SETTINGS_SANDBOX_PILOT_ON : SETTINGS_SANDBOX_PILOT_OFF}
-          </p>
-          <SettingsNextStep card="pilot" {...{ bridgePhase, writeCapability, mirrorStatus, sandboxWritePilot }} />
-        </ClinicPanel>
-
-        <ClinicPanel
-          title={SETTINGS_PILOT_BUILD_SECTION}
-          className={settingsPanelClassName("neutral")}
-          headerActions={<SettingsPanelStatusDot tone="neutral" />}
-        >
-          {pilotBuild === undefined ? (
-            <p className="app-settings__muted">{SETTINGS_PILOT_BUILD_LOADING}</p>
-          ) : pilotBuild === null ? (
-            <p className="app-settings__muted">{SETTINGS_PILOT_BUILD_UNAVAILABLE}</p>
-          ) : (
-            <ul className="app-settings__facts">
-              <li>
-                {SETTINGS_PILOT_BUILD_PACKAGE_VERSION}: {pilotBuild.packageVersion}
-              </li>
-              <li>
-                {SETTINGS_PILOT_BUILD_APP_VERSION}: {pilotBuild.appVersion}
-              </li>
-              <li>
-                {SETTINGS_PILOT_BUILD_COMMIT}: {pilotBuild.gitCommit}
-              </li>
-              <li>
-                {SETTINGS_PILOT_BUILD_CHANNEL}: {pilotBuild.releaseChannel}
-              </li>
-              <li>
-                {SETTINGS_PILOT_BUILD_BUILT}: {formatBuildTimestamp(pilotBuild.buildTimestampUtc)}
-              </li>
-            </ul>
-          )}
-        </ClinicPanel>
-
-        <ClinicPanel
           title={SETTINGS_DESKTOP_SECTION}
           className={settingsPanelClassName("neutral")}
           headerActions={<SettingsPanelStatusDot tone="neutral" />}
@@ -730,7 +723,16 @@ export function SettingsPanel({
             </p>
           ) : null}
         </ClinicPanel>
+        </SettingsSection>
 
+        <SettingsSection
+          title={SETTINGS_SECTION_LOCAL_COPY}
+          lede={SETTINGS_SECTION_LOCAL_COPY_LEDE}
+          sectionId="settings-section-local-copy"
+        >
+        <p className="clinic-settings-section__note app-settings__mirror-truth" role="note">
+          {mirrorFreshnessNote}
+        </p>
         <ClinicPanel
           title={SETTINGS_MIRROR_SECTION}
           className={settingsPanelClassName(mirrorCardTone(bridgePhase, mirrorStale), { mirror: true })}
@@ -827,6 +829,134 @@ export function SettingsPanel({
             </>
           )}
         </ClinicPanel>
+        </SettingsSection>
+
+        <SettingsSection
+          title={SETTINGS_SECTION_EDITING}
+          lede={SETTINGS_SECTION_EDITING_LEDE}
+          sectionId="settings-section-editing"
+        >
+        <ClinicPanel
+          title={SETTINGS_WRITE_SECTION}
+          className={settingsPanelClassName(writeCardTone(writeCapability), { primary: true })}
+          headerActions={<SettingsPanelStatusDot tone={writeCardTone(writeCapability)} />}
+        >
+          {writeChip ? (
+            <Badge
+              variant={writeChip.variant}
+              className="app-settings__chip"
+              semanticLabel={`Bridge write mode: ${writeChip.label}`}
+            >
+              {writeChip.label}
+            </Badge>
+          ) : (
+            <p className="app-settings__muted">Connect the clinic service to load write mode.</p>
+          )}
+          <SettingsNextStep card="write" {...{ bridgePhase, writeCapability, mirrorStatus, sandboxWritePilot }} />
+        </ClinicPanel>
+
+        <ClinicPanel
+          title={SETTINGS_SANDBOX_SECTION}
+          className={settingsPanelClassName(sandboxStatus.tone)}
+          headerActions={<SettingsPanelStatusDot tone={sandboxStatus.tone} />}
+        >
+          <p className={`app-settings__status app-settings__status--${sandboxStatus.tone}`}>{sandboxStatus.label}</p>
+          <SettingsNextStep card="sandbox" {...{ bridgePhase, writeCapability, mirrorStatus, sandboxWritePilot }} />
+        </ClinicPanel>
+
+        <ClinicPanel
+          title={SETTINGS_PILOT_SECTION}
+          className={settingsPanelClassName("neutral")}
+          headerActions={<SettingsPanelStatusDot tone="neutral" />}
+        >
+          <p className="app-settings__muted">
+            {sandboxWritePilot ? SETTINGS_SANDBOX_PILOT_ON : SETTINGS_SANDBOX_PILOT_OFF}
+          </p>
+          <SettingsNextStep card="pilot" {...{ bridgePhase, writeCapability, mirrorStatus, sandboxWritePilot }} />
+        </ClinicPanel>
+        </SettingsSection>
+
+        <SettingsSection
+          title={SETTINGS_SECTION_BACKUP}
+          lede={SETTINGS_SECTION_BACKUP_LEDE}
+          sectionId="settings-section-backup"
+        >
+        <ClinicPanel
+          title={SETTINGS_BACKUP_SECTION}
+          className={settingsPanelClassName(backupStatus.tone)}
+          headerActions={<SettingsPanelStatusDot tone={backupStatus.tone} />}
+        >
+          <p className={`app-settings__status app-settings__status--${backupStatus.tone}`}>{backupStatus.label}</p>
+          {showBackupReadonlyNote ? (
+            <p className="app-settings__muted" role="note">
+              {SETTINGS_BACKUP_READONLY_NOTE}
+            </p>
+          ) : null}
+          <SettingsNextStep card="backup" {...{ bridgePhase, writeCapability, mirrorStatus, sandboxWritePilot }} />
+          {devHints && writeCapability?.backupDirConfigured ? (
+            <p className="app-settings__path-hints" role="note">
+              <code>{MASKED_PATH_HINT_EXAMPLES.backup}</code>
+            </p>
+          ) : null}
+        </ClinicPanel>
+        </SettingsSection>
+
+        <SettingsSection
+          title={SETTINGS_SECTION_PACKAGE}
+          lede={SETTINGS_SECTION_PACKAGE_LEDE}
+          sectionId="settings-section-package"
+        >
+        <ClinicPanel
+          title={SETTINGS_PILOT_BUILD_SECTION}
+          className={settingsPanelClassName("neutral")}
+          headerActions={<SettingsPanelStatusDot tone="neutral" />}
+        >
+          {pilotBuild === undefined ? (
+            <p className="app-settings__muted">{SETTINGS_PILOT_BUILD_LOADING}</p>
+          ) : pilotBuild === null ? (
+            <p className="app-settings__muted">{SETTINGS_PILOT_BUILD_UNAVAILABLE}</p>
+          ) : (
+            <ul className="app-settings__facts">
+              <li>
+                {SETTINGS_PILOT_BUILD_PACKAGE_VERSION}: {pilotBuild.packageVersion}
+              </li>
+              <li>
+                {SETTINGS_PILOT_BUILD_APP_VERSION}: {pilotBuild.appVersion}
+              </li>
+              <li>
+                {SETTINGS_PILOT_BUILD_COMMIT}: {pilotBuild.gitCommit}
+              </li>
+              <li>
+                {SETTINGS_PILOT_BUILD_CHANNEL}: {pilotBuild.releaseChannel}
+              </li>
+              <li>
+                {SETTINGS_PILOT_BUILD_BUILT}: {formatBuildTimestamp(pilotBuild.buildTimestampUtc)}
+              </li>
+            </ul>
+          )}
+        </ClinicPanel>
+        </SettingsSection>
+
+        <SettingsSection
+          title={SETTINGS_SECTION_FIELD_TEST}
+          lede={SETTINGS_SECTION_FIELD_TEST_LEDE}
+          sectionId="settings-section-field-test"
+        >
+        <ClinicPanel
+          title={SETTINGS_PILOT_NOTES_TITLE}
+          className={`${settingsPanelClassName("neutral")} clinic-settings-panel--field-test`}
+          headerActions={<SettingsPanelStatusDot tone="neutral" />}
+        >
+          <ul className="app-settings__pilot-notes">
+            <li>{SETTINGS_PILOT_NOTES_READINESS}</li>
+            <li>{SETTINGS_PILOT_NOTES_REMINDERS}</li>
+            <li>{SETTINGS_PILOT_NOTES_FOOTNOTE}</li>
+          </ul>
+          <p className="app-settings__muted app-settings__field-test-doc" role="note">
+            {SETTINGS_READINESS_FIELD_TEST_DOC_HINT}
+          </p>
+        </ClinicPanel>
+        </SettingsSection>
       </div>
     </ClinicPage>
   );

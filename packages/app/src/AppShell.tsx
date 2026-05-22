@@ -4,6 +4,10 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { Button } from "@microdent/ui";
 import { probeBridgeHealth, describeBridgeHealthProbeError, type BridgeHealthPhase } from "./bridge-health.js";
 import {
+  CLINIC_FRIENDLY_READ_ONLY,
+  friendlyBridgeStatus,
+} from "./clinic-friendly-copy.js";
+import {
   READ_ONLY_BANNER_BODY,
   READ_ONLY_CONNECTED_LABEL,
   READ_ONLY_VIEWER_LABEL,
@@ -11,7 +15,6 @@ import {
 import {
   resolveShellCriticalStripBanners,
   resolveShellHeaderMirrorPill,
-  resolveWriteModeChip,
   SIDEBAR_RECENT_PATIENTS_MAX,
 } from "./shell-status-banners.js";
 import { formatSessionRecentPatientMeta } from "./session-recent-patients.js";
@@ -344,10 +347,14 @@ export function AppShell({
     [active, bridgePhase, mirrorStatus, writeCapability],
   );
 
-  const mirrorHeaderPill = useMemo(
+  const localCopyHeaderPill = useMemo(
     () => resolveShellHeaderMirrorPill(bridgePhase, mirrorStatus),
     [bridgePhase, mirrorStatus],
   );
+
+  const bridgeHeaderPill = useMemo(() => friendlyBridgeStatus(bridgePhase), [bridgePhase]);
+
+  const showHeaderStatusPills = active !== "settings";
 
   const sidebarRecentPatients = useMemo(
     () => recentPatients.slice(0, SIDEBAR_RECENT_PATIENTS_MAX),
@@ -364,11 +371,7 @@ export function AppShell({
       chartNumber: selectedPatientChartNumber,
     });
   }, [selectedPatientChartNumber, selectedPatientDisplayName, selectedPatientId]);
-  const railConnectionLabel = useMemo(() => {
-    if (bridgePhase === "connected") return "Connected";
-    if (bridgePhase === "checking") return "Checking…";
-    return "Offline";
-  }, [bridgePhase]);
+  const railConnectionLabel = useMemo(() => bridgeHeaderPill.label, [bridgeHeaderPill.label]);
 
   const railStatusTone = useMemo(() => {
     if (shellStatusBanners.some((b) => b.tone === "danger")) return "danger";
@@ -377,18 +380,16 @@ export function AppShell({
     return undefined;
   }, [bridgePhase, shellStatusBanners]);
 
-  const writeModeChip = useMemo(() => resolveWriteModeChip(writeCapability), [writeCapability]);
-
-
-  const writeModeChipTone =
-    writeModeChip?.variant === "danger"
-      ? "danger"
-      : writeModeChip?.variant === "warning"
-        ? "warn"
-        : "neutral";
-
   const bridgeStatusPillTone =
-    bridgePhase === "connected" ? "ok" : bridgePhase === "checking" ? "info" : "neutral";
+    bridgeHeaderPill.tone === "ok"
+      ? "ok"
+      : bridgePhase === "checking"
+        ? "info"
+        : bridgeHeaderPill.tone === "warn"
+          ? "warn"
+          : "neutral";
+
+  const localCopyPillTone = localCopyHeaderPill.tone;
 
   const sidebar = useMemo(
     () => (
@@ -491,7 +492,9 @@ export function AppShell({
           >
             {railConnectionLabel}
           </span>
-          <span className="app-rail__version">Read-only · v{APP_SHELL_VERSION}</span>
+          <span className="app-rail__version clinic-sidebar__readonly-line">
+            {CLINIC_FRIENDLY_READ_ONLY} · v{APP_SHELL_VERSION}
+          </span>
           <button
             type="button"
             className="clinic-sidebar__settings-link app-rail__settings-link ui-focusable"
@@ -522,70 +525,43 @@ export function AppShell({
           </div>
 
           <div className="clinic-workspace-header__actions app-workspace-header__actions">
-            <div
-              className="clinic-workspace-header__status-cluster app-workspace-header__status-cluster"
-              role="group"
-              aria-label="Clinic service status"
-            >
-              <span
-                className="clinic-status-pill clinic-status-pill--info"
-                title={READ_ONLY_BANNER_BODY}
-                aria-label={`${READ_ONLY_VIEWER_LABEL}. ${READ_ONLY_BANNER_BODY}`}
+            {showHeaderStatusPills ? (
+              <div
+                className="clinic-workspace-header__status-cluster app-workspace-header__status-cluster"
+                role="group"
+                aria-label="Clinic service status"
               >
-                {READ_ONLY_VIEWER_LABEL}
-              </span>
-              <span
-                className={`clinic-status-pill clinic-status-pill--${bridgeStatusPillTone}`}
-                role="status"
-                aria-live="polite"
-                aria-label={
-                  bridgePhase === "connected"
-                    ? "Clinic service: connected"
-                    : bridgePhase === "checking"
-                      ? "Clinic service: checking"
-                      : "Clinic service: offline"
-                }
-              >
-                {bridgePhase === "connected"
-                  ? "Connected"
-                  : bridgePhase === "checking"
-                    ? "Checking…"
-                    : "Offline"}
-              </span>
-              {mirrorHeaderPill ? (
                 <span
-                  className={`clinic-status-pill clinic-status-pill--${mirrorHeaderPill.tone}`}
-                  role="status"
-                  aria-label={`Mirror data: ${mirrorHeaderPill.label}`}
+                  className="clinic-status-pill clinic-status-pill--info"
+                  title={READ_ONLY_BANNER_BODY}
+                  aria-label={`${CLINIC_FRIENDLY_READ_ONLY}. ${READ_ONLY_BANNER_BODY}`}
                 >
-                  {mirrorHeaderPill.label}
+                  {CLINIC_FRIENDLY_READ_ONLY}
                 </span>
-              ) : null}
-              {writeModeChip && bridgePhase === "connected" ? (
                 <span
-                  className={`clinic-status-pill clinic-status-pill--${writeModeChipTone}`}
+                  className={`clinic-status-pill clinic-status-pill--${bridgeStatusPillTone}`}
                   role="status"
-                  aria-label={`Bridge write mode: ${writeModeChip.label}`}
+                  aria-live="polite"
+                  aria-label={`Clinic service: ${bridgeHeaderPill.label}`}
                 >
-                  {writeModeChip.label}
+                  {bridgeHeaderPill.label}
                 </span>
-              ) : null}
-              {sandboxWritePilot ? (
                 <span
-                  className="clinic-status-pill clinic-status-pill--warn"
+                  className={`clinic-status-pill clinic-status-pill--${localCopyPillTone}`}
                   role="status"
-                  aria-label="Sandbox write pilot enabled in this build"
+                  title={localCopyHeaderPill.detailLabel}
+                  aria-label={`Local copy: ${localCopyHeaderPill.detailLabel}`}
                 >
-                  Sandbox pilot
+                  {localCopyHeaderPill.label}
                 </span>
-              ) : null}
-            </div>
+              </div>
+            ) : null}
             {bridgeBaseUrl?.trim() ? (
               <Button
                 type="button"
                 variant="ghost"
                 size="compact"
-                className="ui-focusable app-topbar__refresh"
+                className="ui-focusable app-topbar__refresh clinic-header-refresh"
                 onClick={() => void runBridgeHealthCheck()}
               >
                 ↻ Refresh

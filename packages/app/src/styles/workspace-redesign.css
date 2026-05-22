@@ -698,3 +698,16 @@
   background: transparent;
   padding: var(--ui-space-3) 0;
 }
+
+/* Wave 0 — clinic structure grid: defer column layout to clinic-design-system.css */
+.app-command-grid.clinic-workspace-grid,
+.clinic-workspace-grid.app-command-grid {
+  display: grid;
+}
+
+.app-command-grid .clinic-col-8,
+.app-command-grid .clinic-col-7,
+.app-command-grid .clinic-col-4,
+.app-command-grid .clinic-col-5 {
+  min-width: 0;
+}

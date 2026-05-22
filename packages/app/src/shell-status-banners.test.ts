@@ -195,11 +195,13 @@ describe("omitShellBannersDetailedInSettings", () => {
 });
 
 describe("resolveShellHeaderMirrorPill", () => {
-  it("returns stale, fallback, or OK labels when connected", () => {
-    expect(resolveShellHeaderMirrorPill("offline", mirrorActive)).toBeNull();
-    expect(resolveShellHeaderMirrorPill("connected", mirrorStale)?.label).toBe("Mirror stale");
-    expect(resolveShellHeaderMirrorPill("connected", mirrorFallback)?.label).toBe("Mirror: DBF fallback");
-    expect(resolveShellHeaderMirrorPill("connected", mirrorActive)?.label).toBe("Mirror OK");
+  it("uses clinic-friendly Local copy chip with detail labels", () => {
+    expect(resolveShellHeaderMirrorPill("offline", mirrorActive).label).toBe("Local copy");
+    expect(resolveShellHeaderMirrorPill("connected", mirrorStale).tone).toBe("warn");
+    expect(resolveShellHeaderMirrorPill("connected", mirrorStale).detailLabel).toMatch(/outdated/i);
+    expect(resolveShellHeaderMirrorPill("connected", mirrorFallback).detailLabel).toMatch(/copied clinic files/i);
+    expect(resolveShellHeaderMirrorPill("connected", mirrorActive).tone).toBe("ok");
+    expect(resolveShellHeaderMirrorPill("connected", mirrorActive).detailLabel).toMatch(/ready/i);
   });
 });
 
@@ -219,7 +221,13 @@ describe("resolveContextualStatusForModule", () => {
 });
 
 describe("resolveShellCriticalStripBanners", () => {
-  it("matches danger-only contextual banners", () => {
+  it("includes bridge offline on the critical strip when disconnected", () => {
+    const critical = resolveShellCriticalStripBanners("today", "offline", null, null);
+    expect(critical.map((b) => b.key)).toContain("bridge-offline");
+    expect(critical.every((b) => b.tone === "danger")).toBe(true);
+  });
+
+  it("matches danger-only contextual banners when connected", () => {
     const critical = resolveShellCriticalStripBanners("today", "connected", mirrorFallback, capSandbox);
     const contextual = resolveContextualStatusForModule("today", "connected", mirrorFallback, capSandbox);
     expect(critical).toEqual(contextual);

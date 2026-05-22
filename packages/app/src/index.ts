@@ -1,5 +1,10 @@
 export { AppErrorBoundary } from "./AppErrorBoundary.js";
 export { ClinicEmptyState, type ClinicEmptyStateProps, type ClinicEmptyStateVariant } from "./clinic-empty-state.js";
+export {
+  ClinicInlineWarning,
+  type ClinicInlineWarningProps,
+  type ClinicInlineWarningTone,
+} from "./clinic-inline-warning.js";
 export { ClinicLoadingSkeleton, type ClinicLoadingSkeletonProps } from "./clinic-loading-skeleton.js";
 export { ClinicPage, ClinicPageHero, type ClinicPageHeroProps, type ClinicPageProps } from "./clinic-page.js";
 export { ClinicPanel, type ClinicPanelProps } from "./clinic-panel.js";
@@ -32,6 +37,23 @@ export {
   type AppSidebarModuleId,
   type AppShellProps,
 } from "./AppShell.js";
+export {
+  resolveTodayClinicStatus,
+  type TodayClinicStatusOptions,
+  type TodayClinicStatusRow,
+} from "./today-clinic-status.js";
+export {
+  friendlyBridgeStatus,
+  friendlyEditingStatus,
+  friendlyLocalCopyStatus,
+  friendlyMirrorReadinessLabel,
+  friendlyWriteModeChipLabel,
+  CLINIC_FRIENDLY_EDITING_LABEL,
+  CLINIC_FRIENDLY_LOCAL_COPY_LABEL,
+  CLINIC_FRIENDLY_SERVICE_LABEL,
+  type ClinicFriendlyLabeledValue,
+  type ClinicFriendlyTone,
+} from "./clinic-friendly-copy.js";
 export {
   probeBridgeHealth,
   describeBridgeHealthProbeError,

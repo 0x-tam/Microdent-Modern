@@ -2,15 +2,13 @@ import type { SafeWritePlan, WriteAuditRecentResponse } from "@microdent/contrac
 import {
   WRITE_AUDIT_EMPTY,
   WRITE_AUDIT_NOT_CONFIGURED,
-  WRITE_AUDIT_STATUS_UPDATE_NOTE,
   WRITE_AUDIT_UNAVAILABLE,
   WRITE_BACKUP_CREATED_LINE,
   WRITE_BACKUP_NOT_CREATED_LINE,
   WRITE_BACKUP_SKIPPED_LINE,
   WRITE_FAILED_GUIDANCE,
+  WRITE_FEEDBACK_SETTINGS_LINK,
   WRITE_OPERATION_ID_PREFIX,
-  WRITE_RESTORE_CLI_HINT,
-  WRITE_RESTORE_SANDBOX_ONLY_NOTE,
 } from "./read-only-ui-copy.js";
 
 export type WriteOperationFeedback = {
@@ -113,8 +111,6 @@ export function formatWriteOperationFeedbackLines(
   if (!feedback.committed) {
     lines.push(WRITE_FAILED_GUIDANCE);
   }
-  lines.push(WRITE_RESTORE_CLI_HINT);
-  lines.push(WRITE_RESTORE_SANDBOX_ONLY_NOTE);
-  lines.push(WRITE_AUDIT_STATUS_UPDATE_NOTE);
+  lines.push(WRITE_FEEDBACK_SETTINGS_LINK);
   return lines;
 }

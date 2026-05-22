@@ -1,4 +1,4 @@
-/* Wave 2 — Schedule board clinic layout */
+/* Wave 2 E — Schedule board clinic layout */
 
 .clinic-schedule-page {
   display: flex;
@@ -52,8 +52,15 @@
   margin-left: auto;
 }
 
-.clinic-schedule-stat-grid {
+.clinic-schedule-summary-strip {
   margin: 0;
+}
+
+.clinic-schedule-filter-active {
+  margin: 0;
+  font-size: var(--clinic-text-meta);
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
 }
 
 .clinic-schedule-toolbar {

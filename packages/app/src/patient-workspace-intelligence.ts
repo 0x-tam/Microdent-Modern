@@ -40,6 +40,71 @@ export type PatientWorkspacePrefetches = {
   ledger: SummaryCountPrefetch;
 };
 
+export type PatientWorkflowStripItem = {
+  label: string;
+  value: string;
+};
+
+export function glancePrefetchLoading(prefetches: PatientWorkspacePrefetches): boolean {
+  return (
+    prefetches.appt.phase === "loading" ||
+    prefetches.appt.phase === "idle" ||
+    prefetches.medical.phase === "loading" ||
+    prefetches.medical.phase === "idle" ||
+    prefetches.treatments.phase === "loading" ||
+    prefetches.treatments.phase === "idle" ||
+    prefetches.chart.phase === "loading" ||
+    prefetches.chart.phase === "idle" ||
+    prefetches.ledger.phase === "loading" ||
+    prefetches.ledger.phase === "idle"
+  );
+}
+
+function workflowStripValue(
+  raw: string | null,
+  loading: boolean,
+  valuePrefix?: string,
+): string {
+  if (raw) {
+    if (valuePrefix && raw.startsWith(`${valuePrefix}: `)) {
+      return raw.slice(valuePrefix.length + 2);
+    }
+    return raw;
+  }
+  return loading ? "Loading…" : "—";
+}
+
+/** Five workflow metrics for the profile strip (ledger stays in summary metadata). */
+export function patientWorkflowStripItems(
+  prefetches: PatientWorkspacePrefetches,
+): PatientWorkflowStripItem[] {
+  const glance = patientWorkspaceAtGlance(prefetches);
+  const loading = glancePrefetchLoading(prefetches);
+
+  return [
+    {
+      label: PATIENT_SUMMARY_AT_GLANCE_APPT_UPCOMING,
+      value: workflowStripValue(glance.upcomingStatus, loading, PATIENT_SUMMARY_AT_GLANCE_APPT_UPCOMING),
+    },
+    {
+      label: PATIENT_SUMMARY_AT_GLANCE_APPT_RECENT,
+      value: workflowStripValue(glance.recentStatus, loading, PATIENT_SUMMARY_AT_GLANCE_APPT_RECENT),
+    },
+    {
+      label: "Procedures",
+      value: workflowStripValue(glance.treatmentCount, loading),
+    },
+    {
+      label: "Chart",
+      value: workflowStripValue(glance.chartCount, loading),
+    },
+    {
+      label: "Medical",
+      value: workflowStripValue(glance.medicalScreening, loading, "Screening"),
+    },
+  ];
+}
+
 /** Safe summary DTO for Summary at-a-glance strip — counts and status hints only. */
 export function patientWorkspaceAtGlance(prefetches: PatientWorkspacePrefetches): PatientWorkspaceAtGlance {
   const { appt, medical, treatments, chart, ledger } = prefetches;

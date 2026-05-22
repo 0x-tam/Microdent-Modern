@@ -90,7 +90,10 @@ Capture at Wave 4 proof (`pnpm dev:web` + browser MCP): Today, Patients, Schedul
 | `.clinic-chip` / `.clinic-status-pill` | Status indicators |
 | `.clinic-list-card` | Schedule/appointment rows |
 | `.clinic-empty-state` | Accent empty block + CTAs |
-| `.clinic-workspace-grid` | Profile summary two-column |
+| `.clinic-workspace-grid` | 12-column page grid; `.clinic-col-*` spans for Today/Patients/Profile |
+| `.clinic-summary-strip` | Schedule horizontal metrics (not stat cards) |
+| `.clinic-status-compact` | Today 3-row side status list |
+| `.clinic-continue-strip` | Today recent-patient chips |
 
 ### React primitives (exported from `@microdent/app`)
 
@@ -133,6 +136,52 @@ Legacy exports retained: `AppMetricTile`, `AppStatusGrid`, `AppEmptyPanel`.
 | Write panel styling | write action components, `write.css` | 2 |
 | Empty / loading / microcopy | `ClinicEmptyState`, `read-only-ui-copy.ts` | 3 |
 | Visual QA + commit gate | `docs/visual-qa-checklist.md`, browser MCP | 4 |
+
+---
+
+## Wave: Structure (IA audit — before page DOM rebuild)
+
+**Baseline for this wave:** `bdb5a82`  
+**Goal:** Workflow-first layouts on main pages; technical diagnostics consolidated in Settings only.
+
+### Remove from main UI → new primary structure
+
+| Page | Remove from main UI | New primary structure |
+|------|---------------------|------------------------|
+| **Today** | 5-card stat strip; 6-row glance; pilot notes panel; mirror/write/backup/sandbox rows | 8+4 grid: schedule panel + continue-working strip \| next-up + quick actions + 3-row clinic status |
+| **Patients** | Long instruction blocks; duplicate search | 7+5 grid: search+results \| recent + what-opens + safety |
+| **Schedule** | Generic stat-card row as hero | Hero controls + summary **strip** (not cards) + filter toolbar + board |
+| **Profile** | 6 diagnostic stat cards at top | Header + **5 workflow metrics** + tabs; summary two-column |
+| **Settings** | (keep) | Absorb all technical diagnostics moved off other pages |
+
+### Components / resolvers to replace (not restyle)
+
+| Area | Retire on main pages | Replacement |
+|------|----------------------|-------------|
+| Today | `clinic-stat-grid--five`, full `ClinicStatusGrid` glance (6 rows), pilot notes panel | `clinic-workspace-grid` 8+4; `clinic-status-compact` (3 rows); `resolveTodayClinicStatus()` |
+| Today | `resolveFrontDeskOverview()` | `resolveTodayClinicStatus()` — Service, Local copy, Editing only |
+| Profile | 6-card `ProfileAtGlanceRow` diagnostic grid | Workflow strip (5 metrics) |
+| Schedule | 5× `ClinicStatCard` hero row | `clinic-summary-strip` inline metrics |
+| Copy | SQLite mirror, DBF fallback, bridge, write mode on main pages | `clinic-friendly-copy.ts` mappers; Settings keeps `SETTINGS_*` technical strings |
+
+### CSS foundation (Wave 0 L)
+
+| Class | Role |
+|-------|------|
+| `.clinic-workspace-grid` | 12-column page grid (`repeat(12, 1fr)`) |
+| `.clinic-col-8` / `.clinic-col-4` | Today desktop columns |
+| `.clinic-col-7` / `.clinic-col-5` | Patients desktop columns |
+| `.clinic-col-6` | Profile summary halves (via `.clinic-profile-summary-grid` spans) |
+| `.clinic-summary-strip` | Schedule horizontal metrics (not stat cards) |
+| `.clinic-status-compact` | 3-row side status list |
+| `.clinic-continue-strip` | Recent-patient chips under primary panel |
+| `.clinic-header-search` | Search cap `max-width: min(720px, 100%)` |
+
+**Responsive:** `≥1440px` full 12-col; `1100–1439px` tighter gutters; `800–1099px` aside stacks (`grid-column: 1 / -1`); `<800px` single column + compact sidebar rail (`shell-layout.css`).
+
+### Before screenshots
+
+Capture at Wave 4 browser proof for before/after in `qa-runs/`. Not required for Wave 0 test gate.
 
 ---
 

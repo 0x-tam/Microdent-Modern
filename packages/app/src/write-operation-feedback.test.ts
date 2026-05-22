@@ -86,8 +86,8 @@ describe("formatWriteOperationFeedbackLines", () => {
     const text = lines.join("\n");
     expect(text).toContain(operationId);
     expect(text).toContain("Backup created");
-    expect(text).toContain("legacy-restore");
-    expect(text).toContain("sandbox pilot only");
+    expect(text).toContain("open Settings");
+    expect(text).not.toContain("legacy-restore");
     assertNoForbiddenDomTokens(text);
     expect(text).not.toMatch(/DATA_ROOT|manifest|before|after|PAT_NAME/i);
     expect(text).not.toMatch(/C:\\\\|\/Users\//);

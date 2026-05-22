@@ -2,7 +2,11 @@ import type { SafeWritePlan, SafeWritePlanWarning } from "@microdent/contracts";
 import {
   SANDBOX_WRITE_BLOCKED_SANDBOX,
   SANDBOX_WRITE_BLOCKED_WRITE_MODE,
+  SANDBOX_WRITE_PANEL_HINT,
   SANDBOX_WRITE_PILOT_PANEL_BANNER,
+  WRITE_FLOW_STEP_APPLY,
+  WRITE_FLOW_STEP_EDIT,
+  WRITE_FLOW_STEP_PREVIEW,
   WRITE_PLAN_LABEL_RECORD_ID,
   WRITE_PLAN_LABEL_WORKFLOW,
   WRITE_POST_COMMIT_COMBINED_NUDGE,
@@ -65,7 +69,7 @@ export type SandboxWriteStep = "edit" | "preview" | "result";
 
 export function SandboxWriteStepIndicator({ step }: { step: SandboxWriteStep }) {
   const steps: SandboxWriteStep[] = ["edit", "preview", "result"];
-  const labels = ["Edit", "Preview", "Apply"];
+  const labels = [WRITE_FLOW_STEP_EDIT, WRITE_FLOW_STEP_PREVIEW, WRITE_FLOW_STEP_APPLY];
   const activeIdx = steps.indexOf(step);
   return (
     <ol className="app-sandbox-write-zone__steps" aria-label="Sandbox write flow">
@@ -87,6 +91,18 @@ export function SandboxWriteStepIndicator({ step }: { step: SandboxWriteStep }) 
         );
       })}
     </ol>
+  );
+}
+
+export type SandboxWritePanelHintProps = {
+  className?: string;
+};
+
+export function SandboxWritePanelHint({ className }: SandboxWritePanelHintProps) {
+  return (
+    <p className={className ?? "app-sandbox-write__hint app-sandbox-write-zone__hint"} role="note">
+      {SANDBOX_WRITE_PANEL_HINT}
+    </p>
   );
 }
 

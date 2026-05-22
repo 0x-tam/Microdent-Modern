@@ -25,6 +25,11 @@ import {
   WRITE_MODE_ENABLED_BANNER_BODY,
   WRITE_MODE_ENABLED_BANNER_LABEL,
 } from "./read-only-ui-copy.js";
+import {
+  CLINIC_FRIENDLY_LOCAL_COPY_LABEL,
+  friendlyLocalCopyStatus,
+  type ClinicFriendlyTone,
+} from "./clinic-friendly-copy.js";
 import { isMirrorImportStale, resolveMirrorStaleBanner } from "./mirror-stale.js";
 
 export type ShellStatusBanner = {
@@ -217,29 +222,36 @@ export function resolveSandboxWriteWarningBanner(
 export type AppShellModuleId = "today" | "patients" | "schedule" | "settings";
 
 /** Sidebar recent-patient mini-list cap (session store may hold more). */
-export const SIDEBAR_RECENT_PATIENTS_MAX = 4;
+export const SIDEBAR_RECENT_PATIENTS_MAX = 3;
 
 export type ShellHeaderMirrorPill = {
+  /** Fixed header chip label (always clinic-friendly). */
   label: string;
   tone: "ok" | "warn" | "neutral";
+  /** Full status line for aria-label / tooltips. */
+  detailLabel: string;
 };
 
+function friendlyToneToHeaderPill(tone: ClinicFriendlyTone): ShellHeaderMirrorPill["tone"] {
+  if (tone === "ok") return "ok";
+  if (tone === "warn" || tone === "danger") return "warn";
+  return "neutral";
+}
+
 /**
- * Compact mirror label for the workspace header pill cluster (not a full-width strip).
+ * Compact local-copy label for the workspace header pill cluster (not a full-width strip).
  */
 export function resolveShellHeaderMirrorPill(
   phase: BridgeHealthPhase,
   mirrorStatus: MirrorStatusResponse | null,
   nowMs: number = Date.now(),
-): ShellHeaderMirrorPill | null {
-  if (phase !== "connected" || mirrorStatus === null) return null;
-  if (isMirrorImportStale(mirrorStatus, nowMs)) {
-    return { label: "Mirror stale", tone: "warn" };
-  }
-  if (!mirrorStatus.sqliteUsable) {
-    return { label: "Mirror: DBF fallback", tone: "warn" };
-  }
-  return { label: "Mirror OK", tone: "ok" };
+): ShellHeaderMirrorPill {
+  const friendly = friendlyLocalCopyStatus(phase, mirrorStatus, nowMs);
+  return {
+    label: CLINIC_FRIENDLY_LOCAL_COPY_LABEL,
+    tone: friendlyToneToHeaderPill(friendly.tone),
+    detailLabel: friendly.label,
+  };
 }
 
 /**
@@ -253,8 +265,20 @@ export function resolveShellCriticalStripBanners(
   writeCapability: BridgeDevStatusResponse | null,
   nowMs: number = Date.now(),
 ): ShellStatusBanner[] {
+  const banners: ShellStatusBanner[] = [];
+  if (phase === "offline") {
+    const offline = resolveBridgeOfflineBanner(phase);
+    if (offline) {
+      banners.push({ ...offline, tone: "danger" });
+    }
+  }
   const contextual = resolveContextualStatusForModule(active, phase, mirrorStatus, writeCapability, nowMs);
-  return contextual.filter((b) => b.tone === "danger");
+  for (const banner of contextual) {
+    if (banner.tone === "danger" && !banners.some((b) => b.key === banner.key)) {
+      banners.push(banner);
+    }
+  }
+  return banners;
 }
 
 /**

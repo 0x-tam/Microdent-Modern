@@ -110,3 +110,45 @@
   font-weight: 600;
   color: var(--ui-text-primary);
 }
+
+/* Panel-internal inline warning (not shell strip) */
+.clinic-inline-warning {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-radius: var(--ui-radius-sm);
+  border: 1px solid var(--ui-border-subtle);
+  font-size: var(--clinic-text-meta, 0.875rem);
+  line-height: 1.45;
+}
+
+.clinic-inline-warning__label {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.clinic-inline-warning--info {
+  border-color: color-mix(in srgb, var(--ui-primary-500) 22%, var(--ui-border-subtle));
+  background: var(--ui-bg-subtle);
+  color: var(--ui-text-secondary);
+}
+
+.clinic-inline-warning--warning {
+  border-left: 3px solid var(--ui-warning-600);
+  background: color-mix(in srgb, var(--surface-amber) 40%, var(--ui-bg-surface));
+  color: var(--ui-text-secondary);
+}
+
+.clinic-inline-warning--danger {
+  border-left: 3px solid var(--ui-danger-600);
+  background: var(--ui-bg-danger-subtle);
+  color: var(--ui-text-primary);
+}
+
+.clinic-header-refresh {
+  min-height: 2rem;
+  font-size: var(--clinic-text-meta, 0.875rem);
+  font-weight: 600;
+}

@@ -250,6 +250,20 @@ details.app-sandbox-write-zone > summary.app-sandbox-write-zone__header::-webkit
   color: var(--ui-text-secondary);
 }
 
+.app-sandbox-write-zone__hint,
+.app-sandbox-write__hint--secondary {
+  margin-top: 0;
+  color: var(--ui-text-muted);
+}
+
+.app-appt-write-actions__banner {
+  margin-bottom: 0;
+}
+
+.app-appt-write-actions__hint {
+  margin-top: 0;
+}
+
 .app-sandbox-write__fields {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));

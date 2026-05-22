@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { AppShell, resolveMirrorDiagnosticLabel, resolveShellClinicLabel } from "./AppShell.js";
-import { assertNoForbiddenDomTokens } from "./read-only-smoke-fixtures.js";
+import { assertNoForbiddenDomTokens, assertNoMainPageJargonInDom } from "./read-only-smoke-fixtures.js";
 import { resolveShellStatusBanners } from "./shell-status-banners.js";
 
 describe("resolveMirrorDiagnosticLabel", () => {
@@ -44,7 +44,8 @@ describe("AppShell", () => {
     expect(html).toContain('role="main"');
     expect(html).toContain("<nav");
     expect(html).toContain("Read-only");
-    expect(html).toContain("Offline");
+    expect(html).toContain("Clinic service offline");
+    expect(html).toContain("Local copy");
     expect(html).toContain("app-workspace-shell");
     expect(html).toContain("clinic-sidebar");
     expect(html).toContain("Modern clinic workspace");
@@ -63,7 +64,7 @@ describe("AppShell", () => {
 
   it("shows offline when bridge URL is not configured", () => {
     const html = renderToStaticMarkup(<AppShell />);
-    expect(html).toContain("Offline");
+    expect(html).toContain("Clinic service offline");
     expect(html).not.toContain("Refresh");
   });
 
@@ -86,10 +87,10 @@ describe("AppShell", () => {
     expect(html).toMatch(/Payments and Reports are not available in this read-only viewer yet/i);
   });
 
-  it("renders page title and module description from nav metadata", () => {
+  it("renders page title and workflow-first hero copy on Today", () => {
     const html = renderToStaticMarkup(<AppShell />);
     expect(html).toContain('id="app-main-heading"');
-    expect(html).toContain("Schedule overview, next steps, and clinic readiness.");
+    expect(html).toMatch(/patient shortcuts, and clinic service status/);
     expect(html).toContain("Front desk dashboard");
   });
 
@@ -123,12 +124,17 @@ describe("AppShell", () => {
     assertNoForbiddenDomTokens(html);
   });
 
-  it("shows read-only viewer pill with privacy note in header", () => {
+  it("shows compact clinic-friendly header pills and capped search width class", () => {
     const html = renderToStaticMarkup(<AppShell />);
-    expect(html).toContain("clinic-workspace-header__status-cluster");
-    expect(html).toContain("clinic-status-pill");
+    const header = html.match(/<header class="clinic-workspace-header[\s\S]*?<\/header>/)?.[0] ?? "";
+    expect(header).toContain("clinic-workspace-header__status-cluster");
+    expect(header).toContain("clinic-status-pill");
     expect(html).toContain("clinic-header-search");
+    expect(header).toContain("Local copy");
+    expect(header).not.toContain("Writes off");
+    expect(header).not.toContain("Sandbox pilot");
     expect(html).toContain("payment amounts stay hidden");
+    assertNoMainPageJargonInDom(html);
   });
 
   it("resolveShellStatusBanners includes write mode when connected", () => {

@@ -6,7 +6,6 @@ import type { BridgeHealthPhase } from "./bridge-health.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
 import { AppLoadingSkeleton } from "./app-empty-panel.js";
 import { ClinicPage, ClinicPageHero } from "./clinic-page.js";
-import { ClinicStatCard } from "./clinic-stat-card.js";
 import { ClinicEmptyState } from "./clinic-empty-state.js";
 import {
   appointmentVisitMeta,
@@ -48,6 +47,15 @@ import {
   SCHEDULE_ROOM_FILTER_LABEL,
   SCHEDULE_ROOM_FILTER_LOADING,
   SCHEDULE_ROOM_FILTER_EMPTY,
+  SCHEDULE_FILTER_ACTIVE_PREFIX,
+  SCHEDULE_PAGE_SUBTITLE,
+  SCHEDULE_SUMMARY_ARIA,
+  SCHEDULE_SUMMARY_PROVIDERS_LABEL,
+  SCHEDULE_SUMMARY_ROOMS_LABEL,
+  SCHEDULE_SUMMARY_SHOWN_LABEL,
+  SCHEDULE_SUMMARY_SLOTS_HINT,
+  SCHEDULE_SUMMARY_SLOTS_LABEL,
+  SCHEDULE_SUMMARY_STATUS_LABEL,
   SCHEDULE_SANDBOX_WRITE_PILOT_BANNER,
   TODAY_APPT_ROW_CURRENT_LABEL,
   SCHEDULE_WRITE_DISCOVERABILITY_HINT,
@@ -60,6 +68,7 @@ import {
 import { AppointmentCreateWriteAction } from "./AppointmentCreateWriteAction.js";
 import { AppointmentStatusDryRunAction } from "./AppointmentStatusDryRunAction.js";
 import { AppointmentWriteActionsPanel } from "./AppointmentWriteActionsPanel.js";
+import { friendlyWriteModeChipLabel } from "./clinic-friendly-copy.js";
 import { resolveWriteModeChip } from "./shell-status-banners.js";
 import { isMirrorImportStale } from "./mirror-stale.js";
 import {
@@ -695,7 +704,7 @@ export function SchedulePanel({
     <ClinicPage className="clinic-schedule-page app-workspace-page app-schedule" testId="schedule-page">
       <ClinicPageHero
         title={moduleTitle}
-        subtitle={moduleDescription ?? "Day and week views from your copied schedule."}
+        subtitle={moduleDescription ?? SCHEDULE_PAGE_SUBTITLE}
       />
 
       <section className="clinic-schedule-hero-controls app-schedule__hero-band" aria-label="Schedule range controls">
@@ -791,16 +800,36 @@ export function SchedulePanel({
         </div>
       </section>
 
-      <div className="clinic-stat-grid clinic-stat-grid--five clinic-schedule-stat-grid" role="status">
-        <ClinicStatCard
-          label="Shown"
-          value={canLoad && !loading && !error ? operationalSummary.shownLabel : "—"}
-          tone="teal"
-        />
-        <ClinicStatCard label="Slots" value={slotsSummaryLabel} hint="Booked time in range" tone="cyan" />
-        <ClinicStatCard label="Rooms" value={roomsStatLabel} tone="green" />
-        <ClinicStatCard label="Providers" value={providersStatLabel} tone="blue" />
-        <ClinicStatCard label="Status mix" value={statusMixLabel} tone="amber" />
+      <div
+        className="clinic-summary-strip clinic-schedule-summary-strip"
+        role="status"
+        aria-label={SCHEDULE_SUMMARY_ARIA}
+      >
+        <span className="clinic-summary-strip__item">
+          <span className="clinic-summary-strip__label">{SCHEDULE_SUMMARY_SHOWN_LABEL}</span>
+          <span className="clinic-summary-strip__value">
+            {canLoad && !loading && !error ? operationalSummary.shownLabel : "—"}
+          </span>
+        </span>
+        <span
+          className="clinic-summary-strip__item"
+          title={canLoad && !loading && !error ? SCHEDULE_SUMMARY_SLOTS_HINT : undefined}
+        >
+          <span className="clinic-summary-strip__label">{SCHEDULE_SUMMARY_SLOTS_LABEL}</span>
+          <span className="clinic-summary-strip__value">{slotsSummaryLabel}</span>
+        </span>
+        <span className="clinic-summary-strip__item">
+          <span className="clinic-summary-strip__label">{SCHEDULE_SUMMARY_ROOMS_LABEL}</span>
+          <span className="clinic-summary-strip__value">{roomsStatLabel}</span>
+        </span>
+        <span className="clinic-summary-strip__item">
+          <span className="clinic-summary-strip__label">{SCHEDULE_SUMMARY_PROVIDERS_LABEL}</span>
+          <span className="clinic-summary-strip__value">{providersStatLabel}</span>
+        </span>
+        <span className="clinic-summary-strip__item">
+          <span className="clinic-summary-strip__label">{SCHEDULE_SUMMARY_STATUS_LABEL}</span>
+          <span className="clinic-summary-strip__value">{statusMixLabel}</span>
+        </span>
       </div>
 
       <div className="clinic-toolbar clinic-schedule-toolbar app-schedule__filter-toolbar app-filter-bar">
@@ -909,8 +938,8 @@ export function SchedulePanel({
       </div>
 
       {operationalSummary.filterActiveLabel ? (
-        <p className="app-schedule__filter-active-label" role="status">
-          {operationalSummary.filterActiveLabel}
+        <p className="app-schedule__filter-active-label clinic-schedule-filter-active" role="status">
+          {operationalSummary.filterActiveLabel.replace(/^Filters:/, `${SCHEDULE_FILTER_ACTIVE_PREFIX}:`)}
         </p>
       ) : null}
 
@@ -1131,10 +1160,10 @@ export function SchedulePanel({
           <Badge
             variant={writeModeChip.variant}
             className="app-schedule__write-mode-chip"
-            semanticLabel={`Bridge write mode: ${writeModeChip.label}`}
+            semanticLabel={`Editing: ${friendlyWriteModeChipLabel(writeModeChip.label)}`}
             title={!sandboxPilotEnabled ? SCHEDULE_WRITE_MODE_CHIP_OFFLINE : undefined}
           >
-            {writeModeChip.label}
+            {friendlyWriteModeChipLabel(writeModeChip.label)}
           </Badge>
         ) : null}
         {bridgeBaseUrl && sandboxPilotEnabled && canLoad ? (

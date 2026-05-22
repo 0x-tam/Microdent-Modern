@@ -6,14 +6,19 @@ import { ClinicEmptyState } from "./clinic-empty-state.js";
 import { ClinicLoadingSkeleton } from "./clinic-loading-skeleton.js";
 import { ClinicPage, ClinicPageHero } from "./clinic-page.js";
 import { ClinicPanel } from "./clinic-panel.js";
-import { ClinicStatCard, type ClinicStatCardTone } from "./clinic-stat-card.js";
-import { ClinicStatusGrid, type ClinicStatusRowItem, type ClinicStatusTone } from "./clinic-status-row.js";
+import {
+  friendlyBridgeStatus,
+  friendlyEditingStatus,
+  friendlyLocalCopyStatus,
+  type ClinicFriendlyTone,
+} from "./clinic-friendly-copy.js";
 import type { AppSidebarModuleId } from "./app-nav-modules.js";
 import type { SessionRecentPatient } from "./session-recent-patients.js";
 import type { BridgeHealthPhase } from "./bridge-health.js";
 import { FixtureConnectionPanel } from "./FixtureConnectionPanel.js";
 import { LegacyCatalogPanel } from "./LegacyCatalogPanel.js";
 import { isMirrorImportStale } from "./mirror-stale.js";
+import { resolveTodayClinicStatus } from "./today-clinic-status.js";
 import {
   appointmentVisitMeta,
   buildRoomLabelMap,
@@ -24,73 +29,39 @@ import {
   roomDisplayLabel,
   type RoomLabelMap,
 } from "./patient-appointments-display.js";
-import {
-  resolveBackupConfiguredStatus,
-  resolveFrontDeskOverview,
-  type SettingsStatusTone,
-} from "./settings-status.js";
 import type { ProcedureReferenceMaps } from "./procedure-reference.js";
 import { useDoctorLabels } from "./useDoctorLabels.js";
 import { useProcedureReference } from "./useProcedureReference.js";
 import {
-  CLINIC_AT_A_GLANCE_TITLE,
   CLINIC_SERVICE_CHECKING,
   CLINIC_SERVICE_CONNECT_TODAY,
   CLINIC_SERVICE_OFFLINE_TITLE,
-  FRONT_DESK_OVERVIEW_BACKUP_LABEL,
-  FRONT_DESK_OVERVIEW_BRIDGE_CHECKING,
-  FRONT_DESK_OVERVIEW_BRIDGE_CONNECTED,
-  FRONT_DESK_OVERVIEW_BRIDGE_OFFLINE,
-  FRONT_DESK_OVERVIEW_OPEN_SETTINGS,
-  FRONT_DESK_OVERVIEW_SANDBOX_PILOT_LABEL,
-  FRONT_DESK_OVERVIEW_WRITE_MODE_LABEL,
-  FRONT_DESK_OVERVIEW_WRITE_MODE_UNKNOWN,
-  SETTINGS_SANDBOX_PILOT_OFF,
-  SETTINGS_SANDBOX_PILOT_ON,
-  WRITE_MODE_CHIP_DISABLED,
-  WRITE_MODE_CHIP_DRY_RUN,
-  WRITE_MODE_CHIP_ENABLED,
-  MIRROR_ACTIVE_BANNER_LABEL,
-  MIRROR_FALLBACK_BANNER_LABEL,
-  MIRROR_STALE_BANNER_LABEL,
   READONLY_STATE_RETRY,
   SCHEDULE_LOAD_ERROR,
   TODAY_APPT_ROW_CURRENT_LABEL,
   TODAY_APPT_ROW_NEXT_LABEL,
+  TODAY_CLINIC_STATUS_TITLE,
+  TODAY_CONTINUE_EMPTY_HINT,
+  TODAY_CONTINUE_WORKING_LABEL,
   TODAY_EMPTY_DESCRIPTION,
   TODAY_EMPTY_TITLE,
+  TODAY_HERO_SUBTITLE,
   TODAY_LOADING,
-  TODAY_METRIC_NEXT_LABEL,
   TODAY_METRIC_ON_SCHEDULE,
-  TODAY_METRIC_SCHEDULE_LABEL,
   TODAY_MIRROR_STALE_ADVISORY,
   TODAY_NEXT_LOADING,
   TODAY_NEXT_NO_UPCOMING,
-  TODAY_NOW_CARD_TITLE,
-  TODAY_REMINDERS_FOOTNOTE,
   TODAY_NEXT_OFFLINE,
+  TODAY_NEXT_PANEL_TITLE,
   TODAY_OPEN_PATIENT,
   TODAY_OPEN_SCHEDULE,
   TODAY_OPEN_SETTINGS,
-  TODAY_PILOT_READINESS_HINT,
-  TODAY_PRIVACY_LEDE,
-  TODAY_QUICK_ACTIONS_LEDE,
+  TODAY_QUICK_ACTIONS_TITLE,
   TODAY_REFRESH,
-  TODAY_REOPEN_RECENT,
-  TODAY_REMINDERS_PILOT_UNAVAILABLE,
+  TODAY_SCHEDULE_PANEL_TITLE,
   TODAY_SCHEDULE_UNAVAILABLE,
   TODAY_SEARCH_PATIENT,
-  TODAY_SELECTED_PATIENT_OPEN,
-  TODAY_STATUS_MIRROR_ACTIVE,
-  TODAY_STATUS_MIRROR_FALLBACK,
-  TODAY_STATUS_MIRROR_OFFLINE,
-  TODAY_STATUS_MIRROR_STALE,
-  TODAY_STATUS_MIRROR_TITLE,
-  TODAY_STATUS_MIRROR_UNKNOWN,
-  TODAY_OPEN_PATIENT_APPOINTMENTS,
-  TODAY_SCHEDULE_READINESS_OFFLINE,
-  TODAY_SCHEDULE_READINESS_STALE,
-  TODAY_SCHEDULE_READINESS_READY,
+  TODAY_STATUS_VIEW_SETTINGS,
 } from "./read-only-ui-copy.js";
 
 function toLocalIsoDate(d: Date): string {
@@ -215,137 +186,11 @@ export type DashboardHomeProps = {
   sessionRecentPatientCount?: number;
 };
 
-type MirrorFreshness = {
-  label: string;
-  body: string;
-  tone: "neutral" | "warning" | "info";
-};
-
-function resolveMirrorFreshness(
-  bridgePhase: BridgeHealthPhase,
-  hasBaseUrl: boolean,
-  mirrorStatus: MirrorStatusResponse | null | undefined,
-): MirrorFreshness {
-  if (!hasBaseUrl || bridgePhase === "offline") {
-    return { label: "Offline", body: TODAY_STATUS_MIRROR_OFFLINE, tone: "neutral" };
-  }
-  if (bridgePhase === "checking") {
-    return { label: "Checking", body: CLINIC_SERVICE_CHECKING, tone: "neutral" };
-  }
-  if (mirrorStatus === null || mirrorStatus === undefined) {
-    return { label: "Unknown", body: TODAY_STATUS_MIRROR_UNKNOWN, tone: "neutral" };
-  }
-  if (isMirrorImportStale(mirrorStatus, Date.now())) {
-    return { label: MIRROR_STALE_BANNER_LABEL, body: TODAY_STATUS_MIRROR_STALE, tone: "warning" };
-  }
-  if (!mirrorStatus.sqliteUsable) {
-    return { label: MIRROR_FALLBACK_BANNER_LABEL, body: TODAY_STATUS_MIRROR_FALLBACK, tone: "warning" };
-  }
-  return { label: MIRROR_ACTIVE_BANNER_LABEL, body: TODAY_STATUS_MIRROR_ACTIVE, tone: "info" };
-}
-
-const TODAY_HERO_SUBTITLE = "Schedule overview, next steps, and clinic readiness.";
-
-const TODAY_APPOINTMENTS_TODAY_LABEL = "Appointments today";
-
-function mapOverviewTone(tone: SettingsStatusTone): ClinicStatusTone {
+function mapFriendlyTone(tone: ClinicFriendlyTone): string {
   if (tone === "ok") return "ok";
   if (tone === "warn") return "warn";
   if (tone === "danger") return "danger";
   return "neutral";
-}
-
-function mapMirrorFreshnessToStatTone(tone: MirrorFreshness["tone"]): ClinicStatCardTone {
-  if (tone === "warning") return "amber";
-  if (tone === "info") return "green";
-  return "neutral";
-}
-
-function mapMirrorFreshnessToGridTone(tone: MirrorFreshness["tone"]): ClinicStatusTone {
-  if (tone === "warning") return "warn";
-  if (tone === "info") return "info";
-  return "neutral";
-}
-
-function scheduleReadinessGridTone(
-  hasBase: boolean,
-  bridgePhase: BridgeHealthPhase,
-  loading: boolean,
-  error: string | null,
-  mirrorStale: boolean,
-): ClinicStatusTone {
-  if (!hasBase || bridgePhase === "offline") return "neutral";
-  if (bridgePhase === "checking" || loading) return "neutral";
-  if (error) return "warn";
-  if (mirrorStale) return "warn";
-  return "ok";
-}
-
-function scheduleReadinessStatTone(
-  hasBase: boolean,
-  bridgePhase: BridgeHealthPhase,
-  loading: boolean,
-  error: string | null,
-  mirrorStale: boolean,
-): ClinicStatCardTone {
-  const gridTone = scheduleReadinessGridTone(hasBase, bridgePhase, loading, error, mirrorStale);
-  if (gridTone === "ok") return "green";
-  if (gridTone === "warn") return "amber";
-  return "neutral";
-}
-
-function scheduleReadinessShort(
-  hasBase: boolean,
-  bridgePhase: BridgeHealthPhase,
-  loading: boolean,
-  error: string | null,
-  mirrorStale: boolean,
-): string {
-  if (!hasBase || bridgePhase === "offline") return "Offline";
-  if (bridgePhase === "checking" || loading) return "…";
-  if (error) return "Unavailable";
-  if (mirrorStale) return "Stale";
-  return "Ready";
-}
-
-function resolveWriteModeMetric(
-  writeCapability: BridgeDevStatusResponse | null,
-): { label: string; tone: ClinicStatCardTone } {
-  if (!writeCapability) {
-    return { label: FRONT_DESK_OVERVIEW_WRITE_MODE_UNKNOWN, tone: "neutral" };
-  }
-  switch (writeCapability.writeMode) {
-    case "disabled":
-      return { label: WRITE_MODE_CHIP_DISABLED, tone: "blue" };
-    case "dry-run":
-      return { label: WRITE_MODE_CHIP_DRY_RUN, tone: "amber" };
-    case "enabled":
-      return { label: WRITE_MODE_CHIP_ENABLED, tone: "amber" };
-    default:
-      return { label: FRONT_DESK_OVERVIEW_WRITE_MODE_UNKNOWN, tone: "neutral" };
-  }
-}
-
-function resolveSandboxGlance(
-  sandboxWritePilot: boolean,
-  writeCapability: BridgeDevStatusResponse | null,
-): { label: string; tone: ClinicStatusTone } {
-  if (!sandboxWritePilot) {
-    return { label: SETTINGS_SANDBOX_PILOT_OFF, tone: "neutral" };
-  }
-  if (writeCapability?.writableSandbox && writeCapability.writesPermitted) {
-    return { label: SETTINGS_SANDBOX_PILOT_ON, tone: "ok" };
-  }
-  return { label: SETTINGS_SANDBOX_PILOT_ON, tone: "warn" };
-}
-
-function selectedPatientHeadline(
-  patientId: string,
-  displayName?: string | null,
-): string {
-  const trimmed = displayName?.trim();
-  if (trimmed && trimmed.length > 0) return trimmed;
-  return `Patient ID ${patientId}`;
 }
 
 export function DashboardHome({
@@ -357,15 +202,15 @@ export function DashboardHome({
   bridgeBaseUrl,
   bridgePhase,
   fetchImpl,
-  selectedPatientId = null,
-  selectedPatientDisplayName = null,
-  selectedPatientChartNumber = null,
+  selectedPatientId: _selectedPatientId = null,
+  selectedPatientDisplayName: _selectedPatientDisplayName = null,
+  selectedPatientChartNumber: _selectedPatientChartNumber = null,
   recentPatients = [],
   onRecentPatientSelect,
   mirrorStatus = null,
   writeCapability = null,
   sandboxWritePilot = false,
-  sessionRecentPatientCount = 0,
+  sessionRecentPatientCount: _sessionRecentPatientCount = 0,
 }: DashboardHomeProps) {
   const base = bridgeBaseUrl?.trim() ?? "";
   const canLoad = Boolean(base) && bridgePhase === "connected";
@@ -381,10 +226,6 @@ export function DashboardHome({
   const [retryTick, setRetryTick] = useState(0);
   const requestSeq = useRef(0);
 
-  const mirrorFreshness = useMemo(
-    () => resolveMirrorFreshness(bridgePhase, Boolean(base), mirrorStatus),
-    [base, bridgePhase, mirrorStatus],
-  );
   const mirrorStale =
     bridgePhase === "connected" && mirrorStatus !== null && isMirrorImportStale(mirrorStatus, Date.now());
 
@@ -481,12 +322,6 @@ export function DashboardHome({
   const currentAppt = useMemo(() => findCurrentToday(sorted, now), [sorted, now]);
   const nextUpcoming = useMemo(() => findNextUpcomingToday(sorted, now), [sorted, now]);
 
-  const todayCountForOverview = useMemo((): number | null => {
-    if (!base || bridgePhase === "offline") return null;
-    if (bridgePhase === "checking" || loading || error) return null;
-    return sorted.length;
-  }, [base, bridgePhase, loading, error, sorted.length]);
-
   const statusMixLine = useMemo(() => {
     if (!base || bridgePhase === "offline") return null;
     if (bridgePhase === "checking" || loading) return null;
@@ -494,189 +329,28 @@ export function DashboardHome({
     return formatAppointmentStatusMix(sorted);
   }, [base, bridgePhase, loading, error, sorted]);
 
-  const scheduleReadinessLine = useMemo((): string => {
-    if (!base || bridgePhase === "offline") return TODAY_SCHEDULE_READINESS_OFFLINE;
-    if (bridgePhase === "checking" || loading) return CLINIC_SERVICE_CHECKING;
-    if (error) return TODAY_SCHEDULE_UNAVAILABLE;
-    if (mirrorStatus && isMirrorImportStale(mirrorStatus, Date.now())) {
-      return TODAY_SCHEDULE_READINESS_STALE;
-    }
-    return TODAY_SCHEDULE_READINESS_READY;
-  }, [base, bridgePhase, loading, error, mirrorStatus]);
-
-  const clinicOverview = useMemo(
+  const todayClinicStatus = useMemo(
     () =>
-      resolveFrontDeskOverview({
+      resolveTodayClinicStatus({
         bridgePhase,
         mirrorStatus,
         writeCapability,
-        todayAppointmentCount: todayCountForOverview,
         sandboxWritePilot,
-        sessionRecentPatientCount,
-        todayStatusMix: statusMixLine,
-        selectedPatientId,
-        selectedPatientDisplayName,
-        selectedPatientChartNumber,
       }),
-    [
-      bridgePhase,
-      mirrorStatus,
-      writeCapability,
-      todayCountForOverview,
-      sandboxWritePilot,
-      sessionRecentPatientCount,
-      statusMixLine,
-      selectedPatientId,
-      selectedPatientDisplayName,
-      selectedPatientChartNumber,
-    ],
+    [bridgePhase, mirrorStatus, writeCapability, sandboxWritePilot],
   );
 
-  const writeModeMetric = useMemo(
-    () => resolveWriteModeMetric(writeCapability),
-    [writeCapability],
-  );
+  const heroServiceChip = friendlyBridgeStatus(bridgePhase).label;
+  const heroLocalCopyChip = friendlyLocalCopyStatus(bridgePhase, mirrorStatus).label;
+  const heroEditingChip = friendlyEditingStatus(writeCapability, sandboxWritePilot).label;
 
-  const sandboxGlance = useMemo(
-    () => resolveSandboxGlance(sandboxWritePilot, writeCapability),
-    [sandboxWritePilot, writeCapability],
-  );
-
-  const scheduleMetricShort = useMemo(
-    () => scheduleReadinessShort(Boolean(base), bridgePhase, loading, error, mirrorStale),
-    [base, bridgePhase, loading, error, mirrorStale],
-  );
-
-  const scheduleMetricTone = useMemo(
-    () => scheduleReadinessStatTone(Boolean(base), bridgePhase, loading, error, mirrorStale),
-    [base, bridgePhase, loading, error, mirrorStale],
-  );
-
-  const statusGridItems = useMemo((): ClinicStatusRowItem[] => {
-    const overviewByKey = new Map(clinicOverview.map((row) => [row.key, row]));
-    const bridge = overviewByKey.get("bridge");
-    const writeRow = overviewByKey.get("write-mode");
-    const backupRow = overviewByKey.get("backup");
-    const backupFallback = resolveBackupConfiguredStatus(writeCapability);
-
-    return [
-      {
-        key: "clinic-service",
-        label: "Service",
-        value: bridge?.value ?? FRONT_DESK_OVERVIEW_BRIDGE_OFFLINE,
-        tone: mapOverviewTone(bridge?.tone ?? "neutral"),
-        ...(canLoad
-          ? {
-              actionLabel: FRONT_DESK_OVERVIEW_OPEN_SETTINGS,
-              onAction: () => onOpenModule("settings"),
-            }
-          : {}),
-      },
-      {
-        key: "mirror",
-        label: "Mirror",
-        value: mirrorFreshness.label,
-        tone: mapMirrorFreshnessToGridTone(mirrorFreshness.tone),
-      },
-      {
-        key: "schedule-readiness",
-        label: TODAY_METRIC_SCHEDULE_LABEL,
-        value: scheduleMetricShort,
-        tone: scheduleReadinessGridTone(Boolean(base), bridgePhase, loading, error, mirrorStale),
-      },
-      {
-        key: "write-mode",
-        label: FRONT_DESK_OVERVIEW_WRITE_MODE_LABEL,
-        value: writeRow?.value ?? writeModeMetric.label,
-        tone: mapOverviewTone(writeRow?.tone ?? "neutral"),
-      },
-      {
-        key: "backup",
-        label: FRONT_DESK_OVERVIEW_BACKUP_LABEL,
-        value: backupRow?.value ?? backupFallback.label,
-        tone: mapOverviewTone(backupRow?.tone ?? backupFallback.tone),
-      },
-      {
-        key: "sandbox",
-        label: FRONT_DESK_OVERVIEW_SANDBOX_PILOT_LABEL,
-        value: sandboxGlance.label,
-        tone: sandboxGlance.tone,
-      },
-    ];
-  }, [
-    base,
-    bridgePhase,
-    canLoad,
-    clinicOverview,
-    error,
-    loading,
-    mirrorFreshness.label,
-    mirrorFreshness.tone,
-    mirrorStale,
-    onOpenModule,
-    sandboxGlance.label,
-    sandboxGlance.tone,
-    scheduleMetricShort,
-    writeCapability,
-    writeModeMetric.label,
-  ]);
-
-  const appointmentsMetricValue: ReactNode = (() => {
-    if (!base || bridgePhase === "offline") return "—";
-    if (bridgePhase === "checking" || loading) return "…";
-    if (error) return "—";
-    return sorted.length;
-  })();
-
-  const appointmentsMetricHint = (() => {
-    if (!base || bridgePhase === "offline") {
-      return TODAY_NEXT_OFFLINE;
+  const scheduleSummaryLine = (() => {
+    if (!canLoad || loading || error) return null;
+    if (sorted.length === 0) return null;
+    if (statusMixLine) {
+      return `${statusMixLine} · ${TODAY_METRIC_ON_SCHEDULE}`;
     }
-    if (bridgePhase === "checking") {
-      return CLINIC_SERVICE_CHECKING;
-    }
-    if (loading) {
-      return TODAY_NEXT_LOADING;
-    }
-    if (error) {
-      return TODAY_SCHEDULE_UNAVAILABLE;
-    }
-    if (sorted.length === 0) {
-      return TODAY_EMPTY_TITLE;
-    }
-    return "On the schedule today";
-  })();
-
-  const nextMetricValue: ReactNode = (() => {
-    if (!base || bridgePhase === "offline") return "—";
-    if (bridgePhase === "checking" || loading) return "…";
-    if (error) return "—";
-    if (sorted.length === 0 || !nextUpcoming) return "—";
-    return nextUpcoming.time.trim();
-  })();
-
-  const nextMetricHint = (() => {
-    if (!base || bridgePhase === "offline") return TODAY_NEXT_OFFLINE;
-    if (bridgePhase === "checking") return CLINIC_SERVICE_CHECKING;
-    if (loading) return TODAY_NEXT_LOADING;
-    if (error) return TODAY_SCHEDULE_UNAVAILABLE;
-    if (sorted.length === 0) return TODAY_EMPTY_TITLE;
-    if (!nextUpcoming) return TODAY_NEXT_NO_UPCOMING;
-    return dashboardPatientHeadline(nextUpcoming);
-  })();
-
-  const nextMetricTone: ClinicStatCardTone = (() => {
-    if (!base || bridgePhase === "offline" || bridgePhase === "checking" || loading || error) {
-      return "neutral";
-    }
-    if (!nextUpcoming) return "neutral";
-    return "cyan";
-  })();
-
-  const heroServiceChip = (() => {
-    if (!base || bridgePhase === "offline") return FRONT_DESK_OVERVIEW_BRIDGE_OFFLINE;
-    if (bridgePhase === "checking") return FRONT_DESK_OVERVIEW_BRIDGE_CHECKING;
-    return FRONT_DESK_OVERVIEW_BRIDGE_CONNECTED;
+    return TODAY_METRIC_ON_SCHEDULE;
   })();
 
   const emptyStateActions = (
@@ -837,7 +511,6 @@ export function DashboardHome({
     }
     return (
       <div className="clinic-today-now__highlight">
-        <p className="clinic-today-now__label">Next up</p>
         <p className="clinic-today-now__time">{nextUpcoming.time.trim()}</p>
         <p
           className={
@@ -887,8 +560,8 @@ export function DashboardHome({
 
   const appointmentsHeaderActions = (
     <>
-      {canLoad && !loading && !error ? (
-        <span className="clinic-today-appt-count">{sorted.length} today</span>
+      {scheduleSummaryLine ? (
+        <span className="clinic-today-appt-count">{scheduleSummaryLine}</span>
       ) : null}
       {canLoad ? (
         <Button
@@ -915,58 +588,17 @@ export function DashboardHome({
             <p className="clinic-today-hero__date">{formatTodayLine()}</p>
             <div className="clinic-today-hero__chips">
               <span className={canLoad ? "clinic-chip clinic-chip--active" : "clinic-chip"}>{heroServiceChip}</span>
-              {mirrorStale ? (
-                <span className="clinic-chip clinic-today-hero__chip--warn">{MIRROR_STALE_BANNER_LABEL}</span>
-              ) : null}
-              {writeModeMetric.label === WRITE_MODE_CHIP_ENABLED ? (
-                <span className="clinic-chip clinic-today-hero__chip--warn">{WRITE_MODE_CHIP_ENABLED}</span>
-              ) : null}
+              <span className="clinic-chip">{heroLocalCopyChip}</span>
+              <span className="clinic-chip">{heroEditingChip}</span>
             </div>
           </>
         }
       />
 
-      <div className="clinic-stat-grid clinic-stat-grid--five" role="region" aria-label="Today command center metrics">
-        <ClinicStatCard
-          label={TODAY_APPOINTMENTS_TODAY_LABEL}
-          value={appointmentsMetricValue}
-          hint={statusMixLine ? `${statusMixLine} · ${TODAY_METRIC_ON_SCHEDULE}` : appointmentsMetricHint}
-          tone="teal"
-        />
-        <ClinicStatCard
-          label={TODAY_METRIC_NEXT_LABEL}
-          value={nextMetricValue}
-          hint={nextMetricHint}
-          tone={nextMetricTone}
-        />
-        <ClinicStatCard
-          label={TODAY_METRIC_SCHEDULE_LABEL}
-          value={scheduleMetricShort}
-          hint={scheduleReadinessLine}
-          tone={scheduleMetricTone}
-        />
-        <ClinicStatCard
-          label={TODAY_STATUS_MIRROR_TITLE}
-          value={mirrorFreshness.label}
-          hint={mirrorFreshness.body}
-          tone={mapMirrorFreshnessToStatTone(mirrorFreshness.tone)}
-        />
-        <ClinicStatCard
-          label={FRONT_DESK_OVERVIEW_WRITE_MODE_LABEL}
-          value={writeModeMetric.label}
-          hint={
-            writeCapability
-              ? undefined
-              : FRONT_DESK_OVERVIEW_WRITE_MODE_UNKNOWN
-          }
-          tone={writeModeMetric.tone}
-        />
-      </div>
-
-      <div className="clinic-command-grid">
-        <div className="clinic-command-grid__primary">
+      <div className="clinic-workspace-grid">
+        <div className="clinic-col-8 clinic-workspace-grid__stack">
           <ClinicPanel
-            title="Today&apos;s appointments"
+            title={TODAY_SCHEDULE_PANEL_TITLE}
             headerActions={appointmentsHeaderActions}
             testId="today-appointments-panel"
           >
@@ -975,64 +607,38 @@ export function DashboardHome({
                 {TODAY_MIRROR_STALE_ADVISORY}
               </p>
             ) : null}
-            <p className="clinic-today-panel-note">{TODAY_PRIVACY_LEDE}</p>
             {primaryBody}
           </ClinicPanel>
+
+          <div className="clinic-continue-strip" aria-label={TODAY_CONTINUE_WORKING_LABEL}>
+            <p className="clinic-continue-strip__label">{TODAY_CONTINUE_WORKING_LABEL}</p>
+            {recentPatients.length > 0 && onRecentPatientSelect ? (
+              <ul className="clinic-continue-strip__chips">
+                {recentPatients.slice(0, 5).map((entry) => (
+                  <li key={entry.patientId}>
+                    <button
+                      type="button"
+                      className="clinic-continue-strip__chip ui-focusable"
+                      onClick={() => onRecentPatientSelect(entry)}
+                    >
+                      {entry.displayName?.trim() || `Patient ID ${entry.patientId}`}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="clinic-today-continue-hint">{TODAY_CONTINUE_EMPTY_HINT}</p>
+            )}
+          </div>
         </div>
 
-        <aside className="clinic-command-grid__aside" aria-label="Status, next visit, and shortcuts">
-          <ClinicPanel title={TODAY_NOW_CARD_TITLE} testId="today-now-panel">
+        <aside className="clinic-col-4 clinic-workspace-grid__stack" aria-label="Next visit, shortcuts, and clinic status">
+          <ClinicPanel title={TODAY_NEXT_PANEL_TITLE} testId="today-now-panel">
             {nextCardBody}
-            {selectedPatientId ? (
-              <div className="clinic-today-selected-patient">
-                <p className="clinic-today-selected-patient__name">
-                  {selectedPatientHeadline(selectedPatientId, selectedPatientDisplayName)}
-                </p>
-                {selectedPatientChartNumber ? (
-                  <p className="clinic-today-selected-patient__chart">Chart {selectedPatientChartNumber}</p>
-                ) : (
-                  <p className="clinic-today-selected-patient__chart">Record {selectedPatientId}</p>
-                )}
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="compact"
-                  className="ui-focusable"
-                  onClick={() => onOpenModule("patients")}
-                >
-                  {TODAY_SELECTED_PATIENT_OPEN}
-                </Button>
-              </div>
-            ) : null}
           </ClinicPanel>
 
-          <ClinicPanel title={CLINIC_AT_A_GLANCE_TITLE}>
-            <ClinicStatusGrid aria-label={CLINIC_AT_A_GLANCE_TITLE} items={statusGridItems} />
-          </ClinicPanel>
-
-          <ClinicPanel title="Quick actions">
-            <p className="clinic-today-panel-note">{TODAY_QUICK_ACTIONS_LEDE}</p>
+          <ClinicPanel title={TODAY_QUICK_ACTIONS_TITLE}>
             <div className="clinic-today-quick-actions">
-              {recentPatients.length > 0 && onRecentPatientSelect ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="ui-focusable"
-                  onClick={() => onRecentPatientSelect(recentPatients[0]!)}
-                >
-                  {TODAY_REOPEN_RECENT}
-                </Button>
-              ) : null}
-              {selectedPatientId ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="ui-focusable"
-                  onClick={() => onOpenModule("patients")}
-                >
-                  {TODAY_OPEN_PATIENT_APPOINTMENTS}
-                </Button>
-              ) : null}
               <Button type="button" variant="primary" className="ui-focusable" onClick={() => onOpenModule("patients")}>
                 {TODAY_SEARCH_PATIENT}
               </Button>
@@ -1051,12 +657,26 @@ export function DashboardHome({
             </div>
           </ClinicPanel>
 
-          <ClinicPanel title="Pilot notes" className="clinic-today-panel--compact">
-            <div className="clinic-today-pilot-notes">
-              <p>{TODAY_REMINDERS_PILOT_UNAVAILABLE}</p>
-              <p>{TODAY_PILOT_READINESS_HINT}</p>
-              <p>{TODAY_REMINDERS_FOOTNOTE}</p>
-            </div>
+          <ClinicPanel title={TODAY_CLINIC_STATUS_TITLE}>
+            <ul className="clinic-status-compact" aria-label={TODAY_CLINIC_STATUS_TITLE}>
+              {todayClinicStatus.map((row) => (
+                <li key={row.key} className="clinic-status-compact__row">
+                  <span className="clinic-status-compact__label">{row.label}</span>
+                  <span className={["clinic-status-pill", `clinic-status-pill--${mapFriendlyTone(row.tone)}`].join(" ")}>
+                    {row.value}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="clinic-status-compact__footer">
+              <button
+                type="button"
+                className="clinic-status-compact__footer-link ui-focusable"
+                onClick={() => onOpenModule("settings")}
+              >
+                {TODAY_STATUS_VIEW_SETTINGS}
+              </button>
+            </p>
           </ClinicPanel>
 
           {import.meta.env.DEV ? (
