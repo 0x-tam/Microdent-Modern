@@ -1,6 +1,5 @@
-import type { ScheduleAppointmentItem, BridgeDevStatusResponse } from "@microdent/contracts";
-import { Badge, Button, Card, CardBody, CardHeader } from "@microdent/ui";
-import { ClinicEmptyState } from "./clinic-empty-state.js";
+import type { ScheduleAppointmentItem } from "@microdent/contracts";
+import { Badge, Button, Card, CardBody, CardHeader, EmptyState } from "@microdent/ui";
 import { ClinicLoadingSkeleton } from "./clinic-loading-skeleton.js";
 import {
   PATIENT_APPT_FILTER_STATUS_CODES,
@@ -9,6 +8,7 @@ import {
   patientApptStatusBadgeVariant,
   patientApptStatusLabel,
   patientApptStatusSemanticLabel,
+  findCurrentAppointmentInRange,
   type PatientApptFilterStatusCode,
   type PatientApptProviderFilterOption,
   type PatientApptTimeDirection,
@@ -93,6 +93,8 @@ function defaultRangeCountLabel(count: number): string {
   return `${count} appointments`;
 }
 
+const RANGE_PRESETS: PatientApptRangePreset[] = ["default", "past90", "upcoming90", "thisYear"];
+
 export function PatientAppointmentsTab({
   apptRange,
   rangePreset,
@@ -122,10 +124,10 @@ export function PatientAppointmentsTab({
   timePastLabel,
   timeUpcomingLabel,
   statusFilterAria,
-  allStatusesLabel,
   roomFilterAria,
-  allRoomsLabel,
   providerFilterAria,
+  allStatusesLabel,
+  allRoomsLabel,
   allProvidersLabel,
   openInScheduleLabel,
   emptyTitle,
@@ -142,6 +144,37 @@ export function PatientAppointmentsTab({
   const formatDay = formatDayHeading ?? defaultFormatApptDayHeading;
   const countLabel = rangeCountLabelFn ?? defaultRangeCountLabel;
 
+  // Identify the currently-in-progress appointment for highlighting
+  const currentApptId =
+    apptState.phase === "loaded"
+      ? findCurrentAppointmentInRange(apptState.appointments)?.id ?? null
+      : null;
+
+  // Determine which appointments are in the past for muting
+  const isPast = (appt: ScheduleAppointmentItem): boolean => {
+    if (appt.date === null) return false;
+    const today = new Date();
+    const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    if (appt.date < todayIso) return true;
+    if (appt.date === todayIso) {
+      const nowM = today.getHours() * 60 + today.getMinutes();
+      const slotMin = appt.periodMinutes ?? 30;
+      const parts = appt.time.split(":").map(Number);
+      const startM = parts[0] * 60 + (parts[1] ?? 0);
+      const endM = startM + appt.durationSlots * slotMin;
+      return nowM >= endM;
+    }
+    return false;
+  };
+
+  const presetLabel = (key: PatientApptRangePreset): string => {
+    if (key === "default") return presetDefaultLabel;
+    if (key === "past90") return "Past 90";
+    if (key === "upcoming90") return "Next 90";
+    if (key === "thisYear") return "This year";
+    return key;
+  };
+
   return (
     <section
       id="patient-panel-appointments"
@@ -149,53 +182,50 @@ export function PatientAppointmentsTab({
       aria-labelledby="patient-tab-appointments"
       className="app-patient-profile__appts"
     >
-      <p className="app-patient-profile__appts-lede">{ledeText}</p>
+      {/* Header */}
+      <header className="app-patient-profile__appts-header">
+        <h2 className="app-patient-profile__appts-title">Appointments</h2>
+        <p className="app-patient-profile__appts-subtitle" aria-live="polite">
+          {rangeHeading}
+          {apptState.phase === "loaded" ? (
+            <span className="app-patient-profile__appts-range-count">
+              {" · "}
+              {countLabel(filteredAppts.length)}
+            </span>
+          ) : null}
+        </p>
+      </header>
 
+      {/* Filter bar */}
       <div className="app-patient-profile__appts-controls">
+        {/* Date range presets — segmented row */}
         <div className="app-patient-profile__appts-presets" role="group" aria-label="Date range">
+          {RANGE_PRESETS.map((key) => (
+            <Button
+              key={key}
+              type="button"
+              size="compact"
+              variant={rangePreset === key ? "primary" : "secondary"}
+              className="ui-focusable app-patient-profile__appts-filter-chip"
+              onClick={() => onRangePresetChange(key)}
+            >
+              {presetLabel(key)}
+            </Button>
+          ))}
           <Button
             type="button"
-            variant={rangePreset === "default" ? "primary" : "secondary"}
-            className="ui-focusable"
-            onClick={() => onRangePresetChange("default")}
-          >
-            {presetDefaultLabel}
-          </Button>
-          <Button
-            type="button"
-            variant={rangePreset === "past90" ? "primary" : "secondary"}
-            className="ui-focusable"
-            onClick={() => onRangePresetChange("past90")}
-          >
-            Past 90 days
-          </Button>
-          <Button
-            type="button"
-            variant={rangePreset === "upcoming90" ? "primary" : "secondary"}
-            className="ui-focusable"
-            onClick={() => onRangePresetChange("upcoming90")}
-          >
-            Upcoming 90 days
-          </Button>
-          <Button
-            type="button"
-            variant={rangePreset === "thisYear" ? "primary" : "secondary"}
-            className="ui-focusable"
-            onClick={() => onRangePresetChange("thisYear")}
-          >
-            This year
-          </Button>
-          <Button
-            type="button"
+            size="compact"
             variant="secondary"
-            className="ui-focusable"
+            className="ui-focusable app-patient-profile__appts-filter-chip"
             onClick={onRefresh}
           >
-            Refresh
+            ↻ Refresh
           </Button>
         </div>
 
+        {/* Time / Status / Room / Provider filters */}
         <div className="app-patient-profile__appts-filters">
+          {/* Time direction */}
           <div className="app-patient-profile__appts-filter-group" role="group" aria-label="Past or upcoming">
             <Button
               type="button"
@@ -226,6 +256,7 @@ export function PatientAppointmentsTab({
             </Button>
           </div>
 
+          {/* Status pills */}
           <div
             className="app-patient-profile__appts-filter-group"
             role="group"
@@ -254,6 +285,7 @@ export function PatientAppointmentsTab({
             ))}
           </div>
 
+          {/* Room chips */}
           {apptRoomsInRange.length > 0 ? (
             <div
               className="app-patient-profile__appts-filter-group"
@@ -284,6 +316,7 @@ export function PatientAppointmentsTab({
             </div>
           ) : null}
 
+          {/* Provider chips */}
           {apptProviderOptions.length > 1 ? (
             <div
               className="app-patient-profile__appts-filter-group"
@@ -316,39 +349,32 @@ export function PatientAppointmentsTab({
         </div>
       </div>
 
-      <p className="app-patient-profile__appts-range" aria-live="polite">
-        {rangeHeading}
-        {apptState.phase === "loaded" ? (
-          <span className="app-patient-profile__appts-range-count">
-            {" · "}
-            {countLabel(filteredAppts.length)}
-          </span>
-        ) : null}
-      </p>
-
+      {/* Content states */}
       {apptState.phase === "offline" ? (
-        <ClinicEmptyState
+        <EmptyState
           variant="offline"
           className="app-patient-profile__empty"
           title={offlineTitle}
-          body={offlineBody}
+          description={offlineBody}
         />
       ) : apptState.phase === "loading" ? (
         <ClinicLoadingSkeleton lines={4} label={loadingLabel} />
       ) : apptState.phase === "error" ? (
         <AppErrorState message={apptState.message} onRetry={onRefresh} retryLabel={retryLabel} />
       ) : apptState.phase === "empty" ? (
-        <ClinicEmptyState
+        <EmptyState
+          variant="empty"
           className="app-patient-profile__empty"
           title={emptyTitle}
-          body={emptyBody}
+          description={emptyBody}
         />
       ) : apptState.phase === "loaded" ? (
         filteredAppts.length === 0 ? (
-          <ClinicEmptyState
+          <EmptyState
+            variant="empty"
             className="app-patient-profile__empty"
             title={emptyFilteredTitle}
-            body={emptyFilteredBody}
+            description={emptyFilteredBody}
           />
         ) : (
           <div className="app-patient-profile__appt-days">
@@ -357,56 +383,80 @@ export function PatientAppointmentsTab({
                 <CardHeader>
                   <p className="ui-card__title app-card-title-lg app-patient-profile__appt-day-title">
                     <time dateTime={dateIso}>{formatDay(dateIso)}</time>
+                    <span className="app-patient-profile__appt-day-count">
+                      {list.length === 1 ? " · 1 appointment" : ` · ${list.length} appointments`}
+                    </span>
                   </p>
                 </CardHeader>
                 <CardBody>
                   <ul className="app-patient-profile__appt-list" aria-label={`Appointments on ${dateIso}`}>
-                    {list.map((appt) => (
-                      <li key={appt.id} className="app-patient-profile__appt-row">
-                        <div className="app-patient-profile__appt-time">{appt.time}</div>
-                        <div className="app-patient-profile__appt-main">
-                          <div className="app-patient-profile__appt-line1">
+                    {list.map((appt) => {
+                      const isCurrent = appt.id === currentApptId;
+                      const past = isPast(appt);
+                      return (
+                        <li
+                          key={appt.id}
+                          className={[
+                            "app-patient-profile__appt-row",
+                            isCurrent && "app-patient-profile__appt-row--current",
+                            past && "app-patient-profile__appt-row--past",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
+                        >
+                          {/* Time column */}
+                          <div className="app-patient-profile__appt-time">
+                            <span className="app-patient-profile__appt-time-value">{appt.time}</span>
                             <span className="app-patient-profile__appt-duration">
                               {patientApptFormatDuration(appt)}
                             </span>
-                            <span className="app-patient-profile__appt-meta">
-                              {patientApptRowMeta(appt, doctorLabels, procedureMaps, roomMap)}
-                            </span>
                           </div>
-                          <div className="app-patient-profile__appt-badges">
-                            <Badge
-                              variant={patientApptStatusBadgeVariant(appt.status)}
-                              semanticLabel={patientApptStatusSemanticLabel(appt.status)}
-                            >
-                              {patientApptStatusLabel(appt.status)}
-                            </Badge>
-                            {appt.missed ? (
-                              <Badge variant="danger" semanticLabel="Missed appointment">
-                                Missed
-                              </Badge>
-                            ) : null}
-                            {appt.hasComment ? (
-                              <Badge variant="neutral" semanticLabel="Internal note hidden">
-                                Note hidden
-                              </Badge>
-                            ) : null}
-                          </div>
-                          {onOpenScheduleAtDate ? (
-                            <div className="app-patient-profile__appt-actions">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="compact"
-                                className="ui-focusable"
-                                onClick={() => onOpenScheduleAtDate(appt.date)}
-                              >
-                                {openInScheduleLabel}
-                              </Button>
+
+                          {/* Main content */}
+                          <div className="app-patient-profile__appt-main">
+                            <div className="app-patient-profile__appt-line1">
+                              <span className="app-patient-profile__appt-room">
+                                Room {appt.room}
+                              </span>
+                              <span className="app-patient-profile__appt-meta">
+                                {patientApptRowMeta(appt, doctorLabels, procedureMaps, roomMap)}
+                              </span>
                             </div>
-                          ) : null}
-                        </div>
-                      </li>
-                    ))}
+                            <div className="app-patient-profile__appt-badges">
+                              <Badge
+                                variant={patientApptStatusBadgeVariant(appt.status)}
+                                semanticLabel={patientApptStatusSemanticLabel(appt.status)}
+                              >
+                                {patientApptStatusLabel(appt.status)}
+                              </Badge>
+                              {appt.missed ? (
+                                <Badge variant="danger" semanticLabel="Missed appointment">
+                                  Missed
+                                </Badge>
+                              ) : null}
+                              {appt.hasComment ? (
+                                <Badge variant="neutral" semanticLabel="Internal note hidden">
+                                  Note hidden
+                                </Badge>
+                              ) : null}
+                            </div>
+                            {onOpenScheduleAtDate ? (
+                              <div className="app-patient-profile__appt-actions">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="compact"
+                                  className="ui-focusable"
+                                  onClick={() => onOpenScheduleAtDate(appt.date)}
+                                >
+                                  {openInScheduleLabel}
+                                </Button>
+                              </div>
+                            ) : null}
+                          </div>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </CardBody>
               </Card>

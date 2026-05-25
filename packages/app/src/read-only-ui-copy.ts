@@ -178,7 +178,7 @@ export const WRITE_REFRESH_NUDGE = "Refresh the profile or schedule view after a
 
 /** Single post-commit operator note (replaces separate refresh + mirror nudges). */
 export const WRITE_POST_COMMIT_COMBINED_NUDGE =
-  "Refresh the profile or schedule view to see updated data. Mirror may lag — refresh import from Settings when ready.";
+  "Refresh the profile or schedule view to see updated data. Local copy may lag — refresh import from Settings when ready.";
 
 export const WRITE_PLAN_LABEL_WORKFLOW = "Workflow";
 
@@ -585,7 +585,7 @@ export const FRONT_DESK_OVERVIEW_OPEN_SETTINGS = "Open Settings";
 
 /** One-line discoverability hint above schedule row write panels. */
 export const SCHEDULE_WRITE_DISCOVERABILITY_HINT =
-  "Expand row for sandbox write actions (pilot env required).";
+  "Expand row for write actions (pilot env required).";
 
 export const APPOINTMENT_CREATE_DOCTOR_NONE = "None (unassigned)";
 
@@ -614,42 +614,42 @@ export const MIRROR_FALLBACK_BANNER_BODY =
 export const WRITE_MODE_DISABLED_BANNER_LABEL = "Writes disabled";
 
 export const WRITE_MODE_DISABLED_BANNER_BODY =
-  "The bridge will not apply changes. Dry-run and commit routes stay blocked until an operator enables write mode on the server.";
+  "The clinic service will not apply changes. Dry-run and commit routes stay blocked until an operator enables editing on the server.";
 
-export const WRITE_MODE_DRY_RUN_BANNER_LABEL = "Write mode: dry-run";
+export const WRITE_MODE_DRY_RUN_BANNER_LABEL = "Editing: dry-run";
 
 export const WRITE_MODE_DRY_RUN_BANNER_BODY =
-  "The bridge validates write plans only. Nothing is saved until write mode is set to enabled on a disposable sandbox.";
+  "The clinic service validates write plans only. Nothing is saved until editing is set to enabled on a disposable sandbox.";
 
-export const WRITE_MODE_ENABLED_BANNER_LABEL = "Write mode: enabled";
+export const WRITE_MODE_ENABLED_BANNER_LABEL = "Editing: enabled";
 
 export const WRITE_MODE_ENABLED_BANNER_BODY =
-  "The bridge may commit changes when routes and safety gates allow. Use only on disposable test data you can restore.";
+  "The clinic service may commit changes when routes and safety gates allow. Use only on disposable test data you can restore.";
 
 export const SANDBOX_WRITE_WARNING_BANNER_LABEL = "Disposable sandbox";
 
 export const SANDBOX_WRITE_WARNING_BANNER_BODY =
   "Writable sandbox is active. Commits change disposable DATA only — never production legacy folders.";
 
-/** Schedule header when sandbox write pilots are visible (one line). */
+/** Schedule header when write pilots are visible (one line). */
 export const SANDBOX_WRITE_PILOT_BANNER =
-  "Sandbox edits use disposable test data only — never production legacy folders. Preview each row before applying.";
+  "Write edits use disposable test data only — never production legacy folders. Preview each row before applying.";
 
-/** In-panel sandbox banner (friendly, no repeated restore CLI). */
+/** In-panel write banner (friendly, no repeated restore CLI). */
 export const SANDBOX_WRITE_PILOT_PANEL_BANNER =
-  "Sandbox edits use disposable test data only. Follow Edit → Preview → Apply.";
+  "Write edits use disposable test data only. Follow Edit → Preview → Apply.";
 
 /** Short hint under the step strip inside write panels. */
 export const SANDBOX_WRITE_PANEL_HINT =
   "Preview runs a dry-run plan first. Apply stays disabled until preview succeeds. Backup, restore, and audit details are in Settings.";
 
-/** Once per schedule view when sandbox write pilots are active. */
+/** Once per schedule view when write pilots are active. */
 export const SCHEDULE_SANDBOX_WRITE_PILOT_BANNER =
   `${SANDBOX_WRITE_PILOT_BANNER} Preview each row before applying.`;
 
-export const APPOINTMENT_WRITE_ACTIONS_SUMMARY = "Sandbox write";
+export const APPOINTMENT_WRITE_ACTIONS_SUMMARY = "Write action";
 
-export const PATIENT_SANDBOX_DEMOGRAPHICS_TITLE = "Sandbox demographics (pilot)";
+export const PATIENT_SANDBOX_DEMOGRAPHICS_TITLE = "Demographics write (pilot)";
 
 export const PATIENT_DEMOGRAPHICS_DOCTOR_ID_HINT =
   "Numeric doctor id from the profile only — no names from clinic data.";
@@ -680,7 +680,7 @@ export const WRITE_BACKUP_NOT_CREATED_LINE = "No backup was recorded for this ch
 
 export const WRITE_BACKUP_SKIPPED_LINE = "Backup not applicable (dry-run or uncommitted).";
 
-export const WRITE_AUDIT_NOT_CONFIGURED = "Audit log: not configured on this bridge.";
+export const WRITE_AUDIT_NOT_CONFIGURED = "Audit log: not configured on this clinic service.";
 
 export const WRITE_AUDIT_UNAVAILABLE = "Audit log: unavailable.";
 
@@ -694,7 +694,7 @@ export const WRITE_RESTORE_SANDBOX_ONLY_NOTE =
   "Restore is for disposable Write-Sandbox DATA only — never production legacy folders.";
 
 export const WRITE_FAILED_GUIDANCE =
-  "If the commit failed: keep the operation id, check bridge status codes only, and restore from backup if DBF may have changed.";
+  "If the commit failed: keep the operation id, check clinic service status codes only, and restore from backup if clinic files may have changed.";
 
 export const WRITE_AUDIT_STATUS_UPDATE_NOTE =
   "Audit detail is fullest for status-update commits today; other workflows show operation id, backup, and restore hints.";
@@ -724,12 +724,12 @@ export const WRITE_FLOW_STEP_PREVIEW = "Preview";
 export const WRITE_FLOW_STEP_APPLY = "Apply";
 
 export const SANDBOX_WRITE_BLOCKED_WRITE_MODE =
-  "Sandbox writes are blocked — bridge write mode is off. Open Settings to review write mode and sandbox paths.";
+  "Sandbox writes are blocked — clinic service editing is off. Open Settings to review editing mode and sandbox paths.";
 
 export const SANDBOX_WRITE_BLOCKED_SANDBOX =
-  "Sandbox writes are not ready on this bridge. Open Settings to confirm write mode, sandbox path, and backup.";
+  "Sandbox writes are not ready on this clinic service. Open Settings to confirm editing mode, sandbox path, and backup.";
 
-export const APPOINTMENT_CREATE_SUMMARY = "Sandbox: new appointment";
+export const APPOINTMENT_CREATE_SUMMARY = "Write: new appointment";
 
 export const APPOINTMENT_CREATE_PATIENT_ID_HINT =
   "Enter the numeric patient record id from search or the profile header — there is no patient lookup in this pilot.";
@@ -747,7 +747,7 @@ export const PATIENT_DEMOGRAPHICS_PREVIEWING_LABEL = "Previewing…";
 export const PATIENT_DEMOGRAPHICS_APPLYING_LABEL = "Applying…";
 
 export const WRITE_POST_COMMIT_MIRROR_NUDGE =
-  "Mirror may lag; refresh import from Settings when ready.";
+  "Local copy may lag; refresh import from Settings when ready.";
 
 export const SETTINGS_PANEL_LEDE =
   "Pilot status for bridge, mirror, writes, sandbox readiness, and build id. No patient data is shown here — follow docs/PILOT-HANDOFF-PACK.md for the operator walkthrough.";
@@ -1107,7 +1107,7 @@ export const PATIENT_TIMELINE_LIMITATIONS =
 export const SCHEDULE_FILTER_ACTIVE_PREFIX = "Filters active";
 
 export const SCHEDULE_WRITE_MODE_CHIP_OFFLINE =
-  "Write pilots require sandbox pilot build and bridge write mode — see Settings.";
+  "Write pilots require pilot build and clinic service editing — see Settings.";
 
 /** Today command center (Workstream G). */
 export const TODAY_OPEN_SCHEDULE_FOR_TODAY = "Open schedule for today";
@@ -1117,7 +1117,7 @@ export const TODAY_OPEN_PATIENT_APPOINTMENTS = "Open patient appointments";
 export const TODAY_SCHEDULE_READINESS_OFFLINE = "Schedule unavailable until the clinic service connects.";
 
 export const TODAY_SCHEDULE_READINESS_STALE =
-  "Mirror may be stale — today's list might not reflect the latest import.";
+  "Local copy may be stale — today's list might not reflect the latest import.";
 
 export const TODAY_SCHEDULE_READINESS_READY = "Schedule ready from your copied data.";
 

@@ -1,5 +1,5 @@
-import { Button } from "@microdent/ui";
-import type { PatientProfileResponse } from "@microdent/contracts";
+import { Button, Card, CardBody, CardHeader } from "@microdent/ui";
+import type { PatientProfileResponse, ScheduleAppointmentItem } from "@microdent/contracts";
 import type { BridgeDevStatusResponse } from "@microdent/contracts";
 import { AppMetricTile } from "./app-metric-tile.js";
 import { ClinicPanel } from "./clinic-panel.js";
@@ -9,7 +9,21 @@ import { profileAssignedProviderLabel } from "./doctor-labels.js";
 import type { ProcedureReferenceMaps } from "./procedure-reference.js";
 import type { RoomLabelMap } from "./patient-appointments-display.js";
 import { glancePrefetchLoading, type PatientWorkspacePrefetches } from "./patient-workspace-intelligence.js";
-import { PATIENT_TAB_SUMMARY_LEDE, PATIENT_TAB_HIDDEN_FIELDS_NOTE, PATIENT_SANDBOX_DEMOGRAPHICS_TITLE, PATIENT_SUMMARY_AT_GLANCE_LEDGER, PATIENT_SUMMARY_CROSS_TAB_ARIA, patientSummaryCrossTabWithCount } from "./read-only-ui-copy.js";
+import {
+  PATIENT_TAB_SUMMARY_LEDE,
+  PATIENT_TAB_HIDDEN_FIELDS_NOTE,
+  PATIENT_SANDBOX_DEMOGRAPHICS_TITLE,
+  PATIENT_SUMMARY_AT_GLANCE_TITLE,
+  PATIENT_SUMMARY_AT_GLANCE_APPT_UPCOMING,
+  PATIENT_SUMMARY_AT_GLANCE_APPT_RECENT,
+  PATIENT_SUMMARY_AT_GLANCE_APPT_NONE,
+  PATIENT_SUMMARY_AT_GLANCE_TREATMENTS,
+  PATIENT_SUMMARY_AT_GLANCE_CHART,
+  PATIENT_SUMMARY_AT_GLANCE_LEDGER,
+  PATIENT_SUMMARY_AT_GLANCE_MEDICAL,
+  PATIENT_SUMMARY_CROSS_TAB_ARIA,
+  patientSummaryCrossTabWithCount,
+} from "./read-only-ui-copy.js";
 
 /** Cross-tab navigation targets for the summary tab. */
 const SUMMARY_CROSS_TABS: readonly { id: Exclude<ProfileTab, "summary">; label: string }[] = [
@@ -18,7 +32,7 @@ const SUMMARY_CROSS_TABS: readonly { id: Exclude<ProfileTab, "summary">; label: 
   { id: "medical", label: "Medical" },
   { id: "treatments", label: "Treatments" },
   { id: "chart", label: "Chart" },
-  { id: "ledger", label: "Ledger preview" },
+  { id: "ledger", label: "Ledger" },
 ];
 
 /** Compute a count hint for a given cross-tab from prefetches. */
@@ -133,6 +147,153 @@ function ProfileSummaryMetricGrid({
   );
 }
 
+/** Find the next upcoming appointment from a prefetch. */
+function findNextUpcoming(appointments: ScheduleAppointmentItem[]): ScheduleAppointmentItem | null {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const upcoming = appointments
+    .filter((a) => {
+      const d = new Date(a.date + "T00:00:00");
+      return d >= today;
+    })
+    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  return upcoming.length > 0 ? upcoming[0] : null;
+}
+
+/** Find the most recent past appointment. */
+function findMostRecent(appointments: ScheduleAppointmentItem[]): ScheduleAppointmentItem | null {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const past = appointments
+    .filter((a) => {
+      const d = new Date(a.date + "T00:00:00");
+      return d < today;
+    })
+    .sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
+  return past.length > 0 ? past[0] : null;
+}
+
+/** At-a-glance metric strip — compact card row across the top. */
+function SummaryAtAGlanceStrip({
+  prefetches,
+}: {
+  prefetches: PatientWorkspacePrefetches;
+}) {
+  const { appt, treatments, chart, ledger, medical } = prefetches;
+  const loading = glancePrefetchLoading(prefetches);
+
+  // Next appointment
+  let apptValue = PATIENT_SUMMARY_AT_GLANCE_APPT_NONE;
+  let apptTone: "default" | "success" | "info" = "default";
+  if (appt.phase === "loaded" && appt.appointments.length > 0) {
+    const next = findNextUpcoming(appt.appointments);
+    if (next) {
+      apptValue = `${PATIENT_SUMMARY_AT_GLANCE_APPT_UPCOMING}: ${next.date} ${next.time}`;
+      apptTone = "success";
+    } else {
+      const recent = findMostRecent(appt.appointments);
+      if (recent) {
+        apptValue = `${PATIENT_SUMMARY_AT_GLANCE_APPT_RECENT}: ${recent.date}`;
+        apptTone = "info";
+      }
+    }
+  } else if (appt.phase === "empty") {
+    apptValue = PATIENT_SUMMARY_AT_GLANCE_APPT_NONE;
+  } else if (loading) {
+    apptValue = "Loading…";
+  }
+
+  // Treatments
+  const txValue =
+    treatments.phase === "loaded"
+      ? PATIENT_SUMMARY_AT_GLANCE_TREATMENTS(treatments.count)
+      : treatments.phase === "empty"
+        ? PATIENT_SUMMARY_AT_GLANCE_TREATMENTS(0)
+        : loading
+          ? "Loading…"
+          : "—";
+
+  // Chart
+  const chartValue =
+    chart.phase === "loaded"
+      ? PATIENT_SUMMARY_AT_GLANCE_CHART(chart.count)
+      : chart.phase === "empty"
+        ? PATIENT_SUMMARY_AT_GLANCE_CHART(0)
+        : loading
+          ? "Loading…"
+          : "—";
+
+  // Ledger
+  const ledgerValue =
+    ledger.phase === "loaded"
+      ? PATIENT_SUMMARY_AT_GLANCE_LEDGER(ledger.count)
+      : ledger.phase === "empty"
+        ? PATIENT_SUMMARY_AT_GLANCE_LEDGER(0)
+        : loading
+          ? "Loading…"
+          : "—";
+
+  // Medical
+  let medicalState = "—";
+  if (medical.phase === "loaded") {
+    if (!medical.hasMedicalRecord) {
+      medicalState = "No record";
+    } else if (medical.sensitive) {
+      medicalState = "Sensitive";
+    } else {
+      medicalState = medical.flaggedConditionCount > 0 ? `${medical.flaggedConditionCount} flags` : "Clear";
+    }
+  } else if (medical.phase === "empty") {
+    medicalState = "No record";
+  } else if (loading) {
+    medicalState = "Loading…";
+  }
+  const medicalValue = PATIENT_SUMMARY_AT_GLANCE_MEDICAL(medicalState);
+
+  return (
+    <div
+      className="app-patient-profile__summary-at-a-glance clinic-profile-summary-at-a-glance"
+      role="region"
+      aria-label={PATIENT_SUMMARY_AT_GLANCE_TITLE}
+    >
+      <div className="clinic-profile-summary-glance-grid">
+        <Card variant="metric" className="app-patient-profile__summary-glance-card clinic-glance-card">
+          <CardBody className="clinic-glance-card__body">
+            <span className="clinic-glance-card__label">{PATIENT_SUMMARY_AT_GLANCE_APPT_UPCOMING}</span>
+            <span className={`clinic-glance-card__value${apptTone === "success" ? " clinic-glance-card__value--ok" : apptTone === "info" ? " clinic-glance-card__value--info" : ""}`}>
+              {apptValue}
+            </span>
+          </CardBody>
+        </Card>
+        <Card variant="metric" className="app-patient-profile__summary-glance-card clinic-glance-card">
+          <CardBody className="clinic-glance-card__body">
+            <span className="clinic-glance-card__label">Treatments</span>
+            <span className="clinic-glance-card__value">{txValue}</span>
+          </CardBody>
+        </Card>
+        <Card variant="metric" className="app-patient-profile__summary-glance-card clinic-glance-card">
+          <CardBody className="clinic-glance-card__body">
+            <span className="clinic-glance-card__label">Chart</span>
+            <span className="clinic-glance-card__value">{chartValue}</span>
+          </CardBody>
+        </Card>
+        <Card variant="metric" className="app-patient-profile__summary-glance-card clinic-glance-card">
+          <CardBody className="clinic-glance-card__body">
+            <span className="clinic-glance-card__label">Ledger</span>
+            <span className="clinic-glance-card__value">{ledgerValue}</span>
+          </CardBody>
+        </Card>
+        <Card variant="metric" className="app-patient-profile__summary-glance-card clinic-glance-card">
+          <CardBody className="clinic-glance-card__body">
+            <span className="clinic-glance-card__label">Medical</span>
+            <span className="clinic-glance-card__value">{medicalValue}</span>
+          </CardBody>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
 export type PatientSummaryTabProps = {
   /** Appointment summary prefetch data. */
   summaryAppt: SummaryApptPrefetch;
@@ -205,7 +366,12 @@ export function PatientSummaryTab({
       <p className="app-patient-profile__summary-lede">{PATIENT_TAB_SUMMARY_LEDE}</p>
       <ProfileTabHiddenNote />
 
+      {/* At-a-glance metric strip */}
+      <SummaryAtAGlanceStrip prefetches={summaryPrefetches} />
+
+      {/* Two-column main area: Activity preview + Clinical read-only panel */}
       <div className="clinic-workspace-grid clinic-profile-summary-grid">
+        {/* Left: Activity preview */}
         <ClinicPanel
           title="Activity preview"
           className="clinic-profile-summary-activity-panel"
@@ -224,15 +390,24 @@ export function PatientSummaryTab({
           />
         </ClinicPanel>
 
+        {/* Right: Clinical read-only status panel */}
         <div className="clinic-profile-summary-clinical">
-          <ClinicPanel title="Clinical summary" className="clinic-profile-summary-clinical-panel">
-            <ProfileSummaryMetricGrid profile={profile} doctorLabels={doctorLabels} />
-            <ProfileLedgerMetaLine prefetches={summaryPrefetches} />
-          </ClinicPanel>
-          <ProfileSummaryCrossTabs prefetches={summaryPrefetches} onOpenTab={onOpenTab} />
+          <Card variant="elevated" className="app-patient-profile__summary-clinical-card clinic-profile-summary-clinical-panel">
+            <CardHeader>
+              <h3 className="clinic-profile-summary-clinical-heading">Clinical status</h3>
+            </CardHeader>
+            <CardBody>
+              <ProfileSummaryMetricGrid profile={profile} doctorLabels={doctorLabels} />
+              <ProfileLedgerMetaLine prefetches={summaryPrefetches} />
+            </CardBody>
+          </Card>
         </div>
       </div>
 
+      {/* CTA row: Navigate to source tabs */}
+      <ProfileSummaryCrossTabs prefetches={summaryPrefetches} onOpenTab={onOpenTab} />
+
+      {/* Sandbox demographics panel (conditional) */}
       {bridgeBaseUrl && patientId && sandboxWritePilot ? (
         <section
           className="app-patient-profile__sandbox-demographics"

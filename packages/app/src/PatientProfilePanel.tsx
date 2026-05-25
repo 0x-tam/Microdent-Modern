@@ -16,12 +16,10 @@ import { PatientProfileTabs, PROFILE_TAB_ORDER, PROFILE_TAB_DESCRIPTIONS } from 
 import { PatientAppointmentsTab } from "./PatientAppointmentsTab.js";
 import { PatientTimelineTab } from "./PatientTimelineTab.js";
 import { PatientSummaryTab } from "./PatientSummaryTab.js";
-import {
-  PatientMedicalTab,
-  PatientTreatmentsTab,
-  PatientChartTab,
-  PatientLedgerTab,
-} from "./PatientClinicalTabs.js";
+import { PatientMedicalTab } from "./PatientMedicalTab.js";
+import { PatientTreatmentsTab } from "./PatientTreatmentsTab.js";
+import { PatientChartTab } from "./PatientChartTab.js";
+import { PatientLedgerTab } from "./PatientLedgerTab.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
 import { AppMetricTile } from "./app-metric-tile.js";
 import { ClinicPage } from "./clinic-page.js";

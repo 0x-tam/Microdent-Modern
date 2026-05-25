@@ -2116,4 +2116,560 @@
   .app-patient-profile__appts-filter-chip {
     transition: none;
   }
+
+  /* Clinical tab transitions */
+  .app-patient-profile__treatment-row,
+  .app-patient-profile__chart-row,
+  .app-patient-profile__ledger-row {
+    transition: none;
+  }
+}
+
+/* ================================================================ */
+/* Timeline Tab redesign — header, segmented kind pills, banners     */
+/* ================================================================ */
+
+/* ---- Header ---- */
+.app-timeline-header {
+  margin-bottom: var(--ui-space-3);
+}
+
+.app-timeline-header__title {
+  margin: 0 0 var(--ui-space-1);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ui-text-primary);
+}
+
+.app-timeline-header__subtitle {
+  margin: 0;
+  font-size: var(--app-text-meta);
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+}
+
+/* ---- Segmented kind filter ---- */
+.app-timeline-kind-segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  margin-bottom: var(--ui-space-3);
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--clinic-teal-600) 14%, var(--ui-border-subtle));
+  background: color-mix(in srgb, var(--clinic-bg-soft) 60%, var(--surface));
+  box-shadow: var(--shadow-soft);
+}
+
+.app-timeline-kind-pill {
+  min-height: 34px;
+  padding: var(--ui-space-1) var(--ui-space-3);
+  border: none;
+  border-radius: 999px;
+  font-size: var(--clinic-text-meta);
+  font-weight: 600;
+  color: var(--ui-text-secondary);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background-color var(--ui-duration-hover) var(--ui-ease-out),
+    color var(--ui-duration-hover) var(--ui-ease-out);
+}
+
+.app-timeline-kind-pill:hover:not(.app-timeline-kind-pill--active) {
+  background: color-mix(in srgb, var(--surface-teal) 35%, transparent);
+  color: var(--ui-text-primary);
+}
+
+.app-timeline-kind-pill--active {
+  color: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+/* Accent colours per kind */
+.app-timeline-kind-pill--active.app-timeline-kind-pill--all {
+  background: var(--clinic-teal-600);
+}
+.app-timeline-kind-pill--active.app-timeline-kind-pill--teal {
+  background: var(--clinic-teal-600);
+}
+.app-timeline-kind-pill--active.app-timeline-kind-pill--cyan {
+  background: var(--ui-info-600, #0891b2);
+}
+.app-timeline-kind-pill--active.app-timeline-kind-pill--blue {
+  background: var(--ui-primary-600, #2563eb);
+}
+.app-timeline-kind-pill--active.app-timeline-kind-pill--green {
+  background: var(--ui-success-600, #16a34a);
+}
+.app-timeline-kind-pill--active.app-timeline-kind-pill--amber {
+  background: var(--ui-warning-600, #d97706);
+}
+
+.app-timeline-kind-pill--clear {
+  color: var(--ui-text-muted);
+  font-size: var(--clinic-text-meta);
+}
+
+.app-timeline-kind-pill--clear:hover {
+  color: var(--ui-text-primary);
+  background: color-mix(in srgb, var(--ui-danger-100) 40%, transparent);
+}
+
+/* ---- Refresh button ---- */
+.app-timeline-refresh-btn {
+  font-size: var(--clinic-text-meta);
+}
+
+/* ---- Truncated banner ---- */
+.app-timeline-truncated-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-1);
+  padding: var(--ui-space-1) var(--ui-space-3);
+  margin-bottom: var(--ui-space-2);
+  border-radius: var(--ui-radius-sm);
+  border: 1px solid color-mix(in srgb, var(--ui-warning-400) 25%, var(--ui-border-subtle));
+  background: color-mix(in srgb, var(--ui-warning-50) 50%, var(--ui-bg-surface));
+  font-size: var(--clinic-text-meta);
+  color: var(--ui-text-secondary);
+}
+
+.app-timeline-truncated-banner__icon {
+  font-weight: 700;
+  color: var(--ui-warning-600);
+}
+
+/* ---- Event card accent colours (augment existing kind classes) ---- */
+.app-patient-profile__timeline-row--appointment,
+.clinic-timeline-event--appointment {
+  border-left-color: var(--clinic-teal-600) !important;
+}
+
+.app-patient-profile__timeline-row--treatment,
+.clinic-timeline-event--treatment {
+  border-left-color: var(--ui-info-600, #0891b2) !important;
+}
+
+.app-patient-profile__timeline-row--chart,
+.clinic-timeline-event--chart {
+  border-left-color: var(--ui-primary-600, #2563eb) !important;
+}
+
+.app-patient-profile__timeline-row--medical,
+.clinic-timeline-event--medical {
+  border-left-color: var(--ui-success-600, #16a34a) !important;
+}
+
+.app-patient-profile__timeline-row--ledger,
+.clinic-timeline-event--ledger {
+  border-left-color: var(--ui-warning-600, #d97706) !important;
+}
+
+/* ---- Source-tab action on event cards ---- */
+.app-patient-profile__timeline-row-action {
+  display: inline-block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ui-text-muted);
+  opacity: 0.7;
+  transition: opacity var(--ui-duration-hover) var(--ui-ease-out);
+}
+
+.clinic-timeline-event-card:hover .app-patient-profile__timeline-row-action {
+  opacity: 1;
+  color: var(--clinic-teal-600);
+}
+
+/* ---- Responsive for segmented pills ---- */
+@media (max-width: 600px) {
+  .app-timeline-kind-segmented {
+    width: 100%;
+    border-radius: var(--ui-radius-md);
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .app-timeline-kind-pill {
+    border-radius: var(--ui-radius-sm);
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-timeline-kind-pill {
+    transition: none;
+  }
+
+  .app-timeline-truncated-banner {
+    transition: none;
+  }
+}
+
+/* ================================================================ */
+/* Wave 2 J — Clinical tab polish: Medical / Treatments / Chart / Ledger */
+/* ================================================================ */
+
+/* ----- Medical tab: sectioned status cards with colored borders ----- */
+.app-clinical-tab--medical .app-clinical-group-card--medical {
+  border-top: 4px solid var(--ui-info-600, #0891b2);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--clinic-cyan-50, #e8f9fc) 50%, var(--ui-bg-surface)) 0%,
+    var(--ui-bg-surface) 100%
+  );
+}
+
+.app-clinical-tab--medical .app-clinical-section-header--medical {
+  background: color-mix(in srgb, var(--clinic-cyan-50, #e8f9fc) 60%, var(--ui-bg-surface));
+  border-bottom-color: color-mix(in srgb, var(--ui-info-600, #0891b2) 30%, var(--ui-border-subtle));
+}
+
+.app-patient-profile__medical-questionnaire {
+  display: grid;
+  gap: var(--ui-space-2);
+}
+
+.app-patient-profile__medical-questionnaire-primary {
+  padding: var(--ui-space-2) 0;
+}
+
+.app-patient-profile__medical-flags {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+  gap: var(--ui-space-1);
+  padding: 0;
+  list-style: none;
+}
+
+.app-patient-profile__medical-flags li {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-radius: var(--ui-radius-sm);
+  border: 1px solid color-mix(in srgb, var(--ui-warning-600) 18%, var(--ui-border-subtle));
+  background: color-mix(in srgb, var(--clinic-amber-50, #fff8eb) 40%, var(--ui-bg-surface));
+  font-size: var(--clinic-text-meta, 0.875rem);
+  line-height: 1.4;
+  color: var(--ui-text-primary);
+}
+
+.app-patient-profile__medical-flags li::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--ui-warning-600);
+}
+
+.app-patient-profile__medical-muted {
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-radius: var(--ui-radius-sm);
+  border-left: 3px solid var(--ui-success-600);
+  background: color-mix(in srgb, var(--clinic-green-50, #ecf8f0) 40%, var(--ui-bg-surface));
+  font-weight: 500;
+}
+
+.app-patient-profile__medical-privacy {
+  margin-top: var(--ui-space-1);
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-radius: var(--ui-radius-sm);
+  border: 1px dashed var(--ui-border-subtle);
+  background: color-mix(in srgb, var(--ui-bg-muted) 30%, transparent);
+  font-size: var(--clinic-text-meta, 0.875rem);
+  line-height: 1.4;
+}
+
+/* ----- Treatments tab: grouped cards, filter bar, hidden description badges ----- */
+.app-clinical-tab--treatments .app-clinical-group-card {
+  border-top: 4px solid var(--ui-primary-600, #2563eb);
+}
+
+.app-patient-profile__clinical-month-group .app-clinical-section-header--treatments {
+  background: color-mix(in srgb, var(--clinic-blue-50, #eef6ff) 50%, var(--ui-bg-surface));
+  border-bottom-color: color-mix(in srgb, var(--ui-primary-600, #2563eb) 30%, var(--ui-border-subtle));
+}
+
+.app-patient-profile__treatment-list {
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-3);
+}
+
+.app-patient-profile__treatment-row {
+  transition:
+    border-color var(--ui-duration-hover) var(--ui-ease-out),
+    background-color var(--ui-duration-hover) var(--ui-ease-out);
+}
+
+.app-patient-profile__treatment-row:hover {
+  background: color-mix(in srgb, var(--surface, #ffffff) 90%, transparent);
+  border-color: color-mix(in srgb, var(--ui-primary-600, #2563eb) 25%, var(--ui-border-subtle));
+}
+
+.app-patient-profile__treatment-procedure {
+  font-size: var(--clinic-text-body, 1rem);
+  letter-spacing: -0.01em;
+}
+
+.app-patient-profile__treatment-category {
+  font-size: var(--clinic-text-meta, 0.875rem);
+  font-weight: 500;
+  text-transform: capitalize;
+  color: var(--ui-text-muted);
+}
+
+.app-patient-profile__treatment-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-1) var(--ui-space-3);
+  font-size: var(--clinic-text-meta, 0.875rem);
+}
+
+.app-patient-profile__treatment-meta span {
+  padding: 1px var(--ui-space-2);
+  border-radius: var(--ui-radius-xs, 0.25rem);
+  background: color-mix(in srgb, var(--ui-bg-muted) 50%, transparent);
+}
+
+.app-clinical-badge--description-hidden {
+  font-size: var(--clinic-text-meta, 0.875rem);
+  letter-spacing: 0.02em;
+}
+
+/* ----- Chart tab: tooth-grouped cards, filter bar, limitation copy ----- */
+.app-clinical-tab--chart .app-clinical-group-card {
+  border-top: 4px solid var(--ui-success-600, #16a34a);
+}
+
+.app-patient-profile__clinical-tooth-group .app-clinical-section-header--chart {
+  background: color-mix(in srgb, var(--clinic-green-50, #ecf8f0) 50%, var(--ui-bg-surface));
+  border-bottom-color: color-mix(in srgb, var(--ui-success-600, #16a34a) 30%, var(--ui-border-subtle));
+}
+
+.app-patient-profile__chart-list {
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-3);
+}
+
+.app-patient-profile__chart-row {
+  transition:
+    border-color var(--ui-duration-hover) var(--ui-ease-out),
+    background-color var(--ui-duration-hover) var(--ui-ease-out);
+}
+
+.app-patient-profile__chart-row:hover {
+  background: color-mix(in srgb, var(--surface, #ffffff) 90%, transparent);
+  border-color: color-mix(in srgb, var(--ui-success-600, #16a34a) 25%, var(--ui-border-subtle));
+}
+
+.app-patient-profile__chart-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-1) var(--ui-space-3);
+  font-size: var(--clinic-text-meta, 0.875rem);
+}
+
+.app-patient-profile__chart-meta span {
+  padding: 1px var(--ui-space-2);
+  border-radius: var(--ui-radius-xs, 0.25rem);
+  background: color-mix(in srgb, var(--ui-bg-muted) 50%, transparent);
+}
+
+.app-patient-profile__chart-limitation {
+  border-left: 4px solid var(--ui-success-600, #16a34a);
+  background: color-mix(in srgb, var(--clinic-green-50, #ecf8f0) 45%, var(--ui-bg-surface));
+}
+
+.app-patient-profile__chart-limitation-note {
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-radius: var(--ui-radius-sm);
+  border: 1px solid color-mix(in srgb, var(--ui-success-600, #16a34a) 15%, var(--ui-border-subtle));
+  background: color-mix(in srgb, var(--clinic-green-50, #ecf8f0) 30%, var(--ui-bg-surface));
+  font-weight: 500;
+}
+
+.app-patient-profile__chart-explainer {
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-radius: var(--ui-radius-md);
+  border-left: 3px solid var(--ui-info-600, #0891b2);
+  background: color-mix(in srgb, var(--clinic-blue-50, #eef6ff) 30%, var(--ui-bg-surface));
+}
+
+.app-patient-profile__chart-privacy {
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-radius: var(--ui-radius-sm);
+  border: 1px dashed var(--ui-border-subtle);
+  background: color-mix(in srgb, var(--ui-bg-muted) 30%, transparent);
+  font-size: var(--clinic-text-meta, 0.875rem);
+  line-height: 1.4;
+}
+
+/* ----- Ledger tab: metadata cards, amounts-hidden badge, type grouping ----- */
+.app-clinical-tab--ledger .app-clinical-group-card {
+  border-top: 4px solid var(--ui-warning-600, #d97706);
+}
+
+.app-patient-profile__clinical-month-group .app-clinical-section-header--ledger {
+  background: color-mix(in srgb, var(--clinic-amber-50, #fff8eb) 40%, var(--ui-bg-surface));
+  border-bottom-color: color-mix(in srgb, var(--ui-warning-600, #d97706) 25%, var(--ui-border-subtle));
+}
+
+.app-patient-profile__ledger-list {
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-3);
+}
+
+.app-patient-profile__ledger-row {
+  transition:
+    border-color var(--ui-duration-hover) var(--ui-ease-out),
+    background-color var(--ui-duration-hover) var(--ui-ease-out);
+}
+
+.app-patient-profile__ledger-row:hover {
+  background: color-mix(in srgb, var(--surface, #ffffff) 90%, transparent);
+  border-color: color-mix(in srgb, var(--ui-warning-600, #d97706) 25%, var(--ui-border-subtle));
+}
+
+.app-patient-profile__ledger-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-1) var(--ui-space-3);
+  font-size: var(--clinic-text-meta, 0.875rem);
+}
+
+.app-patient-profile__ledger-meta span {
+  padding: 1px var(--ui-space-2);
+  border-radius: var(--ui-radius-xs, 0.25rem);
+  background: color-mix(in srgb, var(--ui-bg-muted) 50%, transparent);
+}
+
+.app-clinical-badge--amount-hidden {
+  font-size: var(--clinic-text-meta, 0.875rem);
+  letter-spacing: 0.03em;
+}
+
+.app-patient-profile__ledger-amounts-callout {
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-radius: var(--ui-radius-sm);
+  border-left: 3px solid var(--ui-warning-600, #d97706);
+  background: color-mix(in srgb, var(--clinic-amber-50, #fff8eb) 35%, var(--ui-bg-surface));
+  font-weight: 500;
+}
+
+.app-patient-profile__ledger-privacy {
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-radius: var(--ui-radius-sm);
+  border: 1px dashed var(--ui-border-subtle);
+  background: color-mix(in srgb, var(--ui-bg-muted) 30%, transparent);
+  font-size: var(--clinic-text-meta, 0.875rem);
+  line-height: 1.4;
+}
+
+/* ----- Responsive: 1200px — Two-column layouts, compressed filter bars ----- */
+@media (max-width: 1200px) {
+  .app-patient-profile__medical-flags {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+  }
+
+  .app-patient-profile__clinical-filters {
+    gap: var(--ui-space-1);
+  }
+
+  .app-patient-profile__clinical-filter-row {
+    gap: var(--ui-space-1);
+  }
+
+  .app-patient-profile__clinical-toolbar {
+    padding: var(--ui-space-2);
+  }
+
+  .app-clinical-group-card {
+    border-top-width: 3px;
+  }
+}
+
+/* ----- Responsive: 900px — Stack grids, tab list scrolls horizontally ----- */
+@media (max-width: 900px) {
+  .app-patient-profile__medical-flags {
+    grid-template-columns: 1fr;
+  }
+
+  .app-patient-profile__treatment-list,
+  .app-patient-profile__chart-list,
+  .app-patient-profile__ledger-list {
+    padding: var(--ui-space-2);
+  }
+
+  .app-patient-profile__clinical-toolbar {
+    padding: var(--ui-space-2);
+  }
+
+  .app-patient-profile__clinical-filter-row .ui-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-width: 0;
+  }
+
+  .app-clinical-group-card {
+    border-top-width: 3px;
+  }
+
+  .app-patient-profile__treatment-meta,
+  .app-patient-profile__chart-meta,
+  .app-patient-profile__ledger-meta {
+    flex-direction: column;
+    gap: var(--ui-space-1);
+  }
+}
+
+/* ----- Responsive: 600px — Single column, all filters full-width ----- */
+@media (max-width: 600px) {
+  .app-patient-profile__medical-flags {
+    grid-template-columns: 1fr;
+  }
+
+  .app-patient-profile__clinical-filters {
+    width: 100%;
+  }
+
+  .app-patient-profile__clinical-filter-row {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .app-patient-profile__clinical-filter-row .ui-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .app-clinical-group-card {
+    border-top-width: 3px;
+  }
+
+  .app-clinical-section-header {
+    padding: var(--ui-space-3);
+  }
+
+  .app-patient-profile__treatment-list,
+  .app-patient-profile__chart-list,
+  .app-patient-profile__ledger-list {
+    padding: var(--ui-space-2);
+  }
+
+  .app-patient-profile__treatment-procedure {
+    font-size: var(--clinic-text-meta, 0.875rem);
+  }
+
+  .app-clinical-badge--description-hidden,
+  .app-clinical-badge--amount-hidden {
+    font-size: 0.75rem;
+  }
 }
