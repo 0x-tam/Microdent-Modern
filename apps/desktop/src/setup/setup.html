@@ -40,53 +40,89 @@
         border-radius: var(--radius);
         box-shadow: var(--shadow);
         width: 100%;
-        max-width: 580px;
+        max-width: 540px;
         overflow: hidden;
       }
+      /* ── Header ── */
       .wizard-header {
         background: linear-gradient(135deg, var(--primary), #7c3aed);
         color: #fff;
-        padding: 28px 28px 24px;
+        padding: 24px 28px 20px;
       }
       .wizard-header h1 {
-        margin: 0 0 6px;
-        font-size: 1.5rem;
+        margin: 0 0 4px;
+        font-size: 1.35rem;
         font-weight: 700;
       }
       .wizard-header p {
         margin: 0;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         opacity: 0.9;
         line-height: 1.5;
       }
-      .wizard-body {
-        padding: 24px 28px;
-      }
-      .field-group {
-        margin-bottom: 20px;
-      }
-      .field-label {
+
+      /* ── Step indicator ── */
+      .steps {
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: center;
+        padding: 16px 28px 0;
+        gap: 0;
+      }
+      .step-dot {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.78rem;
+        font-weight: 700;
+        border: 2px solid var(--border);
+        color: var(--text-muted);
+        background: var(--bg);
+        transition: all 0.25s;
+      }
+      .step-dot.active {
+        border-color: var(--primary);
+        background: var(--primary);
+        color: #fff;
+      }
+      .step-dot.done {
+        border-color: var(--success);
+        background: var(--success);
+        color: #fff;
+      }
+      .step-line {
+        flex: 0 0 48px;
+        height: 2px;
+        background: var(--border);
+        transition: background 0.25s;
+      }
+      .step-line.done { background: var(--success); }
+
+      /* ── Body ── */
+      .wizard-body { padding: 20px 28px; }
+
+      /* Step panels — only the active one is visible */
+      .step-panel { display: none; }
+      .step-panel.active { display: block; }
+
+      /* ── Form fields ── */
+      .field-group { margin-bottom: 16px; }
+      .field-label {
         font-weight: 600;
-        font-size: 0.875rem;
+        font-size: 0.85rem;
         margin-bottom: 6px;
       }
-      .field-label .required {
-        color: var(--error);
-        font-weight: 700;
-      }
-      .input-row {
-        display: flex;
-        gap: 8px;
-      }
+      .field-label .required { color: var(--error); font-weight: 700; }
+      .input-row { display: flex; gap: 8px; }
       .input-row input {
         flex: 1;
         padding: 9px 12px;
         border: 1.5px solid var(--border);
         border-radius: 7px;
-        font-size: 0.875rem;
+        font-size: 0.85rem;
         font-family: ui-monospace, "SF Mono", monospace;
         transition: border-color 0.15s;
         outline: none;
@@ -109,35 +145,29 @@
         color: var(--text-muted);
         cursor: pointer;
         white-space: nowrap;
-        transition: background 0.15s, border-color 0.15s;
+        transition: background 0.15s;
       }
-      .btn-browse:hover {
-        background: var(--border);
-        border-color: var(--border);
-      }
+      .btn-browse:hover { background: var(--border); }
       .field-error {
         color: var(--error);
-        font-size: 0.8rem;
+        font-size: 0.78rem;
         margin-top: 4px;
         min-height: 1.1em;
       }
       .field-hint {
         color: var(--text-muted);
-        font-size: 0.78rem;
-        margin-top: 3px;
+        font-size: 0.75rem;
+        margin-top: 2px;
         line-height: 1.4;
       }
-      .divider {
-        border: none;
-        border-top: 1px solid var(--border);
-        margin: 20px 0;
-      }
+
+      /* ── Info boxes ── */
       .info-box {
-        padding: 12px 14px;
+        padding: 10px 12px;
         border-radius: 7px;
-        font-size: 0.82rem;
+        font-size: 0.8rem;
         line-height: 1.5;
-        margin-bottom: 16px;
+        margin-bottom: 14px;
       }
       .info-box.tip {
         background: #eff6ff;
@@ -149,88 +179,55 @@
         border: 1px solid var(--warning-border);
         color: #92400e;
       }
-      .write-mode-badge {
-        display: inline-block;
-        padding: 3px 10px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        background: var(--error-bg);
-        color: var(--error);
-      }
+
+      /* ── Footer ── */
       .wizard-footer {
-        padding: 16px 28px 24px;
+        padding: 14px 28px 20px;
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 12px;
       }
-      .checklist {
-        font-size: 0.8rem;
+      .btn-back {
+        padding: 9px 18px;
+        border: 1.5px solid var(--border);
+        border-radius: 7px;
+        background: transparent;
+        font-size: 0.85rem;
+        font-weight: 600;
         color: var(--text-muted);
+        cursor: pointer;
+        transition: background 0.15s;
       }
-      .checklist span { margin-right: 8px; }
-      .checklist .ok { color: var(--success); }
-      .checklist .pending { color: #94a3b8; }
+      .btn-back:hover { background: var(--bg); }
+      .btn-back:disabled { opacity: 0.3; cursor: not-allowed; }
       .btn-primary {
-        padding: 11px 28px;
+        padding: 10px 24px;
         border: none;
         border-radius: 7px;
         background: var(--primary);
         color: #fff;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         font-weight: 600;
         cursor: pointer;
         transition: background 0.15s, opacity 0.15s;
       }
-      .btn-primary:hover:not(:disabled) {
-        background: var(--primary-hover);
+      .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+      .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+      .btn-primary.open {
+        background: var(--success);
       }
-      .btn-primary:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
+      .btn-primary.open:hover { background: #15803d; }
+
+      /* ── Progress (Step 2) ── */
+      .progress-container { text-align: center; padding: 10px 0 4px; }
+      .progress-container h2 {
+        margin: 0 0 6px;
+        font-size: 1.1rem;
       }
-      #error {
-        color: var(--error);
+      .progress-container p {
+        margin: 0 0 18px;
         font-size: 0.82rem;
-        min-height: 1.2em;
-        margin-top: 8px;
-      }
-      #success {
-        color: var(--success);
-        font-size: 0.82rem;
-        min-height: 1.2em;
-        margin-top: 8px;
-      }
-      .import-overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(15, 23, 42, 0.6);
-        backdrop-filter: blur(4px);
-        align-items: center;
-        justify-content: center;
-        z-index: 100;
-      }
-      .import-overlay.active {
-        display: flex;
-      }
-      .import-card {
-        background: var(--card);
-        border-radius: var(--radius);
-        box-shadow: 0 8px 30px rgba(0,0,0,0.15);
-        padding: 32px;
-        text-align: center;
-        max-width: 380px;
-        width: 90%;
-      }
-      .import-card h2 {
-        margin: 0 0 8px;
-        font-size: 1.15rem;
-      }
-      .import-card p {
-        margin: 0 0 20px;
-        font-size: 0.85rem;
         color: var(--text-muted);
       }
       .progress-bar {
@@ -242,20 +239,63 @@
       }
       .progress-bar-fill {
         height: 100%;
-        background: var(--primary);
+        background: linear-gradient(90deg, var(--primary), #7c3aed);
         border-radius: 3px;
         width: 0%;
-        animation: progress-pulse 2s ease-in-out infinite;
+        transition: width 0.4s ease;
       }
-      @keyframes progress-pulse {
-        0% { width: 0%; }
-        50% { width: 70%; }
-        100% { width: 100%; }
+      #importStatus {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        min-height: 1.2em;
       }
+
+      /* ── Success (Step 3) ── */
+      .success-container { text-align: center; padding: 10px 0 4px; }
+      .success-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: var(--success-bg);
+        border: 2px solid var(--success);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+        margin-bottom: 12px;
+      }
+      .success-container h2 {
+        margin: 0 0 6px;
+        font-size: 1.15rem;
+        color: var(--text);
+      }
+      .success-container p {
+        margin: 0 0 16px;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+        line-height: 1.5;
+      }
+      .success-detail {
+        text-align: left;
+        background: var(--bg);
+        border-radius: 7px;
+        padding: 10px 14px;
+        margin-bottom: 16px;
+        font-size: 0.78rem;
+        font-family: ui-monospace, "SF Mono", monospace;
+        color: var(--text-muted);
+        line-height: 1.6;
+      }
+      .success-detail strong {
+        color: var(--text);
+        font-family: inherit;
+      }
+
+      /* ── Spinner ── */
       .spinner {
         display: inline-block;
-        width: 16px;
-        height: 16px;
+        width: 14px;
+        height: 14px;
         border: 2px solid var(--border);
         border-top-color: var(--primary);
         border-radius: 50%;
@@ -263,296 +303,434 @@
         margin-right: 6px;
         vertical-align: middle;
       }
-      @keyframes spin {
-        to { transform: rotate(360deg); }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* ── Messages ── */
+      #step1Error {
+        color: var(--error);
+        font-size: 0.8rem;
+        min-height: 1.2em;
       }
+
+      /* ── Legacy warning ── */
+      #legacyWarn { display: none; }
     </style>
   </head>
   <body>
     <div class="wizard">
+      <!-- Header -->
       <div class="wizard-header">
-        <h1>🦷 Welcome to Microdent</h1>
-        <p>Let's get your clinic data connected. This only takes a minute — everything stays local.</p>
+        <h1 id="wizardTitle">🦷 Welcome to Microdent</h1>
+        <p id="wizardSubtitle">Let's get your clinic data connected. Everything stays local on this computer.</p>
+      </div>
+
+      <!-- Step dots -->
+      <div class="steps">
+        <div class="step-dot active" id="dot1">1</div>
+        <div class="step-line" id="line1"></div>
+        <div class="step-dot" id="dot2">2</div>
+        <div class="step-line" id="line2"></div>
+        <div class="step-dot" id="dot3">3</div>
       </div>
 
       <div class="wizard-body">
-        <div class="info-box tip">
-          <strong>Local-first:</strong> Your data never leaves this computer. Point us at your
-          Write-Sandbox copy (never the live production DATA tree).
+
+        <!-- ═══ Step 1: Choose clinic data folder ═══ -->
+        <div class="step-panel active" id="step1">
+          <div class="info-box tip">
+            <strong>Local-first:</strong> Your data never leaves this computer. Point us at a
+            disposable Write-Sandbox copy of your clinic data (never the live production folder).
+          </div>
+
+          <div class="field-group">
+            <div class="field-label">
+              Clinic data folder <span class="required">*</span>
+            </div>
+            <div class="input-row">
+              <input
+                id="dataRoot"
+                type="text"
+                autocomplete="off"
+                placeholder="Select or type path…"
+                aria-describedby="dataRootError dataRootHint"
+              />
+              <button type="button" class="btn-browse" id="pickDataRoot">Browse</button>
+            </div>
+            <div id="dataRootError" class="field-error" role="alert"></div>
+            <div id="dataRootHint" class="field-hint">Folder containing your clinic DBF files.</div>
+          </div>
+
+          <div class="field-group">
+            <div class="field-label">Mirror database file <span class="required">*</span></div>
+            <div class="input-row">
+              <input
+                id="sqlitePath"
+                type="text"
+                autocomplete="off"
+                placeholder="Auto-filled from data folder…"
+                aria-describedby="sqlitePathError sqlitePathHint"
+              />
+              <button type="button" class="btn-browse" id="pickSqlite">Browse</button>
+            </div>
+            <div id="sqlitePathError" class="field-error" role="alert"></div>
+            <div id="sqlitePathHint" class="field-hint">SQLite mirror for fast search and scheduling.</div>
+          </div>
+
+          <div class="field-group">
+            <div class="field-label">Backup folder <span style="color:var(--text-muted);font-weight:400;">(optional)</span></div>
+            <div class="input-row">
+              <input
+                id="backupDir"
+                type="text"
+                autocomplete="off"
+                placeholder="Auto-filled from data folder…"
+                aria-describedby="backupDirError backupDirHint"
+              />
+              <button type="button" class="btn-browse" id="pickBackup">Browse</button>
+            </div>
+            <div id="backupDirError" class="field-error" role="alert"></div>
+            <div id="backupDirHint" class="field-hint">Safe spot for clinic data backups.</div>
+          </div>
+
+          <div id="legacyWarn" class="info-box warn" role="status" aria-live="polite">
+            <strong>⚠ Check path:</strong> A folder name looks like a production legacy copy. Use a disposable Write-Sandbox copy only.
+          </div>
         </div>
 
-        <div class="field-group">
-          <div class="field-label">
-            Clinic data folder <span class="required">*</span>
+        <!-- ═══ Step 2: Building local copy ═══ -->
+        <div class="step-panel" id="step2">
+          <div class="progress-container">
+            <h2>Setting up your clinic</h2>
+            <p>Creating a fast local copy of your clinic data…</p>
+            <div class="progress-bar">
+              <div class="progress-bar-fill" id="progressFill"></div>
+            </div>
+            <div id="importStatus">
+              <span class="spinner"></span> Validating your data folder…
+            </div>
           </div>
-          <div class="input-row">
-            <input
-              id="dataRoot"
-              type="text"
-              autocomplete="off"
-              placeholder="Select or type path…"
-              aria-describedby="dataRootError dataRootHint"
-            />
-            <button type="button" class="btn-browse" id="pickDataRoot">Browse</button>
-          </div>
-          <div id="dataRootError" class="field-error" role="alert"></div>
-          <div id="dataRootHint" class="field-hint">Folder containing DBF files and the Write-Sandbox marker dotfile.</div>
         </div>
 
-        <div class="field-group">
-          <div class="field-label">
-            Mirror database file <span class="required">*</span>
+        <!-- ═══ Step 3: Ready ═══ -->
+        <div class="step-panel" id="step3">
+          <div class="success-container">
+            <div class="success-icon">✓</div>
+            <h2>Your local copy is ready</h2>
+            <p>Microdent Modern has everything it needs to work with your clinic data.</p>
+            <div class="success-detail" id="successDetail"></div>
           </div>
-          <div class="input-row">
-            <input
-              id="sqlitePath"
-              type="text"
-              autocomplete="off"
-              placeholder="Select or type path…"
-              aria-describedby="sqlitePathError sqlitePathHint"
-            />
-            <button type="button" class="btn-browse" id="pickSqlite">Browse</button>
-          </div>
-          <div id="sqlitePathError" class="field-error" role="alert"></div>
-          <div id="sqlitePathHint" class="field-hint">SQLite mirror file for search and schedule.</div>
-        </div>
-
-        <div class="field-group">
-          <div class="field-label">
-            Backup folder <span style="color: var(--text-muted); font-weight: 400;">(optional)</span>
-          </div>
-          <div class="input-row">
-            <input
-              id="backupDir"
-              type="text"
-              autocomplete="off"
-              placeholder="Select or type path…"
-              aria-describedby="backupDirError backupDirHint"
-            />
-            <button type="button" class="btn-browse" id="pickBackup">Browse</button>
-          </div>
-          <div id="backupDirError" class="field-error" role="alert"></div>
-          <div id="backupDirHint" class="field-hint">Required before enabling sandbox writes.</div>
-        </div>
-
-        <hr class="divider" />
-
-        <div class="field-group" style="display:flex; align-items:center; justify-content:space-between;">
-          <span style="font-size:0.875rem; font-weight:600;">Write mode</span>
-          <span class="write-mode-badge">disabled</span>
-        </div>
-
-        <div id="legacyWarn" class="info-box warn" style="display:none;" role="status" aria-live="polite">
-          <strong>⚠ Check path:</strong> a folder name looks like production legacy. Use a disposable Write-Sandbox copy only.
         </div>
       </div>
 
+      <!-- Footer -->
       <div class="wizard-footer">
-        <div class="checklist" id="checklist"></div>
-        <button type="button" class="btn-primary" id="submit">Get Started</button>
-      </div>
-      <div style="padding: 0 28px 20px;">
-        <div id="success" role="status"></div>
-        <div id="error" role="alert"></div>
-      </div>
-    </div>
-
-    <!-- Mirror import progress overlay -->
-    <div class="import-overlay" id="importOverlay">
-      <div class="import-card">
-        <h2>Setting up your clinic</h2>
-        <p>Starting the clinic service and preparing your data…</p>
-        <div class="progress-bar"><div class="progress-bar-fill"></div></div>
-        <div id="importStatus" style="font-size:0.82rem; color:var(--text-muted);">
-          <span class="spinner"></span> Connecting to clinic service…
+        <div id="step1Error" role="alert"></div>
+        <div style="display:flex;gap:8px;margin-left:auto;">
+          <button type="button" class="btn-back" id="btnBack" style="display:none;" disabled>Back</button>
+          <button type="button" class="btn-primary" id="btnNext">Continue</button>
         </div>
       </div>
     </div>
 
     <script>
-      const WINDOWS_DRIVE = /^[A-Za-z]:[/\\]/;
-      const UNC_PATH = /^[/\\]{2}[^/\\]+[/\\]/;
-      const PROD_LEGACY_SEG = ["microdent", "legacy"].join("-");
-      const LEGACY_SEGMENT = new RegExp("^" + PROD_LEGACY_SEG + "$|^legacy-copy$", "i");
+      // ── Constants ──
+      const WINDOWS_DRIVE = /^[A-Za-z]:[/\\\\]/;
+      const UNC_PATH = /^[/\\\\]{2}[^/\\\\]+[/\\\\]/;
+      const LEGACY_SEGMENT = /^(microdent-legacy|legacy-copy)$/i;
 
-      // Platform-aware default suggestions
+      // ── Defaults from Electron ──
       const SUGGESTIONS = window.__setupDefaults || {
         dataRoot: "",
         sqlitePath: "",
         backupDir: "",
       };
 
-      // Pre-fill placeholders with suggested paths
-      document.getElementById("dataRoot").placeholder = "e.g. " + (SUGGESTIONS.dataRoot || "C:\\Microdent\\DATA");
-      document.getElementById("sqlitePath").placeholder = "e.g. " + (SUGGESTIONS.sqlitePath || "C:\\Microdent\\mirror\\clinic.sqlite");
-      document.getElementById("backupDir").placeholder = "e.g. " + (SUGGESTIONS.backupDir || "C:\\Microdent\\backups");
+      // ── State ──
+      let currentStep = 1;
 
-      function legacySegmentInPath(value) {
-        const segments = value.trim().split(/[/\\]/).filter(Boolean);
-        return segments.some((seg) => LEGACY_SEGMENT.test(seg));
+      // ── DOM refs ──
+      const dataRootInput = document.getElementById("dataRoot");
+      const sqlitePathInput = document.getElementById("sqlitePath");
+      const backupDirInput = document.getElementById("backupDir");
+      const btnNext = document.getElementById("btnNext");
+      const btnBack = document.getElementById("btnBack");
+      const step1Error = document.getElementById("step1Error");
+
+      // ── Step 1: set placeholder hints ──
+      if (SUGGESTIONS.dataRoot) {
+        dataRootInput.placeholder = "e.g. " + SUGGESTIONS.dataRoot;
+      }
+      if (SUGGESTIONS.sqlitePath) {
+        sqlitePathInput.placeholder = "e.g. " + SUGGESTIONS.sqlitePath;
+      }
+      if (SUGGESTIONS.backupDir) {
+        backupDirInput.placeholder = "e.g. " + SUGGESTIONS.backupDir;
       }
 
-      function isOperatorAbsolutePath(value) {
-        const trimmed = value.trim();
-        if (trimmed.length === 0) return false;
-        if (trimmed.startsWith("/")) return true;
-        if (WINDOWS_DRIVE.test(trimmed)) return true;
-        if (UNC_PATH.test(trimmed)) return true;
+      // ── Pre-fill existing values ──
+      if (window.__initialConfig) {
+        if (window.__initialConfig.dataRoot) dataRootInput.value = window.__initialConfig.dataRoot;
+        if (window.__initialConfig.sqlitePath) sqlitePathInput.value = window.__initialConfig.sqlitePath;
+        if (window.__initialConfig.backupDir) backupDirInput.value = window.__initialConfig.backupDir;
+      }
+
+      // ── Auto-derive sqlite & backup from dataRoot ──
+      function autoDerivePaths(dataRoot) {
+        const trimmed = dataRoot.trim();
+        if (!trimmed) return;
+        // Derive: mirror folder as sibling of data folder, backup as sibling too
+        const parts = trimmed.split(/[/\\]/).filter(Boolean);
+        if (parts.length < 2) return;
+        const parent = parts.slice(0, -1).join("/");
+        const dataFolderName = parts[parts.length - 1];
+        // Suggest mirror file next to data folder
+        const isWin = WINDOWS_DRIVE.test(trimmed) || trimmed.startsWith("\\\\");
+        const sep = isWin ? "\\" : "/";
+        const drive = isWin && WINDOWS_DRIVE.test(trimmed) ? trimmed.match(/^[A-Za-z]:/)?.[0] || "" : "";
+        const normalizedParent = drive + parent.replace(/\//g, sep);
+        sqlitePathInput.value = normalizedParent + sep + "mirror" + sep + "clinic.sqlite";
+        backupDirInput.value = normalizedParent + sep + "backups";
+        updateSubmitState();
+      }
+
+      dataRootInput.addEventListener("change", () => {
+        autoDerivePaths(dataRootInput.value);
+      });
+
+      // ── Validation helpers ──
+      function isAbsolute(value) {
+        const t = value.trim();
+        if (!t) return false;
+        if (t.startsWith("/")) return true;
+        if (WINDOWS_DRIVE.test(t)) return true;
+        if (UNC_PATH.test(t)) return true;
         return false;
       }
 
-      const FIELD_RULES = {
-        dataRoot: { required: true, label: "DATA_ROOT" },
-        sqlitePath: { required: true, label: "SQLITE_PATH" },
-        backupDir: { required: false, label: "BACKUP_DIR" },
-      };
-
-      function defaultHint(id) {
-        if (id === "dataRoot") return "Sandbox DATA folder with DBF files and write-sandbox marker.";
-        if (id === "sqlitePath") return "SQLite mirror file for search and schedule.";
-        if (id === "backupDir") return "Optional. Required before enabling sandbox writes.";
-        return "";
-      }
-
-      function spaceHint(value) {
-        return value.trim().includes(" ")
-          ? "This path contains spaces — quote it in PowerShell/CMD when running bridge CLIs manually."
-          : "";
+      function legacySegmentInPath(value) {
+        return value
+          .trim()
+          .split(/[/\\]/)
+          .filter(Boolean)
+          .some((seg) => LEGACY_SEGMENT.test(seg));
       }
 
       function validateField(id) {
         const input = document.getElementById(id);
-        const errorEl = document.getElementById(`${id}Error`);
-        const hintEl = document.getElementById(`${id}Hint`);
-        const rule = FIELD_RULES[id];
-        const value = input.value;
-
+        const errorEl = document.getElementById(id + "Error");
+        const value = input.value.trim();
         errorEl.textContent = "";
-        hintEl.textContent = spaceHint(value) || defaultHint(id);
         input.classList.remove("invalid");
 
-        if (!rule.required && value.trim().length === 0) return true;
-        if (value.trim().length === 0) {
-          errorEl.textContent = `${rule.label}: Path is required.`;
+        if (!value) {
+          if (id === "dataRoot" || id === "sqlitePath") {
+            errorEl.textContent = "This path is required.";
+            input.classList.add("invalid");
+            return false;
+          }
+          return true; // backupDir is optional
+        }
+        if (!isAbsolute(value)) {
+          errorEl.textContent = "Please use a full absolute path.";
           input.classList.add("invalid");
           return false;
         }
-        if (!isOperatorAbsolutePath(value)) {
-          errorEl.textContent = `${rule.label}: Use a full absolute path.`;
-          input.classList.add("invalid");
-          return false;
-        }
-        if (UNC_PATH.test(value.trim())) {
-          hintEl.textContent = "UNC network path — can be slow; prefer a local drive letter when possible.";
-        }
-
-        // Update legacy warning
-        const showLegacy =
-          legacySegmentInPath(document.getElementById("dataRoot").value) ||
-          legacySegmentInPath(document.getElementById("sqlitePath").value) ||
-          legacySegmentInPath(document.getElementById("backupDir").value);
-        document.getElementById("legacyWarn").style.display = showLegacy ? "block" : "none";
-
         return true;
       }
 
-      function updateChecklist() {
-        const dataOk = document.getElementById("dataRoot").value.trim().length > 0;
-        const sqliteOk = document.getElementById("sqlitePath").value.trim().length > 0;
-        const cls = (ok) => ok ? "ok" : "pending";
-        const sym = (ok) => ok ? "✓" : "○";
-        document.getElementById("checklist").innerHTML =
-          `<span class="${cls(dataOk)}">${sym(dataOk)} Data</span>` +
-          `<span class="${cls(sqliteOk)}">${sym(sqliteOk)} Mirror</span>`;
+      function updateLegacyWarning() {
+        const show =
+          legacySegmentInPath(dataRootInput.value) ||
+          legacySegmentInPath(sqlitePathInput.value) ||
+          legacySegmentInPath(backupDirInput.value);
+        document.getElementById("legacyWarn").style.display = show ? "block" : "none";
       }
 
       function updateSubmitState() {
         const dataOk = validateField("dataRoot");
         const sqliteOk = validateField("sqlitePath");
-        const backupOk = validateField("backupDir");
-        document.getElementById("submit").disabled = !(dataOk && sqliteOk);
-        updateChecklist();
+        validateField("backupDir");
+        updateLegacyWarning();
+        if (currentStep === 1) {
+          btnNext.disabled = !(dataOk && sqliteOk);
+        }
       }
 
-      // Browse buttons
+      // ── Browse buttons ──
       document.getElementById("pickDataRoot").addEventListener("click", async () => {
-        const path = await window.setupApi.pickFolder("Select clinic data folder");
-        if (path) { document.getElementById("dataRoot").value = path; updateSubmitState(); }
+        const path = await window.setupApi.pickFolder("Select your clinic data folder");
+        if (path) {
+          dataRootInput.value = path;
+          autoDerivePaths(path);
+          updateSubmitState();
+        }
       });
       document.getElementById("pickSqlite").addEventListener("click", async () => {
-        const path = await window.setupApi.pickFolder("Select mirror database folder");
-        if (path) { document.getElementById("sqlitePath").value = path; updateSubmitState(); }
+        const path = await window.setupApi.pickFile("Select mirror database file", "SQLite Files", ["db", "sqlite"]);
+        if (path) {
+          sqlitePathInput.value = path;
+          updateSubmitState();
+        }
       });
       document.getElementById("pickBackup").addEventListener("click", async () => {
         const path = await window.setupApi.pickFolder("Select backup folder");
-        if (path) { document.getElementById("backupDir").value = path; updateSubmitState(); }
+        if (path) {
+          backupDirInput.value = path;
+          updateSubmitState();
+        }
       });
 
-      // Input listeners
-      for (const id of Object.keys(FIELD_RULES)) {
+      // ── Input listeners ──
+      for (const id of ["dataRoot", "sqlitePath", "backupDir"]) {
         const input = document.getElementById(id);
-        input.addEventListener("blur", () => { validateField(id); updateSubmitState(); });
+        input.addEventListener("blur", updateSubmitState);
         input.addEventListener("input", () => {
-          if (document.getElementById(`${id}Error`).textContent) validateField(id);
-          updateSubmitState();
+          const errEl = document.getElementById(id + "Error");
+          if (errEl.textContent) validateField(id);
+          updateLegacyWarning();
         });
       }
 
-      updateSubmitState();
+      // ── Wizard navigation ──
+      function showStep(n) {
+        currentStep = n;
+        // Panels
+        for (let i = 1; i <= 3; i++) {
+          document.getElementById("step" + i).classList.toggle("active", i === n);
+        }
+        // Dots
+        for (let i = 1; i <= 3; i++) {
+          const dot = document.getElementById("dot" + i);
+          dot.classList.remove("active", "done");
+          dot.textContent = i === 3 ? "✓" : i;
+          if (i < n) dot.classList.add("done");
+          else if (i === n) dot.classList.add("active");
+        }
+        // Lines
+        document.getElementById("line1").classList.toggle("done", n > 1);
+        document.getElementById("line2").classList.toggle("done", n > 2);
 
-      // Form submission
-      document.getElementById("submit").addEventListener("click", async () => {
-        const errorEl = document.getElementById("error");
-        const successEl = document.getElementById("success");
-        errorEl.textContent = "";
-        successEl.textContent = "";
+        // Buttons
+        btnBack.style.display = n > 1 && n < 3 ? "" : "none";
+        btnBack.disabled = n <= 1;
 
-        const dataOk = validateField("dataRoot");
-        const sqliteOk = validateField("sqlitePath");
-        const backupOk = validateField("backupDir");
-        if (!(dataOk && sqliteOk)) {
-          errorEl.textContent = "Please fill in the required paths.";
+        // Update title/subtitle
+        const title = document.getElementById("wizardTitle");
+        const sub = document.getElementById("wizardSubtitle");
+        if (n === 1) {
+          title.textContent = "🦷 Welcome to Microdent";
+          sub.textContent = "Let's get your clinic data connected. Everything stays local on this computer.";
+          btnNext.textContent = "Continue";
+          btnNext.className = "btn-primary";
+          btnNext.style.display = "";
+        } else if (n === 2) {
+          title.textContent = "🦷 Setting up";
+          sub.textContent = "Please wait while we prepare your local clinic data.";
+          btnNext.style.display = "none";
+          btnBack.style.display = "none";
+        } else {
+          title.textContent = "🦷 All set!";
+          sub.textContent = "Your local copy is ready to use.";
+          btnNext.textContent = "Open Microdent Modern";
+          btnNext.className = "btn-primary open";
+          btnNext.style.display = "";
+        }
+      }
+
+      // ── Back button ──
+      btnBack.addEventListener("click", () => {
+        if (currentStep > 1) showStep(currentStep - 1);
+      });
+
+      // ── Next / Continue button ──
+      btnNext.addEventListener("click", async () => {
+        if (currentStep === 3) {
+          // "Open Microdent Modern" — close setup, main window opens
+          window.setupApi.complete();
           return;
         }
 
-        const btn = document.getElementById("submit");
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner"></span> Saving…';
+        if (currentStep === 1) {
+          step1Error.textContent = "";
 
-        try {
-          const result = await window.setupApi.saveConfig({
-            dataRoot: document.getElementById("dataRoot").value,
-            sqlitePath: document.getElementById("sqlitePath").value,
-            backupDir: document.getElementById("backupDir").value,
-          });
-          if (!result.ok) {
-            errorEl.textContent = result.message;
-            btn.disabled = false;
-            btn.textContent = "Get Started";
-            updateSubmitState();
-          } else {
-            if (result.summary) successEl.textContent = result.summary;
-            // Show mirror-import progress overlay briefly
-            const overlay = document.getElementById("importOverlay");
-            overlay.classList.add("active");
-            const statusEl = document.getElementById("importStatus");
-            // Sequence of status messages
-            await new Promise(r => setTimeout(r, 800));
-            statusEl.innerHTML = '<span class="spinner"></span> Starting clinic service…';
-            await new Promise(r => setTimeout(r, 1500));
-            statusEl.innerHTML = '<span class="spinner"></span> Preparing mirror data…';
-            await new Promise(r => setTimeout(r, 1000));
-            statusEl.innerHTML = '<span class="spinner"></span> Almost ready…';
-            await new Promise(r => setTimeout(r, 800));
-            overlay.classList.remove("active");
+          const dataOk = validateField("dataRoot");
+          const sqliteOk = validateField("sqlitePath");
+          validateField("backupDir");
+
+          if (!(dataOk && sqliteOk)) {
+            step1Error.textContent = "Please fill in the required paths above.";
+            return;
           }
-        } catch {
-          errorEl.textContent = "Could not save configuration. Please try again.";
-          btn.disabled = false;
-          btn.textContent = "Get Started";
-          updateSubmitState();
+
+          // Move to step 2
+          showStep(2);
+          const statusEl = document.getElementById("importStatus");
+          const fillEl = document.getElementById("progressFill");
+
+          try {
+            // Phase 1: validate
+            statusEl.innerHTML = '<span class="spinner"></span> Checking your data folder…';
+            fillEl.style.width = "15%";
+            await new Promise((r) => setTimeout(r, 600));
+
+            // Phase 2: validate paths server-side and save config
+            statusEl.innerHTML = '<span class="spinner"></span> Saving your settings…';
+            fillEl.style.width = "35%";
+            await new Promise((r) => setTimeout(r, 400));
+
+            const result = await window.setupApi.saveConfig({
+              dataRoot: dataRootInput.value,
+              sqlitePath: sqlitePathInput.value,
+              backupDir: backupDirInput.value,
+            });
+
+            fillEl.style.width = "60%";
+
+            if (!result.ok) {
+              // Validation error — go back to step 1
+              showStep(1);
+              step1Error.textContent = result.message;
+              updateSubmitState();
+              return;
+            }
+
+            // Phase 3: clinic service starting
+            statusEl.innerHTML = '<span class="spinner"></span> Starting clinic service…';
+            fillEl.style.width = "80%";
+            await new Promise((r) => setTimeout(r, 1200));
+
+            // Phase 4: mirror building
+            statusEl.innerHTML = '<span class="spinner"></span> Building local copy…';
+            fillEl.style.width = "95%";
+            await new Promise((r) => setTimeout(r, 800));
+
+            // Done
+            fillEl.style.width = "100%";
+            statusEl.innerHTML = "✓ Local copy is ready!";
+            await new Promise((r) => setTimeout(r, 600));
+
+            // Move to step 3
+            showStep(3);
+
+            // Populate success detail
+            const detail = document.getElementById("successDetail");
+            const maskedData = result.dataRootMasked || "(set)";
+            const maskedSqlite = result.sqlitePathMasked || "(set)";
+            detail.innerHTML =
+              "<strong>Data folder:</strong> " + maskedData + "<br>" +
+              "<strong>Mirror file:</strong> " + maskedSqlite +
+              (result.backupDirMasked ? "<br><strong>Backup folder:</strong> " + result.backupDirMasked : "");
+
+          } catch {
+            showStep(1);
+            step1Error.textContent = "Could not save your settings. Please try again.";
+            updateSubmitState();
+          }
         }
       });
+
+      // Initial state
+      updateSubmitState();
     </script>
   </body>
 </html>

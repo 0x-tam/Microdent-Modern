@@ -1,6 +1,7 @@
 import { BrowserWindow, ipcMain, dialog } from "electron";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { mkdirSync } from "node:fs";
 import {
   defaultDesktopConfig,
   suggestedDataRoot,
@@ -25,7 +26,13 @@ type SetupSavePayload = {
 };
 
 type SetupSaveResult =
-  | { ok: true; summary?: string }
+  | {
+      ok: true;
+      summary?: string;
+      dataRootMasked?: string;
+      sqlitePathMasked?: string;
+      backupDirMasked?: string;
+    }
   | { ok: false; message: string };
 
 export type ValidateSetupOutcome =
@@ -102,6 +109,12 @@ export function formatSetupSaveSummary(warnings: string[]): string {
   return lines.join(" ");
 }
 
+/** Derive a default backup folder next to the data root folder. */
+function deriveBackupDir(dataRoot: string): string {
+  const parent = dirname(dataRoot);
+  return join(parent, "microdent-backups");
+}
+
 export function validateSetupPayload(payload: SetupSavePayload): ValidateSetupOutcome {
   const dataRoot = validateDataRootDir(payload.dataRoot);
   if (!dataRoot.ok) {
@@ -116,6 +129,7 @@ export function validateSetupPayload(payload: SetupSavePayload): ValidateSetupOu
   let backupDir: string | undefined;
   const backupRaw = payload.backupDir?.trim() ?? "";
   let backupResult: { ok: true; warnings?: string[] } | undefined;
+
   if (backupRaw.length > 0) {
     const backup = validateBackupDir(backupRaw, { createIfMissing: true });
     if (!backup.ok) {
@@ -123,6 +137,16 @@ export function validateSetupPayload(payload: SetupSavePayload): ValidateSetupOu
     }
     backupDir = backup.normalizedPath;
     backupResult = backup;
+  } else {
+    // Auto-create a default backup folder next to the data folder
+    const autoBackup = deriveBackupDir(dataRoot.normalizedPath);
+    try {
+      mkdirSync(autoBackup, { recursive: true });
+      backupDir = autoBackup;
+    } catch {
+      // Non-fatal: continue without backup dir
+      console.warn(`Could not create default backup folder at ${autoBackup}`);
+    }
   }
 
   const warnings = [
@@ -151,30 +175,35 @@ export function validateSetupPayload(payload: SetupSavePayload): ValidateSetupOu
 
 /**
  * Modal setup window with modern first-run wizard UX.
- * Supports folder pickers via IPC, suggested defaults, and mirror-import progress.
+ *
+ * Step 1: Choose your clinic data folder (folder picker + auto-derived paths)
+ * Step 2: Building local copy (progress overlay shown by renderer)
+ * Step 3: Local copy is ready (open button closes window and resolves promise)
+ *
  * Resolves with saved config or rejects when closed without save.
  */
 export function showSetupWindow(initial: DesktopConfig): Promise<DesktopConfig> {
   return new Promise((resolve, reject) => {
     let settled = false;
-    const finish = (config: DesktopConfig) => {
+    let savedConfig: DesktopConfig | null = null;
+
+    const finish = () => {
       if (settled) return;
       settled = true;
       ipcMain.removeHandler("setup:save");
       ipcMain.removeHandler("setup:pick-folder");
-      resolve(config);
-    };
-    const fail = (err: Error) => {
-      if (settled) return;
-      settled = true;
-      ipcMain.removeHandler("setup:save");
-      ipcMain.removeHandler("setup:pick-folder");
-      reject(err);
+      ipcMain.removeHandler("setup:pick-file");
+      ipcMain.removeHandler("setup:complete");
+      if (savedConfig) {
+        resolve(savedConfig);
+      } else {
+        reject(new Error("Setup window closed without saving configuration"));
+      }
     };
 
     const win = new BrowserWindow({
-      width: 680,
-      height: 620,
+      width: 600,
+      height: 560,
       resizable: false,
       frame: true,
       webPreferences: {
@@ -184,7 +213,7 @@ export function showSetupWindow(initial: DesktopConfig): Promise<DesktopConfig> 
       },
     });
 
-    // Folder picker IPC
+    // ── Folder picker IPC ──
     ipcMain.handle("setup:pick-folder", async (_event, title: string) => {
       const result = await dialog.showOpenDialog(win, {
         title,
@@ -195,21 +224,43 @@ export function showSetupWindow(initial: DesktopConfig): Promise<DesktopConfig> 
       return result.filePaths[0];
     });
 
-    // Save config IPC
+    // ── File picker IPC (for sqlite file) ──
+    ipcMain.handle(
+      "setup:pick-file",
+      async (_event, title: string, label: string, extensions: string[]) => {
+        const result = await dialog.showOpenDialog(win, {
+          title,
+          properties: ["openFile", "createDirectory"],
+          buttonLabel: "Select File",
+          filters: [{ name: label, extensions }],
+        });
+        if (result.canceled || result.filePaths.length === 0) return null;
+        return result.filePaths[0];
+      },
+    );
+
+    // ── Save config IPC (validates + stores, does NOT close window) ──
     ipcMain.handle("setup:save", (_event, payload: SetupSavePayload) => {
       const outcome = validateSetupPayload(payload);
       if (!outcome.ok) {
         return { ok: false as const, message: outcome.message };
       }
-      finish(outcome.config);
-      win.close();
-      console.log(
-        `Microdent setup: saved data=${maskOperatorPath(outcome.config.dataRoot ?? "")} sqlite=${maskOperatorPath(outcome.config.sqlitePath ?? "")}`,
-      );
+      // Store config for later resolution but don't close yet — step 3 still needs to show
+      savedConfig = outcome.config;
       return {
         ok: true as const,
         summary: formatSetupSaveSummary(outcome.warnings),
-      };
+        dataRootMasked: maskOperatorPath(outcome.config.dataRoot ?? ""),
+        sqlitePathMasked: maskOperatorPath(outcome.config.sqlitePath ?? ""),
+        backupDirMasked: outcome.config.backupDir
+          ? maskOperatorPath(outcome.config.backupDir)
+          : undefined,
+      } as SetupSaveResult;
+    });
+
+    // ── Complete IPC (step 3 "Open Microdent Modern") ──
+    ipcMain.handle("setup:complete", () => {
+      win.close(); // triggers "closed" event → finish()
     });
 
     win.setMenuBarVisibility(false);
@@ -225,24 +276,18 @@ export function showSetupWindow(initial: DesktopConfig): Promise<DesktopConfig> 
     );
 
     // Pre-fill any existing config values
-    if (initial.dataRoot) {
+    if (initial.dataRoot || initial.sqlitePath || initial.backupDir) {
       void win.webContents.executeJavaScript(
-        `document.getElementById('dataRoot').value = ${JSON.stringify(initial.dataRoot)}`,
-      );
-    }
-    if (initial.sqlitePath) {
-      void win.webContents.executeJavaScript(
-        `document.getElementById('sqlitePath').value = ${JSON.stringify(initial.sqlitePath)}`,
-      );
-    }
-    if (initial.backupDir) {
-      void win.webContents.executeJavaScript(
-        `document.getElementById('backupDir').value = ${JSON.stringify(initial.backupDir)}`,
+        `window.__initialConfig = ${JSON.stringify({
+          dataRoot: initial.dataRoot ?? "",
+          sqlitePath: initial.sqlitePath ?? "",
+          backupDir: initial.backupDir ?? "",
+        })}`,
       );
     }
 
     win.on("closed", () => {
-      fail(new Error("Setup window closed before saving configuration"));
+      finish();
     });
   });
 }

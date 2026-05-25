@@ -4,9 +4,11 @@ import { join } from "node:path";
 
 export type DesktopConfig = {
   version: 1;
+  /** Root folder containing clinic DBF files (Write-Sandbox copy). */
   dataRoot?: string;
+  /** Path to the SQLite mirror file for fast search and scheduling. */
   sqlitePath?: string;
-  /** Optional legacy backup folder passed to bridge as `BACKUP_DIR`. */
+  /** Backup folder for clinic data snapshots. */
   backupDir?: string;
   bridgePort?: number;
   /** Packaged default: writes disabled until operator enables sandbox pilot. */

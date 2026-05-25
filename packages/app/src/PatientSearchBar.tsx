@@ -121,7 +121,7 @@ function formatHitPageMeta(hit: PatientSearchHit): string | null {
 export function safePatientSearchError(e: unknown): string {
   if (e instanceof BridgeClientError) {
     if (e.kind === "network") {
-      return "Could not reach the clinic service. Check that the bridge is running.";
+      return "Could not reach the clinic service. Check that the clinic service is running.";
     }
     if (e.kind === "invalid_argument") {
       return "Enter at least 2 characters to search.";
@@ -129,7 +129,7 @@ export function safePatientSearchError(e: unknown): string {
     if (e.kind === "http") {
       const code = e.apiCode ?? "";
       if (code === "DATA_ROOT_NOT_CONFIGURED" || code === "PATIENT_DBF_NOT_FOUND") {
-        return "Patient list is not available on this bridge yet. Ask your administrator to check the data folder.";
+        return "Patient list is not available yet. Ask your administrator to check the data folder.";
       }
       return "Search could not be completed. Try again in a moment.";
     }

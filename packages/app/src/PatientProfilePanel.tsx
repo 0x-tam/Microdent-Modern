@@ -603,7 +603,7 @@ function ProfileSummaryCrossTabs({
 export function safePatientProfileError(e: unknown): string {
   if (e instanceof BridgeClientError) {
     if (e.kind === "network") {
-      return "Could not reach the clinic service. Check that the bridge is running.";
+      return "Could not reach the clinic service. Check that the clinic service is running.";
     }
     if (e.kind === "http") {
       const code = e.apiCode ?? "";
@@ -611,7 +611,7 @@ export function safePatientProfileError(e: unknown): string {
         return "That patient record was not found. Try searching again.";
       }
       if (code === "DATA_ROOT_NOT_CONFIGURED" || code === "PATIENT_DBF_NOT_FOUND") {
-        return "Patient profiles are not available on this bridge yet. Ask your administrator to check the data folder.";
+        return "Patient profiles are not available yet. Ask your administrator to check the data folder.";
       }
       if (code === "INVALID_PATIENT_ID") {
         return "This patient id is not valid for a profile request.";
@@ -631,7 +631,7 @@ export function safePatientProfileError(e: unknown): string {
 export function safePatientAppointmentsError(e: unknown): string {
   if (e instanceof BridgeClientError) {
     if (e.kind === "network") {
-      return "Could not reach the clinic service. Check that the bridge is running.";
+      return "Could not reach the clinic service. Check that the clinic service is running.";
     }
     if (e.kind === "http") {
       const code = e.apiCode ?? "";
@@ -642,7 +642,7 @@ export function safePatientAppointmentsError(e: unknown): string {
         return "The date range is not valid. Try a shorter range.";
       }
       if (code === "DATA_ROOT_NOT_CONFIGURED" || code === "SCHEDULE_DBF_NOT_FOUND") {
-        return "Appointment history is not available on this bridge yet. Ask your administrator to check the data folder.";
+        return "Appointment history is not available yet. Ask your administrator to check the data folder.";
       }
       return "Appointment history could not be loaded. Try again in a moment.";
     }
@@ -662,15 +662,15 @@ export function safePatientAppointmentsError(e: unknown): string {
 export function safePatientMedicalSummaryError(e: unknown): string {
   if (e instanceof BridgeClientError) {
     if (e.kind === "network") {
-      return "Could not reach the clinic service. Check that the bridge is running.";
+      return "Could not reach the clinic service. Check that the clinic service is running.";
     }
     if (e.kind === "http") {
       const code = e.apiCode ?? "";
       if (code === "MEDICAL_DBF_NOT_FOUND") {
-        return "Medical questionnaires are not available on this bridge yet. Ask your administrator to check the data folder.";
+        return "Medical questionnaires are not available yet. Ask your administrator to check the data folder.";
       }
       if (code === "DATA_ROOT_NOT_CONFIGURED") {
-        return "Medical summary is not available on this bridge yet. Ask your administrator to check the data folder.";
+        return "Medical summary is not available yet. Ask your administrator to check the data folder.";
       }
       if (code === "INVALID_PATIENT_ID") {
         return "This patient id is not valid for a medical summary request.";
@@ -696,15 +696,15 @@ export function safePatientMedicalSummaryError(e: unknown): string {
 export function safePatientTreatmentsError(e: unknown): string {
   if (e instanceof BridgeClientError) {
     if (e.kind === "network") {
-      return "Could not reach the clinic service. Check that the bridge is running.";
+      return "Could not reach the clinic service. Check that the clinic service is running.";
     }
     if (e.kind === "http") {
       const code = e.apiCode ?? "";
       if (code === "OPERTBL_DBF_NOT_FOUND") {
-        return "Treatment history is not available on this bridge yet. Ask your administrator to check the data folder.";
+        return "Treatment history is not available yet. Ask your administrator to check the data folder.";
       }
       if (code === "DATA_ROOT_NOT_CONFIGURED") {
-        return "Treatment history is not available on this bridge yet. Ask your administrator to check the data folder.";
+        return "Treatment history is not available yet. Ask your administrator to check the data folder.";
       }
       if (code === "INVALID_PATIENT_ID") {
         return "This patient id is not valid for a treatment history request.";
@@ -730,15 +730,15 @@ export function safePatientTreatmentsError(e: unknown): string {
 export function safePatientChartError(e: unknown): string {
   if (e instanceof BridgeClientError) {
     if (e.kind === "network") {
-      return "Could not reach the clinic service. Check that the bridge is running.";
+      return "Could not reach the clinic service. Check that the clinic service is running.";
     }
     if (e.kind === "http") {
       const code = e.apiCode ?? "";
       if (code === "CHARTDBF_NOT_FOUND") {
-        return "Dental chart data is not available on this bridge yet. Ask your administrator to check the data folder.";
+        return "Dental chart data is not available yet. Ask your administrator to check the data folder.";
       }
       if (code === "DATA_ROOT_NOT_CONFIGURED") {
-        return "Dental chart data is not available on this bridge yet. Ask your administrator to check the data folder.";
+        return "Dental chart data is not available yet. Ask your administrator to check the data folder.";
       }
       if (code === "INVALID_PATIENT_ID") {
         return "This patient id is not valid for a chart request.";
@@ -764,15 +764,15 @@ export function safePatientChartError(e: unknown): string {
 export function safePatientLedgerError(e: unknown): string {
   if (e instanceof BridgeClientError) {
     if (e.kind === "network") {
-      return "Could not reach the clinic service. Check that the bridge is running.";
+      return "Could not reach the clinic service. Check that the clinic service is running.";
     }
     if (e.kind === "http") {
       const code = e.apiCode ?? "";
       if (code === "TRANS_DBF_NOT_FOUND") {
-        return "Ledger history is not available on this bridge yet. Ask your administrator to check the data folder.";
+        return "Ledger history is not available yet. Ask your administrator to check the data folder.";
       }
       if (code === "DATA_ROOT_NOT_CONFIGURED") {
-        return "Ledger history is not available on this bridge yet. Ask your administrator to check the data folder.";
+        return "Ledger history is not available yet. Ask your administrator to check the data folder.";
       }
       if (code === "INVALID_PATIENT_ID") {
         return "This patient id is not valid for a ledger request.";
@@ -798,7 +798,7 @@ export function safePatientLedgerError(e: unknown): string {
 export function safePatientTimelineError(e: unknown): string {
   if (e instanceof BridgeClientError) {
     if (e.kind === "network") {
-      return "Could not reach the clinic service. Check that the bridge is running.";
+      return "Could not reach the clinic service. Check that the clinic service is running.";
     }
     if (e.kind === "http") {
       return "The patient timeline could not be loaded. Try again in a moment.";

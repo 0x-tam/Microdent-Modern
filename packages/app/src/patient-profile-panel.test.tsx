@@ -318,7 +318,7 @@ describe("safePatientLedgerError", () => {
       status: 404,
       apiCode: "TRANS_DBF_NOT_FOUND",
     });
-    expect(safePatientLedgerError(err)).toMatch(/not available on this bridge/i);
+    expect(safePatientLedgerError(err)).toMatch(/not available yet/i);
   });
 
   it("maps unknown errors to a generic message", () => {
@@ -333,7 +333,7 @@ describe("safePatientTreatmentsError", () => {
       status: 404,
       apiCode: "OPERTBL_DBF_NOT_FOUND",
     });
-    expect(safePatientTreatmentsError(err)).toMatch(/not available on this bridge/i);
+    expect(safePatientTreatmentsError(err)).toMatch(/not available yet/i);
   });
 
   it("maps unknown errors to a generic message", () => {
@@ -348,7 +348,7 @@ describe("safePatientMedicalSummaryError", () => {
       status: 404,
       apiCode: "MEDICAL_DBF_NOT_FOUND",
     });
-    expect(safePatientMedicalSummaryError(err)).toMatch(/not available on this bridge/i);
+    expect(safePatientMedicalSummaryError(err)).toMatch(/not available yet/i);
   });
 
   it("maps unknown errors to a generic message", () => {
