@@ -3,268 +3,393 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Microdent setup</title>
+    <title>Microdent — Welcome</title>
     <style>
       :root {
-        font-family: system-ui, sans-serif;
-        color: #1a1a1a;
-        background: #f4f6f8;
+        --primary: #2563eb;
+        --primary-hover: #1d4ed8;
+        --bg: #f8fafc;
+        --card: #ffffff;
+        --text: #0f172a;
+        --text-muted: #475569;
+        --border: #e2e8f0;
+        --border-focus: #93c5fd;
+        --error: #dc2626;
+        --error-bg: #fef2f2;
+        --success: #16a34a;
+        --success-bg: #f0fdf4;
+        --warning-bg: #fffbeb;
+        --warning-border: #f59e0b;
+        --radius: 10px;
+        --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
       }
+      * { box-sizing: border-box; }
       body {
         margin: 0;
-        padding: 24px;
-        max-width: 560px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        color: var(--text);
+        background: var(--bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 20px;
       }
-      h1 {
-        font-size: 1.25rem;
-        margin: 0 0 8px;
-      }
-      p {
-        margin: 0 0 16px;
-        line-height: 1.45;
-        color: #444;
-      }
-      label {
-        display: block;
-        font-weight: 600;
-        margin: 12px 0 4px;
-      }
-      input {
+      .wizard {
+        background: var(--card);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
         width: 100%;
-        box-sizing: border-box;
-        padding: 8px 10px;
-        border: 1px solid #bbb;
-        border-radius: 6px;
-        font-size: 14px;
+        max-width: 580px;
+        overflow: hidden;
       }
-      input.invalid {
-        border-color: #b00020;
-      }
-      .readonly {
-        padding: 8px 10px;
-        background: #e8eaed;
-        border-radius: 6px;
-        font-family: ui-monospace, monospace;
-      }
-      button {
-        margin-top: 20px;
-        padding: 10px 16px;
-        font-size: 14px;
-        font-weight: 600;
-        border: none;
-        border-radius: 6px;
-        background: #1a5fb4;
+      .wizard-header {
+        background: linear-gradient(135deg, var(--primary), #7c3aed);
         color: #fff;
-        cursor: pointer;
+        padding: 28px 28px 24px;
       }
-      button:disabled {
-        opacity: 0.6;
-        cursor: default;
+      .wizard-header h1 {
+        margin: 0 0 6px;
+        font-size: 1.5rem;
+        font-weight: 700;
+      }
+      .wizard-header p {
+        margin: 0;
+        font-size: 0.9rem;
+        opacity: 0.9;
+        line-height: 1.5;
+      }
+      .wizard-body {
+        padding: 24px 28px;
+      }
+      .field-group {
+        margin-bottom: 20px;
+      }
+      .field-label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-weight: 600;
+        font-size: 0.875rem;
+        margin-bottom: 6px;
+      }
+      .field-label .required {
+        color: var(--error);
+        font-weight: 700;
+      }
+      .input-row {
+        display: flex;
+        gap: 8px;
+      }
+      .input-row input {
+        flex: 1;
+        padding: 9px 12px;
+        border: 1.5px solid var(--border);
+        border-radius: 7px;
+        font-size: 0.875rem;
+        font-family: ui-monospace, "SF Mono", monospace;
+        transition: border-color 0.15s;
+        outline: none;
+      }
+      .input-row input:focus {
+        border-color: var(--border-focus);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      }
+      .input-row input.invalid {
+        border-color: var(--error);
+        background: var(--error-bg);
+      }
+      .btn-browse {
+        padding: 9px 14px;
+        border: 1.5px solid var(--border);
+        border-radius: 7px;
+        background: var(--bg);
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background 0.15s, border-color 0.15s;
+      }
+      .btn-browse:hover {
+        background: var(--border);
+        border-color: var(--border);
       }
       .field-error {
-        color: #b00020;
-        font-size: 13px;
-        margin: 4px 0 0;
-        min-height: 1.2em;
+        color: var(--error);
+        font-size: 0.8rem;
+        margin-top: 4px;
+        min-height: 1.1em;
       }
       .field-hint {
-        color: #555;
-        font-size: 12px;
-        margin: 4px 0 0;
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        margin-top: 3px;
+        line-height: 1.4;
+      }
+      .divider {
+        border: none;
+        border-top: 1px solid var(--border);
+        margin: 20px 0;
+      }
+      .info-box {
+        padding: 12px 14px;
+        border-radius: 7px;
+        font-size: 0.82rem;
+        line-height: 1.5;
+        margin-bottom: 16px;
+      }
+      .info-box.tip {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        color: #1e40af;
+      }
+      .info-box.warn {
+        background: var(--warning-bg);
+        border: 1px solid var(--warning-border);
+        color: #92400e;
+      }
+      .write-mode-badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: var(--error-bg);
+        color: var(--error);
+      }
+      .wizard-footer {
+        padding: 16px 28px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .checklist {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+      .checklist span { margin-right: 8px; }
+      .checklist .ok { color: var(--success); }
+      .checklist .pending { color: #94a3b8; }
+      .btn-primary {
+        padding: 11px 28px;
+        border: none;
+        border-radius: 7px;
+        background: var(--primary);
+        color: #fff;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s, opacity 0.15s;
+      }
+      .btn-primary:hover:not(:disabled) {
+        background: var(--primary-hover);
+      }
+      .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
       }
       #error {
-        color: #b00020;
-        margin-top: 12px;
+        color: var(--error);
+        font-size: 0.82rem;
         min-height: 1.2em;
+        margin-top: 8px;
       }
       #success {
-        color: #1b5e20;
-        margin-top: 12px;
+        color: var(--success);
+        font-size: 0.82rem;
         min-height: 1.2em;
-      }
-      .missing-checklist {
-        margin: 0 0 16px;
-        padding: 12px 14px;
-        background: #fff;
-        border: 1px solid #ccc;
-        border-radius: 6px;
-        font-size: 13px;
-      }
-      .missing-checklist ul {
-        margin: 8px 0 0;
-        padding-left: 1.25rem;
-      }
-      .missing-checklist li.missing {
-        color: #b00020;
-      }
-      .missing-checklist li.ok {
-        color: #1b5e20;
-      }
-      .setup-steps {
-        margin: 0 0 16px;
-        padding: 12px 14px;
-        background: #fff;
-        border: 1px solid #ccc;
-        border-radius: 6px;
-        font-size: 13px;
-      }
-      .setup-steps ol {
-        margin: 8px 0 0;
-        padding-left: 1.25rem;
-      }
-      .legacy-warn {
-        display: none;
-        margin: 0 0 16px;
-        padding: 12px 14px;
-        background: #fff3e0;
-        border: 1px solid #e65100;
-        border-radius: 6px;
-        font-size: 13px;
-        color: #5d4037;
-      }
-      .legacy-warn.visible {
-        display: block;
-      }
-      .production-warn {
-        margin: 0 0 16px;
-        padding: 12px 14px;
-        background: #e3f2fd;
-        border: 1px solid #1565c0;
-        border-radius: 6px;
-        font-size: 13px;
-        color: #0d47a1;
-      }
-      .next-step-hint {
         margin-top: 8px;
-        font-size: 13px;
-        color: #1a5fb4;
+      }
+      .import-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(4px);
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+      }
+      .import-overlay.active {
+        display: flex;
+      }
+      .import-card {
+        background: var(--card);
+        border-radius: var(--radius);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+        padding: 32px;
+        text-align: center;
+        max-width: 380px;
+        width: 90%;
+      }
+      .import-card h2 {
+        margin: 0 0 8px;
+        font-size: 1.15rem;
+      }
+      .import-card p {
+        margin: 0 0 20px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+      .progress-bar {
+        height: 6px;
+        background: var(--border);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 12px;
+      }
+      .progress-bar-fill {
+        height: 100%;
+        background: var(--primary);
+        border-radius: 3px;
+        width: 0%;
+        animation: progress-pulse 2s ease-in-out infinite;
+      }
+      @keyframes progress-pulse {
+        0% { width: 0%; }
+        50% { width: 70%; }
+        100% { width: 100%; }
+      }
+      .spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid var(--border);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-right: 6px;
+        vertical-align: middle;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
       }
     </style>
   </head>
   <body>
-    <h1>Microdent desktop setup</h1>
-    <div class="production-warn" role="note">
-      <strong>Mac build machine vs Windows clinic PC:</strong> use this window on a Mac for local build/QA only.
-      Clinic operators run the staged package on Windows — path examples below are for Windows targets, not Mac paths.
-    </div>
-    <div class="setup-steps" role="doc-subtitle">
-      <strong>First-run flow (Windows-test readiness — tier 2):</strong>
-      <ol>
-        <li>Enter DATA_ROOT, SQLITE_PATH, and optional BACKUP_DIR (Windows examples below)</li>
-        <li>Save — config writes to <code>%AppData%\Microdent\config.json</code> on the target PC</li>
-        <li>Run mirror import from the command line (CLI only — see package <code>docs/</code>)</li>
-        <li>Open the app → Settings → Pilot checklist — confirm read-only Today / Patients / Schedule</li>
-        <li>Sandbox write pilot (optional) — follow <code>docs/PILOT-HANDOFF-PACK.md</code> when IT approves</li>
-        <li>Windows field execution (tier 3) — deferred until IT schedules a clinic PC run (<code>docs/FIELD-TEST-START-HERE.md</code>)</li>
-      </ol>
-    </div>
-    <p>
-      Point the app at your <strong>disposable Write-Sandbox</strong> copy (never the live production legacy DATA tree). Use absolute
-      paths only. Write mode stays <strong>disabled</strong> until you change config manually for sandbox pilot work.
-    </p>
-    <div class="production-warn" role="note">
-      <strong>Production writes outside sandbox are not enabled</strong> in this pilot build. Read-only viewing is
-      safe; sandbox commits require IT approval, disposable DATA, and explicit write-mode changes per
-      <code>docs/PILOT-HANDOFF-PACK.md</code>.
-    </div>
-    <p>
-      <strong>Where files live:</strong> this app installs to one folder; config saves to
-      <code>%AppData%\Microdent\config.json</code>; DATA_ROOT, mirror, and backups belong on clinic paths
-      <strong>outside</strong> the install folder. In the staged package, start with
-      <code>docs/PILOT-HANDOFF-PACK.md</code> (full tester index) or <code>docs/PILOT-START-HERE.md</code>.
-      Location details: <code>docs/windows-pilot-data-locations.md</code>.
-    </p>
-    <p>
-      <strong>Windows:</strong> use drive-letter paths only in examples below — not hardcoded by the app. If a path
-      contains spaces, quote it in manual PowerShell or CMD commands (for example
-      <code>"C:\ClinicData\My Sandbox\DATA"</code>).
-    </p>
-    <p>
-      <strong>UNC shares</strong> (<code>\\server\share\…</code>) are accepted but can be slow or unreliable for SQLite
-      and DBF. Prefer a local drive letter when IT allows.
-    </p>
-    <div id="legacyWarn" class="legacy-warn" role="status" aria-live="polite">
-      <strong>Check path:</strong> a folder name looks like production legacy. Use a disposable Write-Sandbox copy only
-      (warn-only — you can still save if paths exist on disk).
-    </div>
-    <div id="missingChecklist" class="missing-checklist" aria-live="polite" role="status">
-      <strong>Before you can save:</strong>
-      <ul id="missingList"></ul>
-    </div>
-    <form id="form">
-      <label for="dataRoot">DATA_ROOT (folder)</label>
-      <input
-        id="dataRoot"
-        name="dataRoot"
-        type="text"
-        autocomplete="off"
-        placeholder="C:\ClinicData\Microdent\DATA"
-        required
-        aria-describedby="dataRootError dataRootHint"
-      />
-      <div id="dataRootError" class="field-error" role="alert"></div>
-      <div id="dataRootHint" class="field-hint">
-        Sandbox DATA folder with DBF files and the Write-Sandbox marker dotfile (see HANDOFF-README). Example:
-        <code>C:\ClinicData\Microdent\DATA</code>
+    <div class="wizard">
+      <div class="wizard-header">
+        <h1>🦷 Welcome to Microdent</h1>
+        <p>Let's get your clinic data connected. This only takes a minute — everything stays local.</p>
       </div>
 
-      <label for="sqlitePath">SQLITE_PATH (file)</label>
-      <input
-        id="sqlitePath"
-        name="sqlitePath"
-        type="text"
-        autocomplete="off"
-        placeholder="C:\Users\Public\MicrodentModern\mirror\clinic.sqlite"
-        required
-        aria-describedby="sqlitePathError sqlitePathHint"
-      />
-      <div id="sqlitePathError" class="field-error" role="alert"></div>
-      <div id="sqlitePathHint" class="field-hint">
-        SQLite mirror file for search and schedule. Example:
-        <code>C:\Users\Public\MicrodentModern\mirror\clinic.sqlite</code> — outside the app install folder.
+      <div class="wizard-body">
+        <div class="info-box tip">
+          <strong>Local-first:</strong> Your data never leaves this computer. Point us at your
+          Write-Sandbox copy (never the live production DATA tree).
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">
+            Clinic data folder <span class="required">*</span>
+          </div>
+          <div class="input-row">
+            <input
+              id="dataRoot"
+              type="text"
+              autocomplete="off"
+              placeholder="Select or type path…"
+              aria-describedby="dataRootError dataRootHint"
+            />
+            <button type="button" class="btn-browse" id="pickDataRoot">Browse</button>
+          </div>
+          <div id="dataRootError" class="field-error" role="alert"></div>
+          <div id="dataRootHint" class="field-hint">Folder containing DBF files and the Write-Sandbox marker dotfile.</div>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">
+            Mirror database file <span class="required">*</span>
+          </div>
+          <div class="input-row">
+            <input
+              id="sqlitePath"
+              type="text"
+              autocomplete="off"
+              placeholder="Select or type path…"
+              aria-describedby="sqlitePathError sqlitePathHint"
+            />
+            <button type="button" class="btn-browse" id="pickSqlite">Browse</button>
+          </div>
+          <div id="sqlitePathError" class="field-error" role="alert"></div>
+          <div id="sqlitePathHint" class="field-hint">SQLite mirror file for search and schedule.</div>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">
+            Backup folder <span style="color: var(--text-muted); font-weight: 400;">(optional)</span>
+          </div>
+          <div class="input-row">
+            <input
+              id="backupDir"
+              type="text"
+              autocomplete="off"
+              placeholder="Select or type path…"
+              aria-describedby="backupDirError backupDirHint"
+            />
+            <button type="button" class="btn-browse" id="pickBackup">Browse</button>
+          </div>
+          <div id="backupDirError" class="field-error" role="alert"></div>
+          <div id="backupDirHint" class="field-hint">Required before enabling sandbox writes.</div>
+        </div>
+
+        <hr class="divider" />
+
+        <div class="field-group" style="display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:0.875rem; font-weight:600;">Write mode</span>
+          <span class="write-mode-badge">disabled</span>
+        </div>
+
+        <div id="legacyWarn" class="info-box warn" style="display:none;" role="status" aria-live="polite">
+          <strong>⚠ Check path:</strong> a folder name looks like production legacy. Use a disposable Write-Sandbox copy only.
+        </div>
       </div>
 
-      <label for="backupDir">BACKUP_DIR (folder, optional)</label>
-      <input
-        id="backupDir"
-        name="backupDir"
-        type="text"
-        autocomplete="off"
-        placeholder="C:\Users\Public\MicrodentModern\backups"
-        aria-describedby="backupDirError backupDirHint"
-      />
-      <div id="backupDirError" class="field-error" role="alert"></div>
-      <div id="backupDirHint" class="field-hint">
-        Optional. Required before enabling sandbox writes on the bridge. Example:
-        <code>C:\Users\Public\MicrodentModern\backups</code> on a local drive — mirror and backups must not live inside
-        the app install folder (see windows-pilot-data-locations.md).
+      <div class="wizard-footer">
+        <div class="checklist" id="checklist"></div>
+        <button type="button" class="btn-primary" id="submit">Get Started</button>
       </div>
+      <div style="padding: 0 28px 20px;">
+        <div id="success" role="status"></div>
+        <div id="error" role="alert"></div>
+      </div>
+    </div>
 
-      <label>Write mode</label>
-      <p class="readonly" id="writeModeDisplay" aria-readonly="true">disabled (not changeable here)</p>
+    <!-- Mirror import progress overlay -->
+    <div class="import-overlay" id="importOverlay">
+      <div class="import-card">
+        <h2>Setting up your clinic</h2>
+        <p>Starting the clinic service and preparing your data…</p>
+        <div class="progress-bar"><div class="progress-bar-fill"></div></div>
+        <div id="importStatus" style="font-size:0.82rem; color:var(--text-muted);">
+          <span class="spinner"></span> Connecting to clinic service…
+        </div>
+      </div>
+    </div>
 
-      <button type="submit" id="submit">Save and continue</button>
-      <div id="success" role="status"></div>
-      <div id="error" role="alert"></div>
-    </form>
     <script>
       const WINDOWS_DRIVE = /^[A-Za-z]:[/\\]/;
       const UNC_PATH = /^[/\\]{2}[^/\\]+[/\\]/;
       const PROD_LEGACY_SEG = ["microdent", "legacy"].join("-");
       const LEGACY_SEGMENT = new RegExp("^" + PROD_LEGACY_SEG + "$|^legacy-copy$", "i");
 
+      // Platform-aware default suggestions
+      const SUGGESTIONS = window.__setupDefaults || {
+        dataRoot: "",
+        sqlitePath: "",
+        backupDir: "",
+      };
+
+      // Pre-fill placeholders with suggested paths
+      document.getElementById("dataRoot").placeholder = "e.g. " + (SUGGESTIONS.dataRoot || "C:\\Microdent\\DATA");
+      document.getElementById("sqlitePath").placeholder = "e.g. " + (SUGGESTIONS.sqlitePath || "C:\\Microdent\\mirror\\clinic.sqlite");
+      document.getElementById("backupDir").placeholder = "e.g. " + (SUGGESTIONS.backupDir || "C:\\Microdent\\backups");
+
       function legacySegmentInPath(value) {
         const segments = value.trim().split(/[/\\]/).filter(Boolean);
         return segments.some((seg) => LEGACY_SEGMENT.test(seg));
-      }
-
-      function updateLegacyWarning() {
-        const legacyEl = document.getElementById("legacyWarn");
-        const show =
-          legacySegmentInPath(document.getElementById("dataRoot").value) ||
-          legacySegmentInPath(document.getElementById("sqlitePath").value) ||
-          legacySegmentInPath(document.getElementById("backupDir").value);
-        legacyEl.classList.toggle("visible", show);
       }
 
       function isOperatorAbsolutePath(value) {
@@ -282,23 +407,17 @@
         backupDir: { required: false, label: "BACKUP_DIR" },
       };
 
+      function defaultHint(id) {
+        if (id === "dataRoot") return "Sandbox DATA folder with DBF files and write-sandbox marker.";
+        if (id === "sqlitePath") return "SQLite mirror file for search and schedule.";
+        if (id === "backupDir") return "Optional. Required before enabling sandbox writes.";
+        return "";
+      }
+
       function spaceHint(value) {
         return value.trim().includes(" ")
           ? "This path contains spaces — quote it in PowerShell/CMD when running bridge CLIs manually."
           : "";
-      }
-
-      function defaultHint(id) {
-        if (id === "dataRoot") {
-          return "Sandbox DATA folder with DBF files and write-sandbox marker. Example: C:\\ClinicData\\Microdent\\DATA";
-        }
-        if (id === "sqlitePath") {
-          return "SQLite mirror file for search and schedule. Example: C:\\Users\\Public\\MicrodentModern\\mirror\\clinic.sqlite";
-        }
-        if (id === "backupDir") {
-          return "Optional. Required before enabling sandbox writes. Example: C:\\Users\\Public\\MicrodentModern\\backups";
-        }
-        return "";
       }
 
       function validateField(id) {
@@ -312,94 +431,94 @@
         hintEl.textContent = spaceHint(value) || defaultHint(id);
         input.classList.remove("invalid");
 
-        if (!rule.required && value.trim().length === 0) {
-          return true;
-        }
-
+        if (!rule.required && value.trim().length === 0) return true;
         if (value.trim().length === 0) {
           errorEl.textContent = `${rule.label}: Path is required.`;
           input.classList.add("invalid");
           return false;
         }
-
         if (!isOperatorAbsolutePath(value)) {
-          errorEl.textContent = `${rule.label}: Use a full absolute path (e.g. C:\\Microdent\\… or \\\\server\\share\\…).`;
+          errorEl.textContent = `${rule.label}: Use a full absolute path.`;
           input.classList.add("invalid");
           return false;
         }
-
-        if (UNC_PATH.test(value.trim()) && !hintEl.textContent.includes("UNC")) {
-          hintEl.textContent =
-            "UNC network path — can be slow or unreliable; prefer a local drive letter when possible.";
+        if (UNC_PATH.test(value.trim())) {
+          hintEl.textContent = "UNC network path — can be slow; prefer a local drive letter when possible.";
         }
 
-        updateLegacyWarning();
+        // Update legacy warning
+        const showLegacy =
+          legacySegmentInPath(document.getElementById("dataRoot").value) ||
+          legacySegmentInPath(document.getElementById("sqlitePath").value) ||
+          legacySegmentInPath(document.getElementById("backupDir").value);
+        document.getElementById("legacyWarn").style.display = showLegacy ? "block" : "none";
+
         return true;
       }
 
-      function validateAll() {
-        return (
-          validateField("dataRoot") &&
-          validateField("sqlitePath") &&
-          validateField("backupDir")
-        );
+      function updateChecklist() {
+        const dataOk = document.getElementById("dataRoot").value.trim().length > 0;
+        const sqliteOk = document.getElementById("sqlitePath").value.trim().length > 0;
+        const cls = (ok) => ok ? "ok" : "pending";
+        const sym = (ok) => ok ? "✓" : "○";
+        document.getElementById("checklist").innerHTML =
+          `<span class="${cls(dataOk)}">${sym(dataOk)} Data</span>` +
+          `<span class="${cls(sqliteOk)}">${sym(sqliteOk)} Mirror</span>`;
       }
 
       function updateSubmitState() {
         const dataOk = validateField("dataRoot");
         const sqliteOk = validateField("sqlitePath");
         const backupOk = validateField("backupDir");
-        submitBtn.disabled = !(dataOk && sqliteOk && backupOk);
-        updateMissingChecklist(dataOk, sqliteOk, backupOk);
+        document.getElementById("submit").disabled = !(dataOk && sqliteOk);
+        updateChecklist();
       }
 
-      function updateMissingChecklist(dataOk, sqliteOk, backupOk) {
-        const list = document.getElementById("missingList");
-        list.innerHTML = "";
-        const items = [
-          { ok: dataOk, label: "DATA_ROOT — sandbox folder (required)" },
-          { ok: sqliteOk, label: "SQLITE_PATH — mirror SQLite file (required)" },
-          { ok: backupOk, label: "BACKUP_DIR — optional; required before sandbox commits" },
-        ];
-        for (const item of items) {
-          const li = document.createElement("li");
-          li.className = item.ok ? "ok" : "missing";
-          li.textContent = item.ok ? `✓ ${item.label}` : `✗ ${item.label}`;
-          list.appendChild(li);
-        }
-      }
+      // Browse buttons
+      document.getElementById("pickDataRoot").addEventListener("click", async () => {
+        const path = await window.setupApi.pickFolder("Select clinic data folder");
+        if (path) { document.getElementById("dataRoot").value = path; updateSubmitState(); }
+      });
+      document.getElementById("pickSqlite").addEventListener("click", async () => {
+        const path = await window.setupApi.pickFolder("Select mirror database folder");
+        if (path) { document.getElementById("sqlitePath").value = path; updateSubmitState(); }
+      });
+      document.getElementById("pickBackup").addEventListener("click", async () => {
+        const path = await window.setupApi.pickFolder("Select backup folder");
+        if (path) { document.getElementById("backupDir").value = path; updateSubmitState(); }
+      });
 
-      const form = document.getElementById("form");
-      const errorEl = document.getElementById("error");
-      const successEl = document.getElementById("success");
-      const submitBtn = document.getElementById("submit");
-
+      // Input listeners
       for (const id of Object.keys(FIELD_RULES)) {
         const input = document.getElementById(id);
-        input.addEventListener("blur", () => {
-          validateField(id);
-          updateSubmitState();
-        });
+        input.addEventListener("blur", () => { validateField(id); updateSubmitState(); });
         input.addEventListener("input", () => {
-          if (document.getElementById(`${id}Error`).textContent) {
-            validateField(id);
-          }
+          if (document.getElementById(`${id}Error`).textContent) validateField(id);
           updateSubmitState();
         });
       }
 
       updateSubmitState();
-      updateLegacyWarning();
 
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
+      // Form submission
+      document.getElementById("submit").addEventListener("click", async () => {
+        const errorEl = document.getElementById("error");
+        const successEl = document.getElementById("success");
         errorEl.textContent = "";
         successEl.textContent = "";
-        if (!validateAll()) {
-          errorEl.textContent = "Fix the highlighted paths before saving.";
+
+        const dataOk = validateField("dataRoot");
+        const sqliteOk = validateField("sqlitePath");
+        const backupOk = validateField("backupDir");
+        if (!(dataOk && sqliteOk)) {
+          errorEl.textContent = "Please fill in the required paths.";
           return;
         }
-        submitBtn.disabled = true;
+
+        const btn = document.getElementById("submit");
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Saving…';
+
         try {
           const result = await window.setupApi.saveConfig({
             dataRoot: document.getElementById("dataRoot").value,
@@ -408,18 +527,29 @@
           });
           if (!result.ok) {
             errorEl.textContent = result.message;
-            submitBtn.disabled = false;
+            btn.disabled = false;
+            btn.textContent = "Get Started";
             updateSubmitState();
-          } else if (result.summary) {
-            successEl.textContent = result.summary;
-            successEl.insertAdjacentHTML(
-              "afterend",
-              '<p class="next-step-hint" role="note">Next: mirror import CLI → Settings Pilot checklist → optional sandbox QA (docs/PILOT-HANDOFF-PACK.md). Windows field test deferred — docs/FIELD-TEST-START-HERE.md when IT schedules a clinic PC.</p>',
-            );
+          } else {
+            if (result.summary) successEl.textContent = result.summary;
+            // Show mirror-import progress overlay briefly
+            const overlay = document.getElementById("importOverlay");
+            overlay.classList.add("active");
+            const statusEl = document.getElementById("importStatus");
+            // Sequence of status messages
+            await new Promise(r => setTimeout(r, 800));
+            statusEl.innerHTML = '<span class="spinner"></span> Starting clinic service…';
+            await new Promise(r => setTimeout(r, 1500));
+            statusEl.innerHTML = '<span class="spinner"></span> Preparing mirror data…';
+            await new Promise(r => setTimeout(r, 1000));
+            statusEl.innerHTML = '<span class="spinner"></span> Almost ready…';
+            await new Promise(r => setTimeout(r, 800));
+            overlay.classList.remove("active");
           }
         } catch {
-          errorEl.textContent = "Could not save configuration. Try again.";
-          submitBtn.disabled = false;
+          errorEl.textContent = "Could not save configuration. Please try again.";
+          btn.disabled = false;
+          btn.textContent = "Get Started";
           updateSubmitState();
         }
       });

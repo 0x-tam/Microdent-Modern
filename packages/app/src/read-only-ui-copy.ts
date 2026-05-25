@@ -1189,6 +1189,40 @@ export const SETTINGS_MIRROR_FRESHNESS_UNKNOWN =
 export const SETTINGS_BACKUP_READONLY_NOTE =
   "Backup is not required while writes are off. Configure BACKUP_DIR before enabling sandbox commits.";
 
+/** Backup folder setup guidance (no backend call — operator config only). */
+export const SETTINGS_BACKUP_SETUP_BUTTON = "Set up backup folder";
+
+export const SETTINGS_BACKUP_SETUP_HINT =
+  "Create a folder next to your data directory and set BACKUP_DIR in desktop setup or bridge env. Backup is required before any sandbox commits.";
+
+/** Local copy import prompt when no import runs exist. */
+export const SETTINGS_IMPORT_LOCAL_COPY_BUTTON = "Import local copy now";
+
+export const SETTINGS_IMPORT_LOCAL_COPY_HINT =
+  "This will guide you through the safe mirror import command. After importing, return here and click Refresh status.";
+
+/** Next steps section for new operators. */
+export const SETTINGS_NEXT_STEPS_TITLE = "Getting started";
+
+export const SETTINGS_NEXT_STEPS_LEDE =
+  "Complete these steps in order to set up your clinic data viewer.";
+
+export const SETTINGS_NEXT_STEP_CHOOSE_DATA = "Choose data folder";
+
+export const SETTINGS_NEXT_STEP_CHOOSE_DATA_DONE = "Data folder configured";
+
+export const SETTINGS_NEXT_STEP_IMPORT_COPY = "Import local copy";
+
+export const SETTINGS_NEXT_STEP_IMPORT_COPY_DONE = "Local copy active";
+
+export const SETTINGS_NEXT_STEP_SETUP_BACKUP = "Set up backup folder";
+
+export const SETTINGS_NEXT_STEP_SETUP_BACKUP_DONE = "Backup configured";
+
+export const SETTINGS_NEXT_STEP_REVIEW_DATA = "Review read-only data";
+
+export const SETTINGS_NEXT_STEP_REVIEW_DATA_DONE = "Ready to review data";
+
 /** Medical clinical toolbar (Workstream F). */
 export function medicalToolbarSummary(flaggedCount: number, sectionCount: number): string {
   const flagPart =

@@ -103,12 +103,8 @@ describe("validateSetupPayload", () => {
     const summary = formatSetupSaveSummary([
       "A folder name looks like production legacy — use a disposable Write-Sandbox copy only.",
     ]);
-    expect(summary).toMatch(/PILOT-HANDOFF-PACK/i);
-    expect(summary).toMatch(/mirror import/i);
+    expect(summary).toMatch(/Configuration saved/i);
+    expect(summary).toMatch(/clinic service/i);
     expect(summary).toMatch(/legacy/i);
-    expect(summary).toMatch(/disabled/i);
-    expect(summary).toMatch(/Mac build machine/i);
-    expect(summary).toMatch(/FIELD-TEST-START-HERE/i);
-    expect(summary).toMatch(/Windows field execution is deferred/i);
   });
 });

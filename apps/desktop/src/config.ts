@@ -13,6 +13,45 @@ export type DesktopConfig = {
   writeMode?: "disabled" | "dry-run" | "enabled";
 };
 
+/** Suggested default dataRoot per platform — shown in setup wizard as a starting point. */
+export function suggestedDataRoot(): string {
+  const home = homedir();
+  switch (platform()) {
+    case "win32":
+      return "C:\\Microdent\\DATA";
+    case "darwin":
+      return join(home, "Microdent Data", "DATA");
+    default:
+      return join(home, "Microdent", "DATA");
+  }
+}
+
+/** Suggested default sqlitePath per platform. */
+export function suggestedSqlitePath(): string {
+  const home = homedir();
+  switch (platform()) {
+    case "win32":
+      return "C:\\Microdent\\mirror\\clinic.sqlite";
+    case "darwin":
+      return join(home, "Microdent Data", "mirror", "clinic.sqlite");
+    default:
+      return join(home, "Microdent", "mirror", "clinic.sqlite");
+  }
+}
+
+/** Suggested default backupDir per platform. */
+export function suggestedBackupDir(): string {
+  const home = homedir();
+  switch (platform()) {
+    case "win32":
+      return "C:\\Microdent\\backups";
+    case "darwin":
+      return join(home, "Microdent Data", "backups");
+    default:
+      return join(home, "Microdent", "backups");
+  }
+}
+
 /** True when first-run setup must collect DATA_ROOT and SQLITE_PATH. */
 export function desktopConfigNeedsSetup(config: DesktopConfig): boolean {
   return !config.dataRoot?.trim() || !config.sqlitePath?.trim();

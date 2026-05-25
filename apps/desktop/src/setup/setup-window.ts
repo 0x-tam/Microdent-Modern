@@ -1,8 +1,11 @@
-import { BrowserWindow, ipcMain } from "electron";
+import { BrowserWindow, ipcMain, dialog } from "electron";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   defaultDesktopConfig,
+  suggestedDataRoot,
+  suggestedSqlitePath,
+  suggestedBackupDir,
   type DesktopConfig,
 } from "../config.js";
 import {
@@ -90,11 +93,8 @@ export function collectSetupPathWarnings(payload: SetupSavePayload): string[] {
 
 export function formatSetupSaveSummary(warnings: string[]): string {
   const lines = [
-    "Saved. Mac build machine: local QA only — clinic PCs are Windows; path examples in setup target Windows targets.",
-    "Next: run mirror import from the command line (see docs/phase-4-mirror-import-operator.md in your package).",
-    "Then open Settings → Pilot checklist for read-only QA; sandbox QA follows docs/PILOT-HANDOFF-PACK.md when IT approves.",
-    "Windows field execution is deferred until IT schedules a clinic PC run — see docs/FIELD-TEST-START-HERE.md in the staged package.",
-    "Write mode stays disabled until you change config manually for sandbox pilot work.",
+    "Configuration saved successfully.",
+    "The app is starting the clinic service now.",
   ];
   if (warnings.length > 0) {
     lines.push(`Note: ${warnings.join(" ")}`);
@@ -150,7 +150,9 @@ export function validateSetupPayload(payload: SetupSavePayload): ValidateSetupOu
 }
 
 /**
- * Modal setup window; resolves with saved config or rejects when closed without save.
+ * Modal setup window with modern first-run wizard UX.
+ * Supports folder pickers via IPC, suggested defaults, and mirror-import progress.
+ * Resolves with saved config or rejects when closed without save.
  */
 export function showSetupWindow(initial: DesktopConfig): Promise<DesktopConfig> {
   return new Promise((resolve, reject) => {
@@ -159,19 +161,22 @@ export function showSetupWindow(initial: DesktopConfig): Promise<DesktopConfig> 
       if (settled) return;
       settled = true;
       ipcMain.removeHandler("setup:save");
+      ipcMain.removeHandler("setup:pick-folder");
       resolve(config);
     };
     const fail = (err: Error) => {
       if (settled) return;
       settled = true;
       ipcMain.removeHandler("setup:save");
+      ipcMain.removeHandler("setup:pick-folder");
       reject(err);
     };
 
     const win = new BrowserWindow({
-      width: 640,
-      height: 580,
+      width: 680,
+      height: 620,
       resizable: false,
+      frame: true,
       webPreferences: {
         contextIsolation: true,
         nodeIntegration: false,
@@ -179,6 +184,18 @@ export function showSetupWindow(initial: DesktopConfig): Promise<DesktopConfig> 
       },
     });
 
+    // Folder picker IPC
+    ipcMain.handle("setup:pick-folder", async (_event, title: string) => {
+      const result = await dialog.showOpenDialog(win, {
+        title,
+        properties: ["openDirectory", "createDirectory"],
+        buttonLabel: "Select Folder",
+      });
+      if (result.canceled || result.filePaths.length === 0) return null;
+      return result.filePaths[0];
+    });
+
+    // Save config IPC
     ipcMain.handle("setup:save", (_event, payload: SetupSavePayload) => {
       const outcome = validateSetupPayload(payload);
       if (!outcome.ok) {
@@ -198,6 +215,16 @@ export function showSetupWindow(initial: DesktopConfig): Promise<DesktopConfig> 
     win.setMenuBarVisibility(false);
     void win.loadFile(join(__dirname, "setup.html"));
 
+    // Pass suggested defaults to the renderer
+    void win.webContents.executeJavaScript(
+      `window.__setupDefaults = ${JSON.stringify({
+        dataRoot: suggestedDataRoot(),
+        sqlitePath: suggestedSqlitePath(),
+        backupDir: suggestedBackupDir(),
+      })}`,
+    );
+
+    // Pre-fill any existing config values
     if (initial.dataRoot) {
       void win.webContents.executeJavaScript(
         `document.getElementById('dataRoot').value = ${JSON.stringify(initial.dataRoot)}`,

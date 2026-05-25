@@ -45,10 +45,18 @@ function assertNoForbiddenPaths(env: NodeJS.ProcessEnv): void {
 }
 
 describe("BridgeSupervisor spawn env", () => {
+  // Track fetch calls: first batch are port checks (should appear free),
+  // then health checks (should succeed once bridge "starts").
+  let portCheckPhase = true;
+  let healthCalls = 0;
+  const HEALTH_CHECK_THRESHOLD = 3; // port checks (3) then health checks succeed
+
   beforeEach(() => {
     spawnMock.mockReset();
     existsSyncMock.mockReset();
     statSyncMock.mockReset();
+    portCheckPhase = true;
+    healthCalls = 0;
     existsSyncMock.mockImplementation((path: unknown) => {
       const value = String(path);
       if (value.endsWith("bridge/server.js") || value.endsWith("bridge\\server.js")) {
@@ -65,9 +73,18 @@ describe("BridgeSupervisor spawn env", () => {
       once: vi.fn(),
       on: vi.fn(),
     });
+    // fetch mock: port checks appear free (reject), then health checks succeed
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({ ok: true } as Response),
+      vi.fn().mockImplementation(async () => {
+        healthCalls++;
+        if (healthCalls <= HEALTH_CHECK_THRESHOLD) {
+          // Port conflict check — simulate connection refused (port is free)
+          throw new Error("ECONNREFUSED");
+        }
+        // Health check after bridge started
+        return { ok: true };
+      }),
     );
   });
 

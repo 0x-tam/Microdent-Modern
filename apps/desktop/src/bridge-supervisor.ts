@@ -20,36 +20,89 @@ export type BridgeSupervisorOptions = {
   repoRoot: string;
   config: DesktopConfig;
   nodeBinary?: string;
+  /** Called when the bridge becomes unhealthy during runtime monitoring. */
+  onHealthDegraded?: (error: string) => void;
+  /** Called when the bridge recovers after a crash. */
+  onRecovered?: () => void;
+  /** Called when the bridge process exits unexpectedly. */
+  onCrash?: () => void;
 };
 
 export class BridgeSupervisor {
   private child: ChildProcess | null = null;
   private readonly bridgeEntry: string;
   private readonly webDistIndex: string;
+  private healthTimer: ReturnType<typeof setInterval> | null = null;
+  private crashCount = 0;
+  private _currentPort: number;
 
   constructor(private readonly options: BridgeSupervisorOptions) {
     this.bridgeEntry = resolveBridgeEntry(options.repoRoot);
     this.webDistIndex = resolveWebDistIndex(options.repoRoot);
+    this._currentPort = options.config.bridgePort ?? 17890;
   }
 
   get uiUrl(): string {
-    const port = this.options.config.bridgePort ?? 17890;
+    const port = this._currentPort;
     if (existsSync(this.webDistIndex)) {
       return `file://${this.webDistIndex}`;
     }
     return `http://127.0.0.1:${port}/`;
   }
 
+  /**
+   * Check whether a port is already in use by attempting a TCP connection.
+   * Returns true if the port appears to be occupied.
+   */
+  private async isPortInUse(port: number): Promise<boolean> {
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/health`, {
+        method: "GET",
+        signal: AbortSignal.timeout(1500),
+      });
+      // If we get any response (even non-200), something is listening
+      return true;
+    } catch {
+      // Connection refused / timeout — port is free
+      return false;
+    }
+  }
+
+  /**
+   * Find an available port starting from the configured port.
+   * Tries up to 3 consecutive ports before giving up.
+   */
+  private async findAvailablePort(startPort: number): Promise<number> {
+    const maxAttempts = 3;
+    for (let offset = 0; offset < maxAttempts; offset++) {
+      const candidate = startPort + offset;
+      const inUse = await this.isPortInUse(candidate);
+      if (!inUse) return candidate;
+    }
+    throw new BridgeStartError(
+      "Clinic service could not start — port is in use. Please restart the app or contact support.",
+    );
+  }
+
   async start(): Promise<void> {
     validateDesktopStartupConfig(this.options.config);
     validateBridgeDistExists(this.bridgeEntry);
+
+    // Port conflict detection: find an available port before spawning
+    const requestedPort = this.options.config.bridgePort ?? 17890;
+    this._currentPort = await this.findAvailablePort(requestedPort);
+    if (this._currentPort !== requestedPort) {
+      console.warn(
+        `Port ${requestedPort} was in use. Bridge will use port ${this._currentPort} instead.`,
+      );
+    }
 
     const { ALLOW_LEGACY_WRITES: _omitLegacyAck, ...safeProcessEnv } = process.env;
     const env: NodeJS.ProcessEnv = {
       ...safeProcessEnv,
       NODE_ENV: "production",
       BRIDGE_HOST: "127.0.0.1",
-      BRIDGE_PORT: String(this.options.config.bridgePort ?? 17890),
+      BRIDGE_PORT: String(this._currentPort),
       WRITE_MODE: this.options.config.writeMode ?? "disabled",
     };
     if (this.options.config.dataRoot) {
@@ -69,29 +122,92 @@ export class BridgeSupervisor {
       stdio: ["ignore", "pipe", "pipe"],
     });
 
+    // Listen for unexpected crashes for recovery
+    this.child.on("exit", (code, signal) => {
+      if (this.child !== null) {
+        this.child = null;
+        this.crashCount++;
+        console.warn(`Bridge exited unexpectedly: code=${code ?? "null"}, signal=${signal ?? "null"}`);
+        this.options.onCrash?.();
+      }
+    });
+
     await this.waitForHealth();
+
+    // Start periodic health monitoring
+    this.startHealthMonitoring();
+  }
+
+  /**
+   * Kill the current bridge process and start a fresh one.
+   * Called by the main process after receiving a crash event.
+   */
+  async restart(): Promise<void> {
+    await this.stop();
+    await this.start();
+    this.crashCount = 0;
+    this.options.onRecovered?.();
+  }
+
+  /**
+   * Start polling bridge health every 30 seconds.
+   * If the bridge goes down, the crash handler deals with recovery.
+   */
+  private startHealthMonitoring(): void {
+    this.stopHealthMonitoring();
+    this.healthTimer = setInterval(async () => {
+      if (!this.child) return;
+      try {
+        const url = `http://127.0.0.1:${this._currentPort}/health`;
+        const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+        if (!res.ok) {
+          // Health endpoint returned non-200 — bridge may be degraded
+          console.warn(`Bridge health check returned ${res.status}`);
+        }
+      } catch {
+        // fetch failed — bridge process may have died without an exit event
+        console.warn("Bridge health check failed — process may have become unresponsive.");
+        this.options.onHealthDegraded?.("Clinic service health check failed.");
+        // Attempt recovery via the same crash handler
+        this.crashCount++;
+        const pid = this.child.pid;
+        if (pid) {
+          try { process.kill(pid, "SIGTERM"); } catch { /* already dead */ }
+        }
+      }
+    }, 30_000);
+    // Allow the timer to be unref'd so it doesn't prevent process exit
+    this.healthTimer.unref?.();
+  }
+
+  private stopHealthMonitoring(): void {
+    if (this.healthTimer) {
+      clearInterval(this.healthTimer);
+      this.healthTimer = null;
+    }
   }
 
   async stop(): Promise<void> {
-    if (!this.child) return;
-    this.child.kill("SIGTERM");
+    // Stop health monitoring first
+    this.stopHealthMonitoring();
+
+    // Prevent crash handler from firing during intentional shutdown
+    const childToStop = this.child;
+    this.child = null;
+
+    if (!childToStop) return;
+    childToStop.kill("SIGTERM");
     await new Promise<void>((resolve) => {
-      if (!this.child) {
-        resolve();
-        return;
-      }
-      this.child.once("exit", () => resolve());
+      childToStop.once("exit", () => resolve());
       setTimeout(() => {
-        this.child?.kill("SIGKILL");
+        childToStop.kill("SIGKILL");
         resolve();
       }, 5000);
     });
-    this.child = null;
   }
 
   private async waitForHealth(): Promise<void> {
-    const port = this.options.config.bridgePort ?? 17890;
-    const url = `http://127.0.0.1:${port}/health`;
+    const url = `http://127.0.0.1:${this._currentPort}/health`;
     const deadline = Date.now() + 15_000;
     while (Date.now() < deadline) {
       try {

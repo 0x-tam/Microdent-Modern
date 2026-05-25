@@ -10,6 +10,8 @@ import { isMirrorImportStale } from "./mirror-stale.js";
 import { MASKED_PATH_HINT_EXAMPLES, maskOperatorPath } from "./mask-operator-path.js";
 import {
   SETTINGS_BACKUP_SECTION,
+  SETTINGS_BACKUP_SETUP_BUTTON,
+  SETTINGS_BACKUP_SETUP_HINT,
   SETTINGS_BRIDGE_CHECKING,
   SETTINGS_BRIDGE_CONNECTED,
   SETTINGS_BRIDGE_OFFLINE,
@@ -18,6 +20,8 @@ import {
   SETTINGS_DESKTOP_BROWSER,
   SETTINGS_DESKTOP_FILE_PROTOCOL,
   SETTINGS_DESKTOP_SECTION,
+  SETTINGS_IMPORT_LOCAL_COPY_BUTTON,
+  SETTINGS_IMPORT_LOCAL_COPY_HINT,
   SETTINGS_MIRROR_DOC_LINK,
   SETTINGS_MIRROR_IMPORTED_COUNT,
   SETTINGS_MIRROR_IMPORT_CLI,
@@ -32,6 +36,16 @@ import {
   SETTINGS_MIRROR_DBF_SOURCE_TRUTH,
   SETTINGS_MIRROR_STALE_CALLOUT,
   SETTINGS_NEXT_STEP_LABEL,
+  SETTINGS_NEXT_STEP_CHOOSE_DATA,
+  SETTINGS_NEXT_STEP_CHOOSE_DATA_DONE,
+  SETTINGS_NEXT_STEP_IMPORT_COPY,
+  SETTINGS_NEXT_STEP_IMPORT_COPY_DONE,
+  SETTINGS_NEXT_STEP_SETUP_BACKUP,
+  SETTINGS_NEXT_STEP_SETUP_BACKUP_DONE,
+  SETTINGS_NEXT_STEP_REVIEW_DATA,
+  SETTINGS_NEXT_STEP_REVIEW_DATA_DONE,
+  SETTINGS_NEXT_STEPS_TITLE,
+  SETTINGS_NEXT_STEPS_LEDE,
   SETTINGS_PILOT_READINESS_TITLE,
   SETTINGS_PILOT_CHECKLIST_TITLE,
   SETTINGS_PILOT_SECTION,
@@ -422,6 +436,8 @@ export function SettingsPanel({
   const [mirrorRefreshing, setMirrorRefreshing] = useState(false);
   const [mirrorRefreshError, setMirrorRefreshError] = useState(false);
   const [pilotBuild, setPilotBuild] = useState<PilotBuildMetadata | null | undefined>(undefined);
+  const [showBackupSetup, setShowBackupSetup] = useState(false);
+  const [showImportGuide, setShowImportGuide] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -560,9 +576,9 @@ export function SettingsPanel({
             </span>
           </div>
 
-          {/* Edit mode */}
+          {/* Editing */}
           <div className="app-settings__status-row">
-            <span className="app-settings__status-label">Edit mode</span>
+            <span className="app-settings__status-label">Editing</span>
             <span className={`app-settings__status-value app-settings__status-value--${writeCardTone(writeCapability)}`}>
               <span className={`app-settings__status-dot app-settings__status-dot--${writeCardTone(writeCapability)}`} />
               {writeCapability === null
@@ -575,9 +591,9 @@ export function SettingsPanel({
             </span>
           </div>
 
-          {/* Local database */}
+          {/* Local copy */}
           <div className="app-settings__status-row">
-            <span className="app-settings__status-label">Local database</span>
+            <span className="app-settings__status-label">Local copy</span>
             <span className={`app-settings__status-value app-settings__status-value--${sqliteMirrorStatus.tone}`}>
               <span className={`app-settings__status-dot app-settings__status-dot--${sqliteMirrorStatus.tone}`} />
               {sqliteMirrorStatus.label}
@@ -889,6 +905,22 @@ export function SettingsPanel({
               ) : null}
               {runs.length === 0 ? (
                 <>
+                  <div className="app-settings__import-prompt">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="compact"
+                      className="ui-focusable"
+                      onClick={() => setShowImportGuide((prev) => !prev)}
+                    >
+                      {SETTINGS_IMPORT_LOCAL_COPY_BUTTON}
+                    </Button>
+                    {showImportGuide ? (
+                      <p className="app-settings__muted" role="note">
+                        {SETTINGS_IMPORT_LOCAL_COPY_HINT}
+                      </p>
+                    ) : null}
+                  </div>
                   <p className="app-settings__muted">
                     {SETTINGS_MIRROR_NO_RUNS} {SETTINGS_MIRROR_IMPORT_CLI}{" "}
                     <span className="app-settings__doc-ref">{SETTINGS_MIRROR_DOC_LINK}</span> (
@@ -1000,6 +1032,26 @@ export function SettingsPanel({
               {SETTINGS_BACKUP_READONLY_NOTE}
             </p>
           ) : null}
+          {writeCapability !== null &&
+          writeCapability.writeMode === "enabled" &&
+          !writeCapability.backupDirConfigured ? (
+            <div className="app-settings__backup-setup">
+              <Button
+                type="button"
+                variant="secondary"
+                size="compact"
+                className="ui-focusable"
+                onClick={() => setShowBackupSetup((prev) => !prev)}
+              >
+                {SETTINGS_BACKUP_SETUP_BUTTON}
+              </Button>
+              {showBackupSetup ? (
+                <p className="app-settings__muted" role="note">
+                  {SETTINGS_BACKUP_SETUP_HINT}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
           <SettingsNextStep card="backup" {...{ bridgePhase, writeCapability, mirrorStatus, sandboxWritePilot }} />
           {devHints && writeCapability?.backupDirConfigured ? (
             <p className="app-settings__path-hints" role="note">
@@ -1066,6 +1118,89 @@ export function SettingsPanel({
         </ClinicPanel>
         </SettingsSection>
       </div>
+
+      {/* ----- Next steps for new operators ----- */}
+      <section className="app-settings__next-steps" role="region" aria-labelledby="next-steps-heading">
+        <h2 id="next-steps-heading" className="app-settings__next-steps-title">
+          {SETTINGS_NEXT_STEPS_TITLE}
+        </h2>
+        <p className="app-settings__next-steps-lede">{SETTINGS_NEXT_STEPS_LEDE}</p>
+        <ol className="app-settings__next-steps-list">
+          {/* Step 1: Choose data folder */}
+          <li
+            className={`app-settings__next-step app-settings__next-step--${dataRootStatus.tone === "ok" ? "done" : "pending"}`}
+          >
+            <span className="app-settings__next-step-icon" aria-hidden="true">
+              {dataRootStatus.tone === "ok" ? "✓" : "1"}
+            </span>
+            <span className="app-settings__next-step-label">
+              {dataRootStatus.tone === "ok"
+                ? SETTINGS_NEXT_STEP_CHOOSE_DATA_DONE
+                : SETTINGS_NEXT_STEP_CHOOSE_DATA}
+            </span>
+          </li>
+          {/* Step 2: Import local copy */}
+          <li
+            className={`app-settings__next-step app-settings__next-step--${
+              bridgePhase === "connected" && mirrorStatus !== null && mirrorStatus.sqliteUsable
+                ? "done"
+                : "pending"
+            }`}
+          >
+            <span className="app-settings__next-step-icon" aria-hidden="true">
+              {bridgePhase === "connected" && mirrorStatus !== null && mirrorStatus.sqliteUsable ? "✓" : "2"}
+            </span>
+            <span className="app-settings__next-step-label">
+              {bridgePhase === "connected" && mirrorStatus !== null && mirrorStatus.sqliteUsable
+                ? SETTINGS_NEXT_STEP_IMPORT_COPY_DONE
+                : SETTINGS_NEXT_STEP_IMPORT_COPY}
+            </span>
+          </li>
+          {/* Step 3: Set up backup folder */}
+          <li
+            className={`app-settings__next-step app-settings__next-step--${
+              writeCapability !== null && writeCapability.backupDirConfigured ? "done" : "pending"
+            }`}
+          >
+            <span className="app-settings__next-step-icon" aria-hidden="true">
+              {writeCapability !== null && writeCapability.backupDirConfigured ? "✓" : "3"}
+            </span>
+            <span className="app-settings__next-step-label">
+              {writeCapability !== null && writeCapability.backupDirConfigured
+                ? SETTINGS_NEXT_STEP_SETUP_BACKUP_DONE
+                : SETTINGS_NEXT_STEP_SETUP_BACKUP}
+            </span>
+          </li>
+          {/* Step 4: Review read-only data */}
+          <li
+            className={`app-settings__next-step app-settings__next-step--${
+              dataRootStatus.tone === "ok" &&
+              bridgePhase === "connected" &&
+              mirrorStatus !== null &&
+              mirrorStatus.sqliteUsable
+                ? "done"
+                : "pending"
+            }`}
+          >
+            <span className="app-settings__next-step-icon" aria-hidden="true">
+              {dataRootStatus.tone === "ok" &&
+              bridgePhase === "connected" &&
+              mirrorStatus !== null &&
+              mirrorStatus.sqliteUsable
+                ? "✓"
+                : "4"}
+            </span>
+            <span className="app-settings__next-step-label">
+              {dataRootStatus.tone === "ok" &&
+              bridgePhase === "connected" &&
+              mirrorStatus !== null &&
+              mirrorStatus.sqliteUsable
+                ? SETTINGS_NEXT_STEP_REVIEW_DATA_DONE
+                : SETTINGS_NEXT_STEP_REVIEW_DATA}
+            </span>
+          </li>
+        </ol>
+      </section>
     </ClinicPage>
   );
 }
