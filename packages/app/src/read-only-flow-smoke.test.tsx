@@ -89,10 +89,11 @@ describe("read-only app smoke", () => {
 
     await waitForBridgeConnected(container);
     expect(container.querySelector("#app-main-heading")?.textContent).toBe("Today");
-    expect(container.querySelector(".clinic-workspace-grid")).toBeTruthy();
-    expect(container.querySelector(".clinic-status-compact")).toBeTruthy();
+    // Today page uses CommandCenter instead of old workspace grid + stat cards
+    expect(container.querySelector(".ui-command")).toBeTruthy();
+    expect(container.querySelector(".today-schedule-section")).toBeTruthy();
     expect(container.textContent).toMatch(/Today's schedule/i);
-    expect(container.textContent).toMatch(/Clinic status/i);
+    expect(container.textContent).toMatch(/Connected/i);
     assertNoForbiddenDomTokens(container.textContent ?? "");
     assertNoMainPageJargonInDom(container.textContent ?? "");
 
@@ -200,7 +201,7 @@ describe("read-only app smoke", () => {
     await flush();
 
     expect(container.querySelector("#app-main-heading")?.textContent).toBe("Schedule");
-    expect(container.querySelector(".clinic-schedule-summary-strip")).toBeTruthy();
+    expect(container.querySelector(".app-schedule__summary-bar")).toBeTruthy();
     expect(Array.from(container.querySelectorAll("button")).some((b) => b.textContent?.includes("Back to Today"))).toBe(true);
     expect(container.textContent).toContain("Synthetic Schedule Smoke Patient");
     expect(container.textContent).toContain("09:00");
@@ -318,10 +319,11 @@ describe("read-only app smoke", () => {
 
     clickSidebarModule(container, "Today");
     await flush();
-    expect(container.querySelector(".clinic-workspace-grid")).toBeTruthy();
-    expect(container.querySelector(".clinic-status-compact")).toBeTruthy();
+    // Today page uses CommandCenter instead of old workspace grid + stat cards
+    expect(container.querySelector(".ui-command")).toBeTruthy();
+    expect(container.querySelector(".today-schedule-section")).toBeTruthy();
     expect(container.textContent).toMatch(/Today's schedule/i);
-    expect(container.textContent).toMatch(/Clinic status/i);
+    expect(container.textContent).toMatch(/Connected/i);
     assertNoForbiddenDomTokens(container.textContent ?? "");
     assertNoMainPageJargonInDom(container.textContent ?? "");
 
@@ -329,7 +331,7 @@ describe("read-only app smoke", () => {
     await flush();
     await flush();
 
-    expect(container.querySelector(".clinic-schedule-summary-strip")).toBeTruthy();
+    expect(container.querySelector(".app-schedule__summary-bar")).toBeTruthy();
     assertNoForbiddenDomTokens(container.textContent ?? "");
     assertNoMainPageJargonInDom(container.textContent ?? "");
   });

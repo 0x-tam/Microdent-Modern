@@ -1,7 +1,14 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import { classNames } from "../util/classNames.js";
 
-export type BadgeVariant = "neutral" | "success" | "warning" | "danger" | "info";
+export type BadgeVariant =
+  | "neutral"
+  | "success"
+  | "warning"
+  | "danger"
+  | "info"
+  | "readonly"
+  | "stale";
 
 export type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
   variant?: BadgeVariant;
@@ -16,6 +23,8 @@ const variantClass: Record<BadgeVariant, string> = {
   warning: "ui-badge--warning",
   danger: "ui-badge--danger",
   info: "ui-badge--info",
+  readonly: "ui-badge--readonly",
+  stale: "ui-badge--stale",
 };
 
 export function Badge({ variant = "neutral", semanticLabel, className, children, ...rest }: BadgeProps) {

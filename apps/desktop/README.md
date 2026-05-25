@@ -2,6 +2,22 @@
 
 Minimal desktop shell per [docs/phase-3-desktop-packaging-plan.md](../../docs/phase-3-desktop-packaging-plan.md).
 
+## Bridge ownership
+
+**The desktop app owns bridge lifecycle.** Users do not start or manage the bridge as a separate service.
+
+- The packaged app starts the bridge automatically on launch (via `BridgeSupervisor` in `main.ts`).
+- The bridge runs as a child process of the Electron app and is terminated cleanly on quit.
+- If the bridge fails to start, the app shows a friendly error dialog and exits — it does not crash silently.
+- Manual bridge startup (`node services/bridge/dist/server.js`) is for **development only**.
+- The bridge binds to `127.0.0.1` only — it is not accessible from the network.
+- Port conflicts are handled by the bridge itself (it will fail to bind, and the desktop app shows the error).
+
+Operators only manage:
+- **Config** (`%AppData%\Microdent\config.json`) — set via the first-run setup window
+- **Mirror import** — CLI command (`pnpm mirror:import-safe`) run from the package directory
+- **Write mode** — changed in config for sandbox pilot work (default: `disabled`)
+
 ## Prerequisites
 
 ```bash

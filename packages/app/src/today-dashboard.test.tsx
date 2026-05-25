@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { DashboardHome } from "./today-dashboard.js";
-import { TODAY_HERO_SUBTITLE } from "./read-only-ui-copy.js";
 import { assertNoForbiddenDomTokens, assertNoMainPageJargonInDom } from "./read-only-smoke-fixtures.js";
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -75,7 +74,7 @@ describe("DashboardHome (Today schedule)", () => {
     vi.restoreAllMocks();
   });
 
-  it("uses workflow-first 8+4 layout without diagnostics stat grid", async () => {
+  it("uses workflow-first layout with CommandCenter and appointment sections", async () => {
     vi.useFakeTimers({ now: new Date(2026, 5, 15, 10, 30, 0), toFake: ["Date"] });
     const fetchImpl = vi.fn((input: RequestInfo | URL) => {
       const u = String(input);
@@ -100,14 +99,16 @@ describe("DashboardHome (Today schedule)", () => {
       await Promise.resolve();
     });
 
-    expect(container.querySelector(".clinic-workspace-grid")).toBeTruthy();
-    expect(container.querySelector(".clinic-col-8")).toBeTruthy();
-    expect(container.querySelector(".clinic-col-4")).toBeTruthy();
-    expect(container.querySelector(".clinic-status-compact")).toBeTruthy();
-    expect(container.querySelector(".clinic-continue-strip")).toBeTruthy();
+    // New layout: CommandCenter + schedule section + footer
+    expect(container.querySelector(".ui-command")).toBeTruthy();
+    expect(container.querySelector(".today-schedule-section")).toBeTruthy();
+    expect(container.querySelector(".today-footer")).toBeTruthy();
+    // Old layout classes should not exist
+    expect(container.querySelector(".clinic-workspace-grid")).toBeFalsy();
+    expect(container.querySelector(".clinic-col-8")).toBeFalsy();
+    expect(container.querySelector(".clinic-col-4")).toBeFalsy();
+    expect(container.querySelector(".clinic-status-compact")).toBeFalsy();
     expect(container.querySelector(".clinic-stat-grid--five")).toBeFalsy();
-    expect(container.textContent).toContain(TODAY_HERO_SUBTITLE);
-    expect(container.textContent).toMatch(/Clinic status/i);
     expect(container.textContent).not.toMatch(/Clinic at a glance/i);
     assertNoMainPageJargonInDom(container.textContent ?? "");
   });
@@ -183,7 +184,6 @@ describe("DashboardHome (Today schedule)", () => {
     expect(container.textContent).toContain("08:00");
     expect(container.textContent).toContain("Synthetic Dashboard One");
     expect(container.textContent).toContain("DASH-501");
-    expect(container.textContent).toContain("Note hidden");
     expect(container.textContent).toContain("Missed");
     expect(container.textContent).toContain("14:00");
     expect(container.textContent).toContain("Synthetic Dashboard Two");
@@ -254,13 +254,15 @@ describe("DashboardHome (Today schedule)", () => {
       await Promise.resolve();
     });
     const t = container.textContent ?? "";
-    const idx = t.indexOf("Next up");
-    expect(idx).toBeGreaterThan(-1);
-    const slice = t.slice(idx, idx + 400);
-    expect(slice).toContain("13:30");
-    expect(slice).toContain("Next Card Synth");
-    expect(slice).toContain("NC-2");
-    expect(slice).not.toContain("Patient ID 3");
+    expect(t).toMatch(/Next up/i);
+    // The "Next up" card gets .today-appt-card--next class
+    const nextCard = container.querySelector(".today-appt-card--next");
+    expect(nextCard).toBeTruthy();
+    const nextText = nextCard!.textContent ?? "";
+    expect(nextText).toContain("13:30");
+    expect(nextText).toContain("Next Card Synth");
+    expect(nextText).toContain("NC-2");
+    expect(nextText).not.toContain("Patient ID 3");
   });
 
   it("falls back to Patient ID when patient summary is missing", async () => {
@@ -483,7 +485,7 @@ describe("DashboardHome (Today schedule)", () => {
       await Promise.resolve();
       await Promise.resolve();
     });
-    expect(container.textContent).toMatch(/No more appointments scheduled for today/i);
+    expect(container.textContent).toMatch(/No upcoming/i);
   });
 
   it("shows reference doctor label on today appointments", async () => {

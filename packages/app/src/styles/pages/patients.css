@@ -383,6 +383,7 @@
   box-shadow: inset 3px 0 0 var(--ui-primary-600);
 }
 
+/* ----- Page-mode search result cards (redesigned) ----- */
 .app-patient-search__hit {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -474,9 +475,43 @@
   color: var(--ui-text-secondary);
 }
 
+@media (max-width: 900px) {
+  .app-patients-search-hero {
+    padding: var(--ui-space-4) var(--ui-space-3);
+  }
+
+  .app-patient-search__row {
+    flex-direction: column;
+  }
+
+  .app-patient-search__submit {
+    align-self: stretch;
+  }
+
+  .app-module-home__actions {
+    flex-direction: column;
+  }
+}
+
 @media (max-width: 720px) {
   .app-patient-search__recent-list {
     grid-template-columns: 1fr;
+  }
+
+  .app-patients-search-hero {
+    padding: var(--ui-space-3) var(--ui-space-2);
+  }
+
+  .app-patient-search__hit {
+    grid-template-columns: auto 1fr;
+  }
+
+  .app-patient-search__hit-chevron {
+    display: none;
+  }
+
+  .app-patient-search__hit-name {
+    font-size: 15px;
   }
 }
 

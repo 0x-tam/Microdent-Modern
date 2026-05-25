@@ -518,6 +518,96 @@ export function SettingsPanel({
         {moduleTitle}
       </h2>
 
+      {/* ----- System Status (consolidated diagnostics) ----- */}
+      <section className="app-settings__system-status" role="region" aria-labelledby="system-status-heading">
+        <div className="app-settings__system-status-header">
+          <h2 id="system-status-heading" className="app-settings__system-status-title">
+            System Status
+          </h2>
+          <Button
+            type="button"
+            variant="ghost"
+            size="compact"
+            className="ui-focusable"
+            disabled={bridgePhase !== "connected" || !bridgeBaseUrl?.trim() || mirrorRefreshing}
+            onClick={() => void refreshMirrorStatus()}
+          >
+            {mirrorRefreshing ? "Refreshing…" : "Refresh status"}
+          </Button>
+        </div>
+        <div className="app-settings__system-status-grid">
+          {/* Clinic service */}
+          <div className="app-settings__status-row">
+            <span className="app-settings__status-label">Clinic service</span>
+            <span className={`app-settings__status-value app-settings__status-value--${bridgePhase}`}>
+              <span className={`app-settings__status-dot app-settings__status-dot--${bridgePhase}`} />
+              {bridgeLabel}
+            </span>
+          </div>
+
+          {/* Data connection */}
+          <div className="app-settings__status-row">
+            <span className="app-settings__status-label">Data connection</span>
+            <span className={`app-settings__status-value app-settings__status-value--${mirrorCardTone(bridgePhase, mirrorStale)}`}>
+              <span className={`app-settings__status-dot app-settings__status-dot--${mirrorCardTone(bridgePhase, mirrorStale)}`} />
+              {bridgePhase !== "connected"
+                ? "Not configured"
+                : mirrorStatus === null
+                  ? "Not configured"
+                  : mirrorStatus.sqliteUsable
+                    ? "Data sync active"
+                    : "Using legacy data"}
+            </span>
+          </div>
+
+          {/* Edit mode */}
+          <div className="app-settings__status-row">
+            <span className="app-settings__status-label">Edit mode</span>
+            <span className={`app-settings__status-value app-settings__status-value--${writeCardTone(writeCapability)}`}>
+              <span className={`app-settings__status-dot app-settings__status-dot--${writeCardTone(writeCapability)}`} />
+              {writeCapability === null
+                ? "Connect the clinic service"
+                : writeCapability.writeMode === "disabled"
+                  ? "Read-only"
+                  : writeCapability.writeMode === "dry-run"
+                    ? "Preview (dry-run)"
+                    : "Sandbox available"}
+            </span>
+          </div>
+
+          {/* Local database */}
+          <div className="app-settings__status-row">
+            <span className="app-settings__status-label">Local database</span>
+            <span className={`app-settings__status-value app-settings__status-value--${sqliteMirrorStatus.tone}`}>
+              <span className={`app-settings__status-dot app-settings__status-dot--${sqliteMirrorStatus.tone}`} />
+              {sqliteMirrorStatus.label}
+            </span>
+          </div>
+
+          {/* Last data sync */}
+          <div className="app-settings__status-row">
+            <span className="app-settings__status-label">Last data sync</span>
+            <span className="app-settings__status-value">
+              {bridgePhase !== "connected" || mirrorStatus === null || mirrorStatus.latestImportRuns.length === 0
+                ? "—"
+                : formatFinishedAt(mirrorStatus.latestImportRuns[0].finishedAt)}
+            </span>
+          </div>
+
+          {/* Build info */}
+          <div className="app-settings__status-row">
+            <span className="app-settings__status-label">App version</span>
+            <span className="app-settings__status-value">
+              {pilotBuild === undefined
+                ? "Loading…"
+                : pilotBuild === null
+                  ? "Unavailable"
+                  : pilotBuild.packageVersion}
+            </span>
+          </div>
+        </div>
+      </section>
+
       {dangerBanners.length > 0 ? (
         <div className="app-settings__danger-banners" role="region" aria-label="Operator alerts">
           {dangerBanners.map((banner) => (
@@ -529,6 +619,24 @@ export function SettingsPanel({
               <strong>{banner.label}</strong> — {banner.body}
             </p>
           ))}
+        </div>
+      ) : null}
+
+      {/* First-run guidance: bridge is up but mirror has never been imported */}
+      {bridgePhase === "connected" &&
+      mirrorStatus !== null &&
+      mirrorStatus.latestImportRuns.length === 0 ? (
+        <div className="app-settings__first-run-callout" role="status" aria-label="First-run setup complete">
+          <p className="app-settings__first-run-callout-title">
+            <strong>Setup complete — next step: import your local data</strong>
+          </p>
+          <p className="app-settings__first-run-callout-body">
+            The clinic service is running. To enable search and schedule, run the safe mirror import
+            from the command line, then click Refresh status above.
+          </p>
+          <p className="app-settings__cli-hint" role="note">
+            {SETTINGS_MIRROR_IMPORT_COMMAND}
+          </p>
         </div>
       ) : null}
 

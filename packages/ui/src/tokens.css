@@ -3,17 +3,17 @@
  * Dark: optional `[data-theme="dark"]` hook reserved for a later band — tokens duplicated minimally for future remap.
  */
 :root {
-  /* Surfaces & text */
+  /* Surfaces & text — warm clinical palette */
   --ui-bg-canvas: #f6f7f9;
   /** Slightly cooler wash for layered gradients behind the shell (still neutral). */
   --ui-bg-canvas-wash: #edf4f5;
-  /** v2 warm blue-gray workspace canvas — replaces near-white admin feel. */
+  /** Warm blue-gray workspace canvas — replaces near-white admin feel. */
   --ui-bg-workspace: #e8eef2;
-  /** v2 tinted teal rail surface. */
+  /** Tinted teal rail surface. */
   --ui-bg-rail-v2: #dceef0;
-  /** v2 pronounced hero / command band. */
+  /** Pronounced hero / command band. */
   --ui-bg-hero: #d4e8ec;
-  /** v2 metric tile surface (white on tinted strip). */
+  /** Metric tile surface (white on tinted strip). */
   --ui-bg-metric: #ffffff;
   --ui-bg-surface: #ffffff;
   --ui-bg-subtle: #eef1f4;
@@ -38,6 +38,9 @@
   --ui-text-secondary: #5c6570;
   --ui-text-muted: #8a939e;
   --ui-text-inverse: #ffffff;
+  /** Display / section heading text colors. */
+  --ui-text-display: #12161d;
+  --ui-text-heading: #1a1f26;
 
   /* Brand — v2 richer teal saturation */
   --ui-primary-600: #167078;
@@ -80,6 +83,8 @@
   );
   /** Hairline sheen on chrome (very low contrast). */
   --ui-gradient-topbar: linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.55) 100%);
+  /** Hero band gradient for CommandCenter. */
+  --ui-gradient-hero: linear-gradient(135deg, var(--ui-bg-hero) 0%, var(--ui-primary-50) 100%);
 
   /* Semantic */
   --ui-success-600: #2f7d4a;
@@ -98,9 +103,9 @@
   /** Panel depth without heavy shadows. */
   --ui-shadow-panel: 0 1px 3px rgba(26, 31, 38, 0.05), 0 1px 2px rgba(26, 31, 38, 0.04);
   --ui-shadow-elevated: 0 4px 16px rgba(26, 31, 38, 0.07);
-  /** v2 metric tile depth on workspace canvas. */
+  /** Metric tile depth on workspace canvas. */
   --ui-shadow-metric: 0 4px 14px rgba(22, 112, 120, 0.12), 0 1px 3px rgba(26, 31, 38, 0.06);
-  /** v2 rail separation from workspace. */
+  /** Rail separation from workspace. */
   --ui-shadow-rail: 0 2px 10px rgba(22, 112, 120, 0.08);
   --ui-shadow-modal: 0 4px 24px rgba(26, 31, 38, 0.08);
   --ui-overlay-scrim: rgba(26, 31, 38, 0.45);

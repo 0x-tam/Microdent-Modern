@@ -1,11 +1,23 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import { classNames } from "../util/classNames.js";
 
-export type CardProps = HTMLAttributes<HTMLDivElement> & { children: ReactNode };
+export type CardVariant = "default" | "elevated" | "metric" | "hero";
 
-export function Card({ className, children, ...rest }: CardProps) {
+export type CardProps = HTMLAttributes<HTMLDivElement> & {
+  children: ReactNode;
+  variant?: CardVariant;
+};
+
+export function Card({ className, children, variant = "default", ...rest }: CardProps) {
   return (
-    <div className={classNames("ui-card", className)} {...rest}>
+    <div
+      className={classNames(
+        "ui-card",
+        variant !== "default" && `ui-card--${variant}`,
+        className,
+      )}
+      {...rest}
+    >
       {children}
     </div>
   );
@@ -50,6 +62,21 @@ export function CardFooter({ className, children, ...rest }: CardFooterProps) {
   return (
     <div className={classNames("ui-card__footer", className)} {...rest}>
       {children}
+    </div>
+  );
+}
+
+/* ----- Metric display inside a metric card ----- */
+export type CardMetricProps = HTMLAttributes<HTMLDivElement> & {
+  label: string;
+  value: ReactNode;
+};
+
+export function CardMetric({ className, label, value, ...rest }: CardMetricProps) {
+  return (
+    <div className={classNames("ui-card__metric", className)} {...rest}>
+      <span className="ui-card__metric-label">{label}</span>
+      <span className="ui-card__metric-value">{value}</span>
     </div>
   );
 }

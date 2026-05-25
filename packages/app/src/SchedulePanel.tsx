@@ -1,7 +1,7 @@
 import { createBridgeClient } from "@microdent/bridge-client";
 import type { BridgeDevStatusResponse, MirrorStatusResponse, ScheduleAppointmentItem, ScheduleRoomItem } from "@microdent/contracts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Badge, Button } from "@microdent/ui";
+import { Badge, Button, Card, CardBody, CardHeader, EmptyState, PatientQuickCard } from "@microdent/ui";
 import type { BridgeHealthPhase } from "./bridge-health.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
 import { AppLoadingSkeleton } from "./app-empty-panel.js";
@@ -31,16 +31,12 @@ import {
   SCHEDULE_KEYBOARD_HINT,
   SCHEDULE_LOAD_ERROR,
   SCHEDULE_LOADING,
-  SCHEDULE_MIRROR_STALE_ADVISORY,
-  SCHEDULE_MIRROR_STALE_FILTER_NOTE,
   SCHEDULE_NAV_NEXT_DAY,
   SCHEDULE_NAV_NEXT_WEEK,
   SCHEDULE_NAV_PREV_DAY,
   SCHEDULE_NAV_PREV_WEEK,
   SCHEDULE_NAV_TODAY,
-  SCHEDULE_PRIVACY_LEDE,
   SCHEDULE_RANGE_APPOINTMENT_COUNT,
-  SCHEDULE_RANGE_INCLUDES_TODAY,
   SCHEDULE_ROOM_ALL,
   SCHEDULE_OPEN_PATIENT,
   SCHEDULE_ROOM_FILTER_CONTEXT,
@@ -49,28 +45,15 @@ import {
   SCHEDULE_ROOM_FILTER_EMPTY,
   SCHEDULE_FILTER_ACTIVE_PREFIX,
   SCHEDULE_PAGE_SUBTITLE,
-  SCHEDULE_SUMMARY_ARIA,
-  SCHEDULE_SUMMARY_PROVIDERS_LABEL,
-  SCHEDULE_SUMMARY_ROOMS_LABEL,
-  SCHEDULE_SUMMARY_SHOWN_LABEL,
-  SCHEDULE_SUMMARY_SLOTS_HINT,
-  SCHEDULE_SUMMARY_SLOTS_LABEL,
-  SCHEDULE_SUMMARY_STATUS_LABEL,
-  SCHEDULE_SANDBOX_WRITE_PILOT_BANNER,
-  TODAY_APPT_ROW_CURRENT_LABEL,
-  SCHEDULE_WRITE_DISCOVERABILITY_HINT,
-  READONLY_STATE_RETRY,
   SCHEDULE_VIEW_DAY,
-  SCHEDULE_VIEW_LABEL,
   SCHEDULE_VIEW_WEEK,
-  SCHEDULE_WRITE_MODE_CHIP_OFFLINE,
+  SCHEDULE_VIEW_LABEL,
+  READONLY_STATE_RETRY,
+  TODAY_APPT_ROW_CURRENT_LABEL,
 } from "./read-only-ui-copy.js";
 import { AppointmentCreateWriteAction } from "./AppointmentCreateWriteAction.js";
 import { AppointmentStatusDryRunAction } from "./AppointmentStatusDryRunAction.js";
 import { AppointmentWriteActionsPanel } from "./AppointmentWriteActionsPanel.js";
-import { friendlyWriteModeChipLabel } from "./clinic-friendly-copy.js";
-import { resolveWriteModeChip } from "./shell-status-banners.js";
-import { isMirrorImportStale } from "./mirror-stale.js";
 import {
   countAppointmentsByStatus,
   filterPatientAppointments,
@@ -194,10 +177,6 @@ function statusBadgeClassName(code: number): string {
   return `app-schedule__status-badge app-schedule__status-badge--${statusBadgeVariant(code)}`;
 }
 
-function listCardStripeClass(code: number): string {
-  return `clinic-list-card--stripe-${statusBadgeVariant(code)}`;
-}
-
 function totalBookedMinutes(items: readonly ScheduleAppointmentItem[]): number {
   return items.reduce((sum, a) => {
     const slotMin = a.periodMinutes ?? 30;
@@ -249,8 +228,8 @@ function formatRangeHeading(from: string, to: string, granularity: Granularity):
   }
 }
 
-function roomLabel(rooms: ScheduleRoomItem[], roomNum: number): string {
-  const hit = rooms.find((r) => r.room === roomNum);
+function roomLabel(_rooms: ScheduleRoomItem[], roomNum: number): string {
+  const hit = _rooms.find((r) => r.room === roomNum);
   if (hit?.displayName) return hit.displayName;
   return `Room ${roomNum}`;
 }
@@ -271,22 +250,23 @@ function sortAppointments(a: ScheduleAppointmentItem, b: ScheduleAppointmentItem
   return a.id.localeCompare(b.id, undefined, { numeric: true });
 }
 
-function groupByDateThenRoom(
+/** Group appointments by date, then by time slot within each date. */
+function groupByDateThenTime(
   items: ScheduleAppointmentItem[],
-): Map<string, Map<number, ScheduleAppointmentItem[]>> {
+): Map<string, Map<string, ScheduleAppointmentItem[]>> {
   const dates = [...new Set(items.map((x) => x.date))].sort();
-  const out = new Map<string, Map<number, ScheduleAppointmentItem[]>>();
+  const out = new Map<string, Map<string, ScheduleAppointmentItem[]>>();
   for (const d of dates) {
-    const byRoom = new Map<number, ScheduleAppointmentItem[]>();
+    const byTime = new Map<string, ScheduleAppointmentItem[]>();
     for (const it of items.filter((x) => x.date === d)) {
-      const list = byRoom.get(it.room) ?? [];
+      const list = byTime.get(it.time) ?? [];
       list.push(it);
-      byRoom.set(it.room, list);
+      byTime.set(it.time, list);
     }
-    for (const [, list] of byRoom) {
+    for (const [, list] of byTime) {
       list.sort(sortAppointments);
     }
-    out.set(d, byRoom);
+    out.set(d, byTime);
   }
   return out;
 }
@@ -329,15 +309,17 @@ export function SchedulePanel({
     enabled: isActive,
   });
 
-  const [granularity, setGranularity] = useState<Granularity>("week");
-  const [rangeFrom, setRangeFrom] = useState(() => defaultWeekRange().from);
-  const [rangeTo, setRangeTo] = useState(() => defaultWeekRange().to);
+  const [granularity, setGranularity] = useState<Granularity>("day");
+  const [rangeFrom, setRangeFrom] = useState(() => defaultDayRange().from);
+  const [rangeTo, setRangeTo] = useState(() => defaultDayRange().to);
   const [roomFilter, setRoomFilter] = useState<number | "">("");
   const [statusFilter, setStatusFilter] = useState<number | null>(null);
   const [providerFilter, setProviderFilter] = useState<number | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
   const [sandboxApplyEnabled, setSandboxApplyEnabled] = useState(false);
   const [writeCapability, setWriteCapability] = useState<BridgeDevStatusResponse | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [expandedApptId, setExpandedApptId] = useState<string | null>(null);
 
   const [rooms, setRooms] = useState<ScheduleRoomItem[]>([]);
   const [appointments, setAppointments] = useState<ScheduleAppointmentItem[]>([]);
@@ -567,7 +549,7 @@ export function SchedulePanel({
     [appointments, statusFilter, providerFilter],
   );
 
-  const grouped = useMemo(() => groupByDateThenRoom(displayAppointments), [displayAppointments]);
+  const grouped = useMemo(() => groupByDateThenTime(displayAppointments), [displayAppointments]);
 
   const providerOptions = useMemo(
     () => patientApptProviderFilterOptions(appointments, doctorLabels),
@@ -610,9 +592,6 @@ export function SchedulePanel({
   }, [rooms]);
 
   const offlineMessage = bridgePhase === "checking" ? CLINIC_SERVICE_CHECKING : CLINIC_SERVICE_CONNECT_SCHEDULE;
-  const writeModeChip = resolveWriteModeChip(writeCapability);
-  const mirrorStale =
-    bridgePhase === "connected" && mirrorStatus !== null && isMirrorImportStale(mirrorStatus, Date.now());
 
   const statusBreakdown = useMemo(() => {
     const counts = countAppointmentsByStatus(appointments);
@@ -632,11 +611,6 @@ export function SchedulePanel({
       ? SCHEDULE_ROOM_FILTER_CONTEXT(roomCopyLabel(rooms, roomFilter), displayAppointments.length)
       : null;
 
-  const mirrorStaleMessage =
-    mirrorStale && clientFiltersActive
-      ? `${SCHEDULE_MIRROR_STALE_ADVISORY}${SCHEDULE_MIRROR_STALE_FILTER_NOTE}`
-      : SCHEDULE_MIRROR_STALE_ADVISORY;
-
   const slotsSummaryLabel = useMemo(() => {
     if (!canLoad || loading || error || appointments.length === 0) {
       return "—";
@@ -644,30 +618,6 @@ export function SchedulePanel({
     const minutes = totalBookedMinutes(appointments);
     return `${minutes} min booked`;
   }, [canLoad, loading, error, appointments]);
-
-  const roomsStatLabel = useMemo(() => {
-    if (!canLoad || loading || error) {
-      return "—";
-    }
-    if (roomFilterContext) {
-      return roomFilterContext;
-    }
-    if (operationalSummary.roomMix) {
-      return operationalSummary.roomMix;
-    }
-    if (roomsInUseCount !== null) {
-      return SCHEDULE_ROOMS_IN_USE(roomsInUseCount);
-    }
-    return roomOptions.length > 0 ? `${roomOptions.length} rooms` : "—";
-  }, [
-    canLoad,
-    loading,
-    error,
-    roomFilterContext,
-    operationalSummary.roomMix,
-    roomsInUseCount,
-    roomOptions.length,
-  ]);
 
   const providersStatLabel = useMemo(() => {
     if (!canLoad || loading || error) {
@@ -700,6 +650,28 @@ export function SchedulePanel({
     [onOpenPatient],
   );
 
+  const toggleExpandAppt = useCallback((id: string) => {
+    setExpandedApptId((prev) => (prev === id ? null : id));
+  }, []);
+
+  // Build summary string for the summary bar
+  const summaryText = useMemo(() => {
+    if (!canLoad || loading || error) return null;
+    const parts: string[] = [];
+    parts.push(`${displayAppointments.length} appointment${displayAppointments.length !== 1 ? "s" : ""}`);
+    const roomCount = roomsInUseCount;
+    if (roomCount !== null) {
+      parts.push(`${roomCount} room${roomCount !== 1 ? "s" : ""}`);
+    }
+    if (providerOptions.length > 0) {
+      parts.push(`${providerOptions.length} provider${providerOptions.length !== 1 ? "s" : ""}`);
+    }
+    if (parts.length === 0) return null;
+    return parts.join(" · ");
+  }, [canLoad, loading, error, displayAppointments.length, roomsInUseCount, providerOptions.length]);
+
+  const isToday = viewingToday && granularity === "day";
+
   return (
     <ClinicPage className="clinic-schedule-page app-workspace-page app-schedule" testId="schedule-page">
       <ClinicPageHero
@@ -707,255 +679,219 @@ export function SchedulePanel({
         subtitle={moduleDescription ?? SCHEDULE_PAGE_SUBTITLE}
       />
 
-      <section className="clinic-schedule-hero-controls app-schedule__hero-band" aria-label="Schedule range controls">
-        <div className="clinic-schedule-hero-controls__row">
-          <div className="app-schedule__granularity" role="group" aria-label={SCHEDULE_VIEW_LABEL}>
-            <Button
-              type="button"
-              variant={granularity === "week" ? "primary" : "secondary"}
-              size="compact"
-              className="ui-focusable app-schedule__granularity-chip clinic-chip"
-              disabled={!canLoad}
-              aria-pressed={granularity === "week"}
-              onClick={() => onGranularityChange("week")}
-            >
-              {SCHEDULE_VIEW_WEEK}
-            </Button>
-            <Button
-              type="button"
-              variant={granularity === "day" ? "primary" : "secondary"}
-              size="compact"
-              className="ui-focusable app-schedule__granularity-chip clinic-chip"
-              disabled={!canLoad}
-              aria-pressed={granularity === "day"}
-              onClick={() => onGranularityChange("day")}
-            >
-              {SCHEDULE_VIEW_DAY}
-            </Button>
-          </div>
-          <div className="app-schedule__nav app-schedule__hero-nav" role="group" aria-label="Move schedule range">
-            <Button
-              type="button"
-              variant="secondary"
-              size="compact"
-              className="ui-focusable clinic-chip"
-              disabled={!canLoad || loading}
-              onClick={goPrev}
-              aria-label={granularity === "day" ? SCHEDULE_NAV_PREV_DAY : SCHEDULE_NAV_PREV_WEEK}
-            >
-              ← {granularity === "day" ? SCHEDULE_VIEW_DAY : SCHEDULE_VIEW_WEEK}
-            </Button>
-            <Button
-              type="button"
-              variant={viewingToday ? "primary" : "secondary"}
-              size="compact"
-              className={`ui-focusable app-schedule__nav-today clinic-chip${viewingToday ? " app-schedule__nav-today--active clinic-chip--active" : ""}`}
-              disabled={!canLoad || loading}
-              onClick={goToday}
-              aria-current={viewingToday ? "date" : undefined}
-            >
-              {SCHEDULE_NAV_TODAY}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              size="compact"
-              className="ui-focusable clinic-chip"
-              disabled={!canLoad || loading}
-              onClick={goNext}
-              aria-label={granularity === "day" ? SCHEDULE_NAV_NEXT_DAY : SCHEDULE_NAV_NEXT_WEEK}
-            >
-              {granularity === "day" ? SCHEDULE_VIEW_DAY : SCHEDULE_VIEW_WEEK} →
-            </Button>
-          </div>
+      {/* ----- Date Navigation Header ----- */}
+      <div className="app-schedule__header">
+        <div className="app-schedule__nav-group">
           <Button
             type="button"
-            variant="secondary"
+            variant="ghost"
             size="compact"
-            className="ui-focusable clinic-schedule-hero-controls__refresh"
+            className="app-schedule__nav-btn"
+            disabled={!canLoad || loading}
+            onClick={goPrev}
+            aria-label={granularity === "day" ? SCHEDULE_NAV_PREV_DAY : SCHEDULE_NAV_PREV_WEEK}
+          >
+            ‹
+          </Button>
+          <Button
+            type="button"
+            variant={viewingToday ? "primary" : "ghost"}
+            size="compact"
+            className="app-schedule__nav-btn app-schedule__nav-today-btn"
+            disabled={!canLoad || loading}
+            onClick={goToday}
+            aria-current={viewingToday ? "date" : undefined}
+          >
+            {SCHEDULE_NAV_TODAY}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="compact"
+            className="app-schedule__nav-btn"
+            disabled={!canLoad || loading}
+            onClick={goNext}
+            aria-label={granularity === "day" ? SCHEDULE_NAV_NEXT_DAY : SCHEDULE_NAV_NEXT_WEEK}
+          >
+            ›
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="compact"
+            className="app-schedule__nav-btn app-schedule__refresh-btn"
             disabled={!canLoad || loading}
             onClick={() => setRefreshTick((x) => x + 1)}
+            aria-label="Refresh schedule"
           >
-            Refresh
+            ↻
           </Button>
         </div>
-        <div className="app-schedule__hero-range clinic-schedule-hero-controls__range">
-          <p
-            className="app-schedule__range app-schedule__range--display clinic-schedule-range"
-            aria-live="polite"
-            aria-label={`Schedule range: ${rangeHeading}`}
-          >
-            <time dateTime={`${rangeFrom}/${rangeTo}`}>{rangeHeading}</time>
-          </p>
-          {!loading && !error && canLoad ? (
-            <span className="app-schedule__count-badge clinic-status-pill clinic-status-pill--info" role="status">
-              {SCHEDULE_RANGE_APPOINTMENT_COUNT(appointments.length)}
-            </span>
-          ) : null}
-          {includesToday && !loading && !error && canLoad ? (
-            <span className="app-schedule__today-badge clinic-status-pill clinic-status-pill--ok">
-              {SCHEDULE_RANGE_INCLUDES_TODAY}
-            </span>
-          ) : null}
-        </div>
-      </section>
 
-      <div
-        className="clinic-summary-strip clinic-schedule-summary-strip"
-        role="status"
-        aria-label={SCHEDULE_SUMMARY_ARIA}
-      >
-        <span className="clinic-summary-strip__item">
-          <span className="clinic-summary-strip__label">{SCHEDULE_SUMMARY_SHOWN_LABEL}</span>
-          <span className="clinic-summary-strip__value">
-            {canLoad && !loading && !error ? operationalSummary.shownLabel : "—"}
-          </span>
-        </span>
-        <span
-          className="clinic-summary-strip__item"
-          title={canLoad && !loading && !error ? SCHEDULE_SUMMARY_SLOTS_HINT : undefined}
-        >
-          <span className="clinic-summary-strip__label">{SCHEDULE_SUMMARY_SLOTS_LABEL}</span>
-          <span className="clinic-summary-strip__value">{slotsSummaryLabel}</span>
-        </span>
-        <span className="clinic-summary-strip__item">
-          <span className="clinic-summary-strip__label">{SCHEDULE_SUMMARY_ROOMS_LABEL}</span>
-          <span className="clinic-summary-strip__value">{roomsStatLabel}</span>
-        </span>
-        <span className="clinic-summary-strip__item">
-          <span className="clinic-summary-strip__label">{SCHEDULE_SUMMARY_PROVIDERS_LABEL}</span>
-          <span className="clinic-summary-strip__value">{providersStatLabel}</span>
-        </span>
-        <span className="clinic-summary-strip__item">
-          <span className="clinic-summary-strip__label">{SCHEDULE_SUMMARY_STATUS_LABEL}</span>
-          <span className="clinic-summary-strip__value">{statusMixLabel}</span>
-        </span>
-      </div>
+        <h2 className="app-schedule__range-display" aria-live="polite">
+          <time dateTime={`${rangeFrom}/${rangeTo}`}>{rangeHeading}</time>
+        </h2>
 
-      <div className="clinic-toolbar clinic-schedule-toolbar app-schedule__filter-toolbar app-filter-bar">
-        {roomOptions.length > 0 ? (
-          <label className="app-schedule__room-filter clinic-schedule-toolbar__room">
-            <span className="app-schedule__room-filter-label">{SCHEDULE_ROOM_FILTER_LABEL}</span>
-            <select
-              className="app-schedule__select ui-focusable"
-              disabled={!canLoad || loading}
-              value={roomFilter === "" ? "" : String(roomFilter)}
-              onChange={(e) => {
-                const v = e.target.value;
-                setRoomFilter(v === "" ? "" : Number.parseInt(v, 10));
-              }}
-              aria-label="Filter by room"
-              aria-busy={loading && roomOptions.length === 0}
-            >
-              <option value="">{SCHEDULE_ROOM_ALL}</option>
-              {roomOptions.map((n) => (
-                <option key={n} value={String(n)}>
-                  {roomCopyLabel(rooms, n)}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : canLoad ? (
-          <span
-            className="app-schedule__room-filter app-schedule__room-filter--empty clinic-schedule-toolbar__room"
-            role="status"
-            aria-live="polite"
-          >
-            <span className="app-schedule__room-filter-label">{SCHEDULE_ROOM_FILTER_LABEL}</span>
-            <span className="app-schedule__room-filter-hint">
-              {loading ? SCHEDULE_ROOM_FILTER_LOADING : SCHEDULE_ROOM_FILTER_EMPTY}
-            </span>
-          </span>
-        ) : null}
-
-        {canLoad && !loading && !error && statusBreakdown.length > 0 ? (
-          <div className="app-schedule__status-breakdown clinic-schedule-chip-group" role="group" aria-label="Status breakdown">
-            {statusBreakdown.map(({ code, count, label, variant }) => (
-              <Button
-                key={code}
-                type="button"
-                size="compact"
-                variant={statusFilter === code ? "primary" : "secondary"}
-                className={`clinic-chip app-schedule__status-chip app-schedule__status-chip--${variant}${statusFilter === code ? " clinic-chip--active" : ""}`}
-                aria-pressed={statusFilter === code}
-                onClick={() => setStatusFilter((f) => (f === code ? null : code))}
-              >
-                {count} {label}
-              </Button>
-            ))}
-          </div>
-        ) : null}
-
-        {canLoad && !loading && !error && providerOptions.length > 1 ? (
-          <div
-            className="app-schedule__provider-filters clinic-schedule-chip-group"
-            role="group"
-            aria-label={SCHEDULE_FILTER_PROVIDER_ARIA}
-          >
-            <Button
-              type="button"
-              size="compact"
-              variant={providerFilter === null ? "primary" : "secondary"}
-              className={`ui-focusable clinic-chip app-schedule__provider-chip${providerFilter === null ? " clinic-chip--active" : ""}`}
-              aria-pressed={providerFilter === null}
-              onClick={() => setProviderFilter(null)}
-            >
-              {SCHEDULE_FILTER_ALL_PROVIDERS}
-            </Button>
-            {providerOptions.map(({ docId, label }) => (
-              <Button
-                key={docId}
-                type="button"
-                size="compact"
-                variant={providerFilter === docId ? "primary" : "secondary"}
-                className={`ui-focusable clinic-chip app-schedule__provider-chip${providerFilter === docId ? " clinic-chip--active" : ""}`}
-                aria-pressed={providerFilter === docId}
-                onClick={() => setProviderFilter((f) => (f === docId ? null : docId))}
-              >
-                {label}
-              </Button>
-            ))}
-          </div>
-        ) : null}
-
-        {(statusFilter !== null || providerFilter !== null || roomFilter !== "") ? (
+        <div className="app-schedule__view-toggle" role="group" aria-label={SCHEDULE_VIEW_LABEL}>
           <Button
             type="button"
+            variant={granularity === "day" ? "primary" : "ghost"}
             size="compact"
-            variant="ghost"
-            className="ui-focusable app-schedule__clear-filters clinic-chip"
-            onClick={clearClientFilters}
+            className="app-schedule__view-btn"
+            disabled={!canLoad}
+            aria-pressed={granularity === "day"}
+            onClick={() => onGranularityChange("day")}
           >
-            {FILTER_CLEAR_LABEL}
+            {SCHEDULE_VIEW_DAY}
           </Button>
-        ) : null}
+          <Button
+            type="button"
+            variant={granularity === "week" ? "primary" : "ghost"}
+            size="compact"
+            className="app-schedule__view-btn"
+            disabled={!canLoad}
+            aria-pressed={granularity === "week"}
+            onClick={() => onGranularityChange("week")}
+          >
+            {SCHEDULE_VIEW_WEEK}
+          </Button>
+        </div>
 
-        {mirrorStale ? (
-          <span className="app-schedule__mirror-advisory clinic-status-pill clinic-status-pill--warn" role="note">
-            {mirrorStaleMessage}
-          </span>
+        {/* Filter toggle button */}
+        {canLoad && !loading && !error && (clientFiltersActive || providerOptions.length > 1 || roomOptions.length > 0) ? (
+          <Button
+            type="button"
+            variant={showFilters || clientFiltersActive ? "primary" : "ghost"}
+            size="compact"
+            className="app-schedule__filter-toggle"
+            onClick={() => setShowFilters((s) => !s)}
+          >
+            {clientFiltersActive ? "Filters active" : "Filters"}
+            {clientFiltersActive && <span className="app-schedule__filter-dot" aria-hidden />}
+          </Button>
         ) : null}
       </div>
 
-      {operationalSummary.filterActiveLabel ? (
-        <p className="app-schedule__filter-active-label clinic-schedule-filter-active" role="status">
+      {/* ----- Summary Bar ----- */}
+      {summaryText && (
+        <div className="app-schedule__summary-bar" role="status" aria-label="Today summary">
+          <span className="app-schedule__summary-text">{summaryText}</span>
+          {isToday && <Badge variant="info" semanticLabel="Viewing today">Today</Badge>}
+          {statusMixLabel && statusMixLabel !== "—" && (
+            <span className="app-schedule__summary-status">{statusMixLabel}</span>
+          )}
+        </div>
+      )}
+
+      {/* ----- Filter Bar (collapsible) ----- */}
+      {showFilters && canLoad && !loading && !error && (
+        <Card className="app-schedule__filter-card">
+          <CardBody className="app-schedule__filter-body">
+            {roomOptions.length > 0 && (
+              <label className="app-schedule__filter-field">
+                <span className="app-schedule__filter-label">{SCHEDULE_ROOM_FILTER_LABEL}</span>
+                <select
+                  className="app-schedule__select"
+                  disabled={!canLoad || loading}
+                  value={roomFilter === "" ? "" : String(roomFilter)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setRoomFilter(v === "" ? "" : Number.parseInt(v, 10));
+                  }}
+                  aria-label="Filter by room"
+                >
+                  <option value="">{SCHEDULE_ROOM_ALL}</option>
+                  {roomOptions.map((n) => (
+                    <option key={n} value={String(n)}>
+                      {roomCopyLabel(rooms, n)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            {providerOptions.length > 1 && (
+              <div className="app-schedule__filter-group" role="group" aria-label={SCHEDULE_FILTER_PROVIDER_ARIA}>
+                <span className="app-schedule__filter-label">Provider</span>
+                <div className="app-schedule__filter-chips">
+                  <Button
+                    type="button"
+                    size="compact"
+                    variant={providerFilter === null ? "primary" : "secondary"}
+                    className="app-schedule__filter-chip"
+                    aria-pressed={providerFilter === null}
+                    onClick={() => setProviderFilter(null)}
+                  >
+                    {SCHEDULE_FILTER_ALL_PROVIDERS}
+                  </Button>
+                  {providerOptions.map(({ docId, label }) => (
+                    <Button
+                      key={docId}
+                      type="button"
+                      size="compact"
+                      variant={providerFilter === docId ? "primary" : "secondary"}
+                      className="app-schedule__filter-chip"
+                      aria-pressed={providerFilter === docId}
+                      onClick={() => setProviderFilter((f) => (f === docId ? null : docId))}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {statusBreakdown.length > 0 && (
+              <div className="app-schedule__filter-group" role="group" aria-label="Filter by status">
+                <span className="app-schedule__filter-label">Status</span>
+                <div className="app-schedule__filter-chips">
+                  {statusBreakdown.map(({ code, count, label, variant }) => (
+                    <Button
+                      key={code}
+                      type="button"
+                      size="compact"
+                      variant={statusFilter === code ? "primary" : "secondary"}
+                      className={`app-schedule__filter-chip app-schedule__filter-chip--${variant}`}
+                      aria-pressed={statusFilter === code}
+                      onClick={() => setStatusFilter((f) => (f === code ? null : code))}
+                    >
+                      {count} {label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {clientFiltersActive && (
+              <Button
+                type="button"
+                size="compact"
+                variant="ghost"
+                className="app-schedule__clear-filters-btn"
+                onClick={clearClientFilters}
+              >
+                {FILTER_CLEAR_LABEL}
+              </Button>
+            )}
+          </CardBody>
+        </Card>
+      )}
+
+      {/* ----- Filter active indicator ----- */}
+      {operationalSummary.filterActiveLabel && !showFilters ? (
+        <p className="app-schedule__filter-active-hint" role="status">
           {operationalSummary.filterActiveLabel.replace(/^Filters:/, `${SCHEDULE_FILTER_ACTIVE_PREFIX}:`)}
+          <button
+            type="button"
+            className="app-schedule__show-filters-link"
+            onClick={() => setShowFilters(true)}
+          >
+            edit
+          </button>
         </p>
       ) : null}
 
-      <p className="app-schedule__privacy clinic-schedule-privacy">{SCHEDULE_PRIVACY_LEDE}</p>
-      {canLoad ? <p className="app-schedule__keyboard-hint clinic-schedule-keyboard-hint">{SCHEDULE_KEYBOARD_HINT}</p> : null}
-      {sandboxPilotEnabled && canLoad ? (
-        <p className="app-schedule__sandbox-write-banner clinic-schedule-banner" role="status">
-          {SCHEDULE_SANDBOX_WRITE_PILOT_BANNER}
-        </p>
-      ) : null}
-      {sandboxPilotEnabled && canLoad ? (
-        <p className="app-schedule__write-discoverability-hint clinic-schedule-hint" role="note">
-          {SCHEDULE_WRITE_DISCOVERABILITY_HINT}
-        </p>
-      ) : null}
-
+      {/* ----- Content Area ----- */}
       {!canLoad ? (
         <ClinicEmptyState
           className="app-schedule__empty-panel"
@@ -983,21 +919,20 @@ export function SchedulePanel({
         </div>
       ) : appointments.length === 0 ? (
         <AppErrorBoundary>
-          <ClinicEmptyState
+          <EmptyState
             className="app-schedule__empty-panel"
+            icon="📅"
             title={SCHEDULE_EMPTY_TITLE}
-            body={SCHEDULE_EMPTY_DESCRIPTION}
+            description={SCHEDULE_EMPTY_DESCRIPTION}
             actions={
               <>
-                <Button type="button" variant="secondary" size="compact" className="ui-focusable" disabled={!canLoad || loading} onClick={goToday}>
+                <Button type="button" variant="primary" size="sm" onClick={goToday}>
                   {SCHEDULE_NAV_TODAY}
                 </Button>
                 <Button
                   type="button"
                   variant="ghost"
-                  size="compact"
-                  className="ui-focusable"
-                  disabled={!canLoad || loading}
+                  size="sm"
                   onClick={() => setRefreshTick((x) => x + 1)}
                 >
                   Refresh
@@ -1008,21 +943,20 @@ export function SchedulePanel({
         </AppErrorBoundary>
       ) : displayAppointments.length === 0 ? (
         <AppErrorBoundary>
-          <ClinicEmptyState
+          <EmptyState
             className="app-schedule__empty-panel"
+            icon="🔍"
             title={SCHEDULE_FILTER_EMPTY_TITLE}
-            body={SCHEDULE_FILTER_EMPTY_DESCRIPTION}
+            description={SCHEDULE_FILTER_EMPTY_DESCRIPTION}
             actions={
               <>
-                <Button type="button" variant="secondary" size="compact" className="ui-focusable" onClick={clearClientFilters}>
+                <Button type="button" variant="primary" size="sm" onClick={clearClientFilters}>
                   {FILTER_CLEAR_LABEL}
                 </Button>
                 <Button
                   type="button"
                   variant="ghost"
-                  size="compact"
-                  className="ui-focusable"
-                  disabled={loading}
+                  size="sm"
                   onClick={() => setRefreshTick((x) => x + 1)}
                 >
                   Refresh
@@ -1032,94 +966,108 @@ export function SchedulePanel({
           />
         </AppErrorBoundary>
       ) : (
-        <div className="clinic-schedule-board app-schedule__days">
-          {[...grouped.entries()].map(([dateIso, byRoom]) => {
-            const dayCount = [...byRoom.values()].reduce((sum, list) => sum + list.length, 0);
+        <div className="app-schedule__board">
+          {[...grouped.entries()].map(([dateIso, byTime]) => {
+            const dayCount = [...byTime.values()].reduce((sum, list) => sum + list.length, 0);
             return (
-              <section key={dateIso} className="clinic-schedule-day-group app-schedule__day-card">
-                <header className="clinic-schedule-day-group__header app-board-day-header app-schedule__day-title">
-                  <h3 className="clinic-schedule-day-group__title">
+              <section key={dateIso} className="app-schedule__day-section">
+                <header className="app-schedule__day-header">
+                  <h3 className="app-schedule__day-title">
                     <time dateTime={dateIso}>{formatRangeHeading(dateIso, dateIso, "day")}</time>
                   </h3>
-                  <span className="app-board-day-header__count clinic-chip">{SCHEDULE_DAY_APPOINTMENT_COUNT(dayCount)}</span>
+                  <span className="app-schedule__day-count">{SCHEDULE_DAY_APPOINTMENT_COUNT(dayCount)}</span>
                 </header>
-                <div className="app-schedule__day-body clinic-schedule-day-group__body">
-                  {[...byRoom.entries()]
-                    .sort(([a], [b]) => a - b)
-                    .map(([roomNum, list]) => (
-                      <section key={`${dateIso}-${roomNum}`} className="clinic-schedule-room-group app-schedule__room-block">
-                        <h4 className="clinic-schedule-room-group__heading app-schedule__room-heading">
-                          <span className="clinic-chip clinic-chip--active">{roomCopyLabel(rooms, roomNum)}</span>
-                        </h4>
-                        <ul
-                          className="clinic-schedule-room-group__list app-schedule__appt-list"
-                          aria-label={`Appointments on ${formatRangeHeading(dateIso, dateIso, "day")} in ${roomCopyLabel(rooms, roomNum)}`}
-                        >
-                          {list.map((appt) => {
-                            const chart = schedulePatientChart(appt);
-                            const stripe = listCardStripeClass(appt.status);
-                            return (
-                              <li
-                                key={appt.id}
-                                className={[
-                                  "clinic-list-card",
-                                  stripe,
-                                  "app-schedule__appt-row",
-                                  currentAppt?.id === appt.id ? "app-schedule__appt-row--current clinic-list-card--current" : "",
-                                ]
-                                  .filter(Boolean)
-                                  .join(" ")}
-                                aria-label={
-                                  currentAppt?.id === appt.id ? TODAY_APPT_ROW_CURRENT_LABEL : undefined
-                                }
-                              >
-                                <div className="clinic-list-card__time app-schedule__appt-time">{appt.time}</div>
-                                <div className="clinic-list-card__main app-schedule__appt-main">
-                                  <div className="app-schedule__appt-line1">
-                                    <span className="app-schedule__appt-duration">{formatDuration(appt)}</span>
-                                    <span className="app-schedule__appt-meta">
-                                      <span className="app-schedule__appt-patient-primary">{schedulePatientPrimary(appt)}</span>
-                                      {chart !== null ? (
-                                        <span className="app-schedule__appt-patient-chart"> · {chart}</span>
-                                      ) : null}
-                                      {(() => {
-                                        const meta = appointmentVisitMeta(appt, doctorLabels, procedureMaps, {
-                                          includeRoom: false,
-                                        });
-                                        return meta.length > 0 ? ` · ${meta}` : "";
-                                      })()}
-                                    </span>
-                                  </div>
-                                  <div className="app-schedule__appt-badges clinic-list-card__actions">
+
+                <div className="app-schedule__time-slots">
+                  {[...byTime.entries()].map(([timeSlot, list]) => (
+                    <div key={`${dateIso}-${timeSlot}`} className="app-schedule__time-slot">
+                      <div className="app-schedule__time-label">{timeSlot}</div>
+                      <div className="app-schedule__slot-cards">
+                        {list.map((appt) => {
+                          const chart = schedulePatientChart(appt);
+                          const isCurrent = currentAppt?.id === appt.id;
+                          const isExpanded = expandedApptId === appt.id;
+                          const patientName = schedulePatientPrimary(appt);
+                          const room = roomCopyLabel(rooms, appt.room);
+
+                          // Get doctor label if available
+                          const doctorLabel = (() => {
+                            const meta = appointmentVisitMeta(appt, doctorLabels, procedureMaps, {
+                              includeRoom: false,
+                            });
+                            return meta.length > 0 ? meta : null;
+                          })();
+
+                          return (
+                            <Card
+                              key={appt.id}
+                              className={`app-schedule__appt-card${isCurrent ? " app-schedule__appt-card--current" : ""}`}
+                            >
+                              <CardHeader className="app-schedule__appt-card-header">
+                                <PatientQuickCard
+                                  name={patientName}
+                                  chartNumber={chart ?? appt.patId}
+                                  time={appt.time}
+                                  room={room}
+                                  status={
                                     <Badge
                                       variant={statusBadgeVariant(appt.status)}
-                                      className={statusBadgeClassName(appt.status)}
                                       semanticLabel={patientApptStatusSemanticLabel(appt.status)}
                                     >
                                       {statusLabel(appt.status)}
                                     </Badge>
-                                    {appt.missed ? (
-                                      <Badge variant="danger" semanticLabel="Missed appointment">
-                                        Missed
-                                      </Badge>
-                                    ) : null}
-                                    {appt.hasComment ? (
-                                      <Badge variant="neutral" semanticLabel="Internal note hidden">
-                                        Note hidden
-                                      </Badge>
-                                    ) : null}
-                                    {appt.patId !== "0" && onOpenPatient ? (
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="compact"
-                                        className="ui-focusable app-schedule__open-patient"
-                                        onClick={() => openPatientFromAppt(appt)}
-                                      >
-                                        {SCHEDULE_OPEN_PATIENT}
-                                      </Button>
-                                    ) : null}
-                                  </div>
+                                  }
+                                  className="app-schedule__patient-card"
+                                />
+                                <div className="app-schedule__appt-card-actions">
+                                  {appt.patId !== "0" && onOpenPatient ? (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="compact"
+                                      className="app-schedule__open-patient-btn"
+                                      onClick={() => openPatientFromAppt(appt)}
+                                    >
+                                      {SCHEDULE_OPEN_PATIENT}
+                                    </Button>
+                                  ) : null}
+                                  {(sandboxPilotEnabled || devWriteActionsEnabled) && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="compact"
+                                      className="app-schedule__expand-btn"
+                                      onClick={() => toggleExpandAppt(appt.id)}
+                                      aria-expanded={isExpanded}
+                                      aria-label={isExpanded ? "Hide details" : "Show details"}
+                                    >
+                                      {isExpanded ? "▾" : "▸"}
+                                    </Button>
+                                  )}
+                                </div>
+                              </CardHeader>
+                              <CardBody className="app-schedule__appt-card-body">
+                                <div className="app-schedule__appt-meta-row">
+                                  <span className="app-schedule__appt-duration">{formatDuration(appt)}</span>
+                                  {doctorLabel && (
+                                    <span className="app-schedule__appt-doctor"> · {doctorLabel}</span>
+                                  )}
+                                  {appt.missed && (
+                                    <Badge variant="danger" semanticLabel="Missed appointment" className="app-schedule__missed-badge">
+                                      Missed
+                                    </Badge>
+                                  )}
+                                  {appt.hasComment && (
+                                    <Badge variant="neutral" semanticLabel="Internal note hidden" className="app-schedule__note-badge">
+                                      Note hidden
+                                    </Badge>
+                                  )}
+                                </div>
+                              </CardBody>
+
+                              {/* Expandable dev/sandbox actions */}
+                              {isExpanded && (
+                                <CardBody className="app-schedule__appt-card-details">
                                   {bridgeBaseUrl && sandboxPilotEnabled && canLoad ? (
                                     <AppointmentWriteActionsPanel
                                       appointment={appt}
@@ -1141,13 +1089,14 @@ export function SchedulePanel({
                                       sandboxApplyEnabled={sandboxApplyEnabled}
                                     />
                                   ) : null}
-                                </div>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </section>
-                    ))}
+                                </CardBody>
+                              )}
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </section>
             );
@@ -1155,17 +1104,8 @@ export function SchedulePanel({
         </div>
       )}
 
-      <div className="app-schedule__footer clinic-schedule-footer">
-        {writeModeChip ? (
-          <Badge
-            variant={writeModeChip.variant}
-            className="app-schedule__write-mode-chip"
-            semanticLabel={`Editing: ${friendlyWriteModeChipLabel(writeModeChip.label)}`}
-            title={!sandboxPilotEnabled ? SCHEDULE_WRITE_MODE_CHIP_OFFLINE : undefined}
-          >
-            {friendlyWriteModeChipLabel(writeModeChip.label)}
-          </Badge>
-        ) : null}
+      {/* ----- Footer ----- */}
+      <div className="app-schedule__footer">
         {bridgeBaseUrl && sandboxPilotEnabled && canLoad ? (
           <AppointmentCreateWriteAction
             bridgeBaseUrl={bridgeBaseUrl}
@@ -1189,4 +1129,3 @@ export function SchedulePanel({
     </ClinicPage>
   );
 }
-

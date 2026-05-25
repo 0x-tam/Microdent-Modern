@@ -1,24 +1,12 @@
 import { createBridgeClient } from "@microdent/bridge-client";
 import type { BridgeDevStatusResponse, MirrorStatusResponse, ScheduleAppointmentItem } from "@microdent/contracts";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Badge, Button } from "@microdent/ui";
-import { ClinicEmptyState } from "./clinic-empty-state.js";
-import { ClinicLoadingSkeleton } from "./clinic-loading-skeleton.js";
+import { Badge, Button, CommandCenter, EmptyState, PatientQuickCard, type ButtonVariant } from "@microdent/ui";
 import { ClinicPage, ClinicPageHero } from "./clinic-page.js";
-import { ClinicPanel } from "./clinic-panel.js";
-import {
-  friendlyBridgeStatus,
-  friendlyEditingStatus,
-  friendlyLocalCopyStatus,
-  type ClinicFriendlyTone,
-} from "./clinic-friendly-copy.js";
 import type { AppSidebarModuleId } from "./app-nav-modules.js";
 import type { SessionRecentPatient } from "./session-recent-patients.js";
 import type { BridgeHealthPhase } from "./bridge-health.js";
-import { FixtureConnectionPanel } from "./FixtureConnectionPanel.js";
-import { LegacyCatalogPanel } from "./LegacyCatalogPanel.js";
 import { isMirrorImportStale } from "./mirror-stale.js";
-import { resolveTodayClinicStatus } from "./today-clinic-status.js";
 import {
   appointmentVisitMeta,
   buildRoomLabelMap,
@@ -38,31 +26,22 @@ import {
   CLINIC_SERVICE_OFFLINE_TITLE,
   READONLY_STATE_RETRY,
   SCHEDULE_LOAD_ERROR,
-  TODAY_APPT_ROW_CURRENT_LABEL,
-  TODAY_APPT_ROW_NEXT_LABEL,
-  TODAY_CLINIC_STATUS_TITLE,
   TODAY_CONTINUE_EMPTY_HINT,
   TODAY_CONTINUE_WORKING_LABEL,
   TODAY_EMPTY_DESCRIPTION,
   TODAY_EMPTY_TITLE,
-  TODAY_HERO_SUBTITLE,
-  TODAY_LOADING,
   TODAY_METRIC_ON_SCHEDULE,
   TODAY_MIRROR_STALE_ADVISORY,
-  TODAY_NEXT_LOADING,
   TODAY_NEXT_NO_UPCOMING,
-  TODAY_NEXT_OFFLINE,
-  TODAY_NEXT_PANEL_TITLE,
   TODAY_OPEN_PATIENT,
   TODAY_OPEN_SCHEDULE,
-  TODAY_OPEN_SETTINGS,
-  TODAY_QUICK_ACTIONS_TITLE,
   TODAY_REFRESH,
   TODAY_SCHEDULE_PANEL_TITLE,
   TODAY_SCHEDULE_UNAVAILABLE,
   TODAY_SEARCH_PATIENT,
-  TODAY_STATUS_VIEW_SETTINGS,
 } from "./read-only-ui-copy.js";
+
+/* ── helpers ─────────────────────────────────────────────────────────────── */
 
 function toLocalIsoDate(d: Date): string {
   const y = d.getFullYear();
@@ -75,23 +54,17 @@ function statusLabel(code: number): string {
   return patientApptStatusLabel(code);
 }
 
-function statusBadgeVariant(
-  code: number,
-): "neutral" | "success" | "warning" | "danger" | "info" {
+function statusBadgeVariant(code: number): "neutral" | "success" | "warning" | "danger" | "info" {
   return patientApptStatusBadgeVariant(code);
 }
 
-function dashboardPatientHeadline(appt: ScheduleAppointmentItem): string {
-  if (appt.patId === "0") {
-    return "No patient id";
-  }
+function patientHeadline(appt: ScheduleAppointmentItem): string {
+  if (appt.patId === "0") return "No patient id";
   return appt.patient?.displayName ?? `Patient ID ${appt.patId}`;
 }
 
-function dashboardPatientChart(appt: ScheduleAppointmentItem): string | null {
-  if (appt.patId === "0") {
-    return null;
-  }
+function patientChart(appt: ScheduleAppointmentItem): string | null {
+  if (appt.patId === "0") return null;
   const c = appt.patient?.chartNumber;
   return c !== null && c !== undefined && c.length > 0 ? c : null;
 }
@@ -113,7 +86,6 @@ function parseTimeToMinutes(t: string): number | null {
   return h * 60 + min;
 }
 
-/** First appointment today at or after `now` (local), by time then id. */
 function findNextUpcomingToday(sorted: ScheduleAppointmentItem[], now: Date): ScheduleAppointmentItem | null {
   const nowM = now.getHours() * 60 + now.getMinutes();
   for (const a of sorted) {
@@ -124,7 +96,6 @@ function findNextUpcomingToday(sorted: ScheduleAppointmentItem[], now: Date): Sc
   return null;
 }
 
-/** Appointment in progress at `now` (start <= now < end). */
 function findCurrentToday(sorted: ScheduleAppointmentItem[], now: Date): ScheduleAppointmentItem | null {
   const nowM = now.getHours() * 60 + now.getMinutes();
   for (const a of sorted) {
@@ -135,6 +106,13 @@ function findCurrentToday(sorted: ScheduleAppointmentItem[], now: Date): Schedul
     if (start <= nowM && nowM < end) return a;
   }
   return null;
+}
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
 }
 
 function formatTodayLine(): string {
@@ -161,6 +139,8 @@ function visitMetaLine(
   });
 }
 
+/* ── types ───────────────────────────────────────────────────────────────── */
+
 export type DashboardPatientSummary = {
   displayName?: string | null;
   chartNumber?: string | null;
@@ -186,12 +166,7 @@ export type DashboardHomeProps = {
   sessionRecentPatientCount?: number;
 };
 
-function mapFriendlyTone(tone: ClinicFriendlyTone): string {
-  if (tone === "ok") return "ok";
-  if (tone === "warn") return "warn";
-  if (tone === "danger") return "danger";
-  return "neutral";
-}
+/* ── component ───────────────────────────────────────────────────────────── */
 
 export function DashboardHome({
   moduleTitle = "Today",
@@ -208,8 +183,8 @@ export function DashboardHome({
   recentPatients = [],
   onRecentPatientSelect,
   mirrorStatus = null,
-  writeCapability = null,
-  sandboxWritePilot = false,
+  writeCapability: _writeCapability = null,
+  sandboxWritePilot: _sandboxWritePilot = false,
   sessionRecentPatientCount: _sessionRecentPatientCount = 0,
 }: DashboardHomeProps) {
   const base = bridgeBaseUrl?.trim() ?? "";
@@ -228,6 +203,9 @@ export function DashboardHome({
 
   const mirrorStale =
     bridgePhase === "connected" && mirrorStatus !== null && isMirrorImportStale(mirrorStatus, Date.now());
+
+  const greeting = useMemo(() => getGreeting(), []);
+  const todayLine = useMemo(() => formatTodayLine(), []);
 
   const openScheduleToday = useCallback(() => {
     if (onOpenScheduleAtDate) {
@@ -248,6 +226,7 @@ export function DashboardHome({
     [onOpenPatient],
   );
 
+  /* ── room fetch ──────────────────────────────────────────────────────── */
   useEffect(() => {
     if (!canLoad) {
       setRoomMap(new Map());
@@ -275,10 +254,9 @@ export function DashboardHome({
     };
   }, [canLoad, base, fetchImpl]);
 
+  /* ── today appointments fetch ────────────────────────────────────────── */
   const loadToday = useCallback(async () => {
-    if (!canLoad) {
-      return;
-    }
+    if (!canLoad) return;
     const seq = ++requestSeq.current;
     setLoading(true);
     setError(null);
@@ -317,6 +295,7 @@ export function DashboardHome({
     };
   }, [canLoad, loadToday, retryTick]);
 
+  /* ── derived data ────────────────────────────────────────────────────── */
   const sorted = useMemo(() => [...appointments].sort(sortAppointments), [appointments]);
   const now = useMemo(() => new Date(), [sorted, loading, retryTick]);
   const currentAppt = useMemo(() => findCurrentToday(sorted, now), [sorted, now]);
@@ -329,21 +308,6 @@ export function DashboardHome({
     return formatAppointmentStatusMix(sorted);
   }, [base, bridgePhase, loading, error, sorted]);
 
-  const todayClinicStatus = useMemo(
-    () =>
-      resolveTodayClinicStatus({
-        bridgePhase,
-        mirrorStatus,
-        writeCapability,
-        sandboxWritePilot,
-      }),
-    [bridgePhase, mirrorStatus, writeCapability, sandboxWritePilot],
-  );
-
-  const heroServiceChip = friendlyBridgeStatus(bridgePhase).label;
-  const heroLocalCopyChip = friendlyLocalCopyStatus(bridgePhase, mirrorStatus).label;
-  const heroEditingChip = friendlyEditingStatus(writeCapability, sandboxWritePilot).label;
-
   const scheduleSummaryLine = (() => {
     if (!canLoad || loading || error) return null;
     if (sorted.length === 0) return null;
@@ -353,344 +317,296 @@ export function DashboardHome({
     return TODAY_METRIC_ON_SCHEDULE;
   })();
 
+  /* ── next-appointment display values ─────────────────────────────────── */
+  const nextApptTime = useMemo(() => {
+    if (nextUpcoming) return nextUpcoming.time.trim();
+    return "—";
+  }, [nextUpcoming]);
+
+  const nextApptPatient = useMemo(() => {
+    if (nextUpcoming && nextUpcoming.patId !== "0") {
+      return nextUpcoming.patient?.displayName ?? `Patient ID ${nextUpcoming.patId}`;
+    }
+    return "No upcoming";
+  }, [nextUpcoming]);
+
+  /* ── CommandCenter metrics & actions ─────────────────────────────────── */
+  const commandMetrics = useMemo(() => {
+    const items: { label: string; value: ReactNode }[] = [];
+    if (canLoad && !loading && !error) {
+      items.push({ label: "Patients today", value: sorted.length });
+    }
+    if (nextUpcoming) {
+      items.push({
+        label: "Next appointment",
+        value: `${nextUpcoming.time.trim()} — ${patientHeadline(nextUpcoming)}`,
+      });
+    }
+    return items;
+  }, [canLoad, loading, error, sorted, nextUpcoming]);
+
+  const commandActions = useMemo(() => {
+    const items: Array<{ label: string; onClick?: () => void; variant?: ButtonVariant }> = [
+      { label: TODAY_SEARCH_PATIENT, onClick: () => onOpenModule("patients"), variant: "primary" },
+      { label: TODAY_OPEN_SCHEDULE, onClick: openScheduleToday, variant: "secondary" },
+    ];
+    if (recentPatients.length > 0 && onRecentPatientSelect) {
+      items.push({
+        label: `Continue: ${recentPatients[0].displayName}`,
+        onClick: () => onRecentPatientSelect(recentPatients[0]),
+        variant: "ghost",
+      });
+    }
+    return items;
+  }, [onOpenModule, openScheduleToday, recentPatients, onRecentPatientSelect]);
+
+  /* ── empty / error states ────────────────────────────────────────────── */
   const emptyStateActions = (
     <>
-      <Button
-        type="button"
-        variant="primary"
-        className="ui-focusable"
-        onClick={() => onOpenModule("schedule")}
-      >
+      <Button variant="primary" onClick={() => onOpenModule("schedule")}>
         {TODAY_OPEN_SCHEDULE}
       </Button>
-      <Button type="button" variant="secondary" className="ui-focusable" onClick={() => onOpenModule("patients")}>
+      <Button variant="secondary" onClick={() => onOpenModule("patients")}>
         {TODAY_SEARCH_PATIENT}
       </Button>
     </>
   );
 
-  const primaryBody: ReactNode = (() => {
+  /* ── render body based on connection / loading state ─────────────────── */
+  const renderBody = (): ReactNode => {
+    // Offline
     if (!base || bridgePhase === "offline") {
       return (
-        <ClinicEmptyState
+        <EmptyState
           variant="offline"
           title={CLINIC_SERVICE_OFFLINE_TITLE}
-          body={CLINIC_SERVICE_CONNECT_TODAY}
+          description={CLINIC_SERVICE_CONNECT_TODAY}
           actions={
-            <Button type="button" variant="secondary" className="ui-focusable" onClick={() => onOpenModule("settings")}>
-              {TODAY_OPEN_SETTINGS}
+            <Button variant="secondary" onClick={() => onOpenModule("settings")}>
+              Open settings
             </Button>
           }
         />
       );
     }
+
+    // Checking
     if (bridgePhase === "checking") {
-      return <ClinicLoadingSkeleton lines={3} label={CLINIC_SERVICE_CHECKING} />;
+      return <EmptyState variant="loading" title={CLINIC_SERVICE_CHECKING} description="" />;
     }
+
+    // Loading
     if (loading) {
-      return <ClinicLoadingSkeleton lines={5} label={TODAY_LOADING} />;
+      return <EmptyState variant="loading" title="Loading today's schedule…" description="" />;
     }
+
+    // Error
     if (error) {
       return (
-        <div className="clinic-today-readonly-state clinic-today-readonly-state--error" role="alert">
-          <p>{TODAY_SCHEDULE_UNAVAILABLE}</p>
-          <Button type="button" variant="secondary" className="ui-focusable" onClick={refreshToday}>
-            {READONLY_STATE_RETRY}
-          </Button>
-        </div>
+        <EmptyState
+          variant="error"
+          title="Schedule unavailable"
+          description={TODAY_SCHEDULE_UNAVAILABLE}
+          actions={
+            <Button variant="secondary" onClick={refreshToday}>
+              {READONLY_STATE_RETRY}
+            </Button>
+          }
+        />
       );
     }
+
+    // Empty schedule
     if (sorted.length === 0) {
       return (
-        <ClinicEmptyState
+        <EmptyState
+          variant="empty"
           title={TODAY_EMPTY_TITLE}
-          body={TODAY_EMPTY_DESCRIPTION}
+          description={TODAY_EMPTY_DESCRIPTION}
           actions={emptyStateActions}
         />
       );
     }
+
+    // Appointment cards
     return (
-      <div className="clinic-today-appt-list" aria-label="Today’s appointments from the clinic copy">
+      <div className="today-appt-list" aria-label="Today's appointments">
         {sorted.map((a) => {
-          const rowClass = [
-            "clinic-list-card",
-            `clinic-list-card--status-${statusBadgeVariant(a.status)}`,
-            currentAppt?.id === a.id ? "clinic-list-card--current" : "",
-            nextUpcoming?.id === a.id && currentAppt?.id !== a.id ? "clinic-list-card--next" : "",
+          const isCurrent = currentAppt?.id === a.id;
+          const isNext = nextUpcoming?.id === a.id && !isCurrent;
+          const cardClass = [
+            "today-appt-card",
+            isCurrent ? "today-appt-card--current" : "",
+            isNext ? "today-appt-card--next" : "",
           ]
             .filter(Boolean)
             .join(" ");
-          const rowLabel =
-            currentAppt?.id === a.id
-              ? TODAY_APPT_ROW_CURRENT_LABEL
-              : nextUpcoming?.id === a.id && currentAppt?.id !== a.id
-                ? TODAY_APPT_ROW_NEXT_LABEL
-                : undefined;
+
           return (
-            <article key={a.id} className={rowClass} aria-label={rowLabel}>
-              <div className="clinic-list-card__main">
-                {rowLabel ? <p className="clinic-today-appt__row-label">{rowLabel}</p> : null}
-                <p className="clinic-today-appt__time">{a.time.trim()}</p>
-                <p
-                  className={
-                    a.patId === "0"
-                      ? "clinic-today-appt__patient clinic-today-appt__patient--muted"
-                      : "clinic-today-appt__patient"
-                  }
-                >
-                  {dashboardPatientHeadline(a)}
-                  {a.patId !== "0" && dashboardPatientChart(a) !== null ? (
-                    <span className="clinic-today-appt__meta"> · {dashboardPatientChart(a)}</span>
-                  ) : null}
+            <article key={a.id} className={cardClass}>
+              <div className="today-appt-card__main">
+                {isCurrent && <span className="today-appt-card__tag">In progress</span>}
+                {isNext && <span className="today-appt-card__tag">Next up</span>}
+                <p className="today-appt-card__time">{a.time.trim()}</p>
+                <p className="today-appt-card__patient">{patientHeadline(a)}</p>
+                <p className="today-appt-card__meta">
+                  {visitMetaLine(a, doctorLabels, procedureMaps, roomMap)}
+                  {patientChart(a) && <> · Chart {patientChart(a)}</>}
                 </p>
-                <p className="clinic-today-appt__meta">{visitMetaLine(a, doctorLabels, procedureMaps, roomMap)}</p>
-                <div className="clinic-today-appt__badges">
+                <div className="today-appt-card__badges">
                   <Badge variant={statusBadgeVariant(a.status)} semanticLabel={patientApptStatusSemanticLabel(a.status)}>
                     {statusLabel(a.status)}
                   </Badge>
-                  {a.hasComment ? <span className="app-badge">Note hidden</span> : null}
-                  {a.missed ? (
+                  {a.missed && (
                     <Badge variant="danger" semanticLabel="Missed appointment">
                       Missed
                     </Badge>
-                  ) : null}
+                  )}
                 </div>
               </div>
-              <div className="clinic-list-card__actions">
-                {a.patId !== "0" && onOpenPatient ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="compact"
-                    className="ui-focusable"
-                    onClick={() => openPatientFromAppt(a)}
-                  >
+              <div className="today-appt-card__actions">
+                {a.patId !== "0" && onOpenPatient && (
+                  <Button variant="ghost" size="compact" onClick={() => openPatientFromAppt(a)}>
                     {TODAY_OPEN_PATIENT}
                   </Button>
-                ) : null}
+                )}
               </div>
             </article>
           );
         })}
       </div>
     );
-  })();
+  };
 
-  const nextCardBody: ReactNode = (() => {
-    if (!base || bridgePhase === "offline") {
-      return (
-        <p className="clinic-today-readonly-state" role="status">
-          {TODAY_NEXT_OFFLINE}
-        </p>
-      );
-    }
-    if (bridgePhase === "checking") {
-      return (
-        <p className="clinic-today-readonly-state" role="status">
-          {CLINIC_SERVICE_CHECKING}
-        </p>
-      );
-    }
-    if (loading) {
-      return (
-        <p className="clinic-today-readonly-state" role="status" aria-busy="true">
-          {TODAY_NEXT_LOADING}
-        </p>
-      );
-    }
-    if (error) {
-      return <p className="clinic-today-readonly-state">{TODAY_SCHEDULE_UNAVAILABLE}</p>;
-    }
-    if (sorted.length === 0) {
-      return (
-        <ClinicEmptyState title={TODAY_EMPTY_TITLE} body={TODAY_NEXT_NO_UPCOMING} actions={emptyStateActions} />
-      );
-    }
-    if (!nextUpcoming) {
-      return <p className="clinic-today-readonly-state">{TODAY_NEXT_NO_UPCOMING}</p>;
-    }
-    return (
-      <div className="clinic-today-now__highlight">
-        <p className="clinic-today-now__time">{nextUpcoming.time.trim()}</p>
-        <p
-          className={
-            nextUpcoming.patId === "0"
-              ? "clinic-today-now__patient clinic-today-appt__patient--muted"
-              : "clinic-today-now__patient"
-          }
-        >
-          {dashboardPatientHeadline(nextUpcoming)}
-          {nextUpcoming.patId !== "0" && dashboardPatientChart(nextUpcoming) !== null ? (
-            <span className="clinic-today-appt__meta"> · {dashboardPatientChart(nextUpcoming)}</span>
-          ) : null}
-        </p>
-        <p className="clinic-today-now__detail">
-          {visitMetaLine(nextUpcoming, doctorLabels, procedureMaps, roomMap)} · {statusLabel(nextUpcoming.status)}
-        </p>
-        <div className="clinic-today-appt__badges">
-          {nextUpcoming.hasComment ? <span className="app-badge">Note hidden</span> : null}
-          {nextUpcoming.missed ? (
-            <Badge variant="danger" semanticLabel="Missed appointment">
-              Missed
-            </Badge>
-          ) : null}
-        </div>
-        <div className="clinic-today-now__actions">
-          {nextUpcoming.patId !== "0" && onOpenPatient ? (
-            <Button
-              type="button"
-              variant="primary"
-              className="ui-focusable"
-              onClick={() => openPatientFromAppt(nextUpcoming)}
-            >
-              {TODAY_OPEN_PATIENT}
-            </Button>
-          ) : (
-            <Button type="button" variant="secondary" className="ui-focusable" onClick={() => onOpenModule("patients")}>
-              {TODAY_SEARCH_PATIENT}
-            </Button>
-          )}
-          <Button type="button" variant="secondary" className="ui-focusable" onClick={() => onOpenModule("schedule")}>
-            {TODAY_OPEN_SCHEDULE}
-          </Button>
-        </div>
-      </div>
-    );
-  })();
-
-  const appointmentsHeaderActions = (
-    <>
-      {scheduleSummaryLine ? (
-        <span className="clinic-today-appt-count">{scheduleSummaryLine}</span>
-      ) : null}
-      {canLoad ? (
-        <Button
-          type="button"
-          variant="secondary"
-          size="compact"
-          className="ui-focusable"
-          disabled={loading}
-          onClick={refreshToday}
-        >
-          {TODAY_REFRESH}
-        </Button>
-      ) : null}
-    </>
-  );
-
+  /* ── main render ─────────────────────────────────────────────────────── */
   return (
     <ClinicPage className="clinic-today-page" testId="today-page">
+      {/* Hero */}
       <ClinicPageHero
         title={moduleTitle}
-        subtitle={TODAY_HERO_SUBTITLE}
-        meta={
-          <>
-            <p className="clinic-today-hero__date">{formatTodayLine()}</p>
-            <div className="clinic-today-hero__chips">
-              <span className={canLoad ? "clinic-chip clinic-chip--active" : "clinic-chip"}>{heroServiceChip}</span>
-              <span className="clinic-chip">{heroLocalCopyChip}</span>
-              <span className="clinic-chip">{heroEditingChip}</span>
-            </div>
-          </>
-        }
+        subtitle={`${greeting} · ${todayLine}`}
       />
 
-      <div className="clinic-workspace-grid">
-        <div className="clinic-col-8 clinic-workspace-grid__stack">
-          <ClinicPanel
-            title={TODAY_SCHEDULE_PANEL_TITLE}
-            headerActions={appointmentsHeaderActions}
-            testId="today-appointments-panel"
-          >
-            {mirrorStale ? (
-              <p className="clinic-today-panel-note clinic-today-panel-note--advisory" role="note">
-                {TODAY_MIRROR_STALE_ADVISORY}
-              </p>
-            ) : null}
-            {primaryBody}
-          </ClinicPanel>
+      {/* Command Center */}
+      <CommandCenter
+        greeting={`${greeting}`}
+        date={todayLine}
+        patientsOnSchedule={canLoad && !loading && !error ? sorted.length : undefined}
+        nextAppointment={
+          nextUpcoming
+            ? `${nextUpcoming.time.trim()} — ${patientHeadline(nextUpcoming)}`
+            : nextApptPatient
+        }
+        metrics={commandMetrics}
+        actions={commandActions}
+      />
 
-          <div className="clinic-continue-strip" aria-label={TODAY_CONTINUE_WORKING_LABEL}>
-            <p className="clinic-continue-strip__label">{TODAY_CONTINUE_WORKING_LABEL}</p>
-            {recentPatients.length > 0 && onRecentPatientSelect ? (
-              <ul className="clinic-continue-strip__chips">
-                {recentPatients.slice(0, 5).map((entry) => (
-                  <li key={entry.patientId}>
-                    <button
-                      type="button"
-                      className="clinic-continue-strip__chip ui-focusable"
-                      onClick={() => onRecentPatientSelect(entry)}
-                    >
-                      {entry.displayName?.trim() || `Patient ID ${entry.patientId}`}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="clinic-today-continue-hint">{TODAY_CONTINUE_EMPTY_HINT}</p>
+      {/* Next Appointment (prominent card) */}
+      {nextUpcoming && nextUpcoming.patId !== "0" && onOpenPatient && (
+        <section className="today-next-section" aria-label="Next appointment">
+          <h2 className="today-next-section__title">Next up</h2>
+          <PatientQuickCard
+            name={nextUpcoming.patient?.displayName ?? `Patient ID ${nextUpcoming.patId}`}
+            chartNumber={nextUpcoming.patient?.chartNumber ?? ""}
+            time={nextUpcoming.time.trim()}
+            room={roomDisplayLabel(nextUpcoming.room, roomMap)}
+            status={
+              <Badge variant={statusBadgeVariant(nextUpcoming.status)} semanticLabel={patientApptStatusSemanticLabel(nextUpcoming.status)}>
+                {statusLabel(nextUpcoming.status)}
+              </Badge>
+            }
+            onClick={() => openPatientFromAppt(nextUpcoming)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                openPatientFromAppt(nextUpcoming);
+              }
+            }}
+          />
+        </section>
+      )}
+
+      {/* Today's Schedule */}
+      <section className="today-schedule-section" aria-label={TODAY_SCHEDULE_PANEL_TITLE}>
+        <div className="today-schedule-section__header">
+          <h2 className="today-schedule-section__title">{TODAY_SCHEDULE_PANEL_TITLE}</h2>
+          <div className="today-schedule-section__header-actions">
+            {scheduleSummaryLine && (
+              <span className="today-schedule-section__count">{scheduleSummaryLine}</span>
+            )}
+            {canLoad && (
+              <Button
+                variant="ghost"
+                size="compact"
+                disabled={loading}
+                onClick={refreshToday}
+              >
+                {TODAY_REFRESH}
+              </Button>
             )}
           </div>
         </div>
+        {renderBody()}
+      </section>
 
-        <aside className="clinic-col-4 clinic-workspace-grid__stack" aria-label="Next visit, shortcuts, and clinic status">
-          <ClinicPanel title={TODAY_NEXT_PANEL_TITLE} testId="today-now-panel">
-            {nextCardBody}
-          </ClinicPanel>
-
-          <ClinicPanel title={TODAY_QUICK_ACTIONS_TITLE}>
-            <div className="clinic-today-quick-actions">
-              <Button type="button" variant="primary" className="ui-focusable" onClick={() => onOpenModule("patients")}>
-                {TODAY_SEARCH_PATIENT}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                className="ui-focusable"
-                disabled={!canLoad}
-                onClick={openScheduleToday}
-              >
-                {TODAY_OPEN_SCHEDULE}
-              </Button>
-              <Button type="button" variant="secondary" className="ui-focusable" onClick={() => onOpenModule("settings")}>
-                {TODAY_OPEN_SETTINGS}
-              </Button>
-            </div>
-          </ClinicPanel>
-
-          <ClinicPanel title={TODAY_CLINIC_STATUS_TITLE}>
-            <ul className="clinic-status-compact" aria-label={TODAY_CLINIC_STATUS_TITLE}>
-              {todayClinicStatus.map((row) => (
-                <li key={row.key} className="clinic-status-compact__row">
-                  <span className="clinic-status-compact__label">{row.label}</span>
-                  <span className={["clinic-status-pill", `clinic-status-pill--${mapFriendlyTone(row.tone)}`].join(" ")}>
-                    {row.value}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <p className="clinic-status-compact__footer">
-              <button
-                type="button"
-                className="clinic-status-compact__footer-link ui-focusable"
-                onClick={() => onOpenModule("settings")}
-              >
-                {TODAY_STATUS_VIEW_SETTINGS}
-              </button>
-            </p>
-          </ClinicPanel>
-
-          {import.meta.env.DEV ? (
-            <>
-              <LegacyCatalogPanel bridgeBaseUrl={bridgeBaseUrl} bridgePhase={bridgePhase} />
-              <FixtureConnectionPanel
-                bridgeBaseUrl={bridgeBaseUrl}
-                bridgePhase={bridgePhase}
-                className="app-fixture-panel--deemphasized"
+      {/* Recent Patients */}
+      {recentPatients.length > 0 && (
+        <section className="today-recent-section" aria-label={TODAY_CONTINUE_WORKING_LABEL}>
+          <h2 className="today-recent-section__title">{TODAY_CONTINUE_WORKING_LABEL}</h2>
+          <div className="today-recent-section__row">
+            {recentPatients.slice(0, 5).map((entry) => (
+              <PatientQuickCard
+                key={entry.patientId}
+                name={entry.displayName?.trim() || `Patient ID ${entry.patientId}`}
+                chartNumber={entry.chartNumber ?? ""}
+                initials={entry.displayName
+                  ?.trim()
+                  ?.split(/\s+/)
+                  .slice(0, 2)
+                  .map((w) => w[0])
+                  .join("")
+                  .toUpperCase()
+                  ?.slice(0, 2)}
+                onClick={() => onRecentPatientSelect?.(entry)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onRecentPatientSelect?.(entry);
+                  }
+                }}
               />
-            </>
-          ) : null}
-        </aside>
-      </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Footer — subtle status only */}
+      <footer className="today-footer">
+        <div className="today-footer__status">
+          {bridgePhase === "connected" && (
+            <span className="today-footer__dot today-footer__dot--ok" aria-hidden />
+          )}
+          {bridgePhase === "checking" && (
+            <span className="today-footer__dot today-footer__dot--checking" aria-hidden />
+          )}
+          {bridgePhase === "offline" && (
+            <span className="today-footer__dot today-footer__dot--offline" aria-hidden />
+          )}
+          <span className="today-footer__label">
+            {bridgePhase === "connected" && "Connected"}
+            {bridgePhase === "checking" && "Connecting…"}
+            {bridgePhase === "offline" && "Offline"}
+          </span>
+        </div>
+        {mirrorStale && (
+          <span className="today-footer__stale" role="note">
+            {TODAY_MIRROR_STALE_ADVISORY}
+          </span>
+        )}
+        {!mirrorStale && canLoad && sorted.length > 0 && (
+          <span className="today-footer__info">{sorted.length} appointments today</span>
+        )}
+      </footer>
     </ClinicPage>
   );
 }

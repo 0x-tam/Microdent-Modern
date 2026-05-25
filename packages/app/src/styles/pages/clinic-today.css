@@ -222,3 +222,56 @@
   font-weight: 600;
   color: var(--ui-text-secondary);
 }
+
+/* ----- Responsive: tablet ----- */
+@media (max-width: 1024px) {
+  .clinic-today-page .clinic-workspace-grid__stack > .clinic-panel {
+    min-width: 0;
+  }
+
+  .clinic-today-hero__chips {
+    justify-content: flex-start;
+  }
+
+  .clinic-today-quick-actions {
+    flex-direction: column;
+  }
+
+  .clinic-today-quick-actions .clinic-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ----- Responsive: mobile ----- */
+@media (max-width: 768px) {
+  .clinic-today-hero__date {
+    font-size: var(--clinic-text-section);
+  }
+
+  .clinic-today-appt__patient {
+    font-size: var(--clinic-text-meta);
+  }
+
+  .clinic-today-appt__badges {
+    gap: var(--ui-space-1);
+  }
+
+  .clinic-today-now__highlight {
+    gap: var(--ui-space-1);
+  }
+
+  .clinic-today-now__actions {
+    flex-direction: column;
+  }
+
+  .clinic-today-now__actions .clinic-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .clinic-today-selected-patient {
+    margin-top: var(--ui-space-3);
+    padding-top: var(--ui-space-3);
+  }
+}

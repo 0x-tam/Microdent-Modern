@@ -198,6 +198,22 @@
   padding-top: var(--ui-space-2);
 }
 
+@media (max-width: 1024px) {
+  .clinic-schedule-hero-controls__range {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--ui-space-1) var(--ui-space-2);
+  }
+
+  .clinic-schedule-range {
+    font-size: clamp(1.15rem, 2vw, 1.5rem);
+  }
+
+  .clinic-schedule-toolbar__room {
+    margin-right: 0;
+  }
+}
+
 @media (max-width: 720px) {
   .clinic-schedule-hero-controls__refresh {
     margin-left: 0;

@@ -45,20 +45,27 @@ describe("AppShell", () => {
     expect(html).toContain("<nav");
     expect(html).toContain("Read-only");
     expect(html).toContain("Clinic service offline");
-    expect(html).toContain("Local copy");
     expect(html).toContain("app-workspace-shell");
     expect(html).toContain("clinic-sidebar");
     expect(html).toContain("Modern clinic workspace");
   });
 
-  it("renders dev-only Today aside panels only when import.meta.env.DEV", () => {
-    const html = renderToStaticMarkup(<AppShell />);
+  it("renders dev-only Today aside panels only when import.meta.env.DEV and diagnostics props", () => {
+    // Diagnostic panels are no longer auto-rendered in the aside; they require explicit props.
+    // Without bridgeConnectionDiagnostics/mirrorConnectionDiagnostics props, diagnostics stay hidden.
+    const htmlNoDiag = renderToStaticMarkup(<AppShell />);
+    expect(htmlNoDiag).not.toContain("Data connection test");
+    expect(htmlNoDiag).not.toContain("Legacy data catalog");
+    expect(htmlNoDiag).not.toContain("Dev connection details");
+
+    // When diagnostics props are passed (dev only), connection details appear in the header
+    const htmlWithDiag = renderToStaticMarkup(
+      <AppShell bridgeBaseUrl="http://127.0.0.1:17890" bridgeConnectionDiagnostics />,
+    );
     if (import.meta.env.DEV) {
-      expect(html).toContain("Data connection test");
-      expect(html).toContain("Legacy data catalog");
+      expect(htmlWithDiag).toContain("Dev connection details");
     } else {
-      expect(html).not.toContain("Data connection test");
-      expect(html).not.toContain("Legacy data catalog");
+      expect(htmlWithDiag).not.toContain("Dev connection details");
     }
   });
 
@@ -90,8 +97,11 @@ describe("AppShell", () => {
   it("renders page title and workflow-first hero copy on Today", () => {
     const html = renderToStaticMarkup(<AppShell />);
     expect(html).toContain('id="app-main-heading"');
-    expect(html).toMatch(/patient shortcuts, and clinic service status/);
-    expect(html).toContain("Front desk dashboard");
+    // CommandCenter hero shows greeting and date
+    expect(html).toMatch(/Good (morning|afternoon|evening)/);
+    // CommandCenter section renders with actions even when offline
+    expect(html).toContain("ui-command");
+    expect(html).toContain("Search patient");
   });
 
   it("does not show Back to Today on the default Today view", () => {
@@ -126,14 +136,12 @@ describe("AppShell", () => {
 
   it("shows compact clinic-friendly header pills and capped search width class", () => {
     const html = renderToStaticMarkup(<AppShell />);
-    const header = html.match(/<header class="clinic-workspace-header[\s\S]*?<\/header>/)?.[0] ?? "";
-    expect(header).toContain("clinic-workspace-header__status-cluster");
-    expect(header).toContain("clinic-status-pill");
+    // Header pills removed; connection status shown as subtle dot in sidebar footer
+    expect(html).toContain("clinic-sidebar__connection-dot");
+    expect(html).toContain("app-rail__connection-pill");
+    expect(html).toContain("Clinic service offline");
     expect(html).toContain("clinic-header-search");
-    expect(header).toContain("Local copy");
-    expect(header).not.toContain("Writes off");
-    expect(header).not.toContain("Sandbox pilot");
-    expect(html).toContain("payment amounts stay hidden");
+    expect(html).toContain('role="status"');
     assertNoMainPageJargonInDom(html);
   });
 

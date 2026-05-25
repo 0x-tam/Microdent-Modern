@@ -1541,3 +1541,155 @@
   text-align: left;
   padding: var(--ui-space-4);
 }
+
+/* ----- Premium Timeline Event Enhancements ----- */
+.app-patient-profile__timeline-row-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--ui-space-2);
+}
+
+.app-patient-profile__timeline-row-date {
+  font-size: var(--app-text-meta);
+  font-weight: 500;
+  color: var(--ui-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Chart limitation note */
+.app-patient-profile__chart-limitation {
+  border-left: 3px solid var(--ui-success-600);
+  background: color-mix(in srgb, var(--ui-success-50) 45%, var(--ui-bg-surface));
+}
+
+.app-patient-profile__chart-limitation-note {
+  margin: 0;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  font-size: var(--app-text-meta);
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+  border-radius: var(--ui-radius-sm);
+  border: 1px solid color-mix(in srgb, var(--ui-success-600) 15%, var(--ui-border-subtle));
+  background: color-mix(in srgb, var(--ui-success-50) 30%, var(--ui-bg-surface));
+  font-weight: 500;
+}
+
+/* Ledger amounts callout */
+.app-patient-profile__ledger-amounts-callout {
+  margin: 0;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  font-size: var(--app-text-meta);
+  line-height: 1.45;
+  color: var(--ui-text-secondary);
+  border-radius: var(--ui-radius-sm);
+  border: 1px solid color-mix(in srgb, var(--ui-status-offline-text) 15%, var(--ui-border-subtle));
+  background: color-mix(in srgb, var(--ui-bg-muted) 50%, var(--ui-bg-surface));
+  font-weight: 500;
+}
+
+/* Treatment details hidden badge */
+.app-clinical-badge--details-hidden {
+  border-style: dotted;
+  border-color: var(--ui-status-offline-border);
+  background: var(--ui-status-offline-bg);
+  color: var(--ui-status-offline-text);
+  font-size: var(--app-text-meta);
+  font-weight: 600;
+}
+
+/* Responsive: tablet and mobile for profile workspace */
+@media (max-width: 900px) {
+  .app-patient-profile {
+    gap: var(--ui-space-3);
+  }
+
+  .app-patient-profile__row {
+    grid-template-columns: 1fr;
+    gap: var(--ui-space-1);
+  }
+
+  .app-patient-profile__row dt {
+    font-size: 13px;
+  }
+
+  .app-patient-profile__tablist {
+    flex-direction: column;
+  }
+
+  .app-patient-profile__tab {
+    min-height: 44px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .app-patient-profile__summary-mini-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 8rem), 1fr));
+  }
+
+  .app-patient-profile__treatment-row,
+  .app-patient-profile__chart-row,
+  .app-patient-profile__ledger-row {
+    grid-template-columns: 1fr;
+    gap: var(--ui-space-1);
+  }
+
+  .app-patient-profile__appt-row {
+    grid-template-columns: 1fr;
+    gap: var(--ui-space-1);
+  }
+
+  .app-patient-profile__toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .app-patient-profile__toolbar-refreshed {
+    margin: 0;
+  }
+
+  .app-patient-profile__header-strip.app-patient-hero {
+    padding: var(--ui-space-4) var(--ui-space-3);
+  }
+}
+
+/* Responsive: tablet and mobile */
+@media (max-width: 899px) {
+  .clinic-profile-hero__inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .clinic-profile-hero__avatar {
+    width: 3rem;
+    height: 3rem;
+  }
+
+  .clinic-profile-hero__avatar-initials {
+    font-size: 1rem;
+  }
+
+  .clinic-profile-glance-strip {
+    flex-direction: column;
+    gap: var(--ui-space-2);
+  }
+
+  .clinic-profile-glance-item {
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 599px) {
+  .clinic-profile-hero {
+    padding: var(--ui-space-4) var(--ui-space-3) var(--ui-space-3);
+  }
+
+  .clinic-profile-hero__action-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .clinic-profile-summary-cta-row {
+    flex-direction: column;
+  }
+}

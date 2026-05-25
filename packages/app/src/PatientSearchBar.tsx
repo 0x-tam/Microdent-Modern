@@ -1,10 +1,9 @@
 import { BridgeClientError, createBridgeClient, isInvalidBodySchemaMismatch } from "@microdent/bridge-client";
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { Button } from "@microdent/ui";
+import { Badge, Button, Card, CardBody, EmptyState, Input, PatientQuickCard } from "@microdent/ui";
 import type { BridgeHealthPhase } from "./bridge-health.js";
-import { ClinicPage, ClinicPageHero } from "./clinic-page.js";
 import { ClinicEmptyState } from "./clinic-empty-state.js";
-import { ClinicLoadingSkeleton } from "./clinic-loading-skeleton.js";
+import { ClinicPage, ClinicPageHero } from "./clinic-page.js";
 import { ClinicPanel } from "./clinic-panel.js";
 import {
   PATIENT_NO_SELECTION_DESCRIPTION,
@@ -489,6 +488,7 @@ export function PatientSearchBar({
     .filter(Boolean)
     .join(" ");
 
+  // ---------- Shared search controls (used by both modes) ----------
   const searchControls = (
     <>
       {showOfflineBanner ? (
@@ -496,75 +496,63 @@ export function PatientSearchBar({
           {PATIENT_SEARCH_OFFLINE_BANNER}
         </p>
       ) : null}
-      <label className="app-patient-search__label" htmlFor={domIds.input}>
-        {PATIENT_SEARCH_FIELD_LABEL}
-      </label>
       {instanceId === "topbar" && selectedDisplayName?.trim() ? (
         <p className="app-patient-search__selected" role="status">
           {PATIENT_SEARCH_OPEN_RECORD_PREFIX}{" "}
           <span className="app-patient-search__selected-name">{selectedDisplayName.trim()}</span>
         </p>
       ) : null}
-      <div className="app-patient-search__row">
-        <input
-          id={domIds.input}
-          className={`app-topbar-search__input ui-focusable clinic-patients-search__input${instanceId === "page" ? " app-patient-search__input--page" : ""}`}
-          type="search"
-          disabled={!canSearch}
-          autoComplete="off"
-          spellCheck={false}
-          placeholder="Name or chart number (2+ characters)"
-          aria-describedby={`${domIds.hint} ${domIds.status}`}
-          aria-expanded={useDropdown ? showDropdown : showResultsList}
-          aria-controls={showDropdown || showResultsList ? domIds.listbox : undefined}
-          aria-activedescendant={(showDropdown || showResultsList) && activeOptionId ? activeOptionId : undefined}
-          aria-autocomplete="list"
-          aria-haspopup="listbox"
-          aria-busy={searching}
-          role="combobox"
-          value={query}
-          onFocus={() => {
-            if (useDropdown && hasDropdownContent) {
-              setIsResultsPanelOpen(true);
-            }
-          }}
-          onChange={(e) => {
-            if (clearSelectionOnQueryChange) {
-              onPatientSelectionClear?.();
-            }
-            setQuery(e.target.value);
-            if (e.target.value.trim().length < 2) {
-              setIsResultsPanelOpen(false);
-              setResults([]);
-              setSearchError(null);
-              setDevSchemaHint(false);
-              setLastFinishedQuery(null);
-              setActiveOptionIndex(-1);
-            } else if (canSearch && useDropdown) {
-              setIsResultsPanelOpen(true);
-            }
-          }}
-          onKeyDown={onKeyDown}
-        />
-        <Button
-          type="button"
-          variant="secondary"
-          size={isPageWorkflow ? "default" : "compact"}
-          className="ui-focusable app-patient-search__submit clinic-patients-search__submit"
-          disabled={!canSearch || trimmed.length < 2 || searching}
-          onClick={() => flushAndSearch()}
-        >
-          Search
-        </Button>
-      </div>
-      <p id={domIds.hint} className="app-patient-search__hint clinic-patients-search__hint">
-        {canSearch
-          ? instanceId === "page"
-            ? PATIENTS_PAGE_SEARCH_PRIVACY_SHORT
-            : PATIENT_SEARCH_HINT_CONNECTED
-          : PATIENT_SEARCH_HINT_OFFLINE}
-      </p>
-      {statusMeta ? (
+      <Input
+        variant="search"
+        inputId={domIds.input}
+        label={PATIENT_SEARCH_FIELD_LABEL}
+        hint={
+          canSearch
+            ? instanceId === "page"
+              ? PATIENTS_PAGE_SEARCH_PRIVACY_SHORT
+              : PATIENT_SEARCH_HINT_CONNECTED
+            : PATIENT_SEARCH_HINT_OFFLINE
+        }
+        error={searchError ?? undefined}
+        className={`clinic-patients-search__input${instanceId === "page" ? " app-patient-search__input--page" : ""}`}
+        type="search"
+        disabled={!canSearch}
+        autoComplete="off"
+        spellCheck={false}
+        placeholder="Name or chart number (2+ characters)"
+        aria-describedby={`${domIds.hint} ${domIds.status}`}
+        aria-expanded={useDropdown ? showDropdown : showResultsList}
+        aria-controls={showDropdown || showResultsList ? domIds.listbox : undefined}
+        aria-activedescendant={(showDropdown || showResultsList) && activeOptionId ? activeOptionId : undefined}
+        aria-autocomplete="list"
+        aria-haspopup="listbox"
+        aria-busy={searching}
+        role="combobox"
+        value={query}
+        onFocus={() => {
+          if (useDropdown && hasDropdownContent) {
+            setIsResultsPanelOpen(true);
+          }
+        }}
+        onChange={(e) => {
+          if (clearSelectionOnQueryChange) {
+            onPatientSelectionClear?.();
+          }
+          setQuery(e.target.value);
+          if (e.target.value.trim().length < 2) {
+            setIsResultsPanelOpen(false);
+            setResults([]);
+            setSearchError(null);
+            setDevSchemaHint(false);
+            setLastFinishedQuery(null);
+            setActiveOptionIndex(-1);
+          } else if (canSearch && useDropdown) {
+            setIsResultsPanelOpen(true);
+          }
+        }}
+        onKeyDown={onKeyDown}
+      />
+      {statusMeta && !searchError ? (
         <p
           id={domIds.status}
           className={`app-patient-search__status app-patient-search__status--${statusMeta.tone} clinic-patients-search__status`}
@@ -581,6 +569,7 @@ export function PatientSearchBar({
     </>
   );
 
+  // ---------- Dropdown results (topbar mode) ----------
   const renderDropdownResults = () =>
     showDropdown ? (
       <div id={domIds.listbox} className="app-patient-search__dropdown" role="listbox" aria-label="Patient search results">
@@ -648,6 +637,7 @@ export function PatientSearchBar({
       </div>
     ) : null;
 
+  // ---------- Page-mode results panel (search-led workflow) ----------
   const renderPageResultsPanel = () => {
     if (!hasPageSearchActivity) {
       return (
@@ -668,22 +658,31 @@ export function PatientSearchBar({
     return (
       <div id={domIds.listbox} className="clinic-patients-results" role="listbox" aria-label="Patient search results">
         {searching ? (
-          <ClinicLoadingSkeleton lines={4} label={PATIENT_SEARCH_SEARCHING} />
+          <EmptyState
+            variant="loading"
+            title={PATIENT_SEARCH_SEARCHING}
+            description="Searching the clinic service…"
+          />
         ) : searchError ? (
-          <>
-            <p className="clinic-patients-results__status clinic-patients-results__status--error" role="alert">
-              {searchError}
-            </p>
-            {showDevDiagnostics && devSchemaHint ? (
-              <p className="clinic-patients-results__status" role="note">
-                Response shape mismatch. Check console/tests for safe schema paths.
-              </p>
-            ) : null}
-          </>
+          <EmptyState
+            variant="error"
+            title="Search error"
+            description={searchError}
+            actions={
+              showDevDiagnostics && devSchemaHint ? (
+                <p className="clinic-patients-results__status" role="note">
+                  Response shape mismatch. Check console/tests for safe schema paths.
+                </p>
+              ) : undefined
+            }
+          />
         ) : results.length === 0 && lastFinishedQuery === trimmed ? (
-          <p className="clinic-patients-results__status" role="status">
-            {PATIENT_SEARCH_NO_MATCH}
-          </p>
+          <EmptyState
+            variant="empty"
+            icon="🔍"
+            title="No matching patients"
+            description={PATIENT_SEARCH_NO_MATCH}
+          />
         ) : (
           <ul className="clinic-patients-results__list">
             {results.map((hit, index) => {
@@ -693,7 +692,7 @@ export function PatientSearchBar({
               const optionId = `${domIds.listbox}-option-${hit.patientId}`;
               return (
                 <li key={hit.patientId}>
-                  <article
+                  <Card
                     className={[
                       "clinic-list-card",
                       "clinic-patients-result-card",
@@ -703,27 +702,40 @@ export function PatientSearchBar({
                       .filter(Boolean)
                       .join(" ")}
                   >
-                    <div className="clinic-list-card__main clinic-patients-result-card__main">
-                      <p className="clinic-patients-result-card__name">{hit.displayName}</p>
-                      {pageMeta ? <p className="clinic-patients-result-card__meta">{pageMeta}</p> : null}
-                    </div>
-                    <div className="clinic-list-card__actions">
-                      <Button
-                        id={optionId}
-                        type="button"
-                        variant="secondary"
-                        className="ui-focusable clinic-patients-result-card__open"
-                        role="option"
-                        aria-selected={isProfileMatch || isKeyboardActive}
-                        aria-posinset={index + 1}
-                        aria-setsize={results.length}
-                        onMouseEnter={() => setActiveOptionIndex(index)}
-                        onClick={() => selectPatientHit(hit)}
-                      >
-                        {PATIENTS_OPEN_WORKSPACE_LABEL}
-                      </Button>
-                    </div>
-                  </article>
+                    <CardBody className="clinic-patients-result-card__body">
+                      <div className="clinic-patients-result-card__info">
+                        <p className="clinic-patients-result-card__name">{hit.displayName}</p>
+                        <div className="clinic-patients-result-card__meta-row">
+                          {hit.chartNumber ? (
+                            <Badge variant="neutral" semanticLabel={`Chart number ${hit.chartNumber}`}>
+                              {hit.chartNumber}
+                            </Badge>
+                          ) : null}
+                          {hit.patientId ? (
+                            <span className="clinic-patients-result-card__patient-id">
+                              {pageMeta}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="clinic-patients-result-card__actions">
+                        <Button
+                          id={optionId}
+                          type="button"
+                          variant="primary"
+                          className="ui-focusable clinic-patients-result-card__open"
+                          role="option"
+                          aria-selected={isProfileMatch || isKeyboardActive}
+                          aria-posinset={index + 1}
+                          aria-setsize={results.length}
+                          onMouseEnter={() => setActiveOptionIndex(index)}
+                          onClick={() => selectPatientHit(hit)}
+                        >
+                          {PATIENTS_OPEN_WORKSPACE_LABEL}
+                        </Button>
+                      </div>
+                    </CardBody>
+                  </Card>
                 </li>
               );
             })}
@@ -738,33 +750,41 @@ export function PatientSearchBar({
     );
   };
 
-  const renderRecentAside = () => (
+  // ---------- Recent patients aside (page mode) ----------
+  const renderPageRecentPanel = () => (
     <ClinicPanel title={PATIENT_RECENT_SESSION_TITLE} testId="patients-page-recent">
       <p className="clinic-patients-aside-copy">{PATIENTS_RECENT_SESSION_HINT_SHORT}</p>
       {recentPatients.length > 0 && onRecentPatientSelect ? (
-        <ul className="clinic-patients-recent-list" aria-label={PATIENT_RECENT_SESSION_TITLE}>
+        <div className="clinic-patients-recent-quick-row">
           {recentPatients.map((entry) => {
             const isProfileMatch = selectedPatientId !== null && selectedPatientId === entry.patientId;
             return (
-              <li key={entry.patientId}>
-                <button
-                  type="button"
-                  className={[
-                    "clinic-patients-recent-btn",
-                    "ui-focusable",
-                    isProfileMatch ? "clinic-patients-recent-btn--selected" : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                  onClick={() => onRecentPatientSelect(entry)}
-                >
-                  <span className="clinic-patients-recent-btn__name">{entry.displayName}</span>
-                  <span className="clinic-patients-recent-btn__meta">{formatSessionRecentPatientMeta(entry)}</span>
-                </button>
-              </li>
+              <div
+                key={entry.patientId}
+                role="button"
+                tabIndex={0}
+                className={[
+                  "clinic-patients-recent-quick-card",
+                  isProfileMatch ? "clinic-patients-recent-quick-card--selected" : null,
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                onClick={() => onRecentPatientSelect(entry)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    onRecentPatientSelect(entry);
+                  }
+                }}
+              >
+                <PatientQuickCard
+                  name={entry.displayName}
+                  chartNumber={entry.chartNumber ?? `ID ${entry.patientId}`}
+                />
+              </div>
             );
           })}
-        </ul>
+        </div>
       ) : (
         <p className="clinic-patients-aside-empty" role="status">
           {PATIENT_RECENT_SESSION_EMPTY}
@@ -773,15 +793,17 @@ export function PatientSearchBar({
     </ClinicPanel>
   );
 
+  // ========== PAGE WORKFLOW MODE ==========
   if (isPageWorkflow) {
     return (
       <ClinicPage className="clinic-patients-page" testId="patients-page">
         <ClinicPageHero
           title={pageTitle}
           subtitle={pageSubtitle}
-          meta={<span className="clinic-status-pill clinic-status-pill--info">{READ_ONLY_MODE_LABEL}</span>}
+          meta={<Badge variant="readonly" semanticLabel="Read-only mode">{READ_ONLY_MODE_LABEL}</Badge>}
         />
         <div className="clinic-workspace-grid clinic-patients-workspace">
+          {/* Left column: search + results */}
           <div className="clinic-col-7 clinic-workspace-grid__stack">
             <ClinicPanel title={PATIENT_PAGE_SEARCH_TITLE} className="clinic-patients-search-panel">
               <div ref={rootRef} className={rootClassName}>
@@ -792,8 +814,9 @@ export function PatientSearchBar({
               {renderPageResultsPanel()}
             </ClinicPanel>
           </div>
+          {/* Right column: recent patients + what opens next + safety note */}
           <aside className="clinic-col-5 clinic-workspace-grid__stack clinic-patients-aside" aria-label="Patients workflow shortcuts">
-            {renderRecentAside()}
+            {renderPageRecentPanel()}
             <ClinicPanel title={PATIENTS_OPENS_NEXT_TITLE} className="clinic-patients-opens-panel">
               <ul className="clinic-patients-aside-list">
                 {PATIENTS_OPENS_NEXT_BULLETS.map((line) => (
@@ -810,6 +833,7 @@ export function PatientSearchBar({
     );
   }
 
+  // ========== TOPBAR / INLINE MODE ==========
   const searchBody = (
     <div ref={rootRef} className={rootClassName}>
       {searchControls}

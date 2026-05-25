@@ -130,7 +130,7 @@ export const PATIENT_TAB_TIMELINE_LEDE =
 
 export const PATIENT_TAB_LOADING_TIMELINE = "Loading patient timeline…";
 
-export const PATIENT_TAB_OFFLINE_TIMELINE = "Connect the bridge to load the patient timeline.";
+export const PATIENT_TAB_OFFLINE_TIMELINE = "Connect the clinic service to load the patient timeline.";
 
 export const PATIENT_TIMELINE_RANGE_BANNER_PREFIX = "Appointments in timeline range";
 
@@ -153,7 +153,7 @@ export const PATIENT_TIMELINE_KIND_FILTER_ARIA = "Filter timeline by event type"
 export const PATIENT_TIMELINE_VIEW_IN_TAB = (tabLabel: string): string => `View in ${tabLabel}`;
 
 export const PATIENT_TIMELINE_EMPTY_RANGE =
-  "No dated events in this read-only timeline yet. Connect the bridge or refresh after data loads.";
+  "No dated events in this read-only timeline yet. Connect the clinic service or refresh after data loads.";
 
 export const PATIENT_TIMELINE_EMPTY_FILTER = "No events match the selected kind filter. Try another filter or clear filters.";
 

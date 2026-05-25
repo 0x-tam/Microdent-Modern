@@ -425,3 +425,105 @@
 .app-settings__card--primary {
   box-shadow: var(--ui-shadow-panel);
 }
+
+/* ----- System Status section (consolidated diagnostics) ----- */
+.app-settings__system-status {
+  margin-bottom: var(--ui-space-5);
+  padding: var(--ui-space-4);
+  border-radius: var(--ui-radius-md, 8px);
+  background: var(--ui-bg-surface, #fff);
+  border: 1px solid var(--ui-border-subtle, #dde1e6);
+}
+
+.app-settings__system-status-title {
+  margin: 0 0 var(--ui-space-3);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ui-text-primary);
+}
+
+.app-settings__system-status-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--ui-space-2);
+}
+
+@media (min-width: 600px) {
+  .app-settings__system-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--ui-space-2) var(--ui-space-4);
+  }
+}
+
+.app-settings__status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-bg-subtle, #f4f6f8);
+  min-height: 2.25rem;
+}
+
+.app-settings__status-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ui-text-secondary);
+  white-space: nowrap;
+}
+
+.app-settings__status-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ui-text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.app-settings__status-dot {
+  flex: 0 0 auto;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--ui-border-strong);
+}
+
+.app-settings__status-dot--ok,
+.app-settings__status-dot--connected {
+  background: var(--ui-status-success, #0d7a3a);
+}
+
+.app-settings__status-dot--warn {
+  background: var(--ui-status-warning, #9a6700);
+}
+
+.app-settings__status-dot--danger,
+.app-settings__status-dot--offline {
+  background: var(--ui-status-danger, #b00020);
+}
+
+.app-settings__status-dot--checking,
+.app-settings__status-dot--neutral {
+  background: var(--ui-text-muted, #999);
+}
+
+.app-settings__status-value--ok,
+.app-settings__status-value--connected {
+  color: var(--ui-status-success, #0d7a3a);
+}
+
+.app-settings__status-value--warn {
+  color: var(--ui-status-warning, #9a6700);
+}
+
+.app-settings__status-value--danger,
+.app-settings__status-value--offline {
+  color: var(--ui-status-danger, #b00020);
+}
+
+.app-settings__status-value--checking {
+  color: var(--ui-text-secondary);
+}
+

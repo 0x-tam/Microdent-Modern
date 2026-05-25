@@ -279,3 +279,23 @@
 .app-clinical-tab .app-patient-profile__treatment-category {
   font-size: max(var(--clinic-text-meta, 0.875rem), 14px);
 }
+
+/* Temporal section headers for timeline */
+.clinic-timeline-temporal-header {
+  border-bottom-width: 2px;
+}
+
+.clinic-timeline-temporal-header .app-patient-profile__tab-section-title {
+  margin: 0;
+  padding: 0;
+  border-left: none;
+  font-size: var(--clinic-text-section, var(--ui-text-section, 1.25rem));
+  font-weight: 700;
+}
+
+/* Details hidden badge for treatments */
+.app-clinical-tab--treatments .app-clinical-badge--details-hidden {
+  border-color: color-mix(in srgb, var(--ui-accent-blue) 25%, var(--ui-border-subtle));
+  background: color-mix(in srgb, var(--ui-accent-blue) 8%, var(--ui-bg-surface));
+  color: var(--ui-accent-blue);
+}

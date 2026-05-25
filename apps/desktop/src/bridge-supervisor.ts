@@ -7,6 +7,14 @@ import {
   validateDesktopStartupConfig,
 } from "./startup-validation.js";
 
+/** Thrown when the bridge process fails to become healthy. */
+export class BridgeStartError extends Error {
+  override name = "BridgeStartError";
+  constructor(message: string) {
+    super(message);
+  }
+}
+
 export type BridgeSupervisorOptions = {
   /** Install root — repo checkout or staged MicrodentModern/ package. */
   repoRoot: string;
@@ -94,6 +102,8 @@ export class BridgeSupervisor {
       }
       await new Promise((r) => setTimeout(r, 400));
     }
-    throw new Error("bridge health check timed out");
+    throw new BridgeStartError(
+      "Clinic service could not start. Please restart the app or contact support.",
+    );
   }
 }

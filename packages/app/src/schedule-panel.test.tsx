@@ -174,7 +174,8 @@ describe("SchedulePanel", () => {
       await Promise.resolve();
     });
 
-    expect(container.querySelector(".clinic-schedule-summary-strip")).toBeTruthy();
+    expect(container.querySelector(".app-schedule__summary-bar")).toBeTruthy();
+    expect(container.querySelector(".clinic-schedule-summary-strip")).toBeFalsy();
     expect(container.querySelector(".clinic-stat-grid--five")).toBeFalsy();
     assertNoMainPageJargonInDom(container.textContent ?? "");
   });
@@ -269,6 +270,16 @@ describe("SchedulePanel", () => {
     });
     await act(async () => {
       await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // Click the Filters toggle to reveal the collapsible filter card
+    const filterToggle = [...container.querySelectorAll("button")].find((b) => b.textContent === "Filters");
+    expect(filterToggle).toBeDefined();
+    await act(async () => {
+      filterToggle!.click();
+    });
+    await act(async () => {
       await Promise.resolve();
     });
 
@@ -466,7 +477,7 @@ describe("SchedulePanel", () => {
 
     const t = container.textContent ?? "";
     assertNoForbiddenDomTokens(t);
-    expect(t).toContain("Read-only schedule");
+    expect(t).toMatch(/filter by room/i);
   });
 
   it("refetches appointments when the room filter changes", async () => {
@@ -501,6 +512,16 @@ describe("SchedulePanel", () => {
 
     const apptCalls0 = fetchImpl.mock.calls.filter((c) => String(c[0]).includes("appointments")).length;
     expect(apptCalls0).toBeGreaterThanOrEqual(1);
+
+    // Click the Filters toggle to reveal the collapsible filter card
+    const filterToggle = [...container.querySelectorAll("button")].find((b) => b.textContent === "Filters");
+    expect(filterToggle).toBeDefined();
+    await act(async () => {
+      filterToggle!.click();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
 
     const sel = container.querySelector("select.app-schedule__select") as HTMLSelectElement | null;
     expect(sel).not.toBeNull();
@@ -939,6 +960,15 @@ describe("SchedulePanel", () => {
       await Promise.resolve();
     });
     if (import.meta.env.DEV) {
+      // Dry-run action is hidden behind the per-row expand button
+      const expandBtn = container.querySelector(".app-schedule__expand-btn") as HTMLButtonElement | null;
+      expect(expandBtn).toBeTruthy();
+      await act(async () => {
+        expandBtn!.click();
+      });
+      await act(async () => {
+        await Promise.resolve();
+      });
       expect(container.textContent).toContain("Dry-run status");
     } else {
       expect(container.textContent).not.toContain("Dry-run status");
@@ -989,12 +1019,24 @@ describe("SchedulePanel", () => {
       await Promise.resolve();
     });
 
-    expect(container.querySelectorAll(".app-schedule__sandbox-write-banner")).toHaveLength(1);
-    expect(container.textContent).toMatch(/Sandbox edits use disposable test data/i);
-    expect(container.textContent).toMatch(/Expand row for sandbox write actions/i);
-    const writePanels = container.querySelectorAll('[data-testid="appt-write-actions-panel"]');
-    expect(writePanels).toHaveLength(1);
-    expect((writePanels[0] as HTMLDetailsElement).open).toBe(false);
+    // No more schedule-level banner — write actions are per-row expandable only
+    expect(container.querySelector(".app-schedule__sandbox-write-banner")).toBeNull();
+
+    // Per-row expand button exists when pilot is on
+    const expandBtn = container.querySelector(".app-schedule__expand-btn") as HTMLButtonElement | null;
+    expect(expandBtn).toBeTruthy();
+
+    // Click expand to reveal write actions
+    await act(async () => {
+      expandBtn!.click();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Write panel appears in the expanded section
+    const writePanel = container.querySelector('[data-testid="appt-write-actions-panel"]');
+    expect(writePanel).toBeTruthy();
   });
 
   it("does not render write panels when sandbox pilot is off", async () => {
@@ -1088,8 +1130,9 @@ describe("SchedulePanel", () => {
       await Promise.resolve();
     });
 
-    expect(container.textContent).toContain("Preview only");
-    expect(container.querySelector(".app-schedule__write-mode-chip")).toBeTruthy();
+    // Write-mode chip was removed from Schedule — it now lives in Settings only
+    expect(container.querySelector(".app-schedule__write-mode-chip")).toBeNull();
+    expect(container.textContent).not.toContain("Preview only");
   });
 
   it("shows blocked write notice per row when pilot is on but sandbox is not ready", async () => {
@@ -1136,8 +1179,23 @@ describe("SchedulePanel", () => {
       await Promise.resolve();
     });
 
-    expect(container.querySelectorAll(".app-schedule__sandbox-write-banner")).toHaveLength(1);
+    // No more schedule-level banner — write actions are per-row expandable only
+    expect(container.querySelector(".app-schedule__sandbox-write-banner")).toBeNull();
+
+    // Per-row expand button exists when pilot is on
+    const expandBtn = container.querySelector(".app-schedule__expand-btn") as HTMLButtonElement | null;
+    expect(expandBtn).toBeTruthy();
+
+    // Click expand to reveal write actions (blocked when sandbox not ready)
+    await act(async () => {
+      expandBtn!.click();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
     expect(container.querySelector('[data-testid="appt-write-actions-blocked"]')).toBeTruthy();
+    // Footer create panel also shows blocked state when sandbox is not ready
     expect(container.querySelector('[data-testid="appt-create-write-blocked"]')).toBeTruthy();
   });
 
@@ -1338,6 +1396,16 @@ describe("SchedulePanel", () => {
     ).length;
     expect(apptCallsBefore).toBeGreaterThanOrEqual(1);
 
+    // Expand the appointment row to reveal write actions panel
+    const expandBtn = container.querySelector(".app-schedule__expand-btn") as HTMLButtonElement | null;
+    expect(expandBtn).toBeTruthy();
+    await act(async () => {
+      expandBtn!.click();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
     const details = container.querySelector('[data-testid="appt-write-actions-panel"]') as HTMLDetailsElement;
     await act(async () => {
       details.open = true;
@@ -1433,8 +1501,9 @@ describe("SchedulePanel", () => {
     });
 
     const todayBtn = [...container.querySelectorAll("button")].find((b) => b.textContent === "Today");
-    expect(todayBtn?.classList.contains("app-schedule__nav-today--active")).toBe(true);
-    expect(container.textContent).toMatch(/Includes today/i);
+    // Today button uses primary variant when viewing today (not a special --active class)
+    expect(todayBtn?.classList.contains("ui-btn--primary")).toBe(true);
+    expect(container.textContent).toMatch(/Today/);
   });
 
   it("shows status breakdown chips and room filter context in the summary header", async () => {
@@ -1513,7 +1582,20 @@ describe("SchedulePanel", () => {
 
     expect(container.textContent).toMatch(/1 Scheduled/i);
     expect(container.textContent).toMatch(/1 Completed/i);
-    expect(container.querySelector(".app-schedule__status-breakdown")).toBeTruthy();
+
+    // Status breakdown chips are inside the collapsible filter card
+    const filterToggle = [...container.querySelectorAll("button")].find((b) => b.textContent === "Filters");
+    expect(filterToggle).toBeDefined();
+    await act(async () => {
+      filterToggle!.click();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Status chips are rendered as filter chips inside the filter card
+    const statusChips = container.querySelectorAll(".app-schedule__filter-chip");
+    expect(statusChips.length).toBeGreaterThanOrEqual(2);
 
     const scheduledChip = [...container.querySelectorAll("button")].find((b) =>
       b.textContent?.includes("1 Scheduled"),
@@ -1526,8 +1608,8 @@ describe("SchedulePanel", () => {
       await Promise.resolve();
       await Promise.resolve();
     });
-    expect(container.textContent).toMatch(/1 of 2 appointments shown/i);
-    expect(container.querySelectorAll(".app-schedule__appt-row")).toHaveLength(1);
+    expect(container.textContent).toMatch(/1 appointment/i);
+    expect(container.querySelectorAll(".app-schedule__appt-card")).toHaveLength(1);
 
     await act(async () => {
       scheduledChip!.click();
@@ -1548,7 +1630,7 @@ describe("SchedulePanel", () => {
     });
 
     expect(container.textContent).toMatch(/Synthetic bay B \(Room 2\)/i);
-    expect(container.textContent).toMatch(/2 appointments shown/i);
+    expect(container.textContent).toMatch(/2 appointments/i);
     assertNoForbiddenDomTokens(container.textContent ?? "");
   });
 
@@ -1595,8 +1677,9 @@ describe("SchedulePanel", () => {
       await Promise.resolve();
     });
 
-    expect(container.textContent).toMatch(/Local copy may be outdated/i);
-    expect(container.querySelector(".app-schedule__mirror-advisory")).toBeTruthy();
+    // Mirror stale banner is no longer shown in the main view (per operational board redesign).
+    expect(container.textContent).not.toMatch(/Local copy may be outdated/i);
+    expect(container.querySelector(".app-schedule__mirror-advisory")).toBeNull();
   });
 
   it("calls onOpenPatient from schedule rows when patient id is set", async () => {
@@ -1720,6 +1803,16 @@ describe("SchedulePanel", () => {
     expect(container.textContent).toMatch(/Synthetic Provider Sched/i);
     expect(container.textContent).toMatch(/2 appointments/i);
 
+    // Provider chips are inside the collapsible filter card
+    const filterToggle = [...container.querySelectorAll("button")].find((b) => b.textContent === "Filters");
+    expect(filterToggle).toBeDefined();
+    await act(async () => {
+      filterToggle!.click();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
     const providerChip = [...container.querySelectorAll("button")].find((b) =>
       b.textContent?.includes("Synthetic Provider Sched"),
     );
@@ -1730,7 +1823,7 @@ describe("SchedulePanel", () => {
       await Promise.resolve();
       await Promise.resolve();
     });
-    expect(container.textContent).toMatch(/1 of 2 appointments shown/i);
+    expect(container.textContent).toMatch(/1 appointment/i);
     assertNoForbiddenDomTokens(container.textContent ?? "");
   });
 
@@ -1798,7 +1891,8 @@ describe("SchedulePanel", () => {
       await Promise.resolve();
     });
 
-    expect(container.querySelector(".app-schedule__appt-row--current")).toBeTruthy();
+    // Current appointment is highlighted with --current modifier on the card (not the row)
+    expect(container.querySelector(".app-schedule__appt-card--current")).toBeTruthy();
     vi.useRealTimers();
   });
 
@@ -1855,6 +1949,16 @@ describe("SchedulePanel", () => {
       await Promise.resolve();
     });
 
+    // Status chips are inside the collapsible filter card — open it first
+    const filterToggle = [...container.querySelectorAll("button")].find((b) => b.textContent === "Filters");
+    expect(filterToggle).toBeDefined();
+    await act(async () => {
+      filterToggle!.click();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
     const scheduledChip = [...container.querySelectorAll("button")].find((b) =>
       b.textContent?.includes("Scheduled"),
     );
@@ -1865,7 +1969,18 @@ describe("SchedulePanel", () => {
       await Promise.resolve();
     });
 
-    expect(container.textContent).toMatch(/Active room, status, or provider filters/i);
+    // Filter active hint shows "Filters active: ..." when client filters are applied and filter card is collapsed
+    // After clicking a filter chip, the chip toggles the filter but the card stays open,
+    // so the hint doesn't show yet. Close the filter card to see the hint.
+    const filterToggleAfter = [...container.querySelectorAll("button")].find((b) => b.textContent === "Filters active" || b.textContent === "Filters");
+    await act(async () => {
+      filterToggleAfter?.click();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toMatch(/Filters active/i);
   });
 
   it("opens patient after status filter is applied", async () => {
@@ -2009,8 +2124,9 @@ describe("SchedulePanel", () => {
       await Promise.resolve();
     });
 
+    // Write-mode chip was moved to Settings — not present in Schedule footer
     const footer = container.querySelector(".app-schedule__footer");
-    expect(footer?.querySelector(".app-schedule__write-mode-chip")).toBeTruthy();
+    expect(footer?.querySelector(".app-schedule__write-mode-chip")).toBeNull();
     expect(container.querySelector(".app-schedule__toolbar-actions .app-schedule__write-mode-chip")).toBeNull();
   });
 });

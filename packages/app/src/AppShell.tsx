@@ -8,13 +8,11 @@ import {
   friendlyBridgeStatus,
 } from "./clinic-friendly-copy.js";
 import {
-  READ_ONLY_BANNER_BODY,
   READ_ONLY_CONNECTED_LABEL,
   READ_ONLY_VIEWER_LABEL,
 } from "./read-only-ui-copy.js";
 import {
   resolveShellCriticalStripBanners,
-  resolveShellHeaderMirrorPill,
   SIDEBAR_RECENT_PATIENTS_MAX,
 } from "./shell-status-banners.js";
 import { formatSessionRecentPatientMeta } from "./session-recent-patients.js";
@@ -347,14 +345,7 @@ export function AppShell({
     [active, bridgePhase, mirrorStatus, writeCapability],
   );
 
-  const localCopyHeaderPill = useMemo(
-    () => resolveShellHeaderMirrorPill(bridgePhase, mirrorStatus),
-    [bridgePhase, mirrorStatus],
-  );
-
   const bridgeHeaderPill = useMemo(() => friendlyBridgeStatus(bridgePhase), [bridgePhase]);
-
-  const showHeaderStatusPills = active !== "settings";
 
   const sidebarRecentPatients = useMemo(
     () => recentPatients.slice(0, SIDEBAR_RECENT_PATIENTS_MAX),
@@ -379,17 +370,6 @@ export function AppShell({
     if (bridgePhase === "connected") return "connected";
     return undefined;
   }, [bridgePhase, shellStatusBanners]);
-
-  const bridgeStatusPillTone =
-    bridgeHeaderPill.tone === "ok"
-      ? "ok"
-      : bridgePhase === "checking"
-        ? "info"
-        : bridgeHeaderPill.tone === "warn"
-          ? "warn"
-          : "neutral";
-
-  const localCopyPillTone = localCopyHeaderPill.tone;
 
   const sidebar = useMemo(
     () => (
@@ -486,12 +466,12 @@ export function AppShell({
 
         <div className="clinic-sidebar__footer app-rail__footer">
           <span
-            className={`clinic-sidebar__service-pill app-rail__connection-pill${railStatusTone ? ` clinic-sidebar__service-pill--${railStatusTone} app-rail__connection-pill--${railStatusTone}` : ""}`}
+            className={`clinic-sidebar__service-pill app-rail__connection-pill clinic-sidebar__connection-dot${railStatusTone ? ` app-rail__connection-dot--${railStatusTone}` : ""}`}
             role="status"
             aria-live="polite"
-          >
-            {railConnectionLabel}
-          </span>
+            aria-label={`Clinic service: ${railConnectionLabel}`}
+            title={railConnectionLabel}
+          />
           <span className="app-rail__version clinic-sidebar__readonly-line">
             {CLINIC_FRIENDLY_READ_ONLY} · v{APP_SHELL_VERSION}
           </span>
@@ -525,37 +505,6 @@ export function AppShell({
           </div>
 
           <div className="clinic-workspace-header__actions app-workspace-header__actions">
-            {showHeaderStatusPills ? (
-              <div
-                className="clinic-workspace-header__status-cluster app-workspace-header__status-cluster"
-                role="group"
-                aria-label="Clinic service status"
-              >
-                <span
-                  className="clinic-status-pill clinic-status-pill--info"
-                  title={READ_ONLY_BANNER_BODY}
-                  aria-label={`${CLINIC_FRIENDLY_READ_ONLY}. ${READ_ONLY_BANNER_BODY}`}
-                >
-                  {CLINIC_FRIENDLY_READ_ONLY}
-                </span>
-                <span
-                  className={`clinic-status-pill clinic-status-pill--${bridgeStatusPillTone}`}
-                  role="status"
-                  aria-live="polite"
-                  aria-label={`Clinic service: ${bridgeHeaderPill.label}`}
-                >
-                  {bridgeHeaderPill.label}
-                </span>
-                <span
-                  className={`clinic-status-pill clinic-status-pill--${localCopyPillTone}`}
-                  role="status"
-                  title={localCopyHeaderPill.detailLabel}
-                  aria-label={`Local copy: ${localCopyHeaderPill.detailLabel}`}
-                >
-                  {localCopyHeaderPill.label}
-                </span>
-              </div>
-            ) : null}
             {bridgeBaseUrl?.trim() ? (
               <Button
                 type="button"
@@ -589,20 +538,6 @@ export function AppShell({
             </details>
           ) : null}
         </header>
-
-        {shellStatusBanners.length > 0 ? (
-          <div className="app-status-strip" role="region" aria-label="Clinic service status">
-            {shellStatusBanners.map((banner) => (
-              <div
-                key={banner.key}
-                className={`app-status-strip__item app-status-strip__item--${banner.tone === "danger" ? "critical" : banner.tone}`}
-              >
-                <span className="app-status-strip__label">{banner.label}</span>
-                <span className="app-status-strip__body">{banner.body}</span>
-              </div>
-            ))}
-          </div>
-        ) : null}
 
         {topSlot}
 

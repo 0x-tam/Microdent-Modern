@@ -22,9 +22,50 @@
   color: var(--ui-text-secondary);
 }
 
-/* ----- Patient hero ----- */
+/* ----- Premium Patient Hero ----- */
 .clinic-profile-hero {
+  align-items: stretch;
+  padding: var(--ui-space-5) var(--ui-space-5) var(--ui-space-4);
+  border: 1px solid color-mix(in srgb, var(--clinic-teal-600) 18%, var(--ui-border-subtle));
+  border-radius: var(--ui-radius-xl);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--clinic-bg-soft) 55%, var(--surface)) 0%,
+    color-mix(in srgb, var(--clinic-bg-soft) 30%, var(--surface)) 100%
+  );
+  box-shadow: var(--shadow-elevated);
+}
+
+.clinic-profile-hero__inner {
+  display: flex;
   align-items: flex-start;
+  gap: var(--ui-space-4);
+}
+
+/* Avatar */
+.clinic-profile-hero__avatar {
+  flex: 0 0 auto;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--clinic-teal-600), var(--clinic-teal-500));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--clinic-teal-600) 25%, transparent);
+}
+
+.clinic-profile-hero__avatar-initials {
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #fff;
+  line-height: 1;
+}
+
+.clinic-profile-hero__info {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .clinic-profile-hero__chips {
@@ -41,10 +82,41 @@
   font-size: var(--clinic-text-meta);
 }
 
+/* Read-only chip */
+.app-patient-hero__chip--readonly .clinic-chip--readonly {
+  border-color: color-mix(in srgb, var(--ui-warning-500) 30%, var(--ui-border-subtle));
+  background: color-mix(in srgb, var(--ui-warning-50) 60%, var(--ui-bg-surface));
+  color: var(--ui-warning-700);
+  font-weight: 600;
+  font-size: var(--clinic-text-meta);
+}
+
+/* Freshness chips */
+.clinic-chip--fresh {
+  border-color: color-mix(in srgb, var(--ui-success-600) 30%, var(--ui-border-subtle));
+  background: color-mix(in srgb, var(--ui-success-50) 60%, var(--ui-bg-surface));
+  color: var(--ui-success-700);
+  font-weight: 600;
+}
+
+.clinic-chip--loaded {
+  border-color: color-mix(in srgb, var(--ui-primary-600) 25%, var(--ui-border-subtle));
+  background: color-mix(in srgb, var(--ui-primary-50) 50%, var(--ui-bg-surface));
+  color: var(--ui-primary-700);
+  font-weight: 600;
+}
+
 .clinic-profile-hero__actions {
   flex-direction: column;
   align-items: flex-end;
   gap: var(--ui-space-2);
+}
+
+.clinic-profile-hero__action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  align-items: center;
 }
 
 @media (min-width: 720px) {
@@ -59,6 +131,8 @@
   margin: 0;
   width: 100%;
   text-align: right;
+  font-size: var(--clinic-text-meta);
+  color: var(--ui-text-muted);
 }
 
 @media (min-width: 720px) {
@@ -68,21 +142,39 @@
   }
 }
 
-/* ----- Workflow strip (5 metrics, not stat cards) ----- */
-.clinic-profile-workflow {
+/* ----- At-a-Glance Strip ----- */
+.clinic-profile-at-a-glance {
   min-width: 0;
+  margin-bottom: var(--ui-space-2);
 }
 
-.clinic-profile-workflow-strip {
+.clinic-profile-glance-strip {
   width: 100%;
+  padding: var(--ui-space-3) var(--ui-space-4);
+  border-radius: var(--ui-radius-lg);
+  border: 1px solid color-mix(in srgb, var(--clinic-teal-600) 12%, var(--ui-border-subtle));
+  background: color-mix(in srgb, var(--clinic-bg-soft) 40%, var(--surface));
+  box-shadow: var(--shadow-soft);
 }
 
-.clinic-profile-workflow-strip__item {
+.clinic-profile-glance-item {
   flex: 1 1 min(9rem, 100%);
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border-radius: var(--ui-radius-sm);
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  transition: background-color var(--ui-duration-hover) var(--ui-ease-out);
+}
+
+.clinic-profile-glance-item:hover {
+  background: color-mix(in srgb, var(--surface) 95%, transparent);
+}
+
+.clinic-profile-glance-item--ledger {
+  border-left: 3px solid color-mix(in srgb, var(--ui-status-offline-text) 40%, var(--ui-border-subtle));
 }
 
 @media (min-width: 960px) {
-  .clinic-profile-workflow-strip__item {
+  .clinic-profile-glance-item {
     flex: 1 1 auto;
   }
 }
@@ -164,6 +256,37 @@
   grid-column: span 5;
 }
 
+@media (max-width: 900px) {
+  .clinic-profile-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .clinic-profile-summary-grid > :first-child,
+  .clinic-profile-summary-grid > :last-child {
+    grid-column: 1 / -1;
+  }
+
+  .clinic-profile-hero__inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .clinic-profile-glance-strip {
+    flex-direction: column;
+    gap: var(--ui-space-2);
+  }
+
+  .clinic-profile-tabs .app-patient-profile__tablist {
+    flex-direction: column;
+    align-items: stretch;
+    border-radius: var(--ui-radius-md);
+  }
+
+  .clinic-profile-tabs .app-patient-profile__tab {
+    border-radius: var(--ui-radius-sm);
+  }
+}
+
 @media (max-width: 1099px) {
   .clinic-profile-summary-grid > :first-child,
   .clinic-profile-summary-grid > :last-child {
@@ -179,6 +302,26 @@
 
 .clinic-profile-summary-activity-panel .app-patient-profile__summary-cross-tabs {
   display: none;
+}
+
+/* CTA row */
+.clinic-profile-summary-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-1);
+  margin-top: var(--ui-space-3);
+  padding-top: var(--ui-space-3);
+  border-top: 1px solid var(--ui-border-subtle);
+}
+
+.clinic-profile-summary-cta {
+  font-size: var(--clinic-text-meta);
+  font-weight: 600;
+  color: var(--clinic-teal-600);
+}
+
+.clinic-profile-summary-cta:hover {
+  color: var(--clinic-teal-700);
 }
 
 .clinic-profile-summary-clinical {

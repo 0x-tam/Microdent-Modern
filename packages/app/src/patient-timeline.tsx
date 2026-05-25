@@ -1,4 +1,4 @@
-import { Button } from "@microdent/ui";
+import { Button, Badge } from "@microdent/ui";
 import { ClinicEmptyState } from "./clinic-empty-state.js";
 import type {
   TimelineDisplayModel,
@@ -101,7 +101,12 @@ function TimelineRow({
             {timelineKindIcon(event.kind)}
           </span>
           <span className="app-patient-profile__timeline-row-text">
-            <span className="app-patient-profile__timeline-row-kind">{event.kindLabel}</span>
+            <span className="app-patient-profile__timeline-row-header">
+              <span className="app-patient-profile__timeline-row-kind">{event.kindLabel}</span>
+              {event.dateIso ? (
+                <span className="app-patient-profile__timeline-row-date">{event.dateIso}</span>
+              ) : null}
+            </span>
             <span className="app-patient-profile__timeline-row-primary">{event.primaryLabel}</span>
             {event.secondaryLabel ? (
               <span className="app-patient-profile__timeline-row-secondary">{event.secondaryLabel}</span>
@@ -235,7 +240,7 @@ export function PatientTimeline({
               aria-label={group.heading}
               data-testid={`patient-timeline-section-${group.section}`}
             >
-              <header className="clinic-panel-header clinic-timeline-section-header">
+              <header className="clinic-panel-header clinic-timeline-section-header clinic-timeline-temporal-header">
                 <h2 className="clinic-panel-header__title app-patient-profile__tab-section-title">{group.heading}</h2>
               </header>
               <div className="clinic-panel__body">

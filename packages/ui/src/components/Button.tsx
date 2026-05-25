@@ -1,8 +1,8 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { classNames } from "../util/classNames.js";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "danger-outline";
-export type ButtonSize = "default" | "compact";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+export type ButtonSize = "lg" | "md" | "sm" | "compact";
 
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;
@@ -15,12 +15,18 @@ const variantClass: Record<ButtonVariant, string> = {
   secondary: "ui-btn--secondary",
   ghost: "ui-btn--ghost",
   danger: "ui-btn--danger",
-  "danger-outline": "ui-btn--danger-outline",
+};
+
+const sizeClass: Record<ButtonSize, string> = {
+  lg: "ui-btn--lg",
+  md: "ui-btn--md",
+  sm: "ui-btn--sm",
+  compact: "ui-btn--compact",
 };
 
 export function Button({
   variant = "primary",
-  size = "default",
+  size = "md",
   className,
   type = "button",
   children,
@@ -33,7 +39,7 @@ export function Button({
         "ui-btn",
         "ui-focusable",
         variantClass[variant],
-        size === "compact" && "ui-btn--compact",
+        sizeClass[size],
         className,
       )}
       {...rest}

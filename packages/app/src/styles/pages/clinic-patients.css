@@ -44,6 +44,7 @@
   margin: 0;
 }
 
+/* ----- Results area ----- */
 .clinic-patients-results {
   display: flex;
   flex-direction: column;
@@ -94,12 +95,13 @@
   color: var(--ui-text-muted);
 }
 
+/* ----- Redesigned result card layout ----- */
 .clinic-patients-result-card {
-  align-items: center;
+  align-items: stretch;
 }
 
 .clinic-patients-result-card--selected {
-  border-left-color: var(--clinic-teal-700);
+  border-left: 3px solid var(--clinic-teal-700);
   background: color-mix(in srgb, var(--surface-teal) 35%, var(--surface));
 }
 
@@ -108,10 +110,20 @@
   outline-offset: 2px;
 }
 
-.clinic-patients-result-card__main {
+.clinic-patients-result-card__body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-3) var(--ui-space-4);
+}
+
+.clinic-patients-result-card__info {
   display: flex;
   flex-direction: column;
   gap: var(--ui-space-1);
+  min-width: 0;
+  flex: 1;
 }
 
 .clinic-patients-result-card__name {
@@ -122,13 +134,28 @@
   color: var(--ui-text-primary);
 }
 
-.clinic-patients-result-card__meta {
-  margin: 0;
+.clinic-patients-result-card__meta-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  flex-wrap: wrap;
+}
+
+.clinic-patients-result-card__patient-id {
   font-size: var(--clinic-text-meta);
   line-height: 1.4;
   color: var(--ui-text-secondary);
 }
 
+.clinic-patients-result-card__actions {
+  flex-shrink: 0;
+}
+
+.clinic-patients-result-card__open {
+  white-space: nowrap;
+}
+
+/* ----- Aside copy ----- */
 .clinic-patients-aside-copy {
   margin: 0;
   font-size: var(--clinic-text-meta);
@@ -159,6 +186,33 @@
   color: var(--ui-text-muted);
 }
 
+/* ----- Recent patients quick row (page mode) ----- */
+.clinic-patients-recent-quick-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  margin-top: var(--ui-space-3);
+}
+
+.clinic-patients-recent-quick-card {
+  cursor: pointer;
+  border-radius: var(--ui-radius-md);
+  transition:
+    border-color var(--ui-duration-hover) var(--ui-ease-out),
+    box-shadow var(--ui-duration-hover) var(--ui-ease-out);
+}
+
+.clinic-patients-recent-quick-card:focus-visible {
+  outline: var(--ui-focus-ring-width) solid var(--ui-focus-ring-color);
+  outline-offset: 2px;
+}
+
+.clinic-patients-recent-quick-card--selected {
+  outline: 2px solid var(--clinic-teal-600);
+  outline-offset: 2px;
+}
+
+/* ----- Legacy recent list (kept for topbar mode) ----- */
 .clinic-patients-recent-list {
   list-style: none;
   margin: var(--ui-space-3) 0 0;
@@ -203,4 +257,56 @@
   font-size: var(--clinic-text-meta);
   line-height: 1.35;
   color: var(--ui-text-secondary);
+}
+
+/* ----- Responsive: tablet / narrow desktop ----- */
+@media (max-width: 1200px) {
+  .clinic-patients-workspace {
+    flex-direction: column;
+  }
+
+  .clinic-col-7,
+  .clinic-col-5 {
+    flex: 1 1 100%;
+  }
+
+  .clinic-patients-aside {
+    order: -1;
+  }
+}
+
+/* ----- Responsive: mid-range tablets ----- */
+@media (max-width: 900px) {
+  .clinic-patients-search__input,
+  .clinic-patients-search__submit {
+    min-height: 44px;
+  }
+
+  .clinic-patients-result-card__body {
+    padding: var(--ui-space-2) var(--ui-space-3);
+  }
+
+  .clinic-patients-recent-quick-row {
+    flex-direction: column;
+  }
+}
+
+/* ----- Responsive: mobile ----- */
+@media (max-width: 720px) {
+  .clinic-patients-result-card__body {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .clinic-patients-result-card__actions {
+    align-self: stretch;
+  }
+
+  .clinic-patients-result-card__actions .clinic-patients-result-card__open {
+    width: 100%;
+  }
+
+  .clinic-patients-recent-quick-row {
+    flex-direction: column;
+  }
 }

@@ -47,7 +47,7 @@ describe("AppShell fetch cleanup", () => {
       root.render(<AppShell bridgeBaseUrl="http://127.0.0.1:17890" fetchImpl={fetchImpl} />);
     });
 
-    expect(container.textContent).toContain("Checking");
+    expect(container.textContent).toContain("Connecting");
 
     await act(async () => {
       root.unmount();
