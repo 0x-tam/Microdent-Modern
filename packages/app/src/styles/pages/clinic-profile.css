@@ -399,3 +399,37 @@
     transition: none;
   }
 }
+
+/* Responsive — profile hero */
+@media (max-width: 900px) {
+  .clinic-profile-hero__inner {
+    gap: var(--ui-space-3);
+  }
+  .clinic-profile-hero__avatar {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+  .clinic-profile-hero__avatar-initials {
+    font-size: 0.95rem;
+  }
+  .clinic-profile-hero {
+    padding: var(--ui-space-4) var(--ui-space-4) var(--ui-space-3);
+  }
+  .clinic-profile-hero__chips {
+    gap: var(--ui-space-1);
+  }
+}
+
+@media (max-width: 600px) {
+  .clinic-profile-hero__inner {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .clinic-profile-hero__chips {
+    justify-content: center;
+  }
+  .clinic-profile-hero__actions {
+    justify-content: center;
+  }
+}

@@ -460,6 +460,16 @@ function ProfileClinicHero({
 }) {
   const provider = profileAssignedProviderLabel(profile.doctorId, doctorLabels);
   const editingChip = friendlyEditingStatus(writeCapability, sandboxWritePilot);
+  const isFresh = lastLoadedAt !== null && Date.now() - lastLoadedAt < 300_000;
+  const initials = profile.displayName
+    ? profile.displayName
+        .split(/\s+/)
+        .map((n) => n[0])
+        .filter(Boolean)
+        .slice(0, 2)
+        .join("")
+        .toUpperCase()
+    : "?";
 
   return (
     <header
@@ -467,40 +477,51 @@ function ProfileClinicHero({
       role="region"
       aria-label="Patient record context"
     >
-      <div className="clinic-page-hero__main">
-        <h1 className="clinic-page-hero__title app-patient-profile__header-name">{profile.displayName}</h1>
-        {profile.reverseName ? (
-          <p className="clinic-page-hero__subtitle app-patient-profile__header-reverse">{profile.reverseName}</p>
-        ) : null}
-        <ul className="clinic-profile-hero__chips app-patient-hero__chips app-patient-profile__header-chips">
-          <li className="app-patient-hero__chip app-patient-hero__chip--chart">
-            <span className="clinic-chip">Chart {profile.chartNumber ?? "—"}</span>
-          </li>
-          <li className="app-patient-hero__chip app-patient-hero__chip--provider">
-            <span className="clinic-chip">{provider}</span>
-          </li>
-          <li
-            className={`app-patient-hero__chip app-patient-hero__chip--status${profile.active ? " app-patient-hero__chip--status-active" : ""}`}
-          >
-            <span
-              className={`clinic-status-pill${profile.active ? " clinic-status-pill--ok" : " clinic-status-pill--neutral"}`}
-            >
-              {activeLabel ?? "—"}
-            </span>
-          </li>
-          <li className="app-patient-hero__chip app-patient-hero__chip--editing">
-            <span className={`clinic-status-pill ${profileFriendlyPillClass(editingChip.tone)}`}>
-              {editingChip.label}
-            </span>
-          </li>
-          {lastLoadedAt !== null ? (
-            <li className="app-patient-hero__chip app-patient-hero__chip--freshness">
-              <span className="clinic-chip clinic-chip--active" title={PATIENT_PROFILE_LAST_REFRESHED}>
-                {PATIENT_PROFILE_FRESHNESS_LOADED} {formatProfileLastRefreshed(lastLoadedAt)}
-              </span>
-            </li>
+      <div className="clinic-page-hero__main clinic-profile-hero__inner">
+        <div className="clinic-profile-hero__avatar" aria-hidden="true">
+          <span className="clinic-profile-hero__avatar-initials">{initials}</span>
+        </div>
+        <div className="clinic-profile-hero__info">
+          <h1 className="clinic-page-hero__title app-patient-profile__header-name">{profile.displayName}</h1>
+          {profile.reverseName ? (
+            <p className="clinic-page-hero__subtitle app-patient-profile__header-reverse">{profile.reverseName}</p>
           ) : null}
-        </ul>
+          <ul className="clinic-profile-hero__chips app-patient-hero__chips app-patient-profile__header-chips">
+            <li className="app-patient-hero__chip app-patient-hero__chip--chart">
+              <Badge variant="neutral" semanticLabel="Chart number">Chart {profile.chartNumber ?? "—"}</Badge>
+            </li>
+            {provider && (
+              <li className="app-patient-hero__chip app-patient-hero__chip--provider">
+                <span className="clinic-chip">{provider}</span>
+              </li>
+            )}
+            <li
+              className={`app-patient-hero__chip app-patient-hero__chip--status${profile.active ? " app-patient-hero__chip--status-active" : ""}`}
+            >
+              <Badge
+                variant={profile.active ? "success" : "neutral"}
+                semanticLabel={profile.active ? "Active patient" : "Inactive patient"}
+              >
+                {activeLabel ?? "—"}
+              </Badge>
+            </li>
+            <li className="app-patient-hero__chip app-patient-hero__chip--editing">
+              <Badge
+                variant={editingChip.tone === "ok" ? "readonly" : editingChip.tone === "warn" ? "stale" : "neutral"}
+                semanticLabel={editingChip.label}
+              >
+                {editingChip.label}
+              </Badge>
+            </li>
+            {lastLoadedAt !== null ? (
+              <li className="app-patient-hero__chip app-patient-hero__chip--freshness">
+                <Badge variant={isFresh ? "success" : "neutral"} semanticLabel={PATIENT_PROFILE_LAST_REFRESHED}>
+                  {isFresh ? "Fresh" : PATIENT_PROFILE_FRESHNESS_LOADED} {formatProfileLastRefreshed(lastLoadedAt)}
+                </Badge>
+              </li>
+            ) : null}
+          </ul>
+        </div>
       </div>
       <div className="clinic-page-hero__meta clinic-profile-hero__actions">
         {lastLoadedAt !== null ? (
