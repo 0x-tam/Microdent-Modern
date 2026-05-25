@@ -5,7 +5,6 @@ import { createRoot, type Root } from "react-dom/client";
 import { BridgeClientError } from "@microdent/bridge-client";
 import {
   PatientProfilePanel,
-  PROFILE_TAB_DESCRIPTIONS,
   safePatientAppointmentsError,
   safePatientChartError,
   safePatientLedgerError,
@@ -13,6 +12,7 @@ import {
   safePatientProfileError,
   safePatientTreatmentsError,
 } from "./PatientProfilePanel.js";
+import { PROFILE_TAB_DESCRIPTIONS } from "./PatientProfileTabs.js";
 import { PATIENT_DEMOGRAPHICS_WRITE_CONFIRM } from "./patient-demographics-write.js";
 import { PATIENT_TAB_HIDDEN_FIELDS_NOTE, PATIENT_TAB_HIDDEN_TREATMENTS } from "./read-only-ui-copy.js";
 import { defaultPatientApptRange, inclusiveDayCount } from "./patient-appointments-range.js";

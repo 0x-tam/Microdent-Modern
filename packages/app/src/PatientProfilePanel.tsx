@@ -12,6 +12,16 @@ import { Badge, Button, Card, CardBody, CardHeader } from "@microdent/ui";
 import type { BridgeDevStatusResponse } from "@microdent/contracts";
 import type { BridgeHealthPhase } from "./bridge-health.js";
 import { PatientDemographicsWritePanel } from "./PatientDemographicsWritePanel.js";
+import { PatientProfileTabs, PROFILE_TAB_ORDER, PROFILE_TAB_DESCRIPTIONS } from "./PatientProfileTabs.js";
+import { PatientAppointmentsTab } from "./PatientAppointmentsTab.js";
+import { PatientTimelineTab } from "./PatientTimelineTab.js";
+import { PatientSummaryTab } from "./PatientSummaryTab.js";
+import {
+  PatientMedicalTab,
+  PatientTreatmentsTab,
+  PatientChartTab,
+  PatientLedgerTab,
+} from "./PatientClinicalTabs.js";
 import { AppErrorBoundary } from "./AppErrorBoundary.js";
 import { AppMetricTile } from "./app-metric-tile.js";
 import { ClinicPage } from "./clinic-page.js";
@@ -152,13 +162,6 @@ import {
   PATIENT_PROFILE_READONLY_NOTE,
   PATIENT_TAB_APPOINTMENTS_LEDE,
   PATIENT_TAB_CHART_LEDE,
-  PATIENT_TAB_DESC_APPOINTMENTS,
-  PATIENT_TAB_DESC_CHART,
-  PATIENT_TAB_DESC_LEDGER,
-  PATIENT_TAB_DESC_MEDICAL,
-  PATIENT_TAB_DESC_SUMMARY,
-  PATIENT_TAB_DESC_TIMELINE,
-  PATIENT_TAB_DESC_TREATMENTS,
   PATIENT_CHART_TOOTH_FILTER_CLEAR,
   PATIENT_CHART_TOOTH_FILTER_LABEL,
   PATIENT_TAB_LOADING_TIMELINE,
@@ -214,7 +217,6 @@ import {
   type TreatmentDisplayFilters,
 } from "./patient-treatments-display.js";
 import { PatientSummaryMiniCards, type SummaryApptPrefetch, type SummaryCountPrefetch, type SummaryMedPrefetch } from "./patient-summary-mini-cards.js";
-import { PatientTimeline } from "./patient-timeline.js";
 import {
   buildTimelineDisplayModel,
   filterTimelineDisplayModel,
@@ -313,26 +315,6 @@ type TimelineLoadState =
       truncated: { treatments: boolean; ledger: boolean; chart: boolean };
     }
   | { phase: "error"; message: string };
-
-export const PROFILE_TAB_ORDER: readonly { id: ProfileTab; label: string }[] = [
-  { id: "summary", label: "Summary" },
-  { id: "timeline", label: "Timeline" },
-  { id: "appointments", label: "Appointments" },
-  { id: "medical", label: "Medical" },
-  { id: "treatments", label: "Treatments" },
-  { id: "chart", label: "Chart" },
-  { id: "ledger", label: "Ledger preview" },
-];
-
-export const PROFILE_TAB_DESCRIPTIONS: Record<ProfileTab, string> = {
-  summary: PATIENT_TAB_DESC_SUMMARY,
-  timeline: PATIENT_TAB_DESC_TIMELINE,
-  appointments: PATIENT_TAB_DESC_APPOINTMENTS,
-  medical: PATIENT_TAB_DESC_MEDICAL,
-  treatments: PATIENT_TAB_DESC_TREATMENTS,
-  chart: PATIENT_TAB_DESC_CHART,
-  ledger: PATIENT_TAB_DESC_LEDGER,
-};
 
 function formatApptDayHeading(dateIso: string): string {
   try {
@@ -2337,644 +2319,135 @@ export function PatientProfilePanel({
               />
             ) : null}
 
-            <nav
-              className="app-patient-profile__tabs app-patient-profile__tabs--pills clinic-profile-tabs"
-              aria-label="Patient sections"
-            >
-              <ul className="app-patient-profile__tablist" role="tablist">
-                {PROFILE_TAB_ORDER.map((tab) => (
-                  <li key={tab.id} role="presentation">
-                    <button
-                      type="button"
-                      role="tab"
-                      id={`patient-tab-${tab.id}`}
-                      aria-selected={activeTab === tab.id}
-                      aria-controls={`patient-panel-${tab.id}`}
-                      className={`app-patient-profile__tab ui-focusable${activeTab === tab.id ? " app-patient-profile__tab--active" : ""}`}
-                      onClick={() => setActiveTab(tab.id)}
-                    >
-                      {tab.label}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              {activeTab ? (
-                <p id={`patient-tab-desc-${activeTab}`} className="app-patient-profile__tab-desc">
-                  {PROFILE_TAB_DESCRIPTIONS[activeTab]}
-                </p>
-              ) : null}
-            </nav>
+            <PatientProfileTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
             {activeTab === "summary" ? (
-              <section
-                id="patient-panel-summary"
-                role="tabpanel"
-                aria-labelledby="patient-tab-summary"
-                className="app-patient-profile__summary clinic-profile-summary"
-              >
-                <p className="app-patient-profile__summary-lede">{PATIENT_TAB_SUMMARY_LEDE}</p>
-                <ProfileTabHiddenNote compact />
-
-                <div className="clinic-workspace-grid clinic-profile-summary-grid">
-                  <ClinicPanel
-                    title="Activity preview"
-                    className="clinic-profile-summary-activity-panel"
-                    bodyClassName="clinic-profile-summary-activity-body"
-                  >
-                    <PatientSummaryMiniCards
-                      appt={summaryAppt}
-                      medical={summaryMed}
-                      treatments={summaryTx}
-                      chart={summaryChart}
-                      ledger={summaryLedger}
-                      doctorLabels={doctorLabels}
-                      procedureMaps={procedureMaps}
-                      roomMap={roomMap}
-                      onOpenTab={setActiveTab}
-                    />
-                  </ClinicPanel>
-
-                  <div className="clinic-profile-summary-clinical">
-                    <ClinicPanel title="Clinical summary" className="clinic-profile-summary-clinical-panel">
-                      <ProfileSummaryMetricGrid profile={state.profile} doctorLabels={doctorLabels} />
-                      <ProfileLedgerMetaLine prefetches={summaryPrefetches} />
-                    </ClinicPanel>
-                    <ProfileSummaryCrossTabs prefetches={summaryPrefetches} onOpenTab={setActiveTab} />
-                  </div>
-                </div>
-
-                {base && patientId && sandboxWritePilot ? (
-                  <section
-                    className="app-patient-profile__sandbox-demographics"
-                    aria-labelledby="patient-sandbox-demographics-heading"
-                    data-testid="patient-sandbox-demographics-section"
-                  >
-                    <h3
-                      id="patient-sandbox-demographics-heading"
-                      className="app-patient-profile__sandbox-demographics-heading"
-                    >
-                      {PATIENT_SANDBOX_DEMOGRAPHICS_TITLE}
-                    </h3>
-                    <PatientDemographicsWritePanel
-                      patientId={patientId}
-                      profile={state.profile}
-                      bridgeBaseUrl={base}
-                      fetchImpl={fetchImpl}
-                      writePilotEnabled={sandboxWritePilot}
-                      writeCapability={writeCapability}
-                      onCommitted={() => setRetryNonce((n) => n + 1)}
-                    />
-                  </section>
-                ) : null}
-              </section>
+              <PatientSummaryTab
+                summaryAppt={summaryAppt}
+                summaryMed={summaryMed}
+                summaryTx={summaryTx}
+                summaryChart={summaryChart}
+                summaryLedger={summaryLedger}
+                profile={state.profile}
+                doctorLabels={doctorLabels}
+                procedureMaps={procedureMaps}
+                roomMap={roomMap}
+                sandboxWritePilot={sandboxWritePilot}
+                onOpenTab={setActiveTab}
+                onRefresh={() => setRetryNonce((n) => n + 1)}
+                bridgeBaseUrl={base}
+                patientId={patientId}
+                writeCapability={writeCapability}
+                fetchImpl={fetchImpl}
+              />
             ) : null}
 
             {activeTab === "timeline" ? (
-              <section
-                id="patient-panel-timeline"
-                role="tabpanel"
-                aria-labelledby="patient-tab-timeline"
-                className="app-patient-profile__timeline"
-                data-testid="patient-panel-timeline"
-              >
-                <p className="app-patient-profile__timeline-lede">{PATIENT_TAB_TIMELINE_LEDE}</p>
-                <ProfileTabHiddenNote variant="timeline" />
-
-                <div className="app-patient-profile__timeline-controls">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="ui-focusable"
-                    onClick={() => setTimelineRefreshNonce((n) => n + 1)}
-                  >
-                    Refresh
-                  </Button>
-                </div>
-
-                {timelineState.phase === "offline" ? (
-                  <ClinicEmptyState
-                    variant="offline"
-                    className="app-patient-profile__empty"
-                    title={CLINIC_SERVICE_OFFLINE_TITLE}
-                    body={PATIENT_TAB_OFFLINE_TIMELINE}
-                  />
-                ) : timelineState.phase === "loading" ? (
-                  <ClinicLoadingSkeleton lines={5} label={PATIENT_TAB_LOADING_TIMELINE} />
-                ) : timelineState.phase === "error" ? (
-                  <ProfileReadonlyError
-                    message={timelineState.message}
-                    onRetry={() => setTimelineRefreshNonce((n) => n + 1)}
-                  />
-                ) : timelineState.phase === "loaded" && timelineModel ? (
-                  <PatientTimeline
-                    model={timelineModel}
-                    kindFilter={timelineKindFilter}
-                    onKindFilterChange={setTimelineKindFilter}
-                    onRowClick={handleTimelineRowClick}
-                  />
-                ) : null}
-              </section>
+              <PatientTimelineTab
+                timelineModel={timelineModel}
+                timelineKindFilter={timelineKindFilter}
+                onKindFilterChange={setTimelineKindFilter}
+                onTimelineRowClick={handleTimelineRowClick}
+                onRefresh={() => setTimelineRefreshNonce((n) => n + 1)}
+                timelinePhase={timelineState.phase === "idle" ? "idle" : timelineState.phase === "offline" ? "offline" : timelineState.phase === "loading" ? "loading" : timelineState.phase === "error" ? "error" : "loaded"}
+                timelineError={timelineState.phase === "error" ? timelineState.message : null}
+                isOffline={timelineState.phase === "offline"}
+                ledeText={PATIENT_TAB_TIMELINE_LEDE}
+                loadingLabel={PATIENT_TAB_LOADING_TIMELINE}
+                offlineTitle={CLINIC_SERVICE_OFFLINE_TITLE}
+                offlineBody={PATIENT_TAB_OFFLINE_TIMELINE}
+                retryLabel={READONLY_STATE_RETRY}
+              />
             ) : null}
 
             {activeTab === "appointments" ? (
-              <section
-                id="patient-panel-appointments"
-                role="tabpanel"
-                aria-labelledby="patient-tab-appointments"
-                className="app-patient-profile__appts"
-              >
-                <p className="app-patient-profile__appts-lede">{PATIENT_TAB_APPOINTMENTS_LEDE}</p>
-
-                <div className="app-patient-profile__appts-controls">
-                  <div className="app-patient-profile__appts-presets" role="group" aria-label="Date range">
-                    <Button
-                      type="button"
-                      variant={rangePreset === "default" ? "primary" : "secondary"}
-                      className="ui-focusable"
-                      onClick={() => applyRangePreset("default")}
-                    >
-                      {PATIENT_APPT_PRESET_DEFAULT}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={rangePreset === "past90" ? "primary" : "secondary"}
-                      className="ui-focusable"
-                      onClick={() => applyRangePreset("past90")}
-                    >
-                      Past 90 days
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={rangePreset === "upcoming90" ? "primary" : "secondary"}
-                      className="ui-focusable"
-                      onClick={() => applyRangePreset("upcoming90")}
-                    >
-                      Upcoming 90 days
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={rangePreset === "thisYear" ? "primary" : "secondary"}
-                      className="ui-focusable"
-                      onClick={() => applyRangePreset("thisYear")}
-                    >
-                      This year
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="ui-focusable"
-                      onClick={() => {
-                        setApptRefreshNonce((n) => n + 1);
-                      }}
-                    >
-                      Refresh
-                    </Button>
-                  </div>
-
-                  <div className="app-patient-profile__appts-filters">
-                    <div className="app-patient-profile__appts-filter-group" role="group" aria-label="Past or upcoming">
-                      <Button
-                        type="button"
-                        size="compact"
-                        variant={apptTimeDirection === "all" ? "primary" : "secondary"}
-                        className="ui-focusable app-patient-profile__appts-filter-chip"
-                        onClick={() => setApptTimeDirection("all")}
-                      >
-                        {PATIENT_APPT_TIME_ALL}
-                      </Button>
-                      <Button
-                        type="button"
-                        size="compact"
-                        variant={apptTimeDirection === "past" ? "primary" : "secondary"}
-                        className="ui-focusable app-patient-profile__appts-filter-chip"
-                        onClick={() => setApptTimeDirection("past")}
-                      >
-                        {PATIENT_APPT_TIME_PAST}
-                      </Button>
-                      <Button
-                        type="button"
-                        size="compact"
-                        variant={apptTimeDirection === "upcoming" ? "primary" : "secondary"}
-                        className="ui-focusable app-patient-profile__appts-filter-chip"
-                        onClick={() => setApptTimeDirection("upcoming")}
-                      >
-                        {PATIENT_APPT_TIME_UPCOMING}
-                      </Button>
-                    </div>
-
-                    <div
-                      className="app-patient-profile__appts-filter-group"
-                      role="group"
-                      aria-label={PATIENT_APPT_FILTER_STATUS_ARIA}
-                    >
-                      <Button
-                        type="button"
-                        size="compact"
-                        variant={apptStatusFilter === null ? "primary" : "secondary"}
-                        className="ui-focusable app-patient-profile__appts-filter-chip"
-                        onClick={() => setApptStatusFilter(null)}
-                      >
-                        {PATIENT_APPT_FILTER_ALL_STATUSES}
-                      </Button>
-                      {PATIENT_APPT_FILTER_STATUS_CODES.map((code) => (
-                        <Button
-                          key={code}
-                          type="button"
-                          size="compact"
-                          variant={apptStatusFilter === code ? "primary" : "secondary"}
-                          className="ui-focusable app-patient-profile__appts-filter-chip"
-                          onClick={() => setApptStatusFilter(code)}
-                        >
-                          {patientApptStatusLabel(code)}
-                        </Button>
-                      ))}
-                    </div>
-
-                    {apptRoomsInRange.length > 0 ? (
-                      <div
-                        className="app-patient-profile__appts-filter-group"
-                        role="group"
-                        aria-label={PATIENT_APPT_FILTER_ROOM_ARIA}
-                      >
-                        <Button
-                          type="button"
-                          size="compact"
-                          variant={apptRoomFilter === null ? "primary" : "secondary"}
-                          className="ui-focusable app-patient-profile__appts-filter-chip"
-                          onClick={() => setApptRoomFilter(null)}
-                        >
-                          {PATIENT_APPT_FILTER_ALL_ROOMS}
-                        </Button>
-                        {apptRoomsInRange.map((room) => (
-                          <Button
-                            key={room}
-                            type="button"
-                            size="compact"
-                            variant={apptRoomFilter === room ? "primary" : "secondary"}
-                            className="ui-focusable app-patient-profile__appts-filter-chip"
-                            onClick={() => setApptRoomFilter(room)}
-                          >
-                            Room {room}
-                          </Button>
-                        ))}
-                      </div>
-                    ) : null}
-
-                    {apptProviderOptions.length > 1 ? (
-                      <div
-                        className="app-patient-profile__appts-filter-group"
-                        role="group"
-                        aria-label={PATIENT_APPT_FILTER_PROVIDER_ARIA}
-                      >
-                        <Button
-                          type="button"
-                          size="compact"
-                          variant={apptProviderFilter === null ? "primary" : "secondary"}
-                          className="ui-focusable app-patient-profile__appts-filter-chip"
-                          onClick={() => setApptProviderFilter(null)}
-                        >
-                          {PATIENT_APPT_FILTER_ALL_PROVIDERS}
-                        </Button>
-                        {apptProviderOptions.map(({ docId, label }) => (
-                          <Button
-                            key={docId}
-                            type="button"
-                            size="compact"
-                            variant={apptProviderFilter === docId ? "primary" : "secondary"}
-                            className="ui-focusable app-patient-profile__appts-filter-chip"
-                            onClick={() => setApptProviderFilter(docId)}
-                          >
-                            {label}
-                          </Button>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-
-                <p className="app-patient-profile__appts-range" aria-live="polite">
-                  {rangeHeading}
-                  {apptState.phase === "loaded" ? (
-                    <span className="app-patient-profile__appts-range-count">
-                      {" · "}
-                      {patientApptRangeCountLabel(filteredAppts.length)}
-                    </span>
-                  ) : null}
-                </p>
-
-                {apptState.phase === "offline" ? (
-                  <ClinicEmptyState
-                    variant="offline"
-                    className="app-patient-profile__empty"
-                    title={CLINIC_SERVICE_OFFLINE_TITLE}
-                    body={CLINIC_SERVICE_OFFLINE_SECTION}
-                  />
-                ) : apptState.phase === "loading" ? (
-                  <ClinicLoadingSkeleton lines={4} label={PATIENT_TAB_LOADING_APPOINTMENTS} />
-                ) : apptState.phase === "error" ? (
-                  <ProfileReadonlyError
-                    message={apptState.message}
-                    onRetry={() => setApptRefreshNonce((n) => n + 1)}
-                  />
-                ) : apptState.phase === "empty" ? (
-                  <ClinicEmptyState
-                    className="app-patient-profile__empty"
-                    title={PATIENT_TAB_EMPTY_APPOINTMENTS_TITLE}
-                    body={PATIENT_TAB_EMPTY_APPOINTMENTS_BODY}
-                  />
-                ) : apptState.phase === "loaded" ? (
-                  filteredAppts.length === 0 ? (
-                    <ClinicEmptyState
-                      className="app-patient-profile__empty"
-                      title={PATIENT_TAB_EMPTY_APPOINTMENTS_FILTERED_TITLE}
-                      body={PATIENT_TAB_EMPTY_APPOINTMENTS_FILTERED_BODY}
-                    />
-                  ) : (
-                  <div className="app-patient-profile__appt-days">
-                    {[...groupedAppts.entries()].map(([dateIso, list]) => (
-                      <Card key={dateIso} className="app-patient-profile__appt-day">
-                        <CardHeader>
-                          <p className="ui-card__title app-card-title-lg app-patient-profile__appt-day-title">
-                            <time dateTime={dateIso}>{formatApptDayHeading(dateIso)}</time>
-                          </p>
-                        </CardHeader>
-                        <CardBody>
-                          <ul className="app-patient-profile__appt-list" aria-label={`Appointments on ${dateIso}`}>
-                            {list.map((appt) => (
-                              <li key={appt.id} className="app-patient-profile__appt-row">
-                                <div className="app-patient-profile__appt-time">{appt.time}</div>
-                                <div className="app-patient-profile__appt-main">
-                                  <div className="app-patient-profile__appt-line1">
-                                    <span className="app-patient-profile__appt-duration">
-                                      {patientApptFormatDuration(appt)}
-                                    </span>
-                                    <span className="app-patient-profile__appt-meta">
-                                      {patientApptRowMeta(appt, doctorLabels, procedureMaps, roomMap)}
-                                    </span>
-                                  </div>
-                                  <div className="app-patient-profile__appt-badges">
-                                    <Badge
-                                      variant={patientApptStatusBadgeVariant(appt.status)}
-                                      semanticLabel={patientApptStatusSemanticLabel(appt.status)}
-                                    >
-                                      {patientApptStatusLabel(appt.status)}
-                                    </Badge>
-                                    {appt.missed ? (
-                                      <Badge variant="danger" semanticLabel="Missed appointment">
-                                        Missed
-                                      </Badge>
-                                    ) : null}
-                                    {appt.hasComment ? (
-                                      <Badge variant="neutral" semanticLabel="Internal note hidden">
-                                        Note hidden
-                                      </Badge>
-                                    ) : null}
-                                  </div>
-                                  {onOpenScheduleAtDate ? (
-                                    <div className="app-patient-profile__appt-actions">
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="compact"
-                                        className="ui-focusable"
-                                        onClick={() => onOpenScheduleAtDate(appt.date)}
-                                      >
-                                        {PATIENT_APPT_OPEN_IN_SCHEDULE}
-                                      </Button>
-                                    </div>
-                                  ) : null}
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        </CardBody>
-                      </Card>
-                    ))}
-                  </div>
-                  )
-                ) : null}
-              </section>
+              <PatientAppointmentsTab
+                apptRange={apptRange}
+                rangePreset={rangePreset}
+                apptState={apptState}
+                filteredAppts={filteredAppts}
+                groupedAppts={groupedAppts}
+                rangeHeading={rangeHeading}
+                apptRoomsInRange={apptRoomsInRange}
+                apptProviderOptions={apptProviderOptions}
+                statusFilter={apptStatusFilter}
+                roomFilter={apptRoomFilter}
+                providerFilter={apptProviderFilter}
+                timeDirection={apptTimeDirection}
+                doctorLabels={doctorLabels}
+                procedureMaps={procedureMaps}
+                roomMap={roomMap}
+                onRangePresetChange={applyRangePreset}
+                onTimeDirectionChange={setApptTimeDirection}
+                onStatusFilterChange={setApptStatusFilter}
+                onRoomFilterChange={setApptRoomFilter}
+                onProviderFilterChange={setApptProviderFilter}
+                onRefresh={() => setApptRefreshNonce((n) => n + 1)}
+                onOpenScheduleAtDate={onOpenScheduleAtDate}
+                ledeText={PATIENT_TAB_APPOINTMENTS_LEDE}
+                presetDefaultLabel={PATIENT_APPT_PRESET_DEFAULT}
+                timeAllLabel={PATIENT_APPT_TIME_ALL}
+                timePastLabel={PATIENT_APPT_TIME_PAST}
+                timeUpcomingLabel={PATIENT_APPT_TIME_UPCOMING}
+                statusFilterAria={PATIENT_APPT_FILTER_STATUS_ARIA}
+                allStatusesLabel={PATIENT_APPT_FILTER_ALL_STATUSES}
+                roomFilterAria={PATIENT_APPT_FILTER_ROOM_ARIA}
+                allRoomsLabel={PATIENT_APPT_FILTER_ALL_ROOMS}
+                providerFilterAria={PATIENT_APPT_FILTER_PROVIDER_ARIA}
+                allProvidersLabel={PATIENT_APPT_FILTER_ALL_PROVIDERS}
+                openInScheduleLabel={PATIENT_APPT_OPEN_IN_SCHEDULE}
+                emptyTitle={PATIENT_TAB_EMPTY_APPOINTMENTS_TITLE}
+                emptyBody={PATIENT_TAB_EMPTY_APPOINTMENTS_BODY}
+                emptyFilteredTitle={PATIENT_TAB_EMPTY_APPOINTMENTS_FILTERED_TITLE}
+                emptyFilteredBody={PATIENT_TAB_EMPTY_APPOINTMENTS_FILTERED_BODY}
+                loadingLabel={PATIENT_TAB_LOADING_APPOINTMENTS}
+                offlineTitle={CLINIC_SERVICE_OFFLINE_TITLE}
+                offlineBody={CLINIC_SERVICE_OFFLINE_SECTION}
+                retryLabel={READONLY_STATE_RETRY}
+                rangeCountLabel={patientApptRangeCountLabel}
+                formatDayHeading={formatApptDayHeading}
+              />
             ) : null}
 
             {activeTab === "medical" ? (
-              <section
-                id="patient-panel-medical"
-                role="tabpanel"
-                aria-labelledby="patient-tab-medical"
-                className="app-patient-profile__medical app-clinical-tab app-clinical-tab--medical"
-              >
-                <p className="app-patient-profile__medical-lede">{PATIENT_TAB_MEDICAL_LEDE}</p>
-                <ProfileTabHiddenNote variant="medical" />
-
-                {medState.phase === "offline" ? (
-                  <ClinicEmptyState
-                    variant="offline"
-                    className="app-patient-profile__empty"
-                    title={CLINIC_SERVICE_OFFLINE_TITLE}
-                    body={PATIENT_TAB_OFFLINE_MEDICAL}
-                  />
-                ) : medState.phase === "loading" ? (
-                  <ClinicLoadingSkeleton lines={4} label={PATIENT_TAB_LOADING_MEDICAL} />
-                ) : medState.phase === "error" ? (
-                  <ProfileReadonlyError
-                    message={medState.message}
-                    onRetry={() => setMedRefreshNonce((n) => n + 1)}
-                  />
-                ) : medState.phase === "no_record" ? (
-                  <ClinicEmptyState
-                    className="app-patient-profile__empty"
-                    title={PATIENT_TAB_EMPTY_MEDICAL_TITLE}
-                    body={PATIENT_TAB_EMPTY_MEDICAL}
-                  />
-                ) : medState.phase === "loaded" ? (
-                  <MedicalSummaryBody summary={medState.summary} />
-                ) : null}
-              </section>
+              <PatientMedicalTab
+                medState={medState}
+                onRefresh={() => setMedRefreshNonce((n) => n + 1)}
+                isOffline={bridgePhase === "offline"}
+                BodyComponent={MedicalSummaryBody}
+              />
             ) : null}
 
             {activeTab === "treatments" ? (
-              <section
-                id="patient-panel-treatments"
-                role="tabpanel"
-                aria-labelledby="patient-tab-treatments"
-                className="app-patient-profile__treatments app-clinical-tab app-clinical-tab--treatments"
-              >
-                <p className="app-patient-profile__treatments-lede">{PATIENT_TAB_TREATMENTS_LEDE}</p>
-                <ProfileTabHiddenNote variant="treatments" />
-
-                <div className="app-patient-profile__treatments-controls">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="ui-focusable"
-                    onClick={() => setTxRefreshNonce((n) => n + 1)}
-                  >
-                    Refresh
-                  </Button>
-                </div>
-
-                {txState.phase === "offline" ? (
-                  <ClinicEmptyState
-                    variant="offline"
-                    className="app-patient-profile__empty"
-                    title={CLINIC_SERVICE_OFFLINE_TITLE}
-                    body={PATIENT_TAB_OFFLINE_TREATMENTS}
-                  />
-                ) : txState.phase === "loading" ? (
-                  <ClinicLoadingSkeleton lines={4} label={PATIENT_TAB_LOADING_TREATMENTS} />
-                ) : txState.phase === "error" ? (
-                  <ProfileReadonlyError
-                    message={txState.message}
-                    onRetry={() => setTxRefreshNonce((n) => n + 1)}
-                  />
-                ) : txState.phase === "empty" ? (
-                  <ClinicEmptyState
-                    className="app-patient-profile__empty"
-                    title={PATIENT_TAB_EMPTY_TREATMENTS_TITLE}
-                    body={PATIENT_TAB_EMPTY_TREATMENTS}
-                  />
-                ) : txState.phase === "loaded" ? (
-                  <TreatmentsBody
-                    treatments={txState.treatments}
-                    truncated={txState.truncated}
-                    privacyNote={txState.privacyNote}
-                    doctorLabels={doctorLabels}
-                    procedureMaps={procedureMaps}
-                  />
-                ) : null}
-              </section>
+              <PatientTreatmentsTab
+                txState={txState}
+                onRefresh={() => setTxRefreshNonce((n) => n + 1)}
+                procedureMaps={procedureMaps}
+                doctorLabels={doctorLabels}
+                isOffline={bridgePhase === "offline"}
+                BodyComponent={TreatmentsBody}
+              />
             ) : null}
 
             {activeTab === "chart" ? (
-              <section
-                id="patient-panel-chart"
-                role="tabpanel"
-                aria-labelledby="patient-tab-chart"
-                className="app-patient-profile__chart app-clinical-tab app-clinical-tab--chart"
-              >
-                <p className="app-patient-profile__chart-lede">{PATIENT_TAB_CHART_LEDE}</p>
-                <ProfileTabHiddenNote variant="chart" />
-
-                <div className="app-patient-profile__chart-controls">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="ui-focusable"
-                    onClick={() => setChartRefreshNonce((n) => n + 1)}
-                  >
-                    Refresh
-                  </Button>
-                </div>
-
-                {chartToothFilter !== null ? (
-                  <div
-                    className="app-patient-profile__chart-tooth-filter"
-                    role="status"
-                    data-testid="patient-chart-tooth-filter"
-                  >
-                    <p>
-                      {PATIENT_CHART_TOOTH_FILTER_LABEL} {timelineChartToothFilterLabel(chartToothFilter)}
-                    </p>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="compact"
-                      className="ui-focusable"
-                      onClick={() => setChartToothFilter(null)}
-                    >
-                      {PATIENT_CHART_TOOTH_FILTER_CLEAR}
-                    </Button>
-                  </div>
-                ) : null}
-
-                {chartState.phase === "offline" ? (
-                  <ClinicEmptyState
-                    variant="offline"
-                    className="app-patient-profile__empty"
-                    title={CLINIC_SERVICE_OFFLINE_TITLE}
-                    body={PATIENT_TAB_OFFLINE_CHART}
-                  />
-                ) : chartState.phase === "loading" ? (
-                  <ClinicLoadingSkeleton lines={4} label={PATIENT_TAB_LOADING_CHART} />
-                ) : chartState.phase === "error" ? (
-                  <ProfileReadonlyError
-                    message={chartState.message}
-                    onRetry={() => setChartRefreshNonce((n) => n + 1)}
-                  />
-                ) : chartState.phase === "empty" ? (
-                  <ClinicEmptyState
-                    className="app-patient-profile__empty"
-                    title={PATIENT_TAB_EMPTY_CHART_TITLE}
-                    body={PATIENT_TAB_EMPTY_CHART}
-                  />
-                ) : chartState.phase === "loaded" ? (
-                  chartEntriesForDisplay.length === 0 && chartToothFilter !== null ? (
-                    <p className="app-patient-profile__clinical-empty-filtered" role="status">
-                      No chart entries match tooth {chartToothFilter}.
-                    </p>
-                  ) : (
-                    <ChartBody
-                      entries={chartEntriesForDisplay}
-                      truncated={chartState.truncated}
-                      privacyNote={chartState.privacyNote}
-                    />
-                  )
-                ) : null}
-              </section>
+              <PatientChartTab
+                chartState={chartState}
+                chartToothFilter={chartToothFilter}
+                onChartToothFilterChange={setChartToothFilter}
+                onRefresh={() => setChartRefreshNonce((n) => n + 1)}
+                isOffline={bridgePhase === "offline"}
+                BodyComponent={ChartBody}
+                chartEntriesForDisplay={chartEntriesForDisplay}
+              />
             ) : null}
 
             {activeTab === "ledger" ? (
-              <section
-                id="patient-panel-ledger"
-                role="tabpanel"
-                aria-labelledby="patient-tab-ledger"
-                className="app-patient-profile__ledger app-clinical-tab app-clinical-tab--ledger"
-              >
-                <p className="app-patient-profile__ledger-lede">{PATIENT_TAB_LEDGER_LEDE}</p>
-                <ProfileTabHiddenNote variant="ledger" />
-                <p className="app-patient-profile__ledger-amounts-note app-clinical-amount-callout" role="note">
-                  {PATIENT_TAB_LEDGER_AMOUNTS_HIDDEN}
-                </p>
-
-                <div className="app-patient-profile__ledger-controls">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="ui-focusable"
-                    onClick={() => setLedgerRefreshNonce((n) => n + 1)}
-                  >
-                    Refresh
-                  </Button>
-                </div>
-
-                {ledgerState.phase === "offline" ? (
-                  <ClinicEmptyState
-                    variant="offline"
-                    className="app-patient-profile__empty"
-                    title={CLINIC_SERVICE_OFFLINE_TITLE}
-                    body={PATIENT_TAB_OFFLINE_LEDGER}
-                  />
-                ) : ledgerState.phase === "loading" ? (
-                  <ClinicLoadingSkeleton lines={4} label={PATIENT_TAB_LOADING_LEDGER} />
-                ) : ledgerState.phase === "error" ? (
-                  <ProfileReadonlyError
-                    message={ledgerState.message}
-                    onRetry={() => setLedgerRefreshNonce((n) => n + 1)}
-                  />
-                ) : ledgerState.phase === "empty" ? (
-                  <ClinicEmptyState
-                    className="app-patient-profile__empty"
-                    title={PATIENT_TAB_EMPTY_LEDGER_TITLE}
-                    body={PATIENT_TAB_EMPTY_LEDGER}
-                  />
-                ) : ledgerState.phase === "loaded" ? (
-                  <LedgerBody
-                    entries={ledgerState.entries}
-                    truncated={ledgerState.truncated}
-                    privacyNote={ledgerState.privacyNote}
-                  />
-                ) : null}
-              </section>
+              <PatientLedgerTab
+                ledgerState={ledgerState}
+                onRefresh={() => setLedgerRefreshNonce((n) => n + 1)}
+                isOffline={bridgePhase === "offline"}
+                BodyComponent={LedgerBody}
+              />
             ) : null}
           </>
         ) : (
