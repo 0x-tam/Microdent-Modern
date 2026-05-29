@@ -426,6 +426,7 @@
       <div class="wizard-footer">
         <div id="step1Error" role="alert"></div>
         <div style="display:flex;gap:8px;margin-left:auto;">
+          <button type="button" class="btn-back" id="btnChangeFolder" style="display:none;">Change folder</button>
           <button type="button" class="btn-back" id="btnBack" style="display:none;" disabled>Back</button>
           <button type="button" class="btn-primary" id="btnNext">Continue</button>
         </div>
@@ -580,6 +581,18 @@
         }
       });
 
+      // ── Change folder button (error recovery) ──
+      const btnChangeFolder = document.getElementById("btnChangeFolder");
+      btnChangeFolder.addEventListener("click", async () => {
+        const path = await window.setupApi.pickFolder("Select your clinic data folder");
+        if (path) {
+          dataRootInput.value = path;
+          autoDerivePaths(path);
+          step1Error.textContent = "";
+          updateSubmitState();
+        }
+      });
+
       // ── Input listeners ──
       for (const id of ["dataRoot", "sqlitePath", "backupDir"]) {
         const input = document.getElementById(id);
@@ -590,6 +603,26 @@
           updateLegacyWarning();
         });
       }
+
+      // ── Listen for progress events from main process ──
+      window.setupApi.onChangeFolder((_event) => {
+        // Main process tells us to go back to folder selection
+        showStep(1);
+        step1Error.textContent = "Please choose a different data folder.";
+        updateSubmitState();
+      });
+
+      // ── Listen for import progress updates ──
+      window.setupApi.onImportProgress((data) => {
+        const fillEl = document.getElementById("progressFill");
+        const statusEl = document.getElementById("importStatus");
+        if (data.percent !== undefined) {
+          fillEl.style.width = data.percent + "%";
+        }
+        if (data.label) {
+          statusEl.innerHTML = '<span class="spinner"></span> ' + data.label;
+        }
+      });
 
       // ── Wizard navigation ──
       function showStep(n) {
@@ -613,6 +646,8 @@
         // Buttons
         btnBack.style.display = n > 1 && n < 3 ? "" : "none";
         btnBack.disabled = n <= 1;
+        // Change folder only visible on step 1
+        btnChangeFolder.style.display = n === 1 ? "" : "none";
 
         // Update title/subtitle
         const title = document.getElementById("wizardTitle");
@@ -662,21 +697,15 @@
             return;
           }
 
-          // Move to step 2
+          // Move to step 2 (progress)
           showStep(2);
           const statusEl = document.getElementById("importStatus");
           const fillEl = document.getElementById("progressFill");
 
           try {
-            // Phase 1: validate
-            statusEl.innerHTML = '<span class="spinner"></span> Checking your data folder…';
-            fillEl.style.width = "15%";
-            await new Promise((r) => setTimeout(r, 600));
-
-            // Phase 2: validate paths server-side and save config
+            // Phase 1: server-side validation + save config
             statusEl.innerHTML = '<span class="spinner"></span> Saving your settings…';
-            fillEl.style.width = "35%";
-            await new Promise((r) => setTimeout(r, 400));
+            fillEl.style.width = "10%";
 
             const result = await window.setupApi.saveConfig({
               dataRoot: dataRootInput.value,
@@ -684,44 +713,55 @@
               backupDir: backupDirInput.value,
             });
 
-            fillEl.style.width = "60%";
+            fillEl.style.width = "20%";
 
             if (!result.ok) {
-              // Validation error — go back to step 1
+              // Validation error — go back to step 1 with error message
               showStep(1);
               step1Error.textContent = result.message;
               updateSubmitState();
               return;
             }
 
-            // Phase 3: clinic service starting
-            statusEl.innerHTML = '<span class="spinner"></span> Starting clinic service…';
-            fillEl.style.width = "80%";
-            await new Promise((r) => setTimeout(r, 1200));
+            // Phase 2: call the real build-local-copy IPC
+            statusEl.innerHTML = '<span class="spinner"></span> Checking your data folder…';
+            fillEl.style.width = "25%";
 
-            // Phase 4: mirror building
-            statusEl.innerHTML = '<span class="spinner"></span> Building local copy…';
-            fillEl.style.width = "95%";
-            await new Promise((r) => setTimeout(r, 800));
+            const buildResult = await window.setupApi.buildLocalCopy({
+              dataRoot: dataRootInput.value,
+              sqlitePath: sqlitePathInput.value,
+              backupDir: backupDirInput.value,
+            });
 
-            // Done
+            if (!buildResult.ok) {
+              // Build failed — offer retry/change folder
+              showStep(1);
+              step1Error.textContent = buildResult.message + " You can try a different folder.";
+              updateSubmitState();
+              return;
+            }
+
+            // Build succeeded
             fillEl.style.width = "100%";
-            statusEl.innerHTML = "✓ Local copy is ready!";
-            await new Promise((r) => setTimeout(r, 600));
+            statusEl.innerHTML = "✓ " + buildResult.message;
+            await new Promise((r) => setTimeout(r, 500));
 
             // Move to step 3
             showStep(3);
 
-            // Populate success detail
+            // Populate success detail with masked paths
             const detail = document.getElementById("successDetail");
-            const maskedData = result.dataRootMasked || "(set)";
-            const maskedSqlite = result.sqlitePathMasked || "(set)";
-            detail.innerHTML =
+            const maskedData = buildResult.dataRootMasked || result.dataRootMasked || "(set)";
+            const maskedSqlite = buildResult.sqlitePathMasked || result.sqlitePathMasked || "(set)";
+            let detailHtml =
               "<strong>Data folder:</strong> " + maskedData + "<br>" +
-              "<strong>Mirror file:</strong> " + maskedSqlite +
-              (result.backupDirMasked ? "<br><strong>Backup folder:</strong> " + result.backupDirMasked : "");
+              "<strong>Mirror file:</strong> " + maskedSqlite;
+            if (result.backupDirMasked) {
+              detailHtml += "<br><strong>Backup folder:</strong> " + result.backupDirMasked;
+            }
+            detail.innerHTML = detailHtml;
 
-          } catch {
+          } catch (err) {
             showStep(1);
             step1Error.textContent = "Could not save your settings. Please try again.";
             updateSubmitState();

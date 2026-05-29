@@ -107,4 +107,97 @@ describe("validateSetupPayload", () => {
     expect(summary).toMatch(/clinic service/i);
     expect(summary).toMatch(/legacy/i);
   });
+
+  it("rejects when sqlitePath points to a directory instead of a file", () => {
+    const dataRoot = mkdtempSync(join(tmpdir(), "microdent-setup-sqlite-dir-"));
+    const sqliteDir = mkdtempSync(join(tmpdir(), "microdent-setup-sqlite-dir2-"));
+    cleanup.push(dataRoot, sqliteDir);
+
+    const result = validateSetupPayload({
+      dataRoot,
+      sqlitePath: sqliteDir, // directory, not a file
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.message).toMatch(/SQLITE_PATH/i);
+      expect(result.message).toMatch(/file/i);
+    }
+  });
+
+  it("rejects when dataRoot points to a file instead of a directory", () => {
+    const dataRoot = mkdtempSync(join(tmpdir(), "microdent-setup-dataroot-"));
+    const sqliteDir = mkdtempSync(join(tmpdir(), "microdent-setup-datafile-"));
+    cleanup.push(dataRoot, sqliteDir);
+    const fakeFile = join(dataRoot, "fake-data-root");
+    writeFileSync(fakeFile, "");
+    const sqlitePath = join(sqliteDir, "mirror.sqlite");
+    writeFileSync(sqlitePath, "");
+
+    const result = validateSetupPayload({
+      dataRoot: fakeFile, // file, not a directory
+      sqlitePath,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.message).toMatch(/DATA_ROOT/i);
+      expect(result.message).toMatch(/folder/i);
+    }
+  });
+});
+
+describe("collectSetupPathWarnings", () => {
+  it("returns empty array for valid local paths", () => {
+    const warnings = collectSetupPathWarnings({
+      dataRoot: "/home/user/microdent/DATA",
+      sqlitePath: "/home/user/microdent/mirror/clinic.sqlite",
+      backupDir: "/home/user/microdent/backups",
+    });
+    expect(warnings).toEqual([]);
+  });
+
+  it("collects UNC warnings from multiple fields", () => {
+    const warnings = collectSetupPathWarnings({
+      dataRoot: "\\\\server\\share\\DATA",
+      sqlitePath: "/local/mirror.sqlite",
+    });
+    expect(warnings.some((w) => /UNC/i.test(w))).toBe(true);
+  });
+
+  it("deduplicates identical warnings", () => {
+    const warnings = collectSetupPathWarnings({
+      dataRoot: "\\\\server\\share1\\DATA",
+      sqlitePath: "\\\\server\\share2\\mirror.sqlite",
+    });
+    const uncWarnings = warnings.filter((w) => /UNC/i.test(w));
+    expect(uncWarnings.length).toBe(1);
+  });
+});
+
+describe("formatSetupSaveSummary", () => {
+  it("includes summary text without any raw paths", () => {
+    const summary = formatSetupSaveSummary([]);
+    expect(summary).toMatch(/Configuration saved/i);
+    expect(summary).not.toMatch(/\//);
+    expect(summary).not.toMatch(/\\/);
+  });
+
+  it("appends warnings when present", () => {
+    const summary = formatSetupSaveSummary(["Test warning one", "Test warning two"]);
+    expect(summary).toContain("Test warning one");
+    expect(summary).toContain("Test warning two");
+    expect(summary).toContain("Note:");
+  });
+});
+
+describe("getLegacyPathSegmentWarning", () => {
+  it("detects microdent-legacy in any path segment", () => {
+    expect(getLegacyPathSegmentWarning("microdent-legacy")).toMatch(/legacy/i);
+    expect(getLegacyPathSegmentWarning("/home/Microdent-Legacy/DATA")).toMatch(/legacy/i);
+    expect(getLegacyPathSegmentWarning("C:\\Legacy-Copy\\DATA")).toMatch(/legacy/i);
+  });
+
+  it("returns null for safe paths", () => {
+    expect(getLegacyPathSegmentWarning("/home/Microdent/DATA")).toBeNull();
+    expect(getLegacyPathSegmentWarning("C:\\Microdent\\Write-Sandbox\\DATA")).toBeNull();
+  });
 });

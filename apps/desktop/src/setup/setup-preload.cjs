@@ -6,4 +6,8 @@ contextBridge.exposeInMainWorld("setupApi", {
   pickFile: (title, label, extensions) =>
     ipcRenderer.invoke("setup:pick-file", title, label, extensions),
   complete: () => ipcRenderer.invoke("setup:complete"),
+  buildLocalCopy: (payload) => ipcRenderer.invoke("setup:build-local-copy", payload),
+  retry: () => ipcRenderer.invoke("setup:retry"),
+  onChangeFolder: (callback) => ipcRenderer.on("setup:change-folder", callback),
+  onImportProgress: (callback) => ipcRenderer.on("setup:import-progress", (_event, data) => callback(data)),
 });

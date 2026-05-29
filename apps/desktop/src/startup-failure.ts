@@ -9,14 +9,14 @@ export function formatStartupFailure(err: unknown): string {
   if (/setup window closed/i.test(raw)) {
     return "Setup was closed before paths were saved. Restart the desktop app and complete first-run setup.";
   }
-  if (/server\.js|bridge.*dist|ENOENT.*bridge/i.test(raw)) {
+  if (/server\.js|bridge.*dist|ENOENT.*bridge|clinic service files.*missing|not built/i.test(raw)) {
     return "Bridge server not built. Run: pnpm --filter @microdent/bridge run build";
   }
   if (/index\.html|web.*dist|ENOENT.*web/i.test(raw)) {
     return "Web UI dist is missing. Run: pnpm build:web";
   }
-  if (/EADDRINUSE|17890|address already in use/i.test(raw)) {
-    return "Bridge port 17890 is in use. Close other Microdent bridge processes or change bridgePort in desktop config.";
+  if (/EADDRINUSE|17890|address already in use|port.*in use/i.test(raw)) {
+    return "Clinic service port is in use. Close other Microdent processes or restart the app.";
   }
   if (/health|timeout|ECONNREFUSED|ETIMEDOUT|mirror unreachable/i.test(raw)) {
     return "Bridge did not respond on loopback (mirror health check timed out). Open Settings when the app loads, or restart after verifying sandbox paths in setup.";

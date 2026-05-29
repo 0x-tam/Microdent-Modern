@@ -1598,87 +1598,6 @@
   font-weight: 600;
 }
 
-/* Responsive: tablet and mobile for profile workspace */
-@media (max-width: 900px) {
-  .app-patient-profile {
-    gap: var(--ui-space-3);
-  }
-
-  .app-patient-profile__row {
-    grid-template-columns: 1fr;
-    gap: var(--ui-space-1);
-  }
-
-  .app-patient-profile__row dt {
-    font-size: 13px;
-  }
-
-  .app-patient-profile__tablist {
-    flex-direction: column;
-  }
-
-  .app-patient-profile__tab {
-    min-height: 44px;
-    width: 100%;
-    justify-content: center;
-  }
-
-  .app-patient-profile__summary-mini-grid {
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 8rem), 1fr));
-  }
-
-  .app-patient-profile__treatment-row,
-  .app-patient-profile__chart-row,
-  .app-patient-profile__ledger-row {
-    grid-template-columns: 1fr;
-    gap: var(--ui-space-1);
-  }
-
-  .app-patient-profile__appt-row {
-    grid-template-columns: 1fr;
-    gap: var(--ui-space-1);
-  }
-
-  .app-patient-profile__toolbar {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .app-patient-profile__toolbar-refreshed {
-    margin: 0;
-  }
-
-  .app-patient-profile__header-strip.app-patient-hero {
-    padding: var(--ui-space-4) var(--ui-space-3);
-  }
-}
-
-/* Responsive: tablet and mobile */
-@media (max-width: 899px) {
-  .clinic-profile-hero__inner {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .clinic-profile-hero__avatar {
-    width: 3rem;
-    height: 3rem;
-  }
-
-  .clinic-profile-hero__avatar-initials {
-    font-size: 1rem;
-  }
-
-  .clinic-profile-glance-strip {
-    flex-direction: column;
-    gap: var(--ui-space-2);
-  }
-
-  .clinic-profile-glance-item {
-    flex: 1 1 auto;
-  }
-}
-
 @media (max-width: 599px) {
   .clinic-profile-hero {
     padding: var(--ui-space-4) var(--ui-space-3) var(--ui-space-3);
@@ -1927,6 +1846,79 @@
   }
 }
 
+/* ----- Responsive: 1400px — Medium desktop refinement ----- */
+@media (max-width: 1400px) {
+  .clinic-profile-summary-grid {
+    gap: var(--ui-space-3);
+  }
+
+  .clinic-profile-hero__actions {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--ui-space-2);
+  }
+
+  .app-patient-profile__appts-filters {
+    padding: var(--ui-space-2);
+  }
+
+  .app-patient-profile__appts-filter-group {
+    gap: var(--ui-space-1);
+  }
+
+  .app-patient-profile__clinical-filters {
+    gap: var(--ui-space-1);
+  }
+
+  .app-patient-profile__clinical-filter-row {
+    gap: var(--ui-space-1);
+  }
+}
+
+/* ----- Responsive: 1600px+ — Large desktop optimization ----- */
+@media (min-width: 1600px) {
+  .clinic-profile-summary-grid {
+    gap: var(--ui-space-4);
+  }
+
+  .clinic-profile-summary-grid > :first-child {
+    grid-column: span 7;
+  }
+
+  .clinic-profile-summary-grid > :last-child {
+    grid-column: span 5;
+  }
+
+  .clinic-profile-hero {
+    padding: var(--ui-space-6) var(--ui-space-6) var(--ui-space-5);
+  }
+
+  .clinic-profile-hero__inner {
+    gap: var(--ui-space-5);
+  }
+
+  .clinic-profile-hero__avatar {
+    width: 4rem;
+    height: 4rem;
+  }
+
+  .clinic-profile-hero__avatar-initials {
+    font-size: 1.25rem;
+  }
+
+  .clinic-profile-glance-strip {
+    padding: var(--ui-space-4) var(--ui-space-5);
+  }
+
+  .app-patient-profile__summary-mini-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr));
+  }
+
+  .app-patient-profile__summary-mini-card {
+    min-height: 6.5rem;
+  }
+}
+
 /* ----- Responsive: 900px stack grids, smaller spacing ----- */
 @media (max-width: 900px) {
   .app-patient-profile {
@@ -2026,6 +2018,29 @@
 
   .app-patient-profile__summary-ledger-meta {
     flex-direction: column;
+    gap: var(--ui-space-1);
+  }
+
+  /* Hero stacking on tablet */
+  .clinic-profile-hero__inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .clinic-profile-hero__avatar {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .clinic-profile-hero__avatar-initials {
+    font-size: 0.95rem;
+  }
+
+  .clinic-profile-hero {
+    padding: var(--ui-space-4) var(--ui-space-4) var(--ui-space-3);
+  }
+
+  .clinic-profile-hero__chips {
     gap: var(--ui-space-1);
   }
 }

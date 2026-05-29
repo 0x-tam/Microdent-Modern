@@ -14,12 +14,31 @@ describe("formatStartupFailure", () => {
     );
   });
 
+  it("maps clinic-friendly missing bridge dist error", () => {
+    expect(
+      formatStartupFailure(
+        new Error("Clinic service files are missing or not built. Please restart the app or contact support."),
+      ),
+    ).toMatch(/@microdent\/bridge run build/i);
+  });
+
   it("maps missing web dist", () => {
     expect(formatStartupFailure(new Error("ENOENT apps/web/dist/index.html"))).toMatch(/build:web/i);
   });
 
-  it("maps port conflicts", () => {
-    expect(formatStartupFailure(new Error("listen EADDRINUSE 127.0.0.1:17890"))).toMatch(/17890/);
+  it("maps port conflicts without exposing port numbers in user-facing message", () => {
+    const message = formatStartupFailure(new Error("listen EADDRINUSE 127.0.0.1:17890"));
+    expect(message).toMatch(/Clinic service port is in use/i);
+    expect(message).not.toMatch(/17890/);
+    expect(message).not.toMatch(/127\.0\.0\.1/);
+  });
+
+  it("maps clinic-friendly port error", () => {
+    expect(
+      formatStartupFailure(
+        new Error("Clinic service could not start — the port is already in use."),
+      ),
+    ).toMatch(/Clinic service port is in use/i);
   });
 
   it("maps health timeout without paths", () => {

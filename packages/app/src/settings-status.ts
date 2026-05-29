@@ -2,12 +2,26 @@ import type { BridgeDevStatusResponse, MirrorStatusResponse } from "@microdent/c
 import type { BridgeHealthPhase } from "./bridge-health.js";
 import {
   SETTINGS_BACKUP_CONFIGURED,
+  SETTINGS_BACKUP_FOLDER_MISSING,
+  SETTINGS_BACKUP_FOLDER_NOT_WRITABLE,
+  SETTINGS_BACKUP_FOLDER_READY,
   SETTINGS_BACKUP_NOT_CONFIGURED,
   SETTINGS_BACKUP_NOT_REQUIRED,
   SETTINGS_BACKUP_UNKNOWN,
   SETTINGS_DATA_ROOT_CONFIGURED,
+  SETTINGS_DATA_SOURCE_CONFIGURED,
+  SETTINGS_DATA_SOURCE_NOT_CONFIGURED,
   SETTINGS_DATA_ROOT_MISSING,
   SETTINGS_DATA_ROOT_UNKNOWN,
+  SETTINGS_EDITING_DISABLED,
+  SETTINGS_EDITING_DISABLED_EXPLAIN,
+  SETTINGS_EDITING_DRY_RUN,
+  SETTINGS_EDITING_DRY_RUN_EXPLAIN,
+  SETTINGS_EDITING_READ_ONLY,
+  SETTINGS_EDITING_READ_ONLY_EXPLAIN,
+  SETTINGS_EDITING_SANDBOX,
+  SETTINGS_EDITING_SANDBOX_EXPLAIN,
+  SETTINGS_EDITING_UNKNOWN,
   SETTINGS_MIRROR_FALLBACK,
   SETTINGS_MIRROR_SQLITE_CONFIGURED,
   SETTINGS_MIRROR_SQLITE_MISSING,
@@ -29,6 +43,9 @@ import {
   SETTINGS_READINESS_BACKUP_CONFIGURED,
   SETTINGS_READINESS_BACKUP_NOT_CONFIGURED,
   SETTINGS_READINESS_WRITES_ACTIVE,
+  SETTINGS_SERVICE_RUNNING,
+  SETTINGS_SERVICE_STOPPED,
+  SETTINGS_SERVICE_UNKNOWN,
   SETTINGS_SANDBOX_INVALID,
   SETTINGS_SANDBOX_UNKNOWN,
   SETTINGS_SANDBOX_VALID,
@@ -560,4 +577,200 @@ export function resolvePilotReadinessChecklist(
     writeItem,
     sandboxItem,
   ];
+}
+
+/**
+ * Clinic service status summary for the operator control center.
+ * Uses the `app:service-status` IPC shape when available, or falls back
+ * to bridge health phase when running in browser mode.
+ */
+export type ServiceStatusSummary = {
+  label: string;
+  tone: SettingsStatusTone;
+  portMasked: string;
+  actionLabel: string | null;
+};
+
+export function resolveServiceStatusSummary(
+  bridgePhase: BridgeHealthPhase,
+  serviceStatus?: { status: "running" | "stopped"; port: number | null; lastError: string | null } | null,
+): ServiceStatusSummary {
+  if (serviceStatus === null || serviceStatus === undefined) {
+    // Browser mode — derive from bridge health phase
+    if (bridgePhase === "connected") {
+      return {
+        label: SETTINGS_SERVICE_RUNNING,
+        tone: "ok",
+        portMasked: "Port: ****",
+        actionLabel: null,
+      };
+    }
+    return {
+      label: bridgePhase === "checking" ? "Checking…" : SETTINGS_SERVICE_STOPPED,
+      tone: bridgePhase === "checking" ? "neutral" : "danger",
+      portMasked: "Port: ****",
+      actionLabel: bridgePhase === "offline" ? "Start service" : null,
+    };
+  }
+
+  // Desktop mode — use IPC service status
+  if (serviceStatus.status === "running") {
+    return {
+      label: SETTINGS_SERVICE_RUNNING,
+      tone: "ok",
+      portMasked: "Port: ****",
+      actionLabel: "Restart service",
+    };
+  }
+  return {
+    label: SETTINGS_SERVICE_STOPPED,
+    tone: "danger",
+    portMasked: "Port: ****",
+    actionLabel: "Start service",
+  };
+}
+
+/**
+ * Data source status with masked path hint.
+ */
+export type DataSourceStatus = {
+  label: string;
+  tone: SettingsStatusTone;
+  maskedPathHint: string;
+};
+
+export function resolveDataSourceStatus(
+  writeCapability: BridgeDevStatusResponse | null,
+): DataSourceStatus {
+  if (!writeCapability) {
+    return {
+      label: SETTINGS_DATA_ROOT_UNKNOWN,
+      tone: "neutral",
+      maskedPathHint: "Folder: (unknown)",
+    };
+  }
+  if (writeCapability.dataRootConfigured) {
+    return {
+      label: SETTINGS_DATA_SOURCE_CONFIGURED,
+      tone: "ok",
+      maskedPathHint: "Folder: C:\\…\\Write-Sandbox\\DATA",
+    };
+  }
+  return {
+    label: SETTINGS_DATA_SOURCE_NOT_CONFIGURED,
+    tone: "warn",
+    maskedPathHint: "Folder: (not configured)",
+  };
+}
+
+/**
+ * Backup readiness summary for the operator control center.
+ */
+export type BackupReadinessSummary = {
+  label: string;
+  tone: SettingsStatusTone;
+  folderExists: boolean;
+  folderWritable: boolean;
+  changeActionLabel: string | null;
+};
+
+export function resolveBackupReadinessSummary(
+  writeCapability: BridgeDevStatusResponse | null,
+): BackupReadinessSummary {
+  if (!writeCapability) {
+    return {
+      label: SETTINGS_BACKUP_UNKNOWN,
+      tone: "neutral",
+      folderExists: false,
+      folderWritable: false,
+      changeActionLabel: null,
+    };
+  }
+  if (writeCapability.writeMode !== "enabled") {
+    return {
+      label: SETTINGS_BACKUP_NOT_REQUIRED,
+      tone: "neutral",
+      folderExists: writeCapability.backupDirConfigured,
+      folderWritable: writeCapability.backupDirConfigured,
+      changeActionLabel: "Change backup folder",
+    };
+  }
+  if (writeCapability.backupDirConfigured) {
+    return {
+      label: SETTINGS_BACKUP_FOLDER_READY,
+      tone: "ok",
+      folderExists: true,
+      folderWritable: true,
+      changeActionLabel: "Change backup folder",
+    };
+  }
+  return {
+    label: SETTINGS_BACKUP_FOLDER_MISSING,
+    tone: "warn",
+    folderExists: false,
+    folderWritable: false,
+    changeActionLabel: "Change backup folder",
+  };
+}
+
+/**
+ * Editing mode summary — clinic-friendly label with explanation.
+ */
+export type EditingModeSummary = {
+  label: string;
+  explanation: string;
+  tone: SettingsStatusTone;
+};
+
+export function resolveEditingModeSummary(
+  writeCapability: BridgeDevStatusResponse | null,
+  sandboxWritePilot = false,
+): EditingModeSummary {
+  if (!writeCapability) {
+    return {
+      label: SETTINGS_EDITING_UNKNOWN,
+      explanation: "Connect the clinic service to check editing status.",
+      tone: "neutral",
+    };
+  }
+  switch (writeCapability.writeMode) {
+    case "disabled":
+      return {
+        label: SETTINGS_EDITING_READ_ONLY,
+        explanation: SETTINGS_EDITING_READ_ONLY_EXPLAIN,
+        tone: "ok",
+      };
+    case "dry-run":
+      return {
+        label: SETTINGS_EDITING_DRY_RUN,
+        explanation: SETTINGS_EDITING_DRY_RUN_EXPLAIN,
+        tone: "warn",
+      };
+    case "enabled":
+      if (!sandboxWritePilot) {
+        return {
+          label: SETTINGS_EDITING_DISABLED,
+          explanation: SETTINGS_EDITING_DISABLED_EXPLAIN,
+          tone: "neutral",
+        };
+      }
+      if (writeCapability.writableSandbox && writeCapability.writesPermitted) {
+        return {
+          label: SETTINGS_EDITING_SANDBOX,
+          explanation: SETTINGS_EDITING_SANDBOX_EXPLAIN,
+          tone: "danger",
+        };
+      }
+      return {
+        label: SETTINGS_EDITING_SANDBOX,
+        explanation: SETTINGS_EDITING_SANDBOX_EXPLAIN,
+        tone: "warn",
+      };
+    default:
+      return {
+        label: SETTINGS_EDITING_UNKNOWN,
+        explanation: "Editing mode is not recognized.",
+        tone: "neutral",
+      };
+  }
 }

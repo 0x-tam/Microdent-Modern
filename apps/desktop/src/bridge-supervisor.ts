@@ -15,6 +15,14 @@ export class BridgeStartError extends Error {
   }
 }
 
+/** Public-facing bridge health status for IPC queries. */
+export type BridgeHealthStatus = {
+  /** "running" | "starting" | "stopped" | "error" */
+  status: "running" | "starting" | "stopped" | "error";
+  port: number | null;
+  lastError: string | null;
+};
+
 export type BridgeSupervisorOptions = {
   /** Install root — repo checkout or staged MicrodentModern/ package. */
   repoRoot: string;
@@ -35,11 +43,18 @@ export class BridgeSupervisor {
   private healthTimer: ReturnType<typeof setInterval> | null = null;
   private crashCount = 0;
   private _currentPort: number;
+  /** Internal health tracking for IPC status queries. */
+  private _healthStatus: BridgeHealthStatus = {
+    status: "starting",
+    port: null,
+    lastError: null,
+  };
 
   constructor(private readonly options: BridgeSupervisorOptions) {
     this.bridgeEntry = resolveBridgeEntry(options.repoRoot);
     this.webDistIndex = resolveWebDistIndex(options.repoRoot);
     this._currentPort = options.config.bridgePort ?? 17890;
+    this._healthStatus.port = this._currentPort;
   }
 
   get uiUrl(): string {
@@ -48,6 +63,11 @@ export class BridgeSupervisor {
       return `file://${this.webDistIndex}`;
     }
     return `http://127.0.0.1:${port}/`;
+  }
+
+  /** Return a snapshot of the bridge health status for IPC queries. */
+  get healthStatus(): BridgeHealthStatus {
+    return { ...this._healthStatus };
   }
 
   /**
@@ -80,7 +100,7 @@ export class BridgeSupervisor {
       if (!inUse) return candidate;
     }
     throw new BridgeStartError(
-      "Clinic service could not start — port is in use. Please restart the app or contact support.",
+      "Clinic service could not start — the port is already in use. Please restart the app or contact support.",
     );
   }
 
@@ -91,6 +111,7 @@ export class BridgeSupervisor {
     // Port conflict detection: find an available port before spawning
     const requestedPort = this.options.config.bridgePort ?? 17890;
     this._currentPort = await this.findAvailablePort(requestedPort);
+    this._healthStatus.port = this._currentPort;
     if (this._currentPort !== requestedPort) {
       console.warn(
         `Port ${requestedPort} was in use. Bridge will use port ${this._currentPort} instead.`,
@@ -127,12 +148,17 @@ export class BridgeSupervisor {
       if (this.child !== null) {
         this.child = null;
         this.crashCount++;
+        this._healthStatus.status = "stopped";
+        this._healthStatus.lastError = `Bridge exited unexpectedly: code=${code ?? "null"}, signal=${signal ?? "null"}`;
         console.warn(`Bridge exited unexpectedly: code=${code ?? "null"}, signal=${signal ?? "null"}`);
         this.options.onCrash?.();
       }
     });
 
     await this.waitForHealth();
+
+    this._healthStatus.status = "running";
+    this._healthStatus.lastError = null;
 
     // Start periodic health monitoring
     this.startHealthMonitoring();
@@ -167,6 +193,8 @@ export class BridgeSupervisor {
       } catch {
         // fetch failed — bridge process may have died without an exit event
         console.warn("Bridge health check failed — process may have become unresponsive.");
+        this._healthStatus.status = "error";
+        this._healthStatus.lastError = "Clinic service health check failed.";
         this.options.onHealthDegraded?.("Clinic service health check failed.");
         // Attempt recovery via the same crash handler
         this.crashCount++;
@@ -195,7 +223,11 @@ export class BridgeSupervisor {
     const childToStop = this.child;
     this.child = null;
 
-    if (!childToStop) return;
+    if (!childToStop) {
+      this.markStopped();
+      return;
+    }
+    this.markStopped();
     childToStop.kill("SIGTERM");
     await new Promise<void>((resolve) => {
       childToStop.once("exit", () => resolve());
@@ -221,5 +253,10 @@ export class BridgeSupervisor {
     throw new BridgeStartError(
       "Clinic service could not start. Please restart the app or contact support.",
     );
+  }
+
+  /** Called during intentional shutdown — reset status. */
+  private markStopped(): void {
+    this._healthStatus.status = "stopped";
   }
 }

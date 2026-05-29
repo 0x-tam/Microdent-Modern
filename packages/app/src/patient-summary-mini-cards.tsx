@@ -28,8 +28,10 @@ import {
   PATIENT_SUMMARY_TIMELINE_ABOUT_COUNT,
   PATIENT_SUMMARY_TIMELINE_EXACT_COUNT,
 } from "./read-only-ui-copy.js";
+import { type ProfileTab } from "./PatientProfileTabs.js";
 
-export type ProfileTab = "summary" | "timeline" | "appointments" | "medical" | "treatments" | "chart" | "ledger";
+// Re-export for consumers that previously imported from this module.
+export type { ProfileTab };
 
 const SUMMARY_CROSS_TABS: readonly { id: Exclude<ProfileTab, "summary">; label: string }[] = [
   { id: "timeline", label: "Timeline" },

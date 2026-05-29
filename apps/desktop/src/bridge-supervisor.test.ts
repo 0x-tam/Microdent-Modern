@@ -7,7 +7,7 @@ vi.mock("node:child_process", () => ({
   spawn: spawnMock,
 }));
 
-const existsSyncMock = vi.hoisted(() => vi.fn(() => true));
+const existsSyncMock = vi.hoisted(() => vi.fn((_path?: string) => true));
 const statSyncMock = vi.hoisted(() =>
   vi.fn(() => ({
     isDirectory: () => true,
@@ -230,5 +230,151 @@ describe("BridgeSupervisor spawn env", () => {
     });
 
     expect(supervisor.uiUrl).toBe("http://127.0.0.1:18888/");
+  });
+});
+
+describe("BridgeSupervisor health status", () => {
+  let healthCalls = 0;
+
+  beforeEach(() => {
+    spawnMock.mockReset();
+    existsSyncMock.mockReset();
+    statSyncMock.mockReset();
+    healthCalls = 0;
+    existsSyncMock.mockImplementation((_path?: string) => {
+      return true;
+    });
+    statSyncMock.mockImplementation(() => ({
+      isDirectory: () => true,
+      isFile: () => true,
+    }));
+    spawnMock.mockReturnValue({
+      kill: vi.fn(),
+      once: vi.fn(),
+      on: vi.fn(),
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(async () => {
+        healthCalls++;
+        if (healthCalls <= 3) {
+          throw new Error("ECONNREFUSED");
+        }
+        return { ok: true };
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns starting status before bridge is started", () => {
+    const supervisor = new BridgeSupervisor({
+      repoRoot: "/tmp/microdent-repo",
+      config: {
+        version: 1,
+        dataRoot: "/tmp/sandbox-data",
+        sqlitePath: "/tmp/sandbox.sqlite",
+        bridgePort: 17890,
+        writeMode: "disabled",
+      },
+    });
+
+    const status = supervisor.healthStatus;
+    expect(status.status).toBe("starting");
+    expect(status.port).toBe(17890);
+    expect(status.lastError).toBeNull();
+  });
+
+  it("returns running status after successful start", async () => {
+    const supervisor = new BridgeSupervisor({
+      repoRoot: "/tmp/microdent-repo",
+      config: {
+        version: 1,
+        dataRoot: "/tmp/sandbox-data",
+        sqlitePath: "/tmp/sandbox.sqlite",
+        bridgePort: 17890,
+        writeMode: "disabled",
+      },
+      nodeBinary: "/usr/bin/node",
+    });
+
+    await supervisor.start();
+
+    const status = supervisor.healthStatus;
+    expect(status.status).toBe("running");
+    expect(status.port).toBe(17890);
+    expect(status.lastError).toBeNull();
+  });
+
+  it("returns a copy, not the internal reference", async () => {
+    const supervisor = new BridgeSupervisor({
+      repoRoot: "/tmp/microdent-repo",
+      config: {
+        version: 1,
+        dataRoot: "/tmp/sandbox-data",
+        sqlitePath: "/tmp/sandbox.sqlite",
+        bridgePort: 17890,
+        writeMode: "disabled",
+      },
+      nodeBinary: "/usr/bin/node",
+    });
+
+    await supervisor.start();
+
+    const s1 = supervisor.healthStatus;
+    const s2 = supervisor.healthStatus;
+    expect(s1).toEqual(s2);
+    expect(s1).not.toBe(s2); // different objects
+  });
+
+  it("throws clinic-friendly error when bridge dist is missing", async () => {
+    existsSyncMock.mockImplementation((path?: string) => {
+      if (!path) return true;
+      // Return false for the dev bridge dist path
+      if (path.includes("bridge") && path.includes("server.js")) {
+        return false;
+      }
+      return true;
+    });
+
+    const supervisor = new BridgeSupervisor({
+      repoRoot: "/tmp/microdent-repo",
+      config: {
+        version: 1,
+        dataRoot: "/tmp/sandbox-data",
+        sqlitePath: "/tmp/sandbox.sqlite",
+        writeMode: "disabled",
+      },
+      nodeBinary: "/usr/bin/node",
+    });
+
+    await expect(supervisor.start()).rejects.toThrow(
+      /Clinic service files are missing or not built/i,
+    );
+  });
+
+  it("throws clinic-friendly error when all ports are in use", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true }),
+    );
+
+    const supervisor = new BridgeSupervisor({
+      repoRoot: "/tmp/microdent-repo",
+      config: {
+        version: 1,
+        dataRoot: "/tmp/sandbox-data",
+        sqlitePath: "/tmp/sandbox.sqlite",
+        bridgePort: 17890,
+        writeMode: "disabled",
+      },
+      nodeBinary: "/usr/bin/node",
+    });
+
+    await expect(supervisor.start()).rejects.toThrow(
+      /Clinic service could not start.*port is already in use/i,
+    );
   });
 });

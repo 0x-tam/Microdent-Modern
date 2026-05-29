@@ -5,6 +5,7 @@
 import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { mkdirSync, existsSync, statSync } from "node:fs";
 import { BridgeSupervisor } from "./bridge-supervisor.js";
 import {
   loadDesktopConfig,
@@ -35,6 +36,39 @@ async function showFatalError(title: string, message: string, detail?: string): 
   });
 }
 
+/**
+ * Derive a default backup directory next to the data root and create it if missing.
+ * Only runs when config has dataRoot but no backupDir — does NOT run during first-run
+ * (setup-window.ts already handles this).
+ */
+function ensureBackupDir(config: DesktopConfig): DesktopConfig {
+  if (config.backupDir?.trim()) return config;
+  if (!config.dataRoot?.trim()) return config;
+
+  const parent = dirname(config.dataRoot);
+  const derived = join(parent, "microdent-backups");
+
+  if (existsSync(derived)) {
+    try {
+      if (statSync(derived).isDirectory()) {
+        return { ...config, backupDir: derived };
+      }
+    } catch {
+      // Not a directory — skip auto-creation
+      return config;
+    }
+  }
+
+  try {
+    mkdirSync(derived, { recursive: true });
+    console.log(`Auto-created backup directory: ${derived}`);
+    return { ...config, backupDir: derived };
+  } catch {
+    console.warn(`Could not create default backup directory at ${derived}`);
+    return config;
+  }
+}
+
 async function runFirstRunSetup(): Promise<DesktopConfig> {
   const initial = loadDesktopConfig();
   const config = await showSetupWindow(initial);
@@ -55,11 +89,31 @@ async function createWindow(): Promise<void> {
       app.exit(0);
       return;
     }
+  } else {
+    // Not first-run: auto-derive backupDir if dataRoot exists but backupDir is missing
+    const enhanced = ensureBackupDir(config);
+    if (enhanced.backupDir && !config.backupDir) {
+      config = enhanced;
+      // Persist the auto-derived backupDir so it survives restarts
+      try {
+        saveDesktopConfig(config);
+      } catch {
+        console.warn("Could not persist auto-derived backupDir");
+      }
+    }
   }
 
   // IPC for health status — the web app can subscribe to bridge health
   ipcMain.handle("bridge:health", () => {
     return supervisor !== null ? "connected" : "disconnected";
+  });
+
+  // IPC for detailed service status — used by Settings page
+  ipcMain.handle("app:service-status", () => {
+    if (supervisor === null) {
+      return { status: "stopped" as const, port: null, lastError: null };
+    }
+    return supervisor.healthStatus;
   });
 
   supervisor = new BridgeSupervisor({
@@ -119,6 +173,7 @@ async function createWindow(): Promise<void> {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      preload: join(__dirname, "main-app-preload.cjs"),
     },
   });
 
