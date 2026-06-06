@@ -14,16 +14,33 @@ describe("formatStartupFailure", () => {
     );
   });
 
+  it("maps clinic-friendly missing bridge dist error", () => {
+    expect(
+      formatStartupFailure(
+        new Error("Clinic service files are missing or not built. Please restart the app or contact support."),
+      ),
+    ).toMatch(/Rebuild the release package/i);
+  });
+
   it("maps missing web dist", () => {
     expect(formatStartupFailure(new Error("ENOENT apps/web/dist/index.html"))).toMatch(
       /Clinic workspace is missing/i,
     );
   });
 
-  it("maps port conflicts", () => {
-    expect(formatStartupFailure(new Error("listen EADDRINUSE 127.0.0.1:17890"))).toMatch(
-      /local clinic service/i,
-    );
+  it("maps port conflicts without exposing port numbers in user-facing message", () => {
+    const message = formatStartupFailure(new Error("listen EADDRINUSE 127.0.0.1:17890"));
+    expect(message).toMatch(/local clinic service/i);
+    expect(message).not.toMatch(/17890/);
+    expect(message).not.toMatch(/127\.0\.0\.1/);
+  });
+
+  it("maps clinic-friendly port error", () => {
+    expect(
+      formatStartupFailure(
+        new Error("Clinic service could not start — the port is already in use."),
+      ),
+    ).toMatch(/local clinic service/i);
   });
 
   it("maps health timeout without paths", () => {

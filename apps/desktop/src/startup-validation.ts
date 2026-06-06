@@ -93,6 +93,8 @@ export function validateDesktopStartupConfig(config: DesktopConfig): void {
 
 export function validateBridgeDistExists(bridgeEntry: string): void {
   if (!existsSync(bridgeEntry)) {
-    throw new Error("bridge dist missing; run pnpm --filter @microdent/bridge run build");
+    throw new Error(
+      "Clinic service files are missing or not built. Please restart the app or contact support.",
+    );
   }
 }

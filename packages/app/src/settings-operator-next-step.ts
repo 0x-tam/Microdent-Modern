@@ -15,6 +15,7 @@ import {
   SETTINGS_NEXT_STEP_WRITE_DRY_RUN,
   SETTINGS_NEXT_STEP_WRITE_ENABLED,
   SETTINGS_NEXT_STEP_DATA_ROOT_FORBIDDEN,
+  SETTINGS_SETUP_RERUN_HINT,
 } from "./read-only-ui-copy.js";
 
 export type SettingsCardKey =
@@ -27,7 +28,11 @@ export type SettingsCardKey =
   | "pilot"
   | "sqliteMirror"
   | "mirror"
-  | "mirrorImport";
+  | "mirrorImport"
+  | "serviceStatus"
+  | "dataSource"
+  | "editingMode"
+  | "setup";
 
 /** One-line operator action for a Settings card (no paths or PHI). */
 export function resolveSettingsOperatorNextStep(
@@ -102,6 +107,26 @@ export function resolveSettingsOperatorNextStep(
         return SETTINGS_NEXT_STEP_MIRROR_IMPORT;
       }
       return null;
+    case "serviceStatus":
+      if (bridgePhase === "connected") return null;
+      if (
+        bridgePhase === "offline" &&
+        (!writeCapability || !writeCapability.dataRootConfigured || !writeCapability.sqlitePathConfigured)
+      ) {
+        return SETTINGS_NEXT_STEP_DESKTOP_SETUP;
+      }
+      return SETTINGS_NEXT_STEP_BRIDGE;
+    case "dataSource":
+      if (bridgePhase !== "connected" || !writeCapability) return null;
+      if (!writeCapability.dataRootConfigured) return SETTINGS_NEXT_STEP_DATA_ROOT;
+      return null;
+    case "editingMode":
+      if (bridgePhase !== "connected" || !writeCapability) return null;
+      if (writeCapability.writeMode === "disabled") return SETTINGS_NEXT_STEP_WRITE_DISABLED;
+      if (writeCapability.writeMode === "dry-run") return SETTINGS_NEXT_STEP_WRITE_DRY_RUN;
+      return SETTINGS_NEXT_STEP_WRITE_ENABLED;
+    case "setup":
+      return SETTINGS_NEXT_STEP_DESKTOP_SETUP;
     default:
       return null;
   }

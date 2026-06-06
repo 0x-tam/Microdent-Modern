@@ -12,7 +12,7 @@ import { Badge, Button, Card, CardBody, CardHeader } from "@microdent/ui";
 import type { BridgeDevStatusResponse } from "@microdent/contracts";
 import type { BridgeHealthPhase } from "./bridge-health.js";
 import { PatientDemographicsWritePanel } from "./PatientDemographicsWritePanel.js";
-import { PatientProfileTabs, PROFILE_TAB_ORDER, PROFILE_TAB_DESCRIPTIONS } from "./PatientProfileTabs.js";
+import { PatientProfileTabs, PROFILE_TAB_ORDER, PROFILE_TAB_DESCRIPTIONS, type ProfileTab } from "./PatientProfileTabs.js";
 import { PatientAppointmentsTab } from "./PatientAppointmentsTab.js";
 import { PatientTimelineTab } from "./PatientTimelineTab.js";
 import { PatientSummaryTab } from "./PatientSummaryTab.js";
@@ -253,10 +253,6 @@ type LoadState =
   | { phase: "loaded"; profile: PatientProfileResponse }
   | { phase: "not_found" }
   | { phase: "error"; message: string };
-
-type ProfileTab = "summary" | "timeline" | "appointments" | "medical" | "treatments" | "chart" | "ledger";
-
-export type { ProfileTab };
 
 type ApptLoadState =
   | { phase: "idle" }

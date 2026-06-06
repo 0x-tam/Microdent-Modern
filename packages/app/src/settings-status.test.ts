@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
   resolveBackupConfiguredStatus,
+  resolveBackupReadinessSummary,
   resolveDataRootConfiguredStatus,
+  resolveDataSourceStatus,
+  resolveEditingModeSummary,
   resolveFrontDeskOverview,
   resolvePilotReadinessSummary,
   resolvePilotReadinessChecklist,
   resolveSandboxValidityStatus,
+  resolveServiceStatusSummary,
   resolveSqliteMirrorStatus,
 } from "./settings-status.js";
 import { MIRROR_IMPORT_STALE_MS } from "./mirror-stale.js";

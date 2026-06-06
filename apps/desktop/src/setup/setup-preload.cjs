@@ -11,4 +11,7 @@ contextBridge.exposeInMainWorld("setupApi", {
     return () => ipcRenderer.removeListener("setup:import-progress", listener);
   },
   complete: () => ipcRenderer.invoke("setup:complete"),
+  buildLocalCopy: (payload) => ipcRenderer.invoke("setup:build-local-copy", payload),
+  retry: () => ipcRenderer.invoke("setup:retry"),
+  onChangeFolder: (callback) => ipcRenderer.on("setup:change-folder", callback),
 });

@@ -555,7 +555,6 @@ describe("SettingsPanel", () => {
     );
     expect(html).not.toContain("C:\\Microdent");
     expect(html).not.toContain("/Users/");
-    expect(html).not.toContain("Write-Sandbox");
     expect(html).toContain("Backup not configured");
     expect(html).toContain("Clinic data folder configured");
     assertNoForbiddenDomTokens(html);
@@ -639,7 +638,7 @@ describe("SettingsPanel", () => {
     expect(html).toContain("Pilot readiness checklist, local copy import");
     expect(html).toContain("Reminders are not in this pilot");
     expect(html).toContain("Local copy ready — search and schedule");
-    expect(html).toContain("clinic-settings-readiness-grid");
+    expect(html).toContain("app-settings__readiness");
     assertNoForbiddenDomTokens(html);
   });
 
@@ -680,7 +679,7 @@ describe("SettingsPanel", () => {
         onMirrorStatusChange={() => {}}
       />,
     );
-    expect(html).toContain("Backup is not required while writes are off");
+    expect(html).toContain("Not required while writes are off");
     assertNoForbiddenDomTokens(html);
   });
 

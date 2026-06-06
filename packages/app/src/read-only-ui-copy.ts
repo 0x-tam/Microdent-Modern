@@ -1315,3 +1315,70 @@ export const APPOINTMENT_MOVE_CONTEXT_TITLE = "Current appointment";
 export const APPOINTMENT_CREATE_PATIENT_CONTEXT = "Creating for selected patient";
 
 export const WRITE_BLOCKED_INVALID_HINT = "Check required fields before preview.";
+
+/** Settings operator control center — clinic-friendly section labels (Workstream D + F). */
+export const SETTINGS_SECTION_CLINIC_SERVICE = "Clinic service";
+export const SETTINGS_SECTION_CLINIC_SERVICE_LEDE =
+  "Connection status, port, and controls for the clinic background service.";
+export const SETTINGS_SECTION_DATA_SOURCE = "Data source";
+export const SETTINGS_SECTION_DATA_SOURCE_LEDE =
+  "Where your clinic data lives — the folder the app reads from.";
+export const SETTINGS_SECTION_BACKUP_READINESS = "Backup readiness";
+export const SETTINGS_SECTION_BACKUP_READINESS_LEDE =
+  "Backup folder status and controls for protecting your data.";
+export const SETTINGS_SECTION_EDITING_MODE = "Editing mode";
+export const SETTINGS_SECTION_EDITING_MODE_LEDE =
+  "How the app handles changes — read-only, sandbox preview, or disabled.";
+
+/** Clinic service status labels. */
+export const SETTINGS_SERVICE_RUNNING = "Service running";
+export const SETTINGS_SERVICE_STOPPED = "Service stopped";
+export const SETTINGS_SERVICE_UNKNOWN = "Service status unknown";
+export const SETTINGS_SERVICE_PORT_MASKED = "Port: ****";
+export const SETTINGS_SERVICE_RESTART_ACTION = "Restart service";
+export const SETTINGS_SERVICE_START_ACTION = "Start service";
+
+/** Data source status labels. */
+export const SETTINGS_DATA_SOURCE_CONFIGURED = "Data folder configured";
+export const SETTINGS_DATA_SOURCE_NOT_CONFIGURED = "No data folder selected";
+export const SETTINGS_DATA_SOURCE_MASKED_HINT = "Folder: C:\\…\\Write-Sandbox\\DATA";
+export const SETTINGS_DATA_SOURCE_CHANGE_ACTION = "Change data folder";
+
+/** Backup readiness labels. */
+export const SETTINGS_BACKUP_FOLDER_READY = "Backup folder ready";
+export const SETTINGS_BACKUP_FOLDER_MISSING = "Backup folder not set up";
+export const SETTINGS_BACKUP_FOLDER_NOT_WRITABLE = "Backup folder exists but is not writable";
+export const SETTINGS_BACKUP_CHANGE_ACTION = "Change backup folder";
+
+/** Editing mode labels (clinic-friendly). */
+export const SETTINGS_EDITING_READ_ONLY = "Read-only";
+export const SETTINGS_EDITING_READ_ONLY_EXPLAIN =
+  "The app shows your data without making any changes. Safe for reviewing records.";
+export const SETTINGS_EDITING_SANDBOX = "Sandbox preview";
+export const SETTINGS_EDITING_SANDBOX_EXPLAIN =
+  "Changes are saved to a disposable copy first. Back up before applying to real data.";
+export const SETTINGS_EDITING_DISABLED = "Editing disabled";
+export const SETTINGS_EDITING_DISABLED_EXPLAIN =
+  "This build of the app does not support editing. Contact support to enable.";
+export const SETTINGS_EDITING_DRY_RUN = "Preview mode";
+export const SETTINGS_EDITING_DRY_RUN_EXPLAIN =
+  "You can preview changes but they are not saved yet. Turn on commits when ready.";
+export const SETTINGS_EDITING_UNKNOWN = "Checking editing status…";
+
+/** First-run / setup action labels. */
+export const SETTINGS_SETUP_RERUN_BUTTON = "Re-run first-run setup";
+export const SETTINGS_SETUP_RERUN_HINT =
+  "Open the setup wizard again to change your data folder, backup folder, or clinic service settings.";
+
+/** Field test readiness labels. */
+export const SETTINGS_FIELD_TEST_READY = "Field test ready";
+export const SETTINGS_FIELD_TEST_NOT_READY = "Field test not ready";
+export const SETTINGS_FIELD_TEST_PENDING = "Field test pending";
+
+/** Diagnostics section labels. */
+export const SETTINGS_DIAGNOSTICS_COLLAPSED_LABEL = "Show technical details";
+export const SETTINGS_DIAGNOSTICS_EXPANDED_LABEL = "Hide technical details";
+
+/** Package/build deferred notice. */
+export const SETTINGS_BUILD_WINDOWS_DEFERRED_NOTICE =
+  "Windows packaged build execution is deferred until field test scheduling is confirmed.";

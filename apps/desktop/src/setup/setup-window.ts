@@ -29,6 +29,22 @@ type SetupSavePayload = {
   logsDir?: string;
 };
 
+type BuildLocalCopyPayload = {
+  dataRoot: string;
+  sqlitePath: string;
+  backupDir?: string;
+};
+
+type BuildLocalCopyResult =
+  | {
+      ok: true;
+      status: "complete" | "needs-review";
+      message: string;
+      dataRootMasked?: string;
+      sqlitePathMasked?: string;
+    }
+  | { ok: false; message: string };
+
 type SetupSaveResult =
   | {
       ok: true;
@@ -243,6 +259,8 @@ export function showSetupWindow(
       ipcMain.removeHandler("setup:pick-folder");
       ipcMain.removeHandler("setup:pick-file");
       ipcMain.removeHandler("setup:complete");
+      ipcMain.removeHandler("setup:build-local-copy");
+      ipcMain.removeHandler("setup:retry");
       if (savedConfig) {
         resolve(savedConfig);
       } else {
@@ -342,6 +360,54 @@ export function showSetupWindow(
     // ── Complete IPC (step 3 "Open Microdent Modern") ──
     ipcMain.handle("setup:complete", () => {
       win.close(); // triggers "closed" event → finish()
+    });
+
+    // ── Build local copy IPC (step 2 — simulated progress) ──
+    // TODO: Replace simulated progress below with real import logic.
+    // The real flow should call `runMirrorImportSafe()` from
+    // services/sqlite-mirror/src/run-mirror-import-safe.ts and report
+    // per-step progress via win.webContents.send("setup:import-progress", …).
+    ipcMain.handle(
+      "setup:build-local-copy",
+      async (_event, payload: BuildLocalCopyPayload): Promise<BuildLocalCopyResult> => {
+        const dataRoot = payload.dataRoot?.trim();
+        const sqlitePath = payload.sqlitePath?.trim();
+        if (!dataRoot || !sqlitePath) {
+          return { ok: false, message: "Data folder and database file are required." };
+        }
+
+        // Simulate staged progress. Each stage sends a progress event to the renderer.
+        const stages = [
+          { pct: 20, label: "Checking your data folder…" },
+          { pct: 40, label: "Preparing local database…" },
+          { pct: 60, label: "Importing patient records…" },
+          { pct: 80, label: "Building appointment index…" },
+          { pct: 100, label: "Finishing up…" },
+        ];
+
+        for (const stage of stages) {
+          await new Promise<void>((resolve) => setTimeout(resolve, 400 + Math.random() * 300));
+          win.webContents.send("setup:import-progress", {
+            percent: stage.pct,
+            label: stage.label,
+          });
+        }
+
+        // Resolve with a result. In production this should inspect the actual import outcome.
+        return {
+          ok: true,
+          status: "complete",
+          message: "Local copy is ready!",
+          dataRootMasked: maskOperatorPath(dataRoot),
+          sqlitePathMasked: maskOperatorPath(sqlitePath),
+        };
+      },
+    );
+
+    // ── Retry IPC — signals the renderer to return to step 1 ──
+    ipcMain.handle("setup:retry", () => {
+      win.webContents.send("setup:change-folder", {});
+      return { ok: true };
     });
 
     win.setMenuBarVisibility(false);

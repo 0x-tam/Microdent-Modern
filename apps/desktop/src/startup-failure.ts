@@ -9,13 +9,13 @@ export function formatStartupFailure(err: unknown): string {
   if (/setup window closed/i.test(raw)) {
     return "Setup was closed before paths were saved. Restart the desktop app and complete first-run setup.";
   }
-  if (/server\.js|bridge.*dist|ENOENT.*bridge/i.test(raw)) {
+  if (/server\.js|bridge.*dist|ENOENT.*bridge|clinic service files.*missing|not built/i.test(raw)) {
     return "Clinic service is missing from this build. Rebuild the release package before giving it to a clinic.";
   }
   if (/index\.html|web.*dist|ENOENT.*web/i.test(raw)) {
     return "Clinic workspace is missing from this build. Rebuild the release package before giving it to a clinic.";
   }
-  if (/EADDRINUSE|17890|address already in use/i.test(raw)) {
+  if (/EADDRINUSE|17890|address already in use|port.*in use/i.test(raw)) {
     return "The local clinic service is already running or blocked by another Microdent Modern window. Close other Microdent Modern windows and try again.";
   }
   if (/health|timeout|ECONNREFUSED|ETIMEDOUT|mirror unreachable/i.test(raw)) {
