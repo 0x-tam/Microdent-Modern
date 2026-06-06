@@ -1,6 +1,8 @@
 # Microdent Modern
 
-Modern read-only clinic stack (bridge + shared contracts + future desktop shell). Product direction and phases live in [docs/master-build-plan.md](docs/master-build-plan.md).
+Modern local-first dental clinic desktop app with a safe data service, shared contracts, and an Electron shell. Product direction and phases live in [docs/master-build-plan.md](docs/master-build-plan.md).
+
+**Development note:** This repository has been developed with OpenAI Codex as the primary coding agent. See [docs/development-attribution.md](docs/development-attribution.md).
 
 **Windows clinic pilot:** start at [docs/PILOT-START-HERE.md](docs/PILOT-START-HERE.md) (numbered flow, troubleshooting, validation commands).
 

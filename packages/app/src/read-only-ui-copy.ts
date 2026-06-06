@@ -666,11 +666,11 @@ export const APPOINTMENT_TIME_MOVE_PREVIEW_LABEL = "Preview move";
 
 export const APPOINTMENT_TIME_MOVE_APPLY_LABEL = "Apply move";
 
-export const WRITE_MODE_CHIP_DISABLED = "Writes off";
+export const WRITE_MODE_CHIP_DISABLED = "Read-only";
 
-export const WRITE_MODE_CHIP_DRY_RUN = "Dry-run";
+export const WRITE_MODE_CHIP_DRY_RUN = "Preview only";
 
-export const WRITE_MODE_CHIP_ENABLED = "Writes on";
+export const WRITE_MODE_CHIP_ENABLED = "Editing on";
 
 export const WRITE_OPERATION_ID_PREFIX = "Operation";
 
@@ -750,21 +750,21 @@ export const WRITE_POST_COMMIT_MIRROR_NUDGE =
   "Local copy may lag; refresh import from Settings when ready.";
 
 export const SETTINGS_PANEL_LEDE =
-  "Pilot status for bridge, mirror, writes, sandbox readiness, and build id. No patient data is shown here — follow docs/PILOT-HANDOFF-PACK.md for the operator walkthrough.";
+  "Pilot status for clinic service, local copy, editing, sandbox readiness, and build id. No patient data is shown here — follow docs/PILOT-HANDOFF-PACK.md for the operator walkthrough.";
 
 export const SETTINGS_BRIDGE_SECTION = "Clinic service";
 
 export const SETTINGS_DATA_PATHS_SECTION = "Data paths";
 
-export const SETTINGS_MIRROR_SECTION = "Mirror import";
+export const SETTINGS_MIRROR_SECTION = "Local copy refresh";
 
 export const SETTINGS_WRITE_SECTION = "Writes";
 
 export const SETTINGS_SANDBOX_SECTION = "Sandbox";
 
-export const SETTINGS_SQLITE_MIRROR_SECTION = "SQLite mirror";
+export const SETTINGS_SQLITE_MIRROR_SECTION = "Fast local copy";
 
-export const SETTINGS_SQLITE_MIRROR_UNKNOWN = "SQLite mirror status unknown";
+export const SETTINGS_SQLITE_MIRROR_UNKNOWN = "Local copy status unknown";
 
 export const SETTINGS_BACKUP_SECTION = "Backup";
 
@@ -777,6 +777,64 @@ export const SETTINGS_BRIDGE_CONNECTED = "Connected";
 export const SETTINGS_BRIDGE_OFFLINE = "Offline";
 
 export const SETTINGS_BRIDGE_CHECKING = "Checking connection…";
+
+export const SETTINGS_QUICK_FIX_RESTART_SERVICE = "Restart clinic service";
+
+export const SETTINGS_QUICK_FIX_RESTARTING_SERVICE = "Restarting clinic service…";
+
+export const SETTINGS_QUICK_FIX_RESTART_SERVICE_SUCCESS =
+  "Clinic service restarted. Refresh status if the page does not update automatically.";
+
+export const SETTINGS_QUICK_FIX_RESTART_SERVICE_FAILED =
+  "Clinic service could not restart. Close and reopen Microdent Modern, then contact support if it repeats.";
+
+export const SETTINGS_QUICK_FIX_REFRESH_LOCAL_COPY = "Refresh local copy";
+
+export const SETTINGS_QUICK_FIX_REFRESHING_LOCAL_COPY = "Refreshing local copy…";
+
+export const SETTINGS_QUICK_FIX_REFRESH_LOCAL_COPY_SUCCESS =
+  "Local copy refreshed. Search and schedule can use the latest copied data.";
+
+export const SETTINGS_QUICK_FIX_REFRESH_LOCAL_COPY_FAILED =
+  "Local copy refresh failed. Previous local copy was kept.";
+
+export const SETTINGS_QUICK_FIX_EXPORT_SUPPORT_LOG = "Export support log";
+
+export const SETTINGS_QUICK_FIX_EXPORTING_SUPPORT_LOG = "Exporting support log…";
+
+export const SETTINGS_QUICK_FIX_EXPORT_SUPPORT_LOG_SUCCESS =
+  "Support log exported. It contains operational events only, with paths sanitized.";
+
+export const SETTINGS_QUICK_FIX_EXPORT_SUPPORT_LOG_FAILED =
+  "Support log could not be exported. Restart Microdent Modern and try again.";
+
+export const SETTINGS_QUICK_FIX_VIEW_DIAGNOSTICS = "View diagnostics summary";
+
+export const SETTINGS_QUICK_FIX_LOADING_DIAGNOSTICS = "Loading diagnostics…";
+
+export const SETTINGS_QUICK_FIX_VIEW_DIAGNOSTICS_FAILED =
+  "Diagnostics summary could not be loaded. Restart Microdent Modern and try again.";
+
+export const SETTINGS_QUICK_FIX_PREVIEW_SUPPORT_LOG = "Preview support log";
+
+export const SETTINGS_QUICK_FIX_PREVIEWING_SUPPORT_LOG = "Loading support log preview…";
+
+export const SETTINGS_QUICK_FIX_PREVIEW_SUPPORT_LOG_FAILED =
+  "Support log preview could not be loaded. Export a support log first, then try again.";
+
+export const SETTINGS_QUICK_FIX_CHECK_PORT = "Check service port";
+
+export const SETTINGS_QUICK_FIX_CHECKING_PORT = "Checking service port…";
+
+export const SETTINGS_QUICK_FIX_CHECK_PORT_FAILED =
+  "Clinic service port check could not run. Restart Microdent Modern and try again.";
+
+export const SETTINGS_QUICK_FIX_PORT_CLEANUP_POLICY = "View port cleanup policy";
+
+export const SETTINGS_QUICK_FIX_LOADING_PORT_POLICY = "Loading port cleanup policy…";
+
+export const SETTINGS_QUICK_FIX_PORT_CLEANUP_POLICY_FAILED =
+  "Port cleanup policy could not be loaded. Restart Microdent Modern and try again.";
 
 export const SETTINGS_SANDBOX_VALID = "Disposable sandbox valid";
 
@@ -792,13 +850,13 @@ export const SETTINGS_BACKUP_NOT_REQUIRED = "Not required while writes are off";
 
 export const SETTINGS_BACKUP_UNKNOWN = "Backup status unknown";
 
-export const SETTINGS_MIRROR_SQLITE_CONFIGURED = "SQLite path configured";
+export const SETTINGS_MIRROR_SQLITE_CONFIGURED = "Local copy path configured";
 
-export const SETTINGS_MIRROR_SQLITE_MISSING = "SQLite path not configured";
+export const SETTINGS_MIRROR_SQLITE_MISSING = "Local copy path not configured";
 
-export const SETTINGS_MIRROR_USABLE = "Mirror in use for search and schedule";
+export const SETTINGS_MIRROR_USABLE = "Local copy in use for search and schedule";
 
-export const SETTINGS_MIRROR_FALLBACK = "Using DBF fallback";
+export const SETTINGS_MIRROR_FALLBACK = "Using copied clinic files";
 
 export const SETTINGS_MIRROR_IMPORTED_COUNT = "Imported tables";
 
@@ -807,15 +865,15 @@ export const SETTINGS_MIRROR_REFRESH = "Refresh status";
 export const SETTINGS_MIRROR_NO_RUNS = "No import runs recorded.";
 
 export const SETTINGS_MIRROR_NO_RUNS_HINT =
-  "Run a safe mirror import from the command line (see docs/PILOT-HANDOFF-PACK.md § Mirror import), then refresh status here.";
+  "Complete first-run setup or refresh the local copy after choosing a copied clinic data folder, then refresh status here.";
 
-export const SETTINGS_MIRROR_DOC_LINK = "Mirror import operator guide";
+export const SETTINGS_MIRROR_DOC_LINK = "Local copy operator guide";
 
 export const SETTINGS_MIRROR_STALE_CALLOUT =
-  "Mirror metadata is older than 48 hours — search and schedule may show stale data until you run safe mirror import again.";
+  "Local copy metadata is older than 48 hours — search and schedule may show stale data until the local copy is refreshed.";
 
 export const SETTINGS_MIRROR_DBF_SOURCE_TRUTH =
-  "DBF files are the source of truth for writes. SQLite is a read snapshot — re-run safe mirror import after sandbox commits when search/schedule must match DBF.";
+  "Copied clinic files remain the source of truth for sandbox edits. The local copy is a read snapshot — refresh it after sandbox commits when search or schedule must match the copied files.";
 
 export const SETTINGS_READINESS_DISTRIBUTION_HINT =
   "Before IT handoff: run pnpm pilot:distribution-checkpoint on the build machine, or pnpm pilot:release-signoff when sandbox env is configured.";
@@ -825,30 +883,30 @@ export const SETTINGS_SANDBOX_PILOT_ON = "Sandbox write pilot enabled in this ap
 export const SETTINGS_SANDBOX_PILOT_OFF =
   "Sandbox write pilot UI is off in this build — read-only Today, Patients, and Schedule remain available.";
 
-export const SETTINGS_DATA_ROOT_CONFIGURED = "DATA_ROOT configured";
+export const SETTINGS_DATA_ROOT_CONFIGURED = "Clinic data folder configured";
 
-export const SETTINGS_DATA_ROOT_MISSING = "DATA_ROOT not configured";
+export const SETTINGS_DATA_ROOT_MISSING = "Clinic data folder not configured";
 
-export const SETTINGS_DATA_ROOT_UNKNOWN = "DATA_ROOT status unknown";
+export const SETTINGS_DATA_ROOT_UNKNOWN = "Clinic data folder status unknown";
 
 export const SETTINGS_DESKTOP_FILE_PROTOCOL =
   "Running as the packaged desktop app (local file protocol). Paths come from desktop setup config.";
 
 export const SETTINGS_DESKTOP_BROWSER =
-  "Running in the browser. Use the desktop installer for clinic file paths and bridge supervision.";
+  "Running in the browser. Use the desktop installer for clinic file paths and clinic service supervision.";
 
 export const SETTINGS_MIRROR_IMPORT_CLI =
-  "Run safe import from the command line, then refresh status here.";
+  "Refresh the local copy, then refresh status here.";
 
 export const SETTINGS_ENABLED_NON_SANDBOX_BANNER_LABEL = "Writes enabled outside sandbox";
 
 export const SETTINGS_ENABLED_NON_SANDBOX_BANNER_BODY =
-  "Write mode is enabled but DATA_ROOT did not pass the disposable sandbox guard. Stop the bridge and fix paths before committing changes.";
+  "Editing is enabled but the clinic data folder did not pass the disposable sandbox guard. Stop the clinic service and fix paths before committing changes.";
 
 export const SETTINGS_BRIDGE_OFFLINE_BANNER_LABEL = "Clinic service offline";
 
 export const SETTINGS_BRIDGE_OFFLINE_BANNER_BODY =
-  "Settings cannot load bridge metadata until the clinic service is connected.";
+  "Settings cannot load clinic service metadata until the clinic service is connected.";
 
 export const SETTINGS_MIRROR_RUN_STATUS_SUCCESS = "Success";
 
@@ -859,7 +917,7 @@ export const SETTINGS_MIRROR_RUN_STATUS_FAILED = "Failed";
 export const SETTINGS_MIRROR_RUN_STATUS_RUNNING = "Running";
 
 export const SETTINGS_MIRROR_IMPORT_COMMAND =
-  "Set DATA_ROOT and SQLITE_PATH in PowerShell or bash, then run: pnpm mirror:import-safe (or pnpm --filter @microdent/sqlite-mirror run import-safe).";
+  "Use first-run setup to choose a copied clinic data folder. The app prepares the fast local copy automatically.";
 
 export const SETTINGS_PILOT_READINESS_TITLE = "Pilot readiness";
 
@@ -867,13 +925,13 @@ export const SETTINGS_READINESS_READ_ONLY = "Read-only safe (writes off)";
 
 export const SETTINGS_READINESS_WRITES_ACTIVE = "Writes active — sandbox pilot only";
 
-export const SETTINGS_READINESS_MIRROR_ACTIVE = "Mirror active for search/schedule";
+export const SETTINGS_READINESS_MIRROR_ACTIVE = "Local copy active for search/schedule";
 
-export const SETTINGS_READINESS_MIRROR_STALE = "Mirror stale (>48h) — re-import recommended";
+export const SETTINGS_READINESS_MIRROR_STALE = "Local copy stale (>48h) — refresh recommended";
 
-export const SETTINGS_READINESS_MIRROR_FALLBACK = "Mirror unavailable — DBF fallback";
+export const SETTINGS_READINESS_MIRROR_FALLBACK = "Local copy unavailable — using copied clinic files";
 
-export const SETTINGS_READINESS_MIRROR_UNKNOWN = "Mirror status unknown";
+export const SETTINGS_READINESS_MIRROR_UNKNOWN = "Local copy status unknown";
 
 export const SETTINGS_READINESS_SANDBOX_READY = "Sandbox pilot ready (marker + paths)";
 
@@ -897,9 +955,9 @@ export const SETTINGS_READINESS_FIELD_TEST_DOC_HINT =
 
 export const SETTINGS_PILOT_CHECKLIST_TITLE = "Pilot checklist";
 
-export const SETTINGS_CHECKLIST_DATA_ROOT_SAFE = "DATA_ROOT safe (not production legacy)";
+export const SETTINGS_CHECKLIST_DATA_ROOT_SAFE = "Clinic data folder safe (not production legacy)";
 
-export const SETTINGS_CHECKLIST_MIRROR_IMPORT = "Latest mirror import healthy";
+export const SETTINGS_CHECKLIST_MIRROR_IMPORT = "Latest local copy refresh healthy";
 
 export const SETTINGS_NEXT_STEP_LABEL = "Next step";
 
@@ -907,13 +965,13 @@ export const SETTINGS_NEXT_STEP_BRIDGE =
   "Start the clinic service — wait for Connected in Settings.";
 
 export const SETTINGS_NEXT_STEP_DESKTOP_SETUP =
-  "Complete desktop first-run setup to configure DATA_ROOT and SQLITE_PATH before the clinic service can start.";
+  "Complete desktop first-run setup to choose a copied clinic data folder and prepare the local copy before the clinic service starts.";
 
 export const SETTINGS_NEXT_STEP_DATA_ROOT =
-  "Set DATA_ROOT in desktop setup or bridge env to your disposable Write-Sandbox DATA folder.";
+  "Choose a disposable sandbox clinic data folder in desktop setup before enabling edits.";
 
 export const SETTINGS_NEXT_STEP_DATA_ROOT_FORBIDDEN =
-  "DATA_ROOT did not pass the disposable sandbox guard. Point the bridge at a sandbox folder with the marker — never production legacy.";
+  "The clinic data folder did not pass the disposable sandbox guard. Point the clinic service at a marked sandbox folder — never production legacy.";
 
 export const SETTINGS_NEXT_STEP_WRITE_DISABLED =
   "Writes are off. Enable dry-run or enabled only on a disposable sandbox after backup is configured.";
@@ -922,50 +980,50 @@ export const SETTINGS_NEXT_STEP_WRITE_DRY_RUN =
   "Dry-run validates only. Preview in Schedule or Patient pilots, then enable commits when ready.";
 
 export const SETTINGS_NEXT_STEP_WRITE_ENABLED =
-  "Writes are enabled on the sandbox. Use pilot panels only; never point DATA_ROOT at production legacy.";
+  "Writes are enabled on the sandbox. Use pilot panels only; never point the clinic service at production legacy.";
 
 export const SETTINGS_NEXT_STEP_SANDBOX =
-  "Fix DATA_ROOT: point the bridge at a disposable sandbox folder with the write-sandbox marker before enabling commits.";
+  "Fix the clinic data folder: use a disposable sandbox folder with the write-sandbox marker before enabling commits.";
 
 export const SETTINGS_NEXT_STEP_BACKUP =
-  "Set BACKUP_DIR in desktop setup or bridge env before committing sandbox changes.";
+  "Set a backup folder in desktop setup before committing sandbox changes.";
 
 export const SETTINGS_NEXT_STEP_PILOT_BUILD =
   "Rebuild the web app with VITE_SANDBOX_WRITE_PILOT=true to show write pilots in this UI.";
 
 export const SETTINGS_NEXT_STEP_MIRROR_IMPORT =
-  "Run the safe mirror import command from the operator guide, then Refresh status here.";
+  "Refresh the local copy from the operator guide, then Refresh status here.";
 
 export const SETTINGS_NEXT_STEP_MIRROR_REFRESH = "Tap Refresh status after the clinic service connects.";
 
 export const SETTINGS_NEXT_STEP_MIRROR_STALE =
-  "Mirror is stale. Re-run safe import — DBF stays the write source of truth.";
+  "Local copy is stale. Refresh it — copied clinic files stay the write source of truth.";
 
 /** Recovery pointers — link to repo docs/PILOT-START-HERE.md (no URL with PHI). */
 export const PILOT_TROUBLESHOOTING_DOC = "PILOT-START-HERE.md";
 
 export const SETTINGS_RECOVERY_BRIDGE_OFFLINE =
-  "Clinic service offline: complete desktop setup, confirm bridge dist is built, and ensure port 17890 is free. See PILOT-START-HERE.md § Troubleshooting.";
+  "Clinic service offline: complete desktop setup, confirm the release package includes the clinic service, and ensure port 17890 is free. See PILOT-START-HERE.md § Troubleshooting.";
 
 export const SETTINGS_RECOVERY_MIRROR_STALE =
-  "Mirror stale: run safe mirror import from the operator guide, then Refresh status in Settings. DBF stays the write source of truth.";
+  "Local copy stale: refresh the local copy from the operator guide, then Refresh status in Settings. Copied clinic files stay the write source of truth.";
 
 export const SETTINGS_RECOVERY_BACKUP_MISSING =
-  "Backup not configured: set BACKUP_DIR in desktop setup before enabling sandbox commits.";
+  "Backup not configured: set a backup folder in desktop setup before enabling sandbox commits.";
 
 export const SETTINGS_RECOVERY_SANDBOX_INVALID =
-  "Sandbox not ready: DATA_ROOT must be a disposable Write-Sandbox with the marker — never the live production legacy DATA tree.";
+  "Sandbox not ready: the clinic data folder must be a disposable Write-Sandbox with the marker — never the live production legacy data tree.";
 
 export const SETTINGS_RECOVERY_WRITE_BLOCKED =
   "Writes blocked: keep read-only mode or follow phase-7 sandbox pilot steps before enabling commits.";
 
 export const SETTINGS_RECOVERY_DATA_ROOT_INVALID =
-  "Invalid DATA_ROOT: re-open desktop setup and use an absolute sandbox folder that exists on disk.";
+  "Invalid clinic data folder: re-open desktop setup and use an absolute sandbox folder that exists on disk.";
 
 export const SETTINGS_BACKUP_NOT_CONFIGURED_BANNER_LABEL = "Backup required for commits";
 
 export const SETTINGS_BACKUP_NOT_CONFIGURED_BANNER_BODY =
-  "Write mode is enabled but BACKUP_DIR is not configured. Set a backup folder before committing sandbox changes.";
+  "Editing is enabled but backup is not configured. Set a backup folder before committing sandbox changes.";
 
 export const SETTINGS_PILOT_BUILD_SECTION = "Pilot build";
 
@@ -1125,7 +1183,7 @@ export const FRONT_DESK_OVERVIEW_BACKUP_LABEL = "Backup";
 
 /** Settings cross-link (Workstream J). */
 export const SETTINGS_TODAY_OVERVIEW_HINT =
-  "Front-desk overview on Today shows bridge, mirror, and write readiness at a glance.";
+  "Front-desk overview on Today shows clinic service, local copy, and editing readiness at a glance.";
 
 export const SETTINGS_OPEN_TODAY_BUTTON = "Open Today overview";
 
@@ -1143,16 +1201,16 @@ export const SETTINGS_SECTION_PACKAGE = "Package & build";
 export const SETTINGS_SECTION_FIELD_TEST = "Field test & pilot notes";
 
 export const SETTINGS_SECTION_DIAGNOSTICS_LEDE =
-  "Clinic service connection, data paths, desktop shell, and SQLite mirror path status.";
+  "Clinic service connection, clinic data folder, desktop shell, and fast local copy status.";
 
 export const SETTINGS_SECTION_LOCAL_COPY_LEDE =
-  "DBF source of truth, import runs, and freshness for search and schedule.";
+  "Copied clinic files, refresh runs, and freshness for search and schedule.";
 
 export const SETTINGS_SECTION_EDITING_LEDE =
   "Write mode, disposable sandbox marker, and whether this build shows sandbox write panels.";
 
 export const SETTINGS_SECTION_BACKUP_LEDE =
-  "Backup folder required before commits; not needed while the bridge stays read-only.";
+  "Backup folder required before commits; not needed while the clinic service stays read-only.";
 
 export const SETTINGS_SECTION_PACKAGE_LEDE = "Packaged build id and release channel for support handoff.";
 
@@ -1187,19 +1245,19 @@ export const SETTINGS_MIRROR_FRESHNESS_UNKNOWN =
   "Local copy status unknown until the clinic service connects.";
 
 export const SETTINGS_BACKUP_READONLY_NOTE =
-  "Backup is not required while writes are off. Configure BACKUP_DIR before enabling sandbox commits.";
+  "Backup is not required while writes are off. Configure a backup folder before enabling sandbox commits.";
 
 /** Backup folder setup guidance (no backend call — operator config only). */
 export const SETTINGS_BACKUP_SETUP_BUTTON = "Set up backup folder";
 
 export const SETTINGS_BACKUP_SETUP_HINT =
-  "Create a folder next to your data directory and set BACKUP_DIR in desktop setup or bridge env. Backup is required before any sandbox commits.";
+  "Create a folder next to your data directory and select it in desktop setup. Backup is required before any sandbox commits.";
 
 /** Local copy import prompt when no import runs exist. */
-export const SETTINGS_IMPORT_LOCAL_COPY_BUTTON = "Import local copy now";
+export const SETTINGS_IMPORT_LOCAL_COPY_BUTTON = "Refresh local copy";
 
 export const SETTINGS_IMPORT_LOCAL_COPY_HINT =
-  "This will guide you through the safe mirror import command. After importing, return here and click Refresh status.";
+  "The desktop app prepares this automatically from your copied clinic data folder. No command line is required.";
 
 /** Next steps section for new operators. */
 export const SETTINGS_NEXT_STEPS_TITLE = "Getting started";

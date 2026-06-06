@@ -24,7 +24,7 @@ export const APP_SIDEBAR_MODULES = [
     label: "Settings",
     sublabel: "Operator control center",
     description:
-      "Bridge health, mirror import metadata, write mode, and sandbox status — operator-safe summaries only.",
+      "Clinic service, local copy, editing mode, and sandbox readiness — operator-safe summaries only.",
   },
 ] as const;
 

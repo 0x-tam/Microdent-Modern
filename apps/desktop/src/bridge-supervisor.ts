@@ -1,7 +1,12 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
 import type { DesktopConfig } from "./config.js";
-import { resolveBridgeEntry, resolveWebDistIndex } from "./runtime-install-root.js";
+import type { DesktopLogger } from "./desktop-logger.js";
+import {
+  resolveBridgeEntry,
+  resolveImportNodeBinary,
+  resolveWebDistIndex,
+} from "./runtime-install-root.js";
 import {
   validateBridgeDistExists,
   validateDesktopStartupConfig,
@@ -20,6 +25,9 @@ export type BridgeSupervisorOptions = {
   repoRoot: string;
   config: DesktopConfig;
   nodeBinary?: string;
+  /** Runtime platform override for deterministic resolver tests; production uses process.platform. */
+  platform?: NodeJS.Platform;
+  logger?: DesktopLogger;
   /** Called when the bridge becomes unhealthy during runtime monitoring. */
   onHealthDegraded?: (error: string) => void;
   /** Called when the bridge recovers after a crash. */
@@ -48,6 +56,10 @@ export class BridgeSupervisor {
       return `file://${this.webDistIndex}`;
     }
     return `http://127.0.0.1:${port}/`;
+  }
+
+  get currentPort(): number {
+    return this._currentPort;
   }
 
   /**
@@ -95,6 +107,10 @@ export class BridgeSupervisor {
       console.warn(
         `Port ${requestedPort} was in use. Bridge will use port ${this._currentPort} instead.`,
       );
+      this.options.logger?.warn("clinic_service_port_shift", {
+        requestedPort,
+        actualPort: this._currentPort,
+      });
     }
 
     const { ALLOW_LEGACY_WRITES: _omitLegacyAck, ...safeProcessEnv } = process.env;
@@ -116,10 +132,33 @@ export class BridgeSupervisor {
     }
     delete env.ALLOW_LEGACY_WRITES;
 
-    const nodeBin = this.options.nodeBinary ?? process.execPath;
+    const nodeBin = resolveImportNodeBinary({
+      installRoot: this.options.repoRoot,
+      explicitNodeBinary: this.options.nodeBinary,
+      envNodeBinary: process.env.MICRODENT_NODE_BINARY,
+      fallbackNodeBinary: process.execPath,
+      platform: this.options.platform,
+    });
+    this.options.logger?.info("clinic_service_start", {
+      port: this._currentPort,
+      writeMode: env.WRITE_MODE,
+      node: nodeBin,
+      entry: this.bridgeEntry,
+    });
     this.child = spawn(nodeBin, [this.bridgeEntry], {
       env,
       stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    this.child.stdout?.on("data", (chunk: Buffer | string) => {
+      this.options.logger?.info("clinic_service_stdout", {
+        bytes: Buffer.byteLength(String(chunk)),
+      });
+    });
+    this.child.stderr?.on("data", (chunk: Buffer | string) => {
+      this.options.logger?.warn("clinic_service_stderr", {
+        bytes: Buffer.byteLength(String(chunk)),
+      });
     });
 
     // Listen for unexpected crashes for recovery
@@ -128,6 +167,11 @@ export class BridgeSupervisor {
         this.child = null;
         this.crashCount++;
         console.warn(`Bridge exited unexpectedly: code=${code ?? "null"}, signal=${signal ?? "null"}`);
+        this.options.logger?.error("clinic_service_exit", {
+          code: code ?? "null",
+          signal: signal ?? "null",
+          crashCount: this.crashCount,
+        });
         this.options.onCrash?.();
       }
     });
@@ -163,10 +207,12 @@ export class BridgeSupervisor {
         if (!res.ok) {
           // Health endpoint returned non-200 — bridge may be degraded
           console.warn(`Bridge health check returned ${res.status}`);
+          this.options.logger?.warn("clinic_service_health_status", { status: res.status });
         }
       } catch {
         // fetch failed — bridge process may have died without an exit event
         console.warn("Bridge health check failed — process may have become unresponsive.");
+        this.options.logger?.warn("clinic_service_health_failed");
         this.options.onHealthDegraded?.("Clinic service health check failed.");
         // Attempt recovery via the same crash handler
         this.crashCount++;

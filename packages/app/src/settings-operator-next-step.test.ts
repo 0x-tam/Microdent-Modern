@@ -34,7 +34,7 @@ describe("resolveSettingsOperatorNextStep", () => {
     ).toBe(SETTINGS_NEXT_STEP_BRIDGE);
   });
 
-  it("suggests backup folder when writes enabled without BACKUP_DIR", () => {
+  it("suggests backup folder when writes are enabled without backup configured", () => {
     expect(
       resolveSettingsOperatorNextStep("backup", "connected", {
         ...writeCapBase,
@@ -44,7 +44,7 @@ describe("resolveSettingsOperatorNextStep", () => {
     ).toBe(SETTINGS_NEXT_STEP_BACKUP);
   });
 
-  it("suggests mirror import when no runs recorded", () => {
+  it("suggests local copy refresh when no runs recorded", () => {
     const mirror: MirrorStatusResponse = {
       sqliteConfigured: true,
       sqliteUsable: true,
@@ -53,10 +53,10 @@ describe("resolveSettingsOperatorNextStep", () => {
     };
     expect(
       resolveSettingsOperatorNextStep("mirror", "connected", writeCapBase, mirror),
-    ).toMatch(/mirror import/i);
+    ).toMatch(/local copy/i);
   });
 
-  it("suggests stale mirror re-import when metadata is old", () => {
+  it("suggests stale local copy refresh when metadata is old", () => {
     const staleFinishedAt = new Date(Date.now() - MIRROR_IMPORT_STALE_MS - 60_000).toISOString();
     const mirror: MirrorStatusResponse = {
       sqliteConfigured: true,

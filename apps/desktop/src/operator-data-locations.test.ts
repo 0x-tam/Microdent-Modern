@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 import {
+  crashDumpsDir,
   logsDir,
   operatorConfigFilePath,
   pathLooksInsideInstallDir,
@@ -36,6 +37,10 @@ describe("resolveOperatorDataLocations", () => {
     });
     expect(specs.find((spec) => spec.id === "backupDir")).toMatchObject({
       mustStayOutsideInstall: true,
+    });
+    expect(specs.find((spec) => spec.id === "crashDumps")).toMatchObject({
+      mustStayOutsideInstall: true,
+      containsClinicData: false,
     });
   });
 
@@ -74,6 +79,7 @@ describe("recommendedOperatorLogDir", () => {
     platformMock.mockReturnValue("win32");
     expect(recommendedOperatorLogDir()).toBe("/home/operator/AppData/Microdent/logs");
     expect(logsDir()).toBe(recommendedOperatorLogDir());
+    expect(crashDumpsDir()).toBe("/home/operator/AppData/Microdent/crash-dumps");
     expect(operatorConfigFilePath()).toBe("/home/operator/AppData/Microdent/config.json");
   });
 });
@@ -101,10 +107,18 @@ describe("pathLooksInsideInstallDir", () => {
     expect(qa?.shippedInPackage).toBe(false);
   });
 
-  it("marks logs as documented-only without auto-create", () => {
+  it("marks logs as implemented PHI-safe desktop output", () => {
     const logs = resolveOperatorDataLocations().find((spec) => spec.id === "logs");
-    expect(logs?.implementationStatus).toBe("documented-only");
+    expect(logs?.implementationStatus).toBe("implemented");
     expect(logs?.windowsPathHint).toContain("%AppData%");
+    expect(logs?.notes).toMatch(/PHI-safe/i);
+  });
+
+  it("marks crash dumps as implemented local-only desktop output", () => {
+    const crashes = resolveOperatorDataLocations().find((spec) => spec.id === "crashDumps");
+    expect(crashes?.implementationStatus).toBe("implemented");
+    expect(crashes?.windowsPathHint).toContain("%AppData%");
+    expect(crashes?.notes).toMatch(/upload disabled/i);
   });
 
   it("marks clinic path categories as implemented", () => {

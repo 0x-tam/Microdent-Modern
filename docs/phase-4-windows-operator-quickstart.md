@@ -6,10 +6,11 @@
 
 ---
 
-## 1. Install Node 22
+## 1. Confirm Node runtime
 
-- Install **Node 22 LTS** (64-bit) from [nodejs.org](https://nodejs.org/) or your org package manager.
-- Verify: `node -v` shows v22.x.
+- Preferred: the staged package includes `node\RUNTIME-MANIFEST.json` for a validated Node 22.5+ runtime.
+- Build machine check before staging: `pnpm pilot:node-runtime-check -- --runtime-dir <Node22 folder>`, then set `MICRODENT_NODE_RUNTIME_DIR`.
+- Fallback: install **Node 22.5+** (64-bit) from your org package manager and verify `node -v`.
 
 ---
 
@@ -47,19 +48,11 @@ Define operator-controlled copies — **not** live FoxPro shares while legacy st
 
 ---
 
-## 4. Mirror import (Node CLI)
+## 4. Local copy import (automatic)
 
-Set absolute paths, then run the workspace CLI directly (skip `pnpm mirror:import-safe` bash wrapper):
+First-run desktop setup prepares the fast local copy automatically from the copied clinic data folder. No PowerShell import is required for the normal operator flow.
 
-```powershell
-$env:DATA_ROOT = "C:\Microdent\Legacy-Copy\DATA"
-$env:SQLITE_PATH = "C:\Microdent\mirror\MICRODENT_MIRROR.sqlite"
-pnpm --filter @microdent/sqlite-mirror run import-safe
-```
-
-Stdout shows table counts and status only — no patient names or row payloads. See [phase-2-mirror-import-command.md](./phase-2-mirror-import-command.md).
-
-**Refresh in UI:** Settings → Mirror import → **Refresh status** (re-fetches metadata). To re-import data, run the CLI again offline.
+**Refresh in UI:** Settings → Local copy & import → **Refresh local copy**, then **Refresh status**. The CLI import docs remain support fallback only: [phase-4-mirror-import-operator.md](./phase-4-mirror-import-operator.md).
 
 ---
 
@@ -68,7 +61,7 @@ Stdout shows table counts and status only — no patient names or row payloads. 
 | Item | Location |
 | --- | --- |
 | Config file | `%AppData%\Microdent\config.json` |
-| First-run setup | If `dataRoot` or `sqlitePath` is missing, the desktop app opens a setup window before the main UI |
+| First-run setup | If clinic data/local-copy paths are missing, the desktop app opens setup before the main UI and prepares the local copy |
 
 Example `config.json` (placeholders):
 
@@ -78,8 +71,8 @@ Example `config.json` (placeholders):
   "bridgePort": 17890,
   "writeMode": "disabled",
   "dataRoot": "C:\\Microdent\\Write-Sandbox\\DATA",
-  "sqlitePath": "C:\\Microdent\\mirror\\MICRODENT_MIRROR.sqlite",
-  "backupDir": "C:\\Microdent\\Write-Sandbox\\backups"
+  "sqlitePath": "C:\\Microdent\\Write-Sandbox\\mirror\\clinic.sqlite",
+  "backupDir": "C:\\Microdent\\Write-Sandbox\\microdent-backups"
 }
 ```
 
@@ -89,7 +82,7 @@ Start desktop:
 pnpm --filter @microdent/desktop run start
 ```
 
-The shell spawns only `node services\bridge\dist\server.js` (loopback). Default `writeMode` is `disabled` until sandbox pilot.
+The shell spawns only the local clinic service on loopback. It prefers packaged `node\` when present. Default `writeMode` is `disabled` until sandbox pilot.
 
 ---
 
@@ -122,7 +115,7 @@ For local Vite dev, set in `apps/web/.env.local` and restart dev server. Product
 
 Also required on the bridge: disposable sandbox marker, `WRITE_MODE` / ack per bridge docs, mirror sqlite with schedule/patient rows.
 
-Open **Settings** in the app to confirm bridge, mirror, write mode, sandbox validity, and backup configured (no full paths in production UI).
+Open **Settings** in the app to confirm clinic service, local copy, editing mode, sandbox validity, and backup configured (no full paths in production UI). Use **Restart clinic service**, **Check service port**, **Refresh local copy**, and **Export support log** for desktop-supported quick fixes.
 
 ---
 
@@ -163,7 +156,8 @@ Use `pnpm --filter @microdent/bridge run legacy-backup` / `legacy-restore` with 
 
 | Task | Command |
 | --- | --- |
-| Mirror import | `pnpm --filter @microdent/sqlite-mirror run import-safe` |
+| Local copy refresh | Settings → Local copy & import → **Refresh local copy** |
+| Mirror import support fallback | `pnpm --filter @microdent/sqlite-mirror run import-safe` |
 | Legacy backup | `pnpm --filter @microdent/bridge run legacy-backup` |
 | Create write sandbox | `pnpm --filter @microdent/bridge run legacy-create-sandbox` |
 | Restore from backup | `pnpm --filter @microdent/bridge run legacy-restore` |

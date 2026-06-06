@@ -10,43 +10,43 @@ export function formatStartupFailure(err: unknown): string {
     return "Setup was closed before paths were saved. Restart the desktop app and complete first-run setup.";
   }
   if (/server\.js|bridge.*dist|ENOENT.*bridge/i.test(raw)) {
-    return "Bridge server not built. Run: pnpm --filter @microdent/bridge run build";
+    return "Clinic service is missing from this build. Rebuild the release package before giving it to a clinic.";
   }
   if (/index\.html|web.*dist|ENOENT.*web/i.test(raw)) {
-    return "Web UI dist is missing. Run: pnpm build:web";
+    return "Clinic workspace is missing from this build. Rebuild the release package before giving it to a clinic.";
   }
   if (/EADDRINUSE|17890|address already in use/i.test(raw)) {
-    return "Bridge port 17890 is in use. Close other Microdent bridge processes or change bridgePort in desktop config.";
+    return "The local clinic service is already running or blocked by another Microdent Modern window. Close other Microdent Modern windows and try again.";
   }
   if (/health|timeout|ECONNREFUSED|ETIMEDOUT|mirror unreachable/i.test(raw)) {
-    return "Bridge did not respond on loopback (mirror health check timed out). Open Settings when the app loads, or restart after verifying sandbox paths in setup.";
+    return "The local clinic service did not start in time. Restart Microdent Modern, then re-open setup if the app asks for clinic folders.";
   }
   if (/BACKUP_DIR|backup.*folder|backup.*required/i.test(raw)) {
     if (/write|enabled|required|missing|not set|commits/i.test(raw)) {
-      return "Backup folder is required before sandbox commits. Set BACKUP_DIR in setup when write mode is enabled.";
+      return "Backup folder is required before sandbox edits. Choose a backup folder in setup before enabling edits.";
     }
-    return "Backup folder missing or invalid. Set BACKUP_DIR in setup before enabling sandbox commits.";
+    return "Backup folder missing or invalid. Choose a backup folder in setup before enabling sandbox edits.";
   }
   if (/sandbox|write-sandbox|not.*writable|forbidden.*data_root/i.test(raw)) {
-    return "DATA_ROOT did not pass the disposable sandbox guard. Point setup at a Write-Sandbox folder with the marker — never production legacy.";
+    return "The selected clinic data folder is not a safe disposable sandbox copy. Choose a sandbox copy, never the live legacy folder.";
   }
   if (/WRITE_MODE|write.*blocked|writes.*disabled/i.test(raw)) {
     return "Writes are blocked for this build. Read-only use is safe; enable sandbox pilot only per phase-7 runbook.";
   }
   if (/SQLITE_PATH|sqlite.*missing|sqlite.*not found|ENOENT.*\.sqlite/i.test(raw)) {
     if (/not_file|expected a file|missing|ENOENT|not found/i.test(raw)) {
-      return "Mirror SQLite file is missing. Re-open setup and confirm SQLITE_PATH points to an existing file outside the install folder.";
+      return "The fast local copy is missing. Re-open setup and let Microdent Modern create or select the local copy outside the install folder.";
     }
   }
   if (/DATA_ROOT|not_absolute|not_directory|missing path/i.test(raw)) {
-    return "Desktop paths are invalid or missing. Re-open setup and verify absolute sandbox folders and files exist.";
+    return "Clinic folders are invalid or missing. Re-open setup and choose the clinic data, local copy, and backup locations.";
   }
 
-  return "Startup failed. See PILOT-START-HERE troubleshooting (bridge, mirror, paths) before retrying.";
+  return "Startup failed. See PILOT-START-HERE troubleshooting before retrying.";
 }
 
 export const STARTUP_FAILURE_FOOTER =
-  "Troubleshooting: docs/PILOT-START-HERE.md. If paths look correct, rebuild bridge and web, then restart.";
+  "Troubleshooting: docs/PILOT-START-HERE.md. If setup looks correct, rebuild the release package, then restart.";
 
 /** True when the operator can fix paths via first-run setup (offer re-open setup). */
 export function isPathRelatedStartupFailure(message: string): boolean {

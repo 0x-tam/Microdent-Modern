@@ -1,6 +1,6 @@
 # Microdent Modern — Master Build Plan
 
-**Purpose:** Single practical implementation plan combining the legacy system map, technical architecture, UI/UX redesign, and design system. This document is the execution spine for humans and Cursor agents.
+**Purpose:** Single practical implementation plan combining the legacy system map, technical architecture, UI/UX redesign, and design system. This document is the execution spine for humans and Codex agents.
 
 **Sources:** `docs/legacy-system-map.md`, `docs/architecture-plan.md`, `docs/ui-redesign-plan.md`, `docs/design-system.md`
 
@@ -203,7 +203,7 @@ Use before each milestone that touches data or distribution.
 
 ---
 
-## 9. Cursor agent task breakdown
+## 9. Codex agent task breakdown
 
 Tasks are **sequential bands**; each band can be one or more PRs. Agents should not skip safety prerequisites.
 

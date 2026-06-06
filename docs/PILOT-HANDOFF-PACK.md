@@ -52,10 +52,10 @@ Use this index when a clinic PC runs the pilot — **after** you schedule a fiel
 | A portable Windows pilot handoff (compiled app, bridge, web UI) | An NSIS/MSI installer or signed auto-update product |
 | Read-only clinic viewer over a copied sandbox DATA + SQLite mirror | Production write access to live Microdent-Legacy |
 | Four sandbox write workflows when IT explicitly enables them | Payments, ledger, chart, medical summary, or memo writes |
-| CLI mirror import + desktop setup for paths | In-app mirror import or write-mode toggle |
+| Desktop first-run setup that prepares the local copy automatically | Write-mode toggle for production data |
 | Hash-verified `RELEASE-MANIFEST.json` for IT integrity checks | Clinic DBF, sqlite, backups, logs, or `.env` secrets in the zip |
 
-**Unsupported in this pilot RC** (also listed in `RELEASE-MANIFEST.json` → `unsupportedFeatures`): payments, ledger writes, chart writes, in-app mirror import, installer.
+**Unsupported in this pilot RC** (also listed in `RELEASE-MANIFEST.json` → `unsupportedFeatures`): payments, ledger writes, chart writes, installer, auto-update.
 
 Installer path forward: [windows-pilot-installer-decision-record.md](./windows-pilot-installer-decision-record.md).
 
@@ -67,18 +67,18 @@ Installer path forward: [windows-pilot-installer-decision-record.md](./windows-p
 flowchart TD
   unzip[Unzip MicrodentModern] --> start[PILOT-START-HERE.md]
   start --> handoff[docs/PILOT-HANDOFF-PACK.md]
-  handoff --> node[Install Node 22]
-  node --> launch[Launch desktop from app/]
-  launch --> setup[First-run setup paths]
-  setup --> mirror[CLI mirror import]
-  mirror --> readonly[Read-only QA Today/Patients/Schedule]
+  handoff --> runtime[Confirm bundled or fallback Node 22.5+]
+  runtime --> launch[Launch desktop from app/]
+  launch --> setup[First-run setup chooses copied clinic data]
+  setup --> localcopy[Automatic local-copy preparation]
+  localcopy --> readonly[Read-only QA Today/Patients/Schedule]
   readonly --> sandbox{Sandbox pilot approved?}
   sandbox -->|yes| writes[Sandbox writes + backup/restore]
   sandbox -->|no| done[Read-only pilot complete]
   writes --> feedback[Issue template — no PHI]
 ```
 
-**Safety warnings:** Never point DATA_ROOT at live legacy. Keep mirror, backups, and DATA outside the install folder. Do not attach patient data to support tickets — use [pilot-issue-template.md](./pilot-issue-template.md).
+**Safety warnings:** Never choose a live legacy folder as the clinic data folder. Keep local copy, backups, logs, and clinic data outside the install folder. Do not attach patient data to support tickets — use [pilot-issue-template.md](./pilot-issue-template.md).
 
 ---
 
@@ -88,7 +88,7 @@ flowchart TD
 | --- | --- |
 | 1.1 | IT copies `MicrodentModern/` from the build machine zip to a local drive (example: `C:\Microdent\MicrodentModern\`) |
 | 1.2 | Confirm `HANDOFF-README.txt` and `RELEASE-MANIFEST.json` are present at the package root |
-| 1.3 | Do **not** store DATA_ROOT, mirror SQLite, backups, or logs inside the install folder |
+| 1.3 | Do **not** store clinic data, local-copy files, backups, or logs inside the install folder |
 
 Build-machine verification (not on clinic PCs): `pnpm pilot:verify-release` and `pnpm pilot:verify-manifest`.
 
@@ -100,9 +100,9 @@ Layout reference: [windows-pilot-release-layout.md](./windows-pilot-release-layo
 
 | Step | Action | Detail |
 | --- | --- | --- |
-| 2.1 | Install **Node.js 22.x** on PATH | Required for the bridge child process |
-| 2.2 | Launch the desktop shell from `app/` | See `HANDOFF-README.txt` — Electron + system Node |
-| 2.3 | Complete **first-run setup** when prompted | Absolute paths only; synthetic examples in setup window |
+| 2.1 | Confirm bundled or fallback **Node.js 22.5+** | Preferred: `node\RUNTIME-MANIFEST.json`; fallback: Node on PATH / `MICRODENT_NODE_BINARY` |
+| 2.2 | Launch the desktop shell from `app/` | See `HANDOFF-README.txt` — Electron + packaged/fallback Node |
+| 2.3 | Complete **first-run setup** when prompted | Choose copied clinic data folder; local copy is prepared automatically |
 | 2.4 | Config saves to `%AppData%\Microdent\config.json` | Open via Win+R → `%AppData%\Microdent` |
 
 Real-Windows field execution: [windows-pilot-field-execution-script.md](./windows-pilot-field-execution-script.md). Matrix: [windows-pilot-real-machine-checklist.md](./windows-pilot-real-machine-checklist.md). Results: [windows-pilot-field-result-form.md](./windows-pilot-field-result-form.md).
@@ -113,14 +113,14 @@ Real-Windows field execution: [windows-pilot-field-execution-script.md](./window
 
 | Setting | Role | Windows example (sandbox) |
 | --- | --- | --- |
-| **DATA_ROOT** | Disposable Write-Sandbox DBF tree | `C:\ClinicData\Microdent\DATA` |
-| **SQLITE_PATH** | Mirror for search/schedule | `C:\Users\Public\MicrodentModern\mirror\clinic.sqlite` |
-| **BACKUP_DIR** | Required before sandbox commits | `C:\Users\Public\MicrodentModern\backups` |
+| **Clinic data folder** | Disposable copied DBF tree | `C:\ClinicData\Microdent\DATA` |
+| **Local copy** | Derived by setup for search/schedule | `C:\ClinicData\Microdent\mirror\clinic.sqlite` |
+| **Backups** | Derived by setup; required before sandbox commits | `C:\ClinicData\Microdent\microdent-backups` |
 
 **Hard rules:**
 
-- Never point DATA_ROOT at live **Microdent-Legacy**.
-- Mirror, backups, and DATA_ROOT must stay **outside** the install folder.
+- Never choose live **Microdent-Legacy** as the clinic data folder.
+- Local copy, backups, logs, and clinic data must stay **outside** the install folder.
 - Quote paths with spaces in PowerShell (e.g. `"C:\Clinic Data\Pilot Sandbox\DATA"`).
 - UNC shares are warn-only — prefer local drive letters when IT allows.
 
@@ -128,16 +128,16 @@ Full reference: [windows-pilot-data-locations.md](./windows-pilot-data-locations
 
 ---
 
-## 4 — Mirror import (CLI only)
+## 4 — Local copy preparation
 
 | Step | Action |
 | --- | --- |
-| 4.1 | Set `DATA_ROOT` and `SQLITE_PATH` in PowerShell (see `config-templates/paths.example.env`) |
-| 4.2 | Run safe import from a repo checkout or follow [phase-4-mirror-import-operator.md](./phase-4-mirror-import-operator.md) |
-| 4.3 | Open **Settings → Mirror import** and tap **Refresh status** |
-| 4.4 | DBF is the write source of truth — SQLite is a snapshot |
+| 4.1 | First-run setup prepares the local copy automatically after the copied clinic data folder is chosen |
+| 4.2 | Open **Settings → Local copy & import** and tap **Refresh status** |
+| 4.3 | If stale or empty, tap **Refresh local copy** |
+| 4.4 | Copied clinic files stay the write source of truth — local copy is a snapshot |
 
-Pointer in package: `scripts/mirror-import-pointer.txt`.
+Support fallback pointer in package: `scripts/mirror-import-pointer.txt`.
 
 ---
 
@@ -182,7 +182,7 @@ Guardrails: [out-of-scope-guardrails.md](./out-of-scope-guardrails.md).
 | 7.1 | After commits, note **operation id** and backup line in write feedback |
 | 7.2 | Verify backups: `pnpm --filter @microdent/bridge run legacy-backup-verify` |
 | 7.3 | Restore on **sandbox DATA only**: `pnpm --filter @microdent/bridge run legacy-restore` |
-| 7.4 | Re-run mirror import if search/schedule must match DBF again |
+| 7.4 | Use **Settings → Refresh local copy** if search/schedule must match copied files again |
 
 Full guide: [pilot-backup-restore-audit.md](./pilot-backup-restore-audit.md).
 
@@ -191,9 +191,9 @@ Full guide: [pilot-backup-restore-audit.md](./pilot-backup-restore-audit.md).
 ## 8 — Unsupported in this pilot RC
 
 - NSIS/MSI installer, code signing, auto-update
-- In-app mirror import or write-mode toggle
+- Production write-mode toggle
 - Payments, ledger, chart, medical summary, or memo writes
-- Pointing DATA_ROOT at production legacy
+- Pointing the clinic data folder at production legacy
 
 See [out-of-scope-guardrails.md](./out-of-scope-guardrails.md) and [windows-pilot-packaging-gap-report.md](./windows-pilot-packaging-gap-report.md).
 
@@ -203,9 +203,9 @@ See [out-of-scope-guardrails.md](./out-of-scope-guardrails.md) and [windows-pilo
 
 | Symptom | What to check |
 | --- | --- |
-| Bridge offline | Desktop config paths; port **17890** free; Node 22 on PATH |
+| Clinic service offline | Desktop config paths; Settings **Check service port**; bundled or fallback Node 22.5+ |
 | Blank UI | Web dist missing from package — rebuild on build machine |
-| Mirror stale | Re-run safe mirror import; DBF stays source of truth |
+| Local copy stale | Settings **Refresh local copy**; copied clinic files stay source of truth |
 | Write blocked | Sandbox marker, `writeMode`, backup folder — phase-7 runbook |
 | SmartScreen warning | Expected for unsigned Electron until code signing |
 

@@ -1,6 +1,6 @@
 # Windows pilot data locations
 
-**Purpose:** Where install files, desktop config, clinic DATA, mirror, backups, logs, and QA artifacts live on a Windows pilot machine — and what must **never** share a folder.
+**Purpose:** Where install files, desktop config, clinic data, local copy, backups, logs, crash dumps, and QA artifacts live on a Windows pilot machine — and what must **never** share a folder.
 
 **Baseline:** Microdent-Modern `main` @ `1b67d2b`
 
@@ -16,10 +16,11 @@ Canonical source: `apps/desktop/src/operator-data-locations.ts` (tests in `opera
 | --- | --- | --- | --- |
 | Install / staged package | `C:\Microdent\MicrodentModern\` | **Implemented** | IT extract; no clinic data shipped |
 | Desktop config | `%AppData%\Microdent\config.json` | **Implemented** | First-run setup writes pointers only |
-| DATA_ROOT | `C:\ClinicData\Microdent\DATA` | **Implemented** | Validated in setup; disposable sandbox only |
-| SQLITE_PATH | `C:\Users\Public\MicrodentModern\mirror\clinic.sqlite` | **Implemented** | Validated in setup; outside install |
-| BACKUP_DIR | `C:\Users\Public\MicrodentModern\backups` | **Implemented** | Optional at setup; required before commits |
-| Operator logs | `%AppData%\Microdent\logs\` | **Documented only** | `logsDir()` helper — desktop does not auto-create |
+| Clinic data folder | `C:\ClinicData\Microdent\DATA` | **Implemented** | Validated in setup; disposable copied data only |
+| Local copy | `C:\ClinicData\Microdent\mirror\clinic.sqlite` | **Implemented** | Derived/validated in setup; outside install |
+| Backups | `C:\ClinicData\Microdent\microdent-backups` | **Implemented** | Derived in setup; required before commits |
+| Operator logs | `%AppData%\Microdent\logs\` | **Implemented** | Desktop auto-creates PHI-safe rotating operational logs |
+| Crash dumps | `%AppData%\Microdent\crash-dumps\` | **Implemented** | Electron local crash dumps; upload disabled |
 | QA reports (`qa-runs/`) | Repo dev folder | **Documented only** | Dev/CI only — not shipped to clinic PCs |
 
 ---
@@ -29,15 +30,15 @@ Canonical source: `apps/desktop/src/operator-data-locations.ts` (tests in `opera
 | Layer | Typical location | Created by | Contains |
 | --- | --- | --- | --- |
 | **1 — App install / staged package** | `C:\Microdent\MicrodentModern\` or extracted `dist/pilot-release/` | IT | Electron shell, bridge JS, web dist, config **templates** — **no clinic DBF, sqlite, backups, or logs** |
-| **2 — Desktop config (`%AppData%`)** | `%AppData%\Microdent\config.json` | Desktop on first save | Path **pointers** only: `dataRoot`, `sqlitePath`, `backupDir`, `writeMode`, `bridgePort` |
-| **3 — Clinic data (operator)** | Paths **you** choose in setup | Operator | Sandbox DATA_ROOT, mirror file, backup folder |
+| **2 — Desktop config/support (`%AppData%`)** | `%AppData%\Microdent\` | Desktop on first save/start | Config, PHI-safe logs, local crash dumps |
+| **3 — Clinic data (operator)** | Paths **you** choose in setup | Operator | Copied clinic data folder, local-copy file, backup folder |
 
 Open the config folder: **Win+R** → `%AppData%\Microdent`
 
 ```text
 C:\Microdent\MicrodentModern\     ← Layer 1: read-only install (IT)
-%AppData%\Microdent\              ← Layer 2: config.json (+ optional logs/)
-C:\ClinicData\…                   ← Layer 3: DATA_ROOT, mirror, backups (operator)
+%AppData%\Microdent\              ← Layer 2: config.json, logs, crash-dumps
+C:\ClinicData\…                   ← Layer 3: copied clinic data, local copy, backups
 ```
 
 ---
@@ -59,9 +60,10 @@ Staged layout: [windows-pilot-release-layout.md](./windows-pilot-release-layout.
 
 | Item | Path | Notes |
 | --- | --- | --- |
-| **Config file** | `%AppData%\Microdent\config.json` | Written by first-run setup; reopen via desktop **Re-open setup** |
-| **Logs (convention)** | `%AppData%\Microdent\logs\` | **Documented** — use `logsDir()` / `recommendedOperatorLogDir()` in desktop code; desktop does **not** auto-create this folder today |
-| **Bridge console** | Terminal that launched desktop | stdout/stderr only; no PHI in scripted logs |
+| **Config file** | `%AppData%\Microdent\config.json` | Written by first-run setup |
+| **Logs** | `%AppData%\Microdent\logs\` | Desktop auto-creates PHI-safe rotating operational logs; export from Settings when requested |
+| **Crash dumps** | `%AppData%\Microdent\crash-dumps\` | Electron local crash dumps; upload disabled |
+| **Clinic service console** | Terminal that launched desktop | stdout/stderr byte counts are logged, not raw output |
 
 Config stores **absolute paths** to Layer 3 folders. It does not embed clinic file contents.
 

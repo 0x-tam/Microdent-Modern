@@ -7,22 +7,26 @@ import {
   suggestedDataRoot,
   suggestedSqlitePath,
   suggestedBackupDir,
+  suggestedLogsDir,
   type DesktopConfig,
 } from "../config.js";
 import {
   getOperatorPathWarnings,
   maskOperatorPath,
   validateBackupDir,
+  validateCreatableSqlitePath,
   validateDataRootDir,
-  validateSqlitePathFile,
+  validateLogsDir,
 } from "../path-validation.js";
+import { runSetupImport } from "../setup-import.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 type SetupSavePayload = {
   dataRoot: string;
-  sqlitePath: string;
+  sqlitePath?: string;
   backupDir?: string;
+  logsDir?: string;
 };
 
 type SetupSaveResult =
@@ -32,6 +36,8 @@ type SetupSaveResult =
       dataRootMasked?: string;
       sqlitePathMasked?: string;
       backupDirMasked?: string;
+      logsDirMasked?: string;
+      importStatus?: "success" | "partial" | "failed";
     }
   | { ok: false; message: string };
 
@@ -45,7 +51,7 @@ const VALIDATION_MESSAGES: Record<string, string> = {
   missing: "Path does not exist.",
   not_directory: "Path must be a folder.",
   not_file: "Path must be a file.",
-  mkdir_failed: "Could not create the backup folder.",
+  mkdir_failed: "Could not create the folder.",
 };
 
 /** Built without a contiguous forbidden path literal in compiled output. */
@@ -68,7 +74,13 @@ export function getLegacyPathSegmentWarning(value: string): string | null {
 
 function validationMessage(code: string, field: string): string {
   const base = VALIDATION_MESSAGES[code] ?? "Invalid path.";
-  return `${field}: ${base}`;
+  const labels: Record<string, string> = {
+    DATA_ROOT: "Clinic data folder",
+    SQLITE_PATH: "Fast local copy",
+    BACKUP_DIR: "Backup folder",
+    LOGS_DIR: "Logs folder",
+  };
+  return `${labels[field] ?? field}: ${base}`;
 }
 
 function mergeValidationWarnings(
@@ -86,7 +98,12 @@ function mergeValidationWarnings(
 /** UNC + legacy segment hints for setup save (warn-only; does not block). */
 export function collectSetupPathWarnings(payload: SetupSavePayload): string[] {
   const warnings = new Set<string>();
-  for (const value of [payload.dataRoot, payload.sqlitePath, payload.backupDir ?? ""]) {
+  for (const value of [
+    payload.dataRoot,
+    payload.sqlitePath ?? "",
+    payload.backupDir ?? "",
+    payload.logsDir ?? "",
+  ]) {
     const trimmed = value.trim();
     if (trimmed.length === 0) continue;
     for (const hint of getOperatorPathWarnings(trimmed)) {
@@ -115,13 +132,26 @@ function deriveBackupDir(dataRoot: string): string {
   return join(parent, "microdent-backups");
 }
 
+/** Derive the first-run local copy next to the data root folder. */
+function deriveSqlitePath(dataRoot: string): string {
+  const parent = dirname(dataRoot);
+  return join(parent, "mirror", "clinic.sqlite");
+}
+
+/** Derive a PHI-safe operational logs folder next to the data root folder. */
+function deriveLogsDir(dataRoot: string): string {
+  const parent = dirname(dataRoot);
+  return join(parent, "logs");
+}
+
 export function validateSetupPayload(payload: SetupSavePayload): ValidateSetupOutcome {
   const dataRoot = validateDataRootDir(payload.dataRoot);
   if (!dataRoot.ok) {
     return { ok: false, message: validationMessage(dataRoot.code, "DATA_ROOT") };
   }
 
-  const sqlitePath = validateSqlitePathFile(payload.sqlitePath);
+  const sqliteRaw = payload.sqlitePath?.trim() || deriveSqlitePath(dataRoot.normalizedPath);
+  const sqlitePath = validateCreatableSqlitePath(sqliteRaw, { createParentIfMissing: true });
   if (!sqlitePath.ok) {
     return { ok: false, message: validationMessage(sqlitePath.code, "SQLITE_PATH") };
   }
@@ -149,14 +179,28 @@ export function validateSetupPayload(payload: SetupSavePayload): ValidateSetupOu
     }
   }
 
+  let logsDir: string | undefined;
+  const logsRaw = payload.logsDir?.trim() || deriveLogsDir(dataRoot.normalizedPath);
+  const logs = validateLogsDir(logsRaw, { createIfMissing: true });
+  if (!logs.ok) {
+    return { ok: false, message: validationMessage(logs.code, "LOGS_DIR") };
+  }
+  logsDir = logs.normalizedPath;
+
   const warnings = [
     ...new Set([
       ...mergeValidationWarnings([
-        dataRoot,
-        sqlitePath,
-        ...(backupResult ? [backupResult] : []),
-      ]),
-      ...collectSetupPathWarnings(payload),
+      dataRoot,
+      sqlitePath,
+      ...(backupResult ? [backupResult] : []),
+      logs,
+    ]),
+      ...collectSetupPathWarnings({
+        ...payload,
+        sqlitePath: sqlitePath.normalizedPath,
+        backupDir,
+        logsDir,
+      }),
     ]),
   ];
 
@@ -168,7 +212,9 @@ export function validateSetupPayload(payload: SetupSavePayload): ValidateSetupOu
       dataRoot: dataRoot.normalizedPath,
       sqlitePath: sqlitePath.normalizedPath,
       backupDir,
+      logsDir,
       writeMode: "disabled",
+      setupCompletedAt: new Date().toISOString(),
     },
   };
 }
@@ -182,7 +228,10 @@ export function validateSetupPayload(payload: SetupSavePayload): ValidateSetupOu
  *
  * Resolves with saved config or rejects when closed without save.
  */
-export function showSetupWindow(initial: DesktopConfig): Promise<DesktopConfig> {
+export function showSetupWindow(
+  initial: DesktopConfig,
+  options: { installRoot: string },
+): Promise<DesktopConfig> {
   return new Promise((resolve, reject) => {
     let settled = false;
     let savedConfig: DesktopConfig | null = null;
@@ -240,21 +289,53 @@ export function showSetupWindow(initial: DesktopConfig): Promise<DesktopConfig> 
     );
 
     // ── Save config IPC (validates + stores, does NOT close window) ──
-    ipcMain.handle("setup:save", (_event, payload: SetupSavePayload) => {
+    ipcMain.handle("setup:save", async (_event, payload: SetupSavePayload) => {
       const outcome = validateSetupPayload(payload);
       if (!outcome.ok) {
         return { ok: false as const, message: outcome.message };
       }
+      let config = outcome.config;
+      try {
+        const importSummary = await runSetupImport({
+          installRoot: options.installRoot,
+          dataRoot: config.dataRoot ?? "",
+          sqlitePath: config.sqlitePath ?? "",
+          onProgress: (progress) => {
+            win.webContents.send("setup:import-progress", progress);
+          },
+        });
+        if (!importSummary.coreReady) {
+          return {
+            ok: false as const,
+            message:
+              "Microdent Modern could not prepare the core clinic workspace. Choose a different copied clinic data folder or try again.",
+          };
+        }
+        config = {
+          ...config,
+          lastImportStatus: importSummary.overall,
+        };
+      } catch {
+        return {
+          ok: false as const,
+          message:
+            "Microdent Modern could not prepare the fast local copy. Choose a different copied clinic data folder or try again.",
+        };
+      }
       // Store config for later resolution but don't close yet — step 3 still needs to show
-      savedConfig = outcome.config;
+      savedConfig = config;
       return {
         ok: true as const,
         summary: formatSetupSaveSummary(outcome.warnings),
-        dataRootMasked: maskOperatorPath(outcome.config.dataRoot ?? ""),
-        sqlitePathMasked: maskOperatorPath(outcome.config.sqlitePath ?? ""),
-        backupDirMasked: outcome.config.backupDir
-          ? maskOperatorPath(outcome.config.backupDir)
+        dataRootMasked: maskOperatorPath(config.dataRoot ?? ""),
+        sqlitePathMasked: maskOperatorPath(config.sqlitePath ?? ""),
+        backupDirMasked: config.backupDir
+          ? maskOperatorPath(config.backupDir)
           : undefined,
+        logsDirMasked: config.logsDir
+          ? maskOperatorPath(config.logsDir)
+          : undefined,
+        importStatus: config.lastImportStatus,
       } as SetupSaveResult;
     });
 
@@ -272,6 +353,7 @@ export function showSetupWindow(initial: DesktopConfig): Promise<DesktopConfig> 
         dataRoot: suggestedDataRoot(),
         sqlitePath: suggestedSqlitePath(),
         backupDir: suggestedBackupDir(),
+        logsDir: suggestedLogsDir(),
       })}`,
     );
 
@@ -282,6 +364,7 @@ export function showSetupWindow(initial: DesktopConfig): Promise<DesktopConfig> 
           dataRoot: initial.dataRoot ?? "",
           sqlitePath: initial.sqlitePath ?? "",
           backupDir: initial.backupDir ?? "",
+          logsDir: initial.logsDir ?? "",
         })}`,
       );
     }

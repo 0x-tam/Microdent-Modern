@@ -5,5 +5,10 @@ contextBridge.exposeInMainWorld("setupApi", {
   pickFolder: (title) => ipcRenderer.invoke("setup:pick-folder", title),
   pickFile: (title, label, extensions) =>
     ipcRenderer.invoke("setup:pick-file", title, label, extensions),
+  onImportProgress: (callback) => {
+    const listener = (_event, progress) => callback(progress);
+    ipcRenderer.on("setup:import-progress", listener);
+    return () => ipcRenderer.removeListener("setup:import-progress", listener);
+  },
   complete: () => ipcRenderer.invoke("setup:complete"),
 });

@@ -27,11 +27,11 @@ describe("AppStatusGrid", () => {
         <AppStatusGrid
           aria-label="Clinic status"
           items={[
-            { key: "mirror", label: "Mirror", value: "Active", tone: "ok" },
+            { key: "mirror", label: "Local copy", value: "Ready", tone: "ok" },
             {
               key: "write",
-              label: "Write mode",
-              value: "Dry-run",
+              label: "Editing",
+              value: "Preview only",
               tone: "warn",
               actionLabel: "Open settings",
               onAction,
@@ -41,8 +41,8 @@ describe("AppStatusGrid", () => {
       );
     });
 
-    expect(container.querySelector(".app-status-grid__chip--ok")?.textContent).toBe("Active");
-    expect(container.querySelector(".app-status-grid__chip--warn")?.textContent).toBe("Dry-run");
+    expect(container.querySelector(".app-status-grid__chip--ok")?.textContent).toBe("Ready");
+    expect(container.querySelector(".app-status-grid__chip--warn")?.textContent).toBe("Preview only");
 
     const action = container.querySelector(".app-status-grid__action") as HTMLButtonElement;
     act(() => {
@@ -63,8 +63,8 @@ describe("AppStatusGrid", () => {
           aria-label="Clinic status"
           items={[
             { key: "svc", label: "Clinic service", value: "Connected", tone: "ok" },
-            { key: "mirror", label: "Data freshness", value: "Mirror unavailable — DBF fallback", tone: "warn" },
-            { key: "write", label: "Write mode", value: "Writes off", tone: "neutral" },
+            { key: "mirror", label: "Data freshness", value: "Using copied clinic files", tone: "warn" },
+            { key: "write", label: "Editing", value: "Read-only", tone: "neutral" },
           ]}
         />,
       );

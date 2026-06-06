@@ -72,7 +72,7 @@ From [phase-3-desktop-packaging-plan.md](./phase-3-desktop-packaging-plan.md) �
 | NSIS / MSI installer | **Not implemented** — see decision record D1–D4 |
 | Code signing (Authenticode) | **Not implemented** |
 | Auto-update feed | **Not implemented** |
-| Bundled Node 22 for bridge child | **Not implemented** — uses system `node.exe` |
+| Bundled Node 22 for bridge child | **Partial** — release staging validates a pre-downloaded Node 22.5+ runtime and can include `node/`; signed installer-integrated acquisition remains open |
 | `%ProgramFiles%` install layout | **Not defined** |
 | Uninstall registry entries | **Not implemented** |
 

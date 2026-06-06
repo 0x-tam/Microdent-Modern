@@ -16,6 +16,7 @@ const repoRoot = join(desktopRoot, "..", "..");
 
 const REQUIRED_DIST = [
   "dist/main.js",
+  "dist/app-preload.cjs",
   "dist/bridge-supervisor.js",
   "dist/config.js",
   "dist/startup-validation.js",

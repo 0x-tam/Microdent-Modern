@@ -25,6 +25,10 @@ import {
   pathHasForbiddenSegment,
 } from "./pilot-release-artifact-rules.mjs";
 import { generateReleaseManifest } from "./pilot-release-manifest.mjs";
+import {
+  validateNodeRuntimeDir,
+  writeNodeRuntimeManifest,
+} from "./node-runtime-staging.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const releaseRoot = join(repoRoot, "dist", "pilot-release");
@@ -101,6 +105,32 @@ function copyDistDir(src, dest, options = {}) {
   });
 }
 
+function copyNodeRuntimeDir(src, dest) {
+  let validation;
+  try {
+    validation = validateNodeRuntimeDir({ runtimeDir: src });
+  } catch (err) {
+    fail(err instanceof Error ? err.message : String(err));
+  }
+  mkdirSync(dest, { recursive: true });
+  cpSync(src, dest, {
+    recursive: true,
+    force: true,
+    filter: (srcPath) => {
+      const name = basename(srcPath);
+      if (FORBIDDEN_ENV_FILE.test(name)) return false;
+      if (/\.log$/i.test(name)) return false;
+      if (/\.sqlite3?$/i.test(name)) return false;
+      if (/\.(dbf|fpt|cdx)$/i.test(name)) return false;
+      if (/\.(bat|cmd)$/i.test(name)) return false;
+      if (/\.exe$/i.test(name) && !/^node\.exe$/i.test(name)) return false;
+      return true;
+    },
+  });
+  writeNodeRuntimeManifest(dest, validation);
+  return validation;
+}
+
 function copyFileSafe(src, dest) {
   try {
     assertSafeSourcePath(src, repoRoot);
@@ -127,21 +157,25 @@ const HANDOFF_LINES = [
   "Requirements",
   "------------",
   "- Windows 10/11 x64",
-  "- Node.js 22.x on PATH (node.exe — not bundled in this package)",
+  "- Preferred: this package contains node/ with Node 22.x for local-copy import.",
+  "- Runtime staging: run pnpm pilot:node-runtime-check -- --runtime-dir <Node22 folder>",
+  "  before pnpm stage:pilot-release; set MICRODENT_NODE_RUNTIME_DIR to include it.",
+  "- Fallback: install Node 22.5+ or set MICRODENT_NODE_BINARY before first-run setup.",
   "- Electron runtime (launch via your clinic deployment process or dev checkout)",
   "",
   "Install / extract",
   "-----------------",
   "1. Copy MicrodentModern/ to an install location (e.g. C:\\Program Files\\MicrodentModern\\).",
-  "2. Do not store DATA_ROOT, mirror SQLite, backups, or logs inside this folder.",
-  "3. On first desktop launch, complete setup for DATA_ROOT, SQLITE_PATH, and BACKUP_DIR.",
+  "2. Do not store clinic data, local-copy files, backups, or logs inside this folder.",
+  "3. On first desktop launch, choose the copied clinic data folder; local copy and backups",
+  "   are prepared by the app.",
   "4. Desktop config is saved to: %AppData%\\Microdent\\config.json",
   "   (Use config-templates/config.example.json as a reference only.)",
   "",
-  "Mirror import",
-  "-------------",
-  "Mirror import is CLI-only. See scripts/mirror-import-pointer.txt and",
-  "docs/phase-4-mirror-import-operator.md. Use disposable sandbox DATA only.",
+  "Local copy preparation",
+  "----------------------",
+  "First-run setup prepares the fast local copy automatically from the copied clinic",
+  "data folder. scripts/mirror-import-pointer.txt is kept only as a support fallback.",
   "",
   "Validation (build machine — from Microdent-Modern repo root)",
   "-------------------------------------------------------------",
@@ -175,20 +209,22 @@ function writeHandoffReadme() {
     "## Requirements",
     "",
     "- Windows 10/11 x64",
-    "- Node.js 22.x on PATH (`node.exe` — not bundled in this package)",
+    "- Preferred: bundled `node/` runtime with Node 22.x for local-copy import",
+    "- Runtime staging: run `pnpm pilot:node-runtime-check -- --runtime-dir <Node22 folder>` before `pnpm stage:pilot-release`; set `MICRODENT_NODE_RUNTIME_DIR` to include it",
+    "- Fallback: Node.js 22.5+ on PATH or `MICRODENT_NODE_BINARY` set before first-run setup",
     "- Electron runtime (launch via your clinic deployment process or dev checkout)",
     "",
     "## Install / extract",
     "",
     "1. Copy `MicrodentModern/` to an install location (e.g. `C:\\Program Files\\MicrodentModern\\`).",
-    "2. Do not store DATA_ROOT, mirror SQLite, backups, or logs inside this folder.",
-    "3. On first desktop launch, complete setup for DATA_ROOT, SQLITE_PATH, and BACKUP_DIR.",
+    "2. Do not store clinic data, local-copy files, backups, or logs inside this folder.",
+    "3. On first desktop launch, choose the copied clinic data folder; local copy and backups are prepared by the app.",
     "4. Desktop config is saved to `%AppData%\\Microdent\\config.json` (see `config-templates/config.example.json`).",
     "",
-    "## Mirror import",
+    "## Local copy preparation",
     "",
-    "CLI-only — see `scripts/mirror-import-pointer.txt` and `docs/phase-4-mirror-import-operator.md`.",
-    "Use disposable sandbox DATA only.",
+    "First-run setup prepares the fast local copy automatically. `scripts/mirror-import-pointer.txt`",
+    "is kept only as a support fallback for unusual troubleshooting.",
     "",
     "## Validation (build machine)",
     "",
@@ -197,6 +233,7 @@ function writeHandoffReadme() {
     "pnpm build:web",
     "pnpm --filter @microdent/bridge run build",
     "pnpm --filter @microdent/desktop run build",
+    "pnpm pilot:node-runtime-check -- --runtime-dir <Node22 folder>",
     "pnpm stage:pilot-release",
     "pnpm pilot:verify-release",
     "pnpm pilot:verify-manifest",
@@ -218,9 +255,11 @@ function writeHandoffReadme() {
 // --- required builds ---
 const desktopDist = requireDist("apps/desktop/dist", "desktop dist");
 const bridgeDist = requireDist("services/bridge/dist", "bridge dist");
+const sqliteMirrorDist = requireDist("services/sqlite-mirror/dist", "sqlite mirror dist");
 const webDist = requireDist("apps/web/dist", "web dist");
 requireDist(join("apps", "web", "dist", "index.html"), "web index.html");
 requireDist(join("services", "bridge", "dist", "server.js"), "bridge server.js");
+requireDist(join("services", "sqlite-mirror", "dist", "index.js"), "sqlite mirror index.js");
 requireDist(join("apps", "desktop", "dist", "main.js"), "desktop main.js");
 
 if (existsSync(releaseRoot)) {
@@ -239,7 +278,7 @@ writeFileSync(
       name: "@microdent/desktop-pilot",
       private: true,
       main: "dist/main.js",
-      description: "Microdent pilot desktop shell — run with Electron + system Node 22",
+      description: "Microdent pilot desktop shell — prefers bundled Node 22 runtime for clinic service and local copy",
     },
     null,
     2,
@@ -249,7 +288,33 @@ writeFileSync(
 
 // bridge/ + web/
 copyDistDir(bridgeDist, join(stageRoot, "bridge"));
+copyDistDir(sqliteMirrorDist, join(stageRoot, "sqlite-mirror"));
 copyDistDir(webDist, join(stageRoot, "web"));
+
+if (process.env.MICRODENT_NODE_RUNTIME_DIR?.trim()) {
+  const validation = copyNodeRuntimeDir(process.env.MICRODENT_NODE_RUNTIME_DIR.trim(), join(stageRoot, "node"));
+  writeFileSync(
+    join(stageRoot, "node", "README.txt"),
+    [
+      "Bundled Node runtime folder.",
+      "",
+      "This runtime is used by Microdent Modern to prepare the fast local copy during",
+      "first-run setup. It must be Node 22.x or newer for node:sqlite support.",
+      "",
+      `Validated runtime: ${validation.version} (${validation.executableRelPath}).`,
+      "See RUNTIME-MANIFEST.json for the support-safe runtime summary.",
+      "",
+    ].join("\n"),
+    "utf8",
+  );
+} else {
+  writePlaceholderDir("node", [
+    "Optional bundled Node runtime folder.",
+    "",
+    "Set MICRODENT_NODE_RUNTIME_DIR to a pre-downloaded Node 22.x runtime before staging",
+    "to include node.exe (Windows) or bin/node (macOS/Linux) for automatic local-copy import.",
+  ]);
+}
 
 // config-templates/ — placeholders only
 const configTemplatesDir = join(stageRoot, "config-templates");
@@ -326,12 +391,13 @@ writeFileSync(
     "",
     "This folder contains documentation pointers only. No clinic data or secrets.",
     "",
-    "Mirror import (Windows PowerShell — from a full repo checkout with Node 22):",
-    "  See docs/phase-4-mirror-import-operator.md in this package.",
-    "  Example:",
-    "    $env:DATA_ROOT = \"C:\\ClinicData\\Microdent\\DATA\"",
-    "    $env:SQLITE_PATH = \"C:\\Users\\Public\\MicrodentModern\\mirror\\clinic.sqlite\"",
-    "    pnpm --filter @microdent/sqlite-mirror run import-safe",
+    "Local copy preparation:",
+    "  First-run setup prepares the fast local copy automatically from the copied",
+    "  clinic data folder. See docs/PILOT-HANDOFF-PACK.md.",
+    "",
+    "Support fallback only:",
+    "  See docs/phase-4-mirror-import-operator.md if support asks you to run a",
+    "  manual local-copy import from a full repo checkout.",
     "",
     "Bash-only repo scripts (mirror-import-safe.sh, qa-sandbox-run.sh) require Git Bash",
     "or WSL on Windows. Prefer the PowerShell flow in phase-4-mirror-import-operator.md.",
@@ -347,18 +413,15 @@ writeFileSync(
 writeFileSync(
   join(scriptsDir, "mirror-import-pointer.txt"),
   [
-    "Mirror import — staged package pointer",
+    "Local copy preparation — staged package pointer",
     "",
-    "Full steps: docs/phase-4-mirror-import-operator.md",
+    "Normal flow: first-run setup prepares the fast local copy automatically from",
+    "the copied clinic data folder.",
     "",
-    "Windows (PowerShell, quoted paths):",
-    "  $env:DATA_ROOT = \"C:\\ClinicData\\Microdent\\DATA\"",
-    "  $env:SQLITE_PATH = \"C:\\Users\\Public\\MicrodentModern\\mirror\\clinic.sqlite\"",
+    "Support fallback only: docs/phase-4-mirror-import-operator.md",
     "",
-    "Run from Microdent-Modern repo root (not this install folder):",
-    "  pnpm --filter @microdent/sqlite-mirror run import-safe",
-    "",
-    "Never point DATA_ROOT at live Microdent-Legacy. Use a disposable sandbox copy.",
+    "Never point the clinic data folder at live Microdent-Legacy. Use a disposable",
+    "sandbox copy for write testing.",
     "",
   ].join("\n"),
   "utf8",
@@ -366,23 +429,23 @@ writeFileSync(
 
 // Placeholder runtime dirs — README only, no data
 writePlaceholderDir("logs", [
-  "Operator log folder (placeholder — not used at install time).",
+  "Operator log folder placeholder.",
   "",
-  "Create a log folder outside this install directory if you capture desktop or bridge logs.",
-  "See docs/windows-pilot-data-locations.md.",
+  "The desktop app writes PHI-safe operational logs under the configured logs folder",
+  "(normally %AppData%\\Microdent\\logs\\), outside this install directory.",
+  "Raw clinic-service stdout/stderr is not copied into logs.",
 ]);
 writePlaceholderDir("mirror", [
   "Mirror SQLite folder (placeholder — no database shipped).",
   "",
-  "Create this folder on the clinic machine and set SQLITE_PATH in desktop setup",
-  "to a file here (example: C:\\Users\\Public\\MicrodentModern\\mirror\\clinic.sqlite).",
-  "Run mirror import from the repo checkout — see scripts/mirror-import-pointer.txt.",
+  "First-run setup creates the fast local copy here or in the configured clinic data",
+  "folder. This package never ships a clinic database.",
 ]);
 writePlaceholderDir("backups", [
   "Sandbox backup folder (placeholder — no backups shipped).",
   "",
-  "Set BACKUP_DIR in desktop setup to a folder outside the app install directory",
-  "before enabling sandbox writes. See docs/windows-pilot-data-locations.md.",
+  "First-run setup creates/selects a backup folder outside the app install directory",
+  "before sandbox writes can be enabled. See docs/windows-pilot-data-locations.md.",
 ]);
 
 writeHandoffReadme();

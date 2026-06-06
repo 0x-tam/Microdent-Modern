@@ -1,6 +1,6 @@
 /**
  * Clinic-friendly labels for main workspace pages (Today, Patients, Schedule, Profile).
- * Settings and readiness grids keep technical terms via SETTINGS_* exports in read-only-ui-copy.ts.
+ * Settings primary copy uses the same operator language; implementation identifiers remain technical.
  */
 
 import type { BridgeDevStatusResponse, MirrorStatusResponse } from "@microdent/contracts";

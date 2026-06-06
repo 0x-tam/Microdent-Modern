@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, afterEach } from "vitest";
@@ -26,7 +26,7 @@ describe("validateSetupPayload", () => {
     });
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.message).toContain("DATA_ROOT");
+      expect(result.message).toContain("Clinic data folder");
       expect(result.message).not.toMatch(/\/Users\//);
     }
   });
@@ -48,6 +48,27 @@ describe("validateSetupPayload", () => {
       expect(result.config.writeMode).toBe("disabled");
       expect(result.config.dataRoot).toBe(dataRoot);
       expect(result.config.sqlitePath).toBe(sqlitePath);
+      expect(result.config.logsDir).toBeTruthy();
+      expect(result.config.setupCompletedAt).toBeTruthy();
+    }
+  });
+
+  it("derives local copy, backup, and logs paths from only the clinic data folder", () => {
+    const parent = mkdtempSync(join(tmpdir(), "microdent-setup-derived-"));
+    const dataRoot = join(parent, "DATA");
+    cleanup.push(parent);
+    writeFileSync(join(parent, "placeholder.txt"), "");
+    mkdirSync(dataRoot);
+
+    const result = validateSetupPayload({ dataRoot });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.config.dataRoot).toBe(dataRoot);
+      expect(result.config.sqlitePath).toBe(join(parent, "mirror", "clinic.sqlite"));
+      expect(result.config.backupDir).toBe(join(parent, "microdent-backups"));
+      expect(result.config.logsDir).toBe(join(parent, "logs"));
+      expect(result.config.writeMode).toBe("disabled");
+      expect(result.config.lastImportStatus).toBeUndefined();
     }
   });
 

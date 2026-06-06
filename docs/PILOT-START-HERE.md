@@ -34,10 +34,10 @@ Full reference: **[windows-pilot-data-locations.md](./windows-pilot-data-locatio
 | --- | --- | --- |
 | **Install / staged package** | `C:\Microdent\MicrodentModern\` | IT extract — no clinic DBF/sqlite/backups |
 | **Desktop config** | `%AppData%\Microdent\config.json` | Run → `%AppData%\Microdent` |
-| **DATA_ROOT** | `C:\ClinicData\Microdent\DATA` | Disposable sandbox — never live legacy |
-| **SQLITE_PATH** | `C:\Users\Public\MicrodentModern\mirror\clinic.sqlite` | Mirror — **not** inside install folder |
-| **BACKUP_DIR** | `C:\Users\Public\MicrodentModern\backups` | Required before sandbox commits — outside install |
-| **Logs (optional)** | `%AppData%\Microdent\logs\` | Documented convention; not auto-created in pilot RC |
+| **Clinic data folder** | `C:\ClinicData\Microdent\DATA` | Disposable copied data — never live legacy |
+| **Local copy** | Derived by setup, e.g. `C:\ClinicData\Microdent\mirror\clinic.sqlite` | **Not** inside install folder |
+| **Backups** | Derived by setup, e.g. `C:\ClinicData\Microdent\microdent-backups` | Required before sandbox commits — outside install |
+| **Logs** | `%AppData%\Microdent\logs\` | PHI-safe operational logs; export from Settings when requested |
 | **Repo (dev/build)** | `C:\Microdent\Microdent-Modern` | Clone + build; `qa-runs/` is dev-only |
 
 Quote paths with spaces in PowerShell (e.g. `"C:\ClinicData\My Sandbox\DATA"`). Prefer drive letters over UNC shares.
@@ -48,10 +48,10 @@ Quote paths with spaces in PowerShell (e.g. `"C:\ClinicData\My Sandbox\DATA"`). 
 
 | Step | Action | Detail doc |
 | --- | --- | --- |
-| 1 | Install **Node 22** | [windows-pilot-runbook.md §1](./windows-pilot-runbook.md#1-install-node-22) |
-| 2 | Clone repo, `pnpm install`, build bridge + web + desktop | [windows-pilot-runbook.md §2](./windows-pilot-runbook.md#2-clone-and-build) |
-| 3 | First launch — desktop setup for paths | [windows-pilot-runbook.md §3](./windows-pilot-runbook.md#3-first-launch-desktop) |
-| 4 | Mirror import (CLI) | [phase-4-mirror-import-operator.md](./phase-4-mirror-import-operator.md) |
+| 1 | Confirm bundled or fallback **Node 22.5+** | [windows-pilot-field-execution-script.md](./windows-pilot-field-execution-script.md) |
+| 2 | Verify staged package layout | [windows-pilot-package-verify-on-windows.md](./windows-pilot-package-verify-on-windows.md) |
+| 3 | First launch — desktop setup chooses copied clinic data and prepares local copy | [windows-pilot-field-execution-script.md](./windows-pilot-field-execution-script.md) |
+| 4 | Local copy status / refresh from Settings | [windows-pilot-field-execution-script.md](./windows-pilot-field-execution-script.md) |
 | 5 | Read-only QA — Today, Patients, Schedule, Settings | [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md) |
 | 6 | Sandbox write pilot (optional) | [windows-pilot-runbook.md §6](./windows-pilot-runbook.md#6-sandbox-write-pilot-optional) |
 | 7 | Sandbox QA sign-off | [phase-7-sandbox-pilot-qa-runbook.md](./phase-7-sandbox-pilot-qa-runbook.md) |
@@ -182,14 +182,14 @@ Full template: [pilot-tester-guide.md](./pilot-tester-guide.md#issue-report-temp
 
 ## Troubleshooting
 
-**Full Windows pack:** [windows-pilot-troubleshooting-pack.md](./windows-pilot-troubleshooting-pack.md) — app launch, bridge, port 17890, SmartScreen/AV, permissions, DATA_ROOT, mirror, sandbox QA, restore, safe logs.
+**Full Windows pack:** [windows-pilot-troubleshooting-pack.md](./windows-pilot-troubleshooting-pack.md) — app launch, clinic service, port 17890, SmartScreen/AV, permissions, clinic data folder, local copy, sandbox QA, restore, safe logs.
 
 | Symptom | What to check |
 | --- | --- |
-| **Bridge offline** in Settings | Desktop config paths; `bridge\server.js` in staged package; port **17890** free — [troubleshooting pack § Bridge offline](./windows-pilot-troubleshooting-pack.md#bridge-offline--health-timeout) |
+| **Clinic service offline** in Settings | Desktop config paths; `bridge\server.js` in staged package; Settings **Restart clinic service** / **Check service port** — [troubleshooting pack § Bridge offline](./windows-pilot-troubleshooting-pack.md#bridge-offline--health-timeout) |
 | **Missing web dist** / blank UI | Confirm `web/index.html` in staged package — [troubleshooting pack § Blank UI](./windows-pilot-troubleshooting-pack.md#app-does-not-open--blank-ui) |
-| **Port 17890 in use** | Close other bridge processes; or change `bridgePort` in `%AppData%\Microdent\config.json` |
-| **Mirror stale** vs DBF | Re-run CLI mirror import; DBF is write source of truth — [troubleshooting pack § Mirror import](./windows-pilot-troubleshooting-pack.md#mirror-import-failed) |
+| **Port 17890 in use** | Use Settings **Check service port** and **View port cleanup policy**; app may run on a backup port; do not close unknown processes from Microdent Modern |
+| **Local copy stale** vs copied files | Settings **Refresh local copy**; copied files are write source of truth — [troubleshooting pack § Mirror import](./windows-pilot-troubleshooting-pack.md#mirror-import-failed) |
 | **Setup closed** without save | Restart desktop; choose **Re-open setup** if offered |
 | **Write blocked** | Sandbox marker, `writeMode`, `ALLOW_LEGACY_WRITES` ack — [troubleshooting pack § Sandbox QA](./windows-pilot-troubleshooting-pack.md#sandbox-qa-failed) |
 | **Unsupported feature** | [out-of-scope-guardrails.md](./out-of-scope-guardrails.md) |
@@ -201,9 +201,8 @@ Full template: [pilot-tester-guide.md](./pilot-tester-guide.md#issue-report-temp
 ## Not supported (pilot RC)
 
 - NSIS installer, code signing, auto-update — see [windows-pilot-pre-installer-checklist.md](./windows-pilot-pre-installer-checklist.md)
-- In-app mirror import (CLI only)
 - Payments, ledger, chart, medical summary, or memo writes
-- Pointing **DATA_ROOT** at live **Microdent-Legacy**
+- Pointing the clinic data folder at live **Microdent-Legacy**
 
 Full guardrails: [out-of-scope-guardrails.md](./out-of-scope-guardrails.md).
 

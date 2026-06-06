@@ -62,7 +62,7 @@ export const FORBIDDEN_MANIFEST_STRINGS = [
 
 const DOC_TOKEN_SCAN_REL_PREFIXES = ["docs/", "config-templates/"];
 
-const COMPILED_SCAN_PREFIXES = ["app/dist/", "bridge/", "web/"];
+const COMPILED_SCAN_PREFIXES = ["app/dist/", "bridge/", "sqlite-mirror/", "web/"];
 
 /** Placeholder strings allowed in compiled setup HTML / dist (see out-of-scope-guardrails.md). */
 const ALLOWED_COMPILED_PATH_EXAMPLES = [
@@ -111,6 +111,11 @@ export function isForbiddenStagedFileName(name) {
     return true;
   }
   return FORBIDDEN_STAGED_FILE_PATTERNS.some((p) => p.test(name));
+}
+
+function isAllowedNodeRuntimeBinary(relPath) {
+  const normalized = relPath.replace(/\\/g, "/");
+  return normalized === "node/node.exe" || normalized === "node/node" || normalized === "node/bin/node";
 }
 
 export function assertConfigTemplateSafe(content, label) {
@@ -198,7 +203,7 @@ export function walkStagedArtifactRules(stageRoot, { onFail, readText = true }) 
         walk(abs, rel);
         continue;
       }
-      if (isForbiddenStagedFileName(entry.name)) {
+      if (isForbiddenStagedFileName(entry.name) && !isAllowedNodeRuntimeBinary(rel)) {
         onFail(rel, "forbidden file name or extension");
         continue;
       }
@@ -273,10 +278,12 @@ export const REQUIRED_STAGED_LAYOUT = [
   "HANDOFF-README.md",
   "qa-runs/README.txt",
   "app/dist/main.js",
+  "app/dist/app-preload.cjs",
   "app/dist/bridge-supervisor.js",
   "app/dist/setup/setup.html",
   "app/package.json",
   "bridge/server.js",
+  "sqlite-mirror/index.js",
   "web/index.html",
   "web/pilot-build.json",
   "config-templates/config.example.json",
@@ -303,6 +310,7 @@ export const REQUIRED_STAGED_LAYOUT = [
   "docs/phase-4-mirror-import-operator.md",
   "scripts/README.txt",
   "scripts/mirror-import-pointer.txt",
+  "node/README.txt",
   "logs/README.txt",
   "mirror/README.txt",
   "backups/README.txt",

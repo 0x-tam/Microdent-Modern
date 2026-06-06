@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, statSync } from "node:fs";
-import { isAbsolute, normalize } from "node:path";
+import { dirname, isAbsolute, normalize } from "node:path";
 
 export type PathValidationCode =
   | "empty"
@@ -105,6 +105,43 @@ export function validateSqlitePathFile(value: string): PathValidationResult {
   return success(normalizedPath, warnings);
 }
 
+/**
+ * First-run local-copy path: the SQLite file may not exist yet, but its parent
+ * folder must be usable. If the target exists, it must be a file.
+ */
+export function validateCreatableSqlitePath(
+  value: string,
+  options: { createParentIfMissing?: boolean } = {},
+): PathValidationResult {
+  const base = parseAbsolutePath(value);
+  if ("ok" in base) return base;
+
+  const { normalizedPath, warnings } = base;
+  if (existsSync(normalizedPath)) {
+    if (!statSync(normalizedPath).isFile()) {
+      return { ok: false, code: "not_file" };
+    }
+    return success(normalizedPath, warnings);
+  }
+
+  const parent = dirname(normalizedPath);
+  if (!existsSync(parent)) {
+    if (options.createParentIfMissing) {
+      try {
+        mkdirSync(parent, { recursive: true });
+      } catch {
+        return { ok: false, code: "mkdir_failed" };
+      }
+    } else {
+      return { ok: false, code: "missing" };
+    }
+  }
+  if (!statSync(parent).isDirectory()) {
+    return { ok: false, code: "not_directory" };
+  }
+  return success(normalizedPath, warnings);
+}
+
 /** `BACKUP_DIR` must be a directory (created when missing if allowed). */
 export function validateBackupDir(
   value: string,
@@ -134,6 +171,14 @@ export function validateBackupDir(
     return { ok: false, code: "not_directory" };
   }
   return success(normalizedPath, warnings);
+}
+
+/** `logsDir` follows backup-dir rules: absolute directory, created when allowed. */
+export function validateLogsDir(
+  value: string,
+  options: { createIfMissing?: boolean } = {},
+): PathValidationResult {
+  return validateBackupDir(value, options);
 }
 
 /** Operator-safe path snippet for logs and setup success (no full paths). */

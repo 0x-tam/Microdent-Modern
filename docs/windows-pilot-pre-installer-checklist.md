@@ -65,7 +65,7 @@
 | Item | Status | Owner | Notes |
 | --- | --- | --- | --- |
 | Auto-update feed | **Blocked** | Dev | Not implemented |
-| Bundled Node 22 for bridge child | **Blocked** | Dev | Uses system `node.exe` today |
+| Bundled Node 22 for bridge child | **Partial** | Dev | Validate pre-downloaded runtime with `pnpm pilot:node-runtime-check`; staging includes `node/` when `MICRODENT_NODE_RUNTIME_DIR` is set |
 | Cross-platform `qa:sandbox` orchestrator | **Blocked** | Dev | Git Bash on Windows or manual §7 |
 
 ---

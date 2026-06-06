@@ -20,7 +20,7 @@
 | Windows SmartScreen or antivirus warning | [§ SmartScreen / AV](#smartscreen--antivirus) |
 | Permission denied / EPERM on backups | [§ Permission denied / EPERM on backups](#permission-denied--eperm-on-backups) |
 | Setup rejects DATA_ROOT | [§ DATA_ROOT invalid / forbidden legacy segment](#data_root-invalid--forbidden-legacy-segment) |
-| Mirror import did not succeed | [§ Mirror import failed](#mirror-import-failed) |
+| Local copy refresh did not succeed | [§ Local copy refresh failed](#local-copy-refresh-failed) |
 | Sandbox write QA failed | [§ Sandbox QA failed](#sandbox-qa-failed) |
 | Restore did not recover sandbox | [§ Restore failed](#restore-failed) |
 | Need logs without leaking PHI | [§ Safe logs and support hygiene](#safe-logs-and-support-hygiene) |
@@ -55,7 +55,7 @@
 | 1 | Verify `%AppData%\Microdent\config.json` has absolute paths for `dataRoot`, `sqlitePath`, and valid `bridgePort` (default **17890**). |
 | 2 | Confirm **`bridge/server.js`** exists in the staged package (not a dev checkout path). |
 | 3 | Ensure **Node 22** is on PATH for the user launching the desktop — bridge spawns `node` as a child process. |
-| 4 | Check port **17890** is free — see [Localhost / port 17890 blocked](#localhost--port-17890-blocked). |
+| 4 | Open Settings and use **Check service port** plus **View port cleanup policy** — see [Localhost / port 17890 blocked](#localhost--port-17890-blocked). |
 | 5 | After changing config, **fully quit and restart** the desktop app (not just refresh the web view). |
 | 6 | If `DATA_ROOT` folder is missing or unreadable, bridge may fail startup — confirm sandbox DATA folder exists and is readable. |
 
@@ -67,15 +67,17 @@
 
 ## Localhost / port 17890 blocked
 
-**What you see:** Bridge never connects; another app uses port 17890; corporate policy blocks loopback; firewall prompt denied.
+**What you see:** Clinic service never connects; another app uses port 17890; corporate policy blocks loopback; firewall prompt denied.
 
 | Step | Action |
 | --- | --- |
-| 1 | List listeners: PowerShell → `Get-NetTCPConnection -LocalPort 17890 -ErrorAction SilentlyContinue` — note owning process if present. |
-| 2 | Close other Microdent desktop instances or stray `node` processes holding the port. |
-| 3 | If port is reserved by another service, edit `%AppData%\Microdent\config.json` → change `"bridgePort"` to an unused port (e.g. `17891`), save, restart desktop. |
-| 4 | Allow **Node** and the desktop app through Windows Defender Firewall when prompted (private network only if IT policy allows). |
-| 5 | VPN or endpoint security sometimes blocks `127.0.0.1` — ask IT to allow loopback for local bridge. |
+| 1 | In Settings, click **Restart clinic service**, then **Check service port**. |
+| 2 | Click **View port cleanup policy**. The app does not close unknown processes; this is intentional safety behavior. |
+| 3 | IT may list listeners with PowerShell: `Get-NetTCPConnection -LocalPort 17890 -ErrorAction SilentlyContinue` — record ownership only, no PHI. |
+| 4 | If another application owns the configured port, IT decides whether it is safe to close outside Microdent Modern. |
+| 5 | If the port is reserved by another service, edit `%AppData%\Microdent\config.json` → change `"bridgePort"` to an unused port (e.g. `17891`), save, restart desktop. |
+| 6 | Allow **Node** and the desktop app through Windows Defender Firewall when prompted (private network only if IT policy allows). |
+| 7 | VPN or endpoint security sometimes blocks `127.0.0.1` — ask IT to allow loopback for the local clinic service. |
 
 **Pass criteria:** Health check to configured port succeeds from the same machine running the desktop.
 
@@ -137,23 +139,24 @@
 
 ---
 
-## Mirror import failed
+## Local copy refresh failed
 
-**What you see:** CLI exit code non-zero; Settings mirror table shows **Failed** or **Partial**; stale banner; search/schedule empty.
+**What you see:** Settings local-copy table shows **Failed**, **Partial**, **Core local copy incomplete**, stale banner, or search/schedule empty.
 
-Report **category only** in tickets — do not paste raw CLI rows with patient data.
+Report **category only** in tickets — do not paste raw CLI rows, DBF rows, patient names, phones, or clinical text.
 
 | Category | Meaning | Operator actions |
 | --- | --- | --- |
-| **Failed** | Table import did not complete (missing DBF, unreadable file, transaction error). | Confirm DBF exists under DATA_ROOT; disk readable; paths absolute. Re-run safe import from repo or staged pointer — [phase-4-mirror-import-operator.md](./phase-4-mirror-import-operator.md). Refresh Settings → **Refresh status**. |
-| **Partial** | Rows imported but some skipped/quarantined (`errors` &gt; 0). | Refresh DATA copy; re-run full safe import. Partial is **warn-only** for sandbox write proof but search may omit rows. |
-| **Stale** | Last import older than 48 hours. | Re-run import when fresher search/schedule needed — not always a hard failure. |
-| **Path / env** | Wrong DATA_ROOT or SQLITE_PATH in import session. | Set env vars in **same** PowerShell session as import; match desktop config paths. |
-| **Network / AV** | UNC path or locked SQLite. | Copy to local drive; retry import; see AV section above. |
+| **Failed** | Table refresh did not complete (missing DBF, unreadable file, transaction error). | Settings → **Refresh local copy**. If it repeats, export support log and ask IT to confirm copied clinic files are present and readable. CLI fallback: [phase-4-mirror-import-operator.md](./phase-4-mirror-import-operator.md). |
+| **Partial** | Rows refreshed but some were skipped/quarantined (`errors` &gt; 0). | Refresh the copied clinic files, then Settings → **Refresh local copy**. Partial is **warn-only** for sandbox write proof but search may omit rows. |
+| **Core local copy incomplete** | Patients or appointments are missing from the fast local copy after a refresh run. | Settings → **Refresh local copy** before relying on search or schedule. If it repeats, use **Export support log**. |
+| **Stale** | Last refresh older than 48 hours. | Refresh local copy when fresher search/schedule is needed — not always a hard failure. |
+| **Path / config** | Wrong copied clinic folder or local-copy path in desktop setup. | Re-open setup and choose absolute local folders. Keep local copy outside the install folder. |
+| **Network / AV** | UNC path or locked SQLite. | Copy to local drive; retry refresh; see AV section above. |
 
-**Pass criteria:** CLI `overall: success` or acceptable `partial`; Settings shows `sqliteUsable` and recent `finishedAt` for core tables.
+**Pass criteria:** Settings shows local copy usable, recent `finishedAt` for core tables, and no failed/incomplete callout.
 
-**Note:** In-app mirror import is **unsupported** — CLI only ([out-of-scope-guardrails.md](./out-of-scope-guardrails.md)).
+**Note:** CLI import is a support fallback. Normal operators should use Settings **Refresh local copy**.
 
 ---
 

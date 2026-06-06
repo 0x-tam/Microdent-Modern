@@ -3,8 +3,8 @@ import type { DesktopConfig } from "./config.js";
 import {
   maskOperatorPath,
   validateBackupDir,
+  validateCreatableSqlitePath,
   validateDataRootDir,
-  validateSqlitePathFile,
   type PathValidationCode,
 } from "./path-validation.js";
 
@@ -71,7 +71,9 @@ export function validateDesktopStartupConfig(config: DesktopConfig): void {
   }
 
   if (config.sqlitePath?.trim()) {
-    const result = validateSqlitePathFile(config.sqlitePath);
+    const result = validateCreatableSqlitePath(config.sqlitePath, {
+      createParentIfMissing: true,
+    });
     if (!result.ok) {
       throw new Error(
         `SQLITE_PATH ${pathFieldLabel(result.code)} (${maskOperatorPath(config.sqlitePath)})`,

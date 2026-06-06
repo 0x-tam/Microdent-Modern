@@ -84,15 +84,15 @@ Full location reference: [windows-pilot-data-locations.md](./windows-pilot-data-
 
 ---
 
-## 4 — Bridge lifecycle and networking
+## 4 — Clinic service lifecycle and networking
 
 | # | Check | Marker | Synthetic example / steps |
 | --- | --- | --- | --- |
 | 4.1 | Release smoke: supervisor + defaults | **Dev dry-run** | `pnpm --filter @microdent/desktop run release-smoke`; staged: `PILOT_STAGED_RELEASE=1` |
-| 4.2 | Bridge online in Settings after launch | **Requires Windows PC** | **Pilot readiness** shows bridge connected on loopback |
+| 4.2 | Clinic service online in Settings after launch | **Requires Windows PC** | **Pilot readiness** shows clinic service connected on loopback |
 | 4.3 | Port **17890** free or alternate in config | **Requires Windows PC** | Change `bridgePort` to `17891` if conflict; restart desktop |
-| 4.4 | Bridge survives desktop window close/reopen | **Requires Windows PC** | Quit UI, relaunch — bridge respawns or clean restart documented |
-| 4.5 | Kill stray bridge from Task Manager | **Requires Windows PC** | End `node.exe` child; relaunch desktop — no zombie lock on port |
+| 4.4 | Clinic service survives desktop window close/reopen | **Requires Windows PC** | Quit UI, relaunch — service respawns or clean restart documented |
+| 4.5 | Safe port cleanup policy visible | **Requires Windows PC** | Settings **View port cleanup policy** confirms Microdent Modern does not close unknown processes; IT owns any external process cleanup |
 | 4.6 | No LAN exposure by default | **Requires Windows PC** | Confirm health check on `127.0.0.1` only (corporate scan optional) |
 
 ---

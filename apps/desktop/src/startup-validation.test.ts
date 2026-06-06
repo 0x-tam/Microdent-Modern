@@ -1,4 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   collectDesktopStartupWarnings,
   validateDesktopStartupConfig,
@@ -28,6 +31,15 @@ describe("collectDesktopStartupWarnings", () => {
 });
 
 describe("validateDesktopStartupConfig", () => {
+  const cleanup: string[] = [];
+
+  afterEach(() => {
+    for (const dir of cleanup) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+    cleanup.length = 0;
+  });
+
   it("requires DATA_ROOT and SQLITE_PATH", () => {
     expect(() => validateDesktopStartupConfig({ version: 1 })).toThrow(/DATA_ROOT is required/i);
     expect(() =>
@@ -52,5 +64,19 @@ describe("validateDesktopStartupConfig", () => {
         sqlitePath: "C:\\mirror.sqlite",
       }),
     ).toThrow(/DATA_ROOT.*absolute/i);
+  });
+
+  it("accepts a not-yet-created local copy path when parent can be created", () => {
+    const dataRoot = mkdtempSync(join(tmpdir(), "microdent-startup-data-"));
+    const mirrorParent = mkdtempSync(join(tmpdir(), "microdent-startup-mirror-"));
+    cleanup.push(dataRoot, mirrorParent);
+    expect(() =>
+      validateDesktopStartupConfig({
+        version: 1,
+        dataRoot,
+        sqlitePath: join(mirrorParent, "nested", "clinic.sqlite"),
+        writeMode: "disabled",
+      }),
+    ).not.toThrow();
   });
 });

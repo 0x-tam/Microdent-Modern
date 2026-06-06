@@ -80,7 +80,7 @@ describe("settings-status", () => {
     ).toBe("ok");
   });
 
-  it("maps sqlite mirror usability from mirror status", () => {
+  it("maps local copy usability from mirror status", () => {
     expect(
       resolveSqliteMirrorStatus("connected", {
         sqliteConfigured: true,
@@ -96,7 +96,7 @@ describe("settings-status", () => {
         importedTables: [],
         latestImportRuns: [],
       }, null).label,
-    ).toMatch(/DBF fallback/i);
+    ).toMatch(/copied clinic files/i);
     expect(resolveSqliteMirrorStatus("offline", null, null).tone).toBe("neutral");
   });
 
@@ -131,7 +131,7 @@ describe("settings-status", () => {
       },
     );
     expect(readOnly.some((c) => c.label.match(/read-only/i))).toBe(true);
-    expect(readOnly.some((c) => c.label.match(/mirror active/i))).toBe(true);
+    expect(readOnly.some((c) => c.label.match(/local copy active/i))).toBe(true);
     expect(readOnly.some((c) => c.label.match(/read-only QA/i))).toBe(true);
     expect(readOnly.some((c) => c.key === "distribution-hint")).toBe(true);
     expect(readOnly.some((c) => c.key === "windows-execution-deferred")).toBe(true);
@@ -185,10 +185,10 @@ describe("settings-status", () => {
     ]);
     expect(checklist.every((i) => !i.label.match(/C:\\\\|\/Users\//))).toBe(true);
     expect(checklist.some((i) => i.label.match(/not production legacy/i))).toBe(true);
-    expect(checklist.some((i) => i.label.match(/mirror import healthy/i))).toBe(true);
+    expect(checklist.some((i) => i.label.match(/local copy refresh healthy/i))).toBe(true);
   });
 
-  it("flags stale mirror in readiness summary", () => {
+  it("flags stale local copy in readiness summary", () => {
     const staleFinishedAt = new Date(Date.now() - MIRROR_IMPORT_STALE_MS - 60_000).toISOString();
     const chips = resolvePilotReadinessSummary(
       "connected",
@@ -240,7 +240,7 @@ describe("settings-status", () => {
     expect(chips[0]?.key).toBe("bridge-offline");
   });
 
-  it("warns on mirror import checklist when runs are stale", () => {
+  it("warns on local copy refresh checklist when runs are stale", () => {
     const staleFinishedAt = new Date(Date.now() - MIRROR_IMPORT_STALE_MS - 60_000).toISOString();
     const checklist = resolvePilotReadinessChecklist(
       "connected",
@@ -269,7 +269,7 @@ describe("settings-status", () => {
     );
     const mirrorImport = checklist.find((i) => i.key === "mirrorImport");
     expect(mirrorImport?.tone).toBe("warn");
-    expect(mirrorImport?.nextStep).toMatch(/stale|mirror import/i);
+    expect(mirrorImport?.nextStep).toMatch(/stale|local copy/i);
   });
 
   it("resolveFrontDeskOverview shows connect guidance when offline", () => {
@@ -316,8 +316,8 @@ describe("settings-status", () => {
       selectedPatientDisplayName: "Desk Overview Synth",
       selectedPatientChartNumber: "DO-55",
     });
-    expect(rows.some((r) => r.key === "mirror" && r.value.match(/Mirror active/i))).toBe(true);
-    expect(rows.some((r) => r.key === "write-mode" && r.value.match(/Writes off/i))).toBe(true);
+    expect(rows.some((r) => r.key === "mirror" && r.value.match(/Local copy active/i))).toBe(true);
+    expect(rows.some((r) => r.key === "write-mode" && r.value.match(/Read-only/i))).toBe(true);
     expect(rows.some((r) => r.key === "today" && r.value === "3 appointments")).toBe(true);
     expect(rows.some((r) => r.key === "selected-patient" && r.value.match(/Desk Overview Synth · Chart DO-55/))).toBe(
       true,

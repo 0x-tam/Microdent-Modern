@@ -8,7 +8,9 @@ import {
   maskOperatorPath,
   normalizeOperatorPath,
   validateBackupDir,
+  validateCreatableSqlitePath,
   validateDataRootDir,
+  validateLogsDir,
   validateSqlitePathFile,
 } from "./path-validation.js";
 
@@ -102,11 +104,30 @@ describe("path-validation", () => {
     expect(result.ok).toBe(true);
   });
 
+  it("accepts a creatable local-copy sqlite path before the file exists", () => {
+    const parent = mkdtempSync(join(tmpdir(), "microdent-creatable-sqlite-"));
+    cleanup.push(parent);
+    const sqlitePath = join(parent, "mirror", "clinic.sqlite");
+    const result = validateCreatableSqlitePath(sqlitePath, { createParentIfMissing: true });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.normalizedPath).toBe(sqlitePath);
+    }
+  });
+
   it("creates BACKUP_DIR when missing and createIfMissing is set", () => {
     const parent = mkdtempSync(join(tmpdir(), "microdent-backup-parent-"));
     cleanup.push(parent);
     const backup = join(parent, "backups");
     const result = validateBackupDir(backup, { createIfMissing: true });
+    expect(result.ok).toBe(true);
+  });
+
+  it("creates logs dir when missing and createIfMissing is set", () => {
+    const parent = mkdtempSync(join(tmpdir(), "microdent-logs-parent-"));
+    cleanup.push(parent);
+    const logs = join(parent, "logs");
+    const result = validateLogsDir(logs, { createIfMissing: true });
     expect(result.ok).toBe(true);
   });
 

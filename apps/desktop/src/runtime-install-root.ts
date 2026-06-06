@@ -31,3 +31,50 @@ export function resolveWebDistIndex(installRoot: string): string {
   }
   return join(installRoot, "apps", "web", "dist", "index.html");
 }
+
+/** SQLite mirror package entry — packaged `sqlite-mirror/index.js` or dev dist. */
+export function resolveSqliteMirrorIndex(installRoot: string): string {
+  const packaged = join(installRoot, "sqlite-mirror", "index.js");
+  if (existsSync(packaged)) {
+    return packaged;
+  }
+  return join(installRoot, "services", "sqlite-mirror", "dist", "index.js");
+}
+
+/** Desktop JSON import CLI — packaged `sqlite-mirror/cli/...` or dev dist. */
+export function resolveSqliteMirrorJsonCli(installRoot: string): string {
+  const packaged = join(installRoot, "sqlite-mirror", "cli", "mirror-import-json.js");
+  if (existsSync(packaged)) {
+    return packaged;
+  }
+  return join(installRoot, "services", "sqlite-mirror", "dist", "cli", "mirror-import-json.js");
+}
+
+/** Packaged Node runtime used for imports that require Node >=22.5 (`node:sqlite`). */
+export function resolvePackagedNodeBinary(
+  installRoot: string,
+  platform: NodeJS.Platform = process.platform,
+): string | null {
+  const candidates =
+    platform === "win32"
+      ? [join(installRoot, "node", "node.exe")]
+      : [join(installRoot, "node", "bin", "node"), join(installRoot, "node", "node")];
+  return candidates.find((candidate) => existsSync(candidate)) ?? null;
+}
+
+/** Import Node preference: explicit override, env override, packaged runtime, dev fallback. */
+export function resolveImportNodeBinary(options: {
+  installRoot: string;
+  explicitNodeBinary?: string;
+  envNodeBinary?: string;
+  fallbackNodeBinary?: string;
+  platform?: NodeJS.Platform;
+}): string {
+  if (options.explicitNodeBinary?.trim()) return options.explicitNodeBinary;
+  if (options.envNodeBinary?.trim()) return options.envNodeBinary;
+  return (
+    resolvePackagedNodeBinary(options.installRoot, options.platform) ??
+    options.fallbackNodeBinary ??
+    process.execPath
+  );
+}

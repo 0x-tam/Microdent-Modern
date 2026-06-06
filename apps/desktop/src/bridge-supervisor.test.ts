@@ -204,6 +204,76 @@ describe("BridgeSupervisor spawn env", () => {
     assertNoForbiddenPaths(options.env);
   });
 
+  it("uses packaged Node runtime when no explicit nodeBinary is provided", async () => {
+    existsSyncMock.mockImplementation((path: unknown) => {
+      const value = String(path);
+      if (value.endsWith("bridge/server.js") || value.endsWith("bridge\\server.js")) {
+        return true;
+      }
+      if (value.endsWith("node/node.exe") || value.endsWith("node\\node.exe")) {
+        return true;
+      }
+      if (value.endsWith("Write-Sandbox\\DATA") || value.endsWith("Write-Sandbox/DATA")) {
+        return true;
+      }
+      if (value.endsWith("mirror.sqlite")) {
+        return true;
+      }
+      return false;
+    });
+
+    const supervisor = new BridgeSupervisor({
+      repoRoot: "C:\\Program Files\\MicrodentModern",
+      config: {
+        ...defaultDesktopConfig(),
+        dataRoot: "C:\\Microdent\\Write-Sandbox\\DATA",
+        sqlitePath: "C:\\Microdent\\mirror.sqlite",
+      },
+      platform: "win32",
+    });
+
+    await supervisor.start();
+
+    const [nodeBin, args] = spawnMock.mock.calls[0] as [string, string[]];
+    expect(nodeBin).toBe(join("C:\\Program Files\\MicrodentModern", "node", "node.exe"));
+    expect(args).toEqual([join("C:\\Program Files\\MicrodentModern", "bridge", "server.js")]);
+  });
+
+  it("lets explicit nodeBinary override packaged runtime", async () => {
+    existsSyncMock.mockImplementation((path: unknown) => {
+      const value = String(path);
+      if (value.endsWith("bridge/server.js") || value.endsWith("bridge\\server.js")) {
+        return true;
+      }
+      if (value.endsWith("node/node.exe") || value.endsWith("node\\node.exe")) {
+        return true;
+      }
+      if (value.endsWith("Write-Sandbox\\DATA") || value.endsWith("Write-Sandbox/DATA")) {
+        return true;
+      }
+      if (value.endsWith("mirror.sqlite")) {
+        return true;
+      }
+      return false;
+    });
+
+    const supervisor = new BridgeSupervisor({
+      repoRoot: "C:\\Program Files\\MicrodentModern",
+      config: {
+        ...defaultDesktopConfig(),
+        dataRoot: "C:\\Microdent\\Write-Sandbox\\DATA",
+        sqlitePath: "C:\\Microdent\\mirror.sqlite",
+      },
+      nodeBinary: "D:\\Support\\node.exe",
+      platform: "win32",
+    });
+
+    await supervisor.start();
+
+    const [nodeBin] = spawnMock.mock.calls[0] as [string, string[]];
+    expect(nodeBin).toBe("D:\\Support\\node.exe");
+  });
+
   it("uiUrl prefers packaged file:// index when web dist exists", () => {
     existsSyncMock.mockImplementation((...args: unknown[]) => {
       const path = String(args[0]);

@@ -10,9 +10,17 @@ export type DesktopConfig = {
   sqlitePath?: string;
   /** Backup folder for clinic data snapshots. */
   backupDir?: string;
+  /** PHI-safe operational logs folder. */
+  logsDir?: string;
+  /** Local-only Electron crash dumps folder. */
+  crashDumpsDir?: string;
   bridgePort?: number;
   /** Packaged default: writes disabled until operator enables sandbox pilot. */
   writeMode?: "disabled" | "dry-run" | "enabled";
+  /** ISO timestamp recorded after first-run setup finishes. */
+  setupCompletedAt?: string;
+  /** Last automatic local-copy import outcome. */
+  lastImportStatus?: "success" | "partial" | "failed";
 };
 
 /** Suggested default dataRoot per platform — shown in setup wizard as a starting point. */
@@ -51,6 +59,32 @@ export function suggestedBackupDir(): string {
       return join(home, "Microdent Data", "backups");
     default:
       return join(home, "Microdent", "backups");
+  }
+}
+
+/** Suggested logsDir per platform. */
+export function suggestedLogsDir(): string {
+  const home = homedir();
+  switch (platform()) {
+    case "win32":
+      return join(home, "AppData", "Microdent", "logs");
+    case "darwin":
+      return join(home, "Library", "Application Support", "Microdent", "logs");
+    default:
+      return join(home, ".config", "microdent", "logs");
+  }
+}
+
+/** Suggested local-only crash dump folder per platform. */
+export function suggestedCrashDumpsDir(): string {
+  const home = homedir();
+  switch (platform()) {
+    case "win32":
+      return join(home, "AppData", "Microdent", "crash-dumps");
+    case "darwin":
+      return join(home, "Library", "Application Support", "Microdent", "crash-dumps");
+    default:
+      return join(home, ".config", "microdent", "crash-dumps");
   }
 }
 

@@ -246,7 +246,7 @@ describe("resolveWriteModeChip", () => {
   });
 
   it("labels each write mode", () => {
-    expect(resolveWriteModeChip(capOff)?.label).toBe("Writes off");
+    expect(resolveWriteModeChip(capOff)?.label).toBe("Read-only");
     expect(resolveWriteModeChip({ ...capOff, writeMode: "dry-run", writableSandbox: true })?.variant).toBe("warning");
     expect(resolveWriteModeChip(capSandbox)?.variant).toBe("danger");
   });

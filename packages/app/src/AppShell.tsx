@@ -37,7 +37,7 @@ export type { BridgeHealthPhase } from "./bridge-health.js";
 import { PatientProfilePanel } from "./PatientProfilePanel.js";
 import { PatientSearchBar } from "./PatientSearchBar.js";
 import { SchedulePanel } from "./SchedulePanel.js";
-import { SettingsPanel } from "./SettingsPanel.js";
+import { SettingsPanel, type SettingsDesktopActions } from "./SettingsPanel.js";
 import { DashboardHome } from "./today-dashboard.js";
 import {
   APP_SIDEBAR_MODULES,
@@ -107,6 +107,8 @@ export type AppShellProps = {
    * Hosts pass `VITE_SANDBOX_WRITE_PILOT` (or legacy appointment status pilot flag).
    */
   sandboxWritePilot?: boolean;
+  /** Optional desktop-only quick-fix actions exposed by the Electron preload. */
+  desktopActions?: SettingsDesktopActions;
 };
 
 const APP_SHELL_VERSION = "0.0.1";
@@ -138,6 +140,7 @@ export function AppShell({
   appointmentStatusDryRunDev = false,
   appointmentStatusWritePilot = false,
   sandboxWritePilot: sandboxWritePilotProp = false,
+  desktopActions,
 }: AppShellProps) {
   const sandboxWritePilot = sandboxWritePilotProp || appointmentStatusWritePilot;
   const devWriteActionsEnabled =
@@ -605,6 +608,7 @@ export function AppShell({
                   sandboxWritePilot={sandboxWritePilot}
                   showConnectionDiagnostics={showBridgeConnectionDiagnostics}
                   onOpenToday={() => setActive("today")}
+                  desktopActions={desktopActions}
                 />
               ) : (
                 <PatientProfilePanel

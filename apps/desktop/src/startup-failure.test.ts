@@ -10,27 +10,31 @@ describe("formatStartupFailure", () => {
 
   it("maps missing bridge dist", () => {
     expect(formatStartupFailure(new Error("ENOENT: services/bridge/dist/server.js"))).toMatch(
-      /@microdent\/bridge run build/i,
+      /Clinic service is missing/i,
     );
   });
 
   it("maps missing web dist", () => {
-    expect(formatStartupFailure(new Error("ENOENT apps/web/dist/index.html"))).toMatch(/build:web/i);
+    expect(formatStartupFailure(new Error("ENOENT apps/web/dist/index.html"))).toMatch(
+      /Clinic workspace is missing/i,
+    );
   });
 
   it("maps port conflicts", () => {
-    expect(formatStartupFailure(new Error("listen EADDRINUSE 127.0.0.1:17890"))).toMatch(/17890/);
+    expect(formatStartupFailure(new Error("listen EADDRINUSE 127.0.0.1:17890"))).toMatch(
+      /local clinic service/i,
+    );
   });
 
   it("maps health timeout without paths", () => {
     const message = formatStartupFailure(new Error("Bridge health check timed out"));
-    expect(message).toMatch(/loopback/i);
+    expect(message).toMatch(/local clinic service/i);
     expect(message).not.toMatch(/\/Users\/|C:\\\\|DATA_ROOT=/);
   });
 
   it("maps sandbox guard failures", () => {
     expect(formatStartupFailure(new Error("DATA_ROOT failed write-sandbox guard"))).toMatch(
-      /disposable sandbox/i,
+      /safe disposable sandbox copy/i,
     );
   });
 
@@ -38,7 +42,7 @@ describe("formatStartupFailure", () => {
     const message = formatStartupFailure(
       new Error("SQLITE_PATH expected a file (C:\\\\masked\\\\mirror.sqlite)"),
     );
-    expect(message).toMatch(/Mirror SQLite file is missing/i);
+    expect(message).toMatch(/fast local copy is missing/i);
     expect(message).not.toMatch(/C:\\\\|masked/);
   });
 
@@ -46,12 +50,12 @@ describe("formatStartupFailure", () => {
     const message = formatStartupFailure(
       new Error("BACKUP_DIR is not set; sandbox commits require a backup folder when write mode is not disabled"),
     );
-    expect(message).toMatch(/Backup folder is required before sandbox commits/i);
+    expect(message).toMatch(/Backup folder is required before sandbox edits/i);
     expect(message).not.toMatch(/\/tmp|C:\\\\|DATA_ROOT/);
   });
 
   it("maps generic backup failures", () => {
-    expect(formatStartupFailure(new Error("BACKUP_DIR missing"))).toMatch(/BACKUP_DIR/i);
+    expect(formatStartupFailure(new Error("BACKUP_DIR missing"))).toMatch(/Backup folder/i);
   });
 
   it("uses generic recovery for unknown messages", () => {
@@ -64,7 +68,7 @@ describe("formatStartupFailure", () => {
     expect(isPathRelatedStartupFailure("Desktop paths are invalid or missing. Re-open setup.")).toBe(
       true,
     );
-    expect(isPathRelatedStartupFailure("Mirror SQLite file is missing. Re-open setup.")).toBe(true);
-    expect(isPathRelatedStartupFailure("Bridge server not built.")).toBe(false);
+    expect(isPathRelatedStartupFailure("The fast local copy is missing. Re-open setup.")).toBe(true);
+    expect(isPathRelatedStartupFailure("Clinic service is missing.")).toBe(false);
   });
 });

@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { configPath, desktopConfigDir } from "./config.js";
+import { configPath, desktopConfigDir, suggestedCrashDumpsDir } from "./config.js";
 
 /** Synthetic Windows sandbox examples — placeholders only, never real clinic paths. */
 export const WINDOWS_SANDBOX_EXAMPLES = {
@@ -95,15 +95,28 @@ export function resolveOperatorDataLocations(): OperatorDataLocationSpec[] {
     {
       id: "logs",
       layer: "appData",
-      label: "Operator logs (documented convention)",
+      label: "Operator logs",
       windowsPathHint: "%AppData%\\Microdent\\logs\\",
-      implementationStatus: "documented-only",
-      createdBy: "operator-setup",
+      implementationStatus: "implemented",
+      createdBy: "desktop-first-save",
       shippedInPackage: false,
       mustStayOutsideInstall: true,
       containsClinicData: false,
       notes:
-        "Pilot RC documents this folder; desktop does not auto-create it. Bridge stdout/stderr goes to the launch terminal.",
+        "Desktop creates PHI-safe operational logs here. Raw clinic-service stdout/stderr is not copied into log files.",
+    },
+    {
+      id: "crashDumps",
+      layer: "appData",
+      label: "Crash dumps",
+      windowsPathHint: "%AppData%\\Microdent\\crash-dumps\\",
+      implementationStatus: "implemented",
+      createdBy: "desktop-first-save",
+      shippedInPackage: false,
+      mustStayOutsideInstall: true,
+      containsClinicData: false,
+      notes:
+        "Desktop configures Electron crash dumps here with upload disabled. Support export remains operator-controlled.",
     },
     {
       id: "qaReports",
@@ -121,7 +134,7 @@ export function resolveOperatorDataLocations(): OperatorDataLocationSpec[] {
   ];
 }
 
-/** Documented log folder — convention only; no runtime mkdir in pilot RC. */
+/** Default PHI-safe operator log folder. */
 export function recommendedOperatorLogDir(): string {
   return join(desktopConfigDir(), "logs");
 }
@@ -129,6 +142,10 @@ export function recommendedOperatorLogDir(): string {
 /** Alias for logsDir convention (%AppData%\\Microdent\\logs\\ on Windows). */
 export function logsDir(): string {
   return recommendedOperatorLogDir();
+}
+
+export function crashDumpsDir(): string {
+  return suggestedCrashDumpsDir();
 }
 
 export function operatorConfigFilePath(): string {

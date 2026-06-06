@@ -47,8 +47,8 @@ Detail: [out-of-scope-guardrails.md](./out-of-scope-guardrails.md).
 | --- | --- |
 | **No installer** | IT extracts a folder; no signed MSI/NSI auto-update |
 | **No code signing** | SmartScreen may warn on first Electron launch — expected until signing spike |
-| **System Node 22 required** | `node.exe` on PATH; not bundled in package |
-| **CLI mirror import** | No in-app mirror import button; operators follow [phase-4-mirror-import-operator.md](./phase-4-mirror-import-operator.md) |
+| **Node 22 runtime** | Preferred: staged `node/` runtime validated with `pnpm pilot:node-runtime-check`; fallback: `node.exe` on PATH or `MICRODENT_NODE_BINARY` |
+| **Local copy refresh** | First-run setup prepares the local copy automatically; Settings can refresh it without CLI |
 | **Partial mirror warn-only** | Settings may show partial/stale mirror status — DBF remains write source of truth |
 | **Audit strongest on status update** | Other sandbox workflows have lighter audit surfacing — capture `operationId` from write feedback |
 | **Bash scripts in repo** | `qa-sandbox-run.sh` needs Git Bash/WSL on Windows; prefer PowerShell flows in staged docs |

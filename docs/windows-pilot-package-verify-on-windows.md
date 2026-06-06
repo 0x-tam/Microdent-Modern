@@ -56,7 +56,7 @@ Open in a text editor (read-only). Record these fields for support tickets:
 - payments
 - ledger writes
 - chart writes
-- in-app mirror import
+- signed installer / auto-update
 - installer
 
 **Do not** expect manifest to contain clinic paths, `.env` values, or patient data. If you see `/Users/`, `Microdent-Legacy`, or home-directory paths inside the JSON, **stop** — package failed build hygiene; request a re-stage from engineering.
@@ -72,7 +72,7 @@ Manual spot-check — search the package tree for files that must **not** ship:
 | Clinic DBF | `SCHEDULE.DBF`, `PATIENT.DBF`, `.fpt`, `.cdx` | **Fail** — do not deploy |
 | Mirror / DB | `.sqlite`, `.sqlite3` | **Fail** |
 | Secrets / runtime | `.env`, `.log` | **Fail** |
-| Installers / batch | `.exe`, `.bat`, `.cmd` in package | **Fail** (Node is system-installed, not bundled) |
+| Installers / batch | `.bat`, `.cmd`, unexpected `.exe` in package | **Fail** (`node\node.exe` is allowed only when bundled runtime is validated and listed in `node\RUNTIME-MANIFEST.json`) |
 | Legacy path segments | Folder names `Microdent-Legacy`, `Write-Sandbox`, `Legacy-Copy` | **Fail** |
 
 Allowed exception at build time only: test fixture `fake_tiny.dbf` inside bridge **source** — must **not** appear in staged handoff tree.
@@ -126,6 +126,7 @@ These folders must **not** contain clinic data at handoff:
 | `mirror/` | README placeholder only — no `.sqlite` |
 | `backups/` | README placeholder only — no backup archives |
 | `qa-runs/` | README placeholder only — dev/CI reports not shipped |
+| `node/` | README placeholder, or validated Node runtime plus `RUNTIME-MANIFEST.json` |
 
 Operators create real mirror, backup, and log locations **outside** the install tree per [windows-pilot-data-locations.md](./windows-pilot-data-locations.md).
 
@@ -153,7 +154,7 @@ Cross-check manifest `unsupportedFeatures` against product scope:
 | --- | --- |
 | Payments / ledger | Not available — guardrail messaging if probed |
 | Chart / medical summary writes | Not available |
-| In-app mirror import | **CLI only** — Settings shows hint, not a button that runs import |
+| Local copy refresh | Available in Settings — first-run setup prepares it automatically; CLI is support fallback only |
 | Installer / auto-update | Not included — portable extract only |
 
 Full guardrails: [out-of-scope-guardrails.md](./out-of-scope-guardrails.md)

@@ -48,7 +48,7 @@ dist/pilot-release/
 | `logs/` | **Never** (placeholder only) | Optional operator log folder |
 | `mirror/` | **Never** (placeholder only) | Path in config only |
 | `backups/` | **Never** (placeholder only) | Path in config only |
-| Node 22 runtime | **Not bundled** | System `node.exe` |
+| Node 22 runtime | **Optional bundled** | `MICRODENT_NODE_RUNTIME_DIR` is validated by `pnpm pilot:node-runtime-check` and staged into `node/` with `RUNTIME-MANIFEST.json`; fallback is system `node.exe` / `MICRODENT_NODE_BINARY` |
 | NSIS / MSI / code signing | **Out of scope** | See packaging gap report |
 
 ---

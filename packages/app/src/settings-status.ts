@@ -416,10 +416,10 @@ export type PilotChecklistItem = {
 };
 
 const CHECKLIST_BRIDGE = "Clinic service connected";
-const CHECKLIST_DATA_ROOT = "DATA_ROOT configured";
-const CHECKLIST_MIRROR = "Mirror ready for search/schedule";
+const CHECKLIST_DATA_ROOT = "Clinic data folder configured";
+const CHECKLIST_MIRROR = "Local copy ready for search/schedule";
 const CHECKLIST_BACKUP = "Backup folder configured";
-const CHECKLIST_WRITE = "Write mode safe for pilot";
+const CHECKLIST_WRITE = "Editing mode safe for pilot";
 const CHECKLIST_SANDBOX = "Sandbox valid for commits";
 export function resolvePilotReadinessChecklist(
   bridgePhase: BridgeHealthPhase,

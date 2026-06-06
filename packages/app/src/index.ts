@@ -38,6 +38,10 @@ export {
   type AppShellProps,
 } from "./AppShell.js";
 export {
+  type SettingsDesktopActions,
+  type SettingsDesktopActionResult,
+} from "./SettingsPanel.js";
+export {
   resolveTodayClinicStatus,
   type TodayClinicStatusOptions,
   type TodayClinicStatusRow,

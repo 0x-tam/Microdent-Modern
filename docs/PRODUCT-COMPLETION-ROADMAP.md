@@ -2,7 +2,7 @@
 
 **Purpose:** Single authoritative guide for continuing Microdent Modern toward a sellable, clinic-ready product. Covers what exists, what's missing, how the system works, and what it takes to ship.
 
-**Current commit:** `3d9d13f` — *polish patient workspace tabs and clinical views*
+**Current commit:** working tree after `3d9d13f` — local-first setup/import and operator-language hardening in progress
 
 **Baseline date:** 2026-06-03 (latest QA batch: `clinic-workspace-ui-batch-report`)
 
@@ -10,21 +10,24 @@
 
 ## 1. Product Vision
 
-Microdent Modern is a **modern desktop clinic application** that sits **beside** a legacy Visual FoxPro/Access-based dental practice management system called Microdent. It provides:
+Microdent Modern is a **modern, local-first desktop clinic application** that sits **beside** a legacy Visual FoxPro/Access-based dental practice management system called Microdent. It must feel like a polished clinic product, not a developer tool or DBF viewer. It provides:
 
-- **Read-only access** to live FoxPro DBF data (patients, schedule, chart, treatments, ledger, medical summaries) through a local bridge process
+- **Read-only access** to clinic FoxPro DBF data (patients, schedule, chart, treatments, ledger, medical summaries) through an internal local clinic service
 - **Modern UI** with clinic-optimized workflows — Today dashboard, patient search/profile, schedule grid, and settings diagnostics
 - **Safe sandbox writes** for a limited set of operations (appointment status, time moves, creation, demographics updates) — only when explicitly enabled
 - **SQLite mirror** for faster, query-friendly access to imported data
 - **Zero cloud dependency** — everything runs locally on the clinic machine, no patient data leaves the building
+- **One-click commercial target** — double-click the app, complete first-run setup if needed, then the clinic service, local copy, mirror, and backups are managed automatically
 
 **Target customer:** Small-to-mid dental clinics running legacy Microdent on Windows, needing a modern interface without migrating their legacy database or risking data integrity.
 
 **Product philosophy:**
 - **Safety first** — read-only by default, writes gated by sandbox, backups required
 - **Local-only** — no cloud services, no external APIs, no PHI in logs
-- **Incremental trust** — operator must verify at each step (first-run setup, mirror import, sandbox enablement)
-- **Clinic-friendly language** — no technical jargon on primary screens; diagnostics consolidated in Settings
+- **Invisible internals** — operators must never manually start a bridge, run `pnpm`, set environment variables, or understand DBF, SQLite, localhost, `DATA_ROOT`, `SQLITE_PATH`, or `BACKUP_DIR`
+- **Clinic-friendly language** — no technical jargon on primary screens; technical diagnostics stay in Settings and docs
+- **Premium UI / UX** — calm, fast, dental-clinic-specific workflows; avoid generic SaaS patterns, card soup, and admin-dashboard feel
+- **Keep the current dental chart/tooth representation** until real tooth assets or a validated odontogram design is available
 
 ---
 
@@ -44,7 +47,7 @@ Microdent Modern is a **modern desktop clinic application** that sits **beside**
 | **Patient profile** | ✅ Complete | 7 tabs: Summary, Timeline, Appointments, Medical, Treatments, Chart, Ledger |
 | **Schedule view** | ✅ Complete | Week/day nav, room filter, interactive status/provider chips, current highlight |
 | **Settings panel** | ✅ Complete | Readiness grid, diagnostics grouped, pilot readiness |
-| **Desktop shell** | ✅ MVP | Electron main process, bridge supervisor, first-run setup, health IPC |
+| **Desktop shell** | ✅ MVP+ | Electron main process, clinic-service supervisor, static web loading, first-run setup, automatic local-copy preparation, health IPC |
 | **SQLite mirror** | ✅ Complete | Import CLI, migrations, field maps for patients, appointments, treatments, medical, doctors, procedures, rooms, write audit |
 | **Sandbox writes** | ✅ Pilot | 4 routes: status update, time move, create, demographics — dry-run → preview → commit |
 | **Safety** | ✅ Complete | Path sandbox, read-only enforcement, write-mode gating, blocked-field rejection |
@@ -57,15 +60,17 @@ Microdent Modern is a **modern desktop clinic application** that sits **beside**
 | Gap | Severity | Owner Phase | Notes |
 |-----|----------|-------------|-------|
 | **Windows field execution** | BLOCKER | Phase 4 | No real clinic PC has run the app; tier 3 field test never executed |
+| **One-click setup/import** | PARTIAL BLOCKER | Phase 4-5 | First-run now validates a copied clinic folder, derives safe local-copy/backup/log paths, runs automatic local-copy import, and blocks on core-table failure; still needs Windows field execution and production installer proof |
+| **Invisible clinic service** | PARTIAL BLOCKER | Phase 4-5 | Desktop starts/supervises the internal service, primary UI calls it the clinic service, and Settings includes restart/port diagnostic/policy quick fixes; remaining work is Windows field proof and production installer integration |
 | **NSIS installer** | High | Phase 4-5 | Portable staged tree only; no signed installer, no auto-update |
 | **Code signing** | High | Phase 4-5 | Required for Windows deployment on clinic machines |
-| **Mirror auto-refresh** | Medium | Phase 5 | Post-write mirror doesn't auto-sync; manual CLI import required |
-| **Node.js bundling** | High | Phase 4 | Clinic machines must have Node installed; should bundle Node in installer |
-| **Production logging** | Medium | Phase 5 | Logs are not auto-created in pilot RC; no log rotation or aggregation |
+| **Mirror auto-refresh** | Medium | Phase 5 | Settings can now refresh the local copy through the desktop app without CLI; remaining work is automatic post-write refresh policy and Windows field proof |
+| **Node.js bundling** | High | Phase 4 | Staging can validate and include a pre-downloaded Node 22.5+ runtime via `MICRODENT_NODE_RUNTIME_DIR`, writes a support-safe runtime manifest, and desktop prefers packaged Node; signing/installer integration remains open |
+| **Production logging** | Medium | Phase 5 | Desktop now auto-creates PHI-safe rotating operational logs, exports sanitized support logs, configures local-only crash dumps, and shows support-safe diagnostics plus capped log/crash metadata previews; opt-in telemetry and aggregation are still not implemented |
 | **Dual-search sync** | Low | Phase 6 | Top bar and Patients page search don't sync query text |
 | **Decoded reference labels** | Low | Phase 6+ | Many status codes, procedure codes remain opaque (`Type N` etc.) |
 | **Reminders/notifications** | Low | Phase 7+ | No appointment reminders; intentionally deferred |
-| **Odontogram** | N/A | Out of scope | Chart is grouped-list preview only |
+| **Odontogram / tooth images** | N/A | Preserve current | Keep current dental chart/tooth representation until real assets exist |
 | **Payment/ledger writes** | N/A | Out of scope | Intentionally blocked |
 
 ---
@@ -258,12 +263,13 @@ Express HTTP API — the only component that reads DBF files.
 **Status:** Mostly complete. SQLite mirror importers exist for all core entities. Bridge SQLite read routes are implemented as fallbacks.
 
 **Remaining items:**
-- [ ] Auto-refresh mirror after sandbox commits (currently requires manual CLI import)
-- [ ] Add mirror import status indicators to Settings panel (live progress, not just completed counts)
+- [ ] Auto-refresh mirror after sandbox commits (Settings can refresh manually; policy for automatic post-write refresh remains open)
+- [x] Add first-run local-copy import progress indicators during setup
+- [x] Add Settings local-copy refresh progress indicators (desktop progress events and operator-safe status copy)
 - [ ] Implement incremental mirror re-import (currently full re-import)
-- [ ] Handle mirror staleness detection (flag in UI when DBF has changed since last import)
-- [ ] Add error handling for corrupt/incomplete mirror imports
-- [ ] Document mirror troubleshooting in operator guide
+- [ ] Handle mirror staleness detection (age-based stale UI exists; DBF-change-since-import detection remains open)
+- [x] Add error handling for corrupt/incomplete mirror imports
+- [x] Document mirror troubleshooting in operator guide
 
 ### Phase 3 — Write Safety & Desktop Packaging
 
@@ -271,11 +277,11 @@ Express HTTP API — the only component that reads DBF files.
 
 **Remaining items:**
 - [ ] **Windows field execution (EXEC-01 through EXEC-16)** — see [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md)
-  - [ ] EXEC-01: Verify Node 22+ on clinic PC
+  - [ ] EXEC-01: Verify bundled Node 22+ or fallback Node 22+ on clinic PC
   - [ ] EXEC-02: Extract staged package, verify structure
-  - [ ] EXEC-03: First-run setup wizard
-  - [ ] EXEC-04: Configure DATA_ROOT (sandbox copy)
-  - [ ] EXEC-05: Mirror import from CLI
+  - [x] EXEC-03: First-run setup wizard implemented in desktop shell
+  - [x] EXEC-04: First-run chooses copied clinic data folder and derives local-copy/backup paths
+  - [x] EXEC-05: Automatic local-copy import during first-run setup
   - [ ] EXEC-06: Read-only smoke (Today, Patients, Schedule, Settings)
   - [ ] EXEC-07: Verify bridge health in desktop shell
   - [ ] EXEC-08: Enable sandbox writes
@@ -287,10 +293,17 @@ Express HTTP API — the only component that reads DBF files.
   - [ ] EXEC-14: Verify DBF readback proof
   - [ ] EXEC-15: Verify restore workflow
   - [ ] EXEC-16: Field result form + sign-off
-- [ ] Bundle Node.js runtime in desktop package (eliminate manual Node install requirement)
-- [ ] Package web build as static assets loaded by Electron (currently dev server)
+- [x] Prefer packaged Node.js runtime in desktop package when `node/` is staged
+- [x] Add repeatable Windows Node runtime validation/staging to release process (`pnpm pilot:node-runtime-check`; still uses pre-downloaded runtime)
+- [ ] Add signed installer-integrated Windows Node runtime acquisition/download step
+- [x] Package web build as static assets loaded by Electron
 - [ ] Implement auto-update mechanism (electron-builder Squirrel or custom feed)
-- [ ] Add production logging (file output, rotation, log levels)
+- [x] Add desktop production logging (PHI-safe file output, rotation, log levels)
+- [x] Add support-safe log export from Settings
+- [x] Add local-only crash dump capture
+- [x] Add support-safe diagnostics summary viewer in Settings
+- [x] Add capped support-safe log file preview in Settings
+- [x] Add richer support crash file metadata preview
 
 ### Phase 4 — Windows Operator Workflow
 
@@ -305,7 +318,11 @@ Express HTTP API — the only component that reads DBF files.
 - [ ] Resolve any path/permission issues discovered during field test
 - [ ] Create operator training materials (video or illustrated guide)
 - [ ] Implement operator-friendly error messages for common failure modes
-- [ ] Add "quick fix" buttons in Settings for common issues (port cleanup, bridge restart)
+- [x] Add Settings quick-fix button for clinic-service restart in the desktop app
+- [x] Add Settings quick-fix button for local-copy refresh in the desktop app
+- [x] Add Settings quick-fix support for support-safe log export
+- [x] Add Settings quick-fix support for safe port diagnostics
+- [x] Add Settings quick-fix support for safe port cleanup policy
 - [ ] Test on multiple Windows versions (10, 11, potentially older)
 - [ ] Test with various antivirus configurations (common clinic environment)
 
@@ -323,8 +340,14 @@ Express HTTP API — the only component that reads DBF files.
   - [ ] Install location picker (default: `C:\Program Files\Microdent Modern\`)
   - [ ] Data directory outside install tree (`%ProgramData%\MicrodentModern\` or user choice)
 - [ ] Auto-update feed (Squirrel, GitHub releases, or custom)
-- [ ] Crash reporting (local crash dump capture, optional opt-in telemetry)
-- [ ] Log rotation and management
+- [x] Crash reporting: local crash dump capture with upload disabled
+- [ ] Optional opt-in telemetry/upload design
+- [x] Desktop log rotation and PHI-safe operational event management
+- [x] Desktop local-copy refresh action from Settings (no operator CLI needed)
+- [x] Support-safe log export workflow
+- [x] Support-safe diagnostics summary viewer workflow
+- [x] Support-safe log file preview workflow
+- [x] Support-safe crash metadata preview workflow
 - [ ] Performance profiling on clinic-scale datasets (5,000+ patients, 50,000+ appointments)
 - [ ] Accessibility audit (WCAG 2.2 AA)
 - [ ] Operator manual / help documentation
@@ -350,7 +373,7 @@ Express HTTP API — the only component that reads DBF files.
 - Chart/odontogram writes
 - Medical summary writes
 - Free-text comment fields on any write route
-- In-app mirror import (no shell exec from UI)
+- Manual shell-driven mirror import as the normal operator flow; desktop first-run local-copy preparation is allowed and required
 - Production legacy DATA_ROOT (never Microdent-Legacy)
 
 ### Phase 7 — Pilot & Commercial Launch
@@ -729,7 +752,7 @@ Required for commercial release:
 
 - **Desktop shell:** Electron MVP built and tested on macOS
 - **Packaging:** Portable staged tree via `stage-pilot-release`
-- **Node requirement:** Must be manually installed (Node 22+)
+- **Node requirement:** Staged packages can include `node/`; otherwise Node 22+ must be installed or `MICRODENT_NODE_BINARY` set
 - **No installer:** Operators extract staged tree to target directory
 - **No code signing:** Unsigned Electron app triggers Windows SmartScreen warnings
 - **No auto-update:** Manual re-stage and extract for updates
@@ -790,10 +813,12 @@ pnpm --filter @microdent/desktop run build
 #### Step 3: Bundle Node.js
 Options:
 - **Option A:** Use `pkg` to bundle bridge into a single binary
-- **Option B:** Include portable Node.js in installer
+- **Option B:** Include portable Node.js in installer/staged `node/`
 - **Option C:** Check for Node at install time and download if missing
 
-**Recommendation:** Option B — include portable Node in `resources/` directory.
+**Current implementation:** staged releases validate a pre-downloaded Node 22.5+ runtime with `pnpm pilot:node-runtime-check -- --runtime-dir <path>` or `MICRODENT_NODE_RUNTIME_DIR`, copy it into `MicrodentModern/node/`, and write `node/RUNTIME-MANIFEST.json`; desktop startup and first-run import prefer that packaged runtime before falling back to an override or `process.execPath`.
+
+**Recommendation:** keep Option B, but add a signed installer-integrated Windows Node runtime download/acquisition step before commercial release.
 
 #### Step 4: Code Signing
 ```bash

@@ -18,6 +18,10 @@ import {
   UNSUPPORTED_FEATURES,
   verifyManifestHashes,
 } from "./pilot-release-manifest.mjs";
+import {
+  validateNodeRuntimeDir,
+  writeNodeRuntimeManifest,
+} from "./node-runtime-staging.mjs";
 
 function makeTempDir() {
   return mkdtempSync(join(tmpdir(), "pilot-artifact-test-"));
@@ -206,6 +210,56 @@ describe("pilot-release-manifest", () => {
       expect(raw).not.toMatch(/\/Users\//);
       expect(raw).not.toMatch(/Microdent-Legacy/);
       expect(raw).not.toMatch(/PAT_NAME/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("node-runtime-staging", () => {
+  it("validates a pre-downloaded Node 22 runtime and writes a support-safe manifest", () => {
+    const root = makeTempDir();
+    try {
+      const runtimeDir = join(root, "runtime");
+      mkdirSync(runtimeDir, { recursive: true });
+      writeFileSync(join(runtimeDir, "node.exe"), "placeholder", "utf8");
+
+      const validation = validateNodeRuntimeDir({
+        runtimeDir,
+        platform: "win32",
+        spawnSyncImpl: () => ({ status: 0, stdout: "v22.5.1\n" }),
+      });
+      const manifest = writeNodeRuntimeManifest(runtimeDir, validation);
+
+      expect(validation).toEqual({
+        version: "v22.5.1",
+        minVersion: "22.5.0",
+        executableRelPath: "node.exe",
+        runtimeKind: "windows-x64",
+      });
+      expect(manifest.executableRelPath).toBe("node.exe");
+      const raw = readFileSync(join(runtimeDir, "RUNTIME-MANIFEST.json"), "utf8");
+      expect(raw).not.toContain(root);
+      expect(raw).not.toContain("/Users/");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects runtimes below Node 22.5.0", () => {
+    const root = makeTempDir();
+    try {
+      const runtimeDir = join(root, "runtime");
+      mkdirSync(runtimeDir, { recursive: true });
+      writeFileSync(join(runtimeDir, "node.exe"), "placeholder", "utf8");
+
+      expect(() =>
+        validateNodeRuntimeDir({
+          runtimeDir,
+          platform: "win32",
+          spawnSyncImpl: () => ({ status: 0, stdout: "v20.19.4\n" }),
+        }),
+      ).toThrow(/22\.5\.0 or newer/);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
