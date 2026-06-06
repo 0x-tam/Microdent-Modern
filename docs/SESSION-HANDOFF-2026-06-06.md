@@ -151,3 +151,9 @@ Pick one:
 2. Add a synthetic clinic-scale performance fixture and profiling script.
 3. Implement a conservative post-write local-copy refresh policy design plus UI status, without auto-running risky background imports yet.
 4. Draft the operator manual/help documentation from the current Settings-first workflow.
+
+## Resume note after interruption
+
+The repo was clean at commit `2b7b1ec` when work was paused again. No additional implementation changes were made after that checkpoint.
+
+The next intended local roadmap slice was **operator manual / help documentation** because it is locally executable, supports the one-click clinic workflow, and does not depend on Windows hardware, signing certificates, installer credentials, or clinic field access.
