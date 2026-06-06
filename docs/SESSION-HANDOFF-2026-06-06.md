@@ -4,6 +4,8 @@
 
 Execute `docs/PRODUCT-COMPLETION-ROADMAP.md` toward a sellable, local-first Microdent Modern desktop product with premium uncluttered UI/UX, strong security, one-click setup/import, invisible internals, and unchanged dental tooth visuals.
 
+For the practical remaining-work sequence, continue with [ROADMAP-CONTINUATION-PLAN.md](./ROADMAP-CONTINUATION-PLAN.md).
+
 ## Completed in this checkpoint
 
 - Added Codex development attribution and removed Cursor-oriented attribution.
