@@ -250,6 +250,7 @@ describe("pilot-release-artifact-rules", () => {
     expect(REQUIRED_STAGED_LAYOUT).toContain("docs/signed-artifact-evidence.md");
     expect(REQUIRED_STAGED_LAYOUT).toContain("docs/windows-compatibility-evidence.md");
     expect(REQUIRED_STAGED_LAYOUT).toContain("docs/windows-package-verify-evidence.md");
+    expect(REQUIRED_STAGED_LAYOUT).toContain("docs/windows-ci-oneclick.md");
     expect(REQUIRED_STAGED_LAYOUT).toContain("docs/windows-pilot-runbook.md");
     expect(REQUIRED_STAGED_LAYOUT).toContain("docs/windows-pilot-packaging-gap-report.md");
     expect(REQUIRED_STAGED_LAYOUT).toContain("docs/windows-pilot-pre-installer-checklist.md");
@@ -1017,6 +1018,9 @@ describe("staged evidence collection pointer", () => {
     expect(stageScript).toContain("copyFileSafe(join(repoRoot, \"scripts\", \"windows-oneclick-check.ps1\")");
     expect(stageScript).toContain("writeWindowsAutoTestRunner");
     expect(stageScript).toContain("WINDOWS-AUTO-TEST-REPORT.txt");
+    expect(stageScript).toContain("if /I \\\"%~1\\\"==\\\"--ci\\\" set \\\"NONINTERACTIVE=yes\\\"");
+    expect(stageScript).toContain("if /I \\\"%CI%\\\"==\\\"true\\\" set \\\"NONINTERACTIVE=yes\\\"");
+    expect(stageScript).toContain("Non-interactive: %NONINTERACTIVE%");
     expect(stageScript).toContain("Looking for desktop runtime first");
     expect(stageScript).toContain("Microdent Modern.exe");
     expect(stageScript).toContain("electron\\\\electron.exe");
@@ -1047,6 +1051,7 @@ describe("staged evidence collection pointer", () => {
     expect(stageScript).toContain("Operator read-only smoke answers: %OPERATOR_READ_ONLY_SMOKE%");
     expect(stageScript).toContain("Unsupported writes attempted: no");
     expect(stageScript).toContain("Safe results bundle target: MicrodentModern-safe-results.zip");
+    expect(stageScript).toContain("if /I \\\"%NONINTERACTIVE%\\\"==\\\"yes\\\" if /I not \\\"%OPERATOR_READ_ONLY_SMOKE%\\\"==\\\"all-pass\\\" exit /b 1");
     expect(stageScript).toContain("\\\"%NODE_EXE%\\\" \\\"%ROOT%scripts\\\\write-smoke-evidence.mjs\\\"");
     expect(stageScript).not.toContain("write-smoke-evidence.mjs\\\" >> \\\"%REPORT%\\\"");
     expect(stageScript).not.toContain(">> \\\"%REPORT%\\\" echo Safe results bundle: created");

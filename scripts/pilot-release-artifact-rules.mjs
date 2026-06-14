@@ -366,6 +366,7 @@ export const REQUIRED_STAGED_LAYOUT = [
   "docs/out-of-scope-guardrails.md",
   "docs/pilot-issue-template.md",
   "docs/windows-pilot-data-locations.md",
+  "docs/windows-ci-oneclick.md",
   "docs/windows-pilot-release-layout.md",
   "docs/windows-pilot-runbook.md",
   "docs/windows-pilot-packaging-gap-report.md",

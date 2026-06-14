@@ -1,0 +1,89 @@
+name: Windows one-click verification
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-oneclick:
+    name: Windows one-click smoke
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+          run_install: false
+
+      - name: Show tool versions
+        shell: pwsh
+        run: |
+          node --version
+          pnpm --version
+          $PSVersionTable.PSVersion
+
+      - name: Install dependencies
+        shell: pwsh
+        run: pnpm install --frozen-lockfile
+
+      - name: Static script sanity checks
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path "scripts/windows-oneclick-check.ps1"),
+            [ref]$tokens,
+            [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | Format-List | Out-String | Write-Error
+          }
+          node --check scripts/stage-pilot-release.mjs
+          node --check scripts/pilot-release-artifacts.test.mjs
+
+      - name: Run Windows one-click verifier
+        shell: pwsh
+        run: |
+          .\scripts\windows-oneclick-check.ps1 -Ci -UseSyntheticData -SkipInstall
+
+      - name: Upload Windows safe results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: microdent-windows-oneclick-results
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            qa-runs/*windows-oneclick-check.md
+            qa-runs/MicrodentModern-safe-results.zip
+            qa-runs/2026-*-microdent-oneclick-report.md
+            C:\ProgramData\MicrodentClinicPilot\qa-runs\WINDOWS-AUTO-TEST-REPORT.txt
+            C:\ProgramData\MicrodentClinicPilot\qa-runs\MicrodentModern-safe-results.zip
+            ${{ runner.temp }}\MicrodentClinicPilot\qa-runs\WINDOWS-AUTO-TEST-REPORT.txt
+            ${{ runner.temp }}\MicrodentClinicPilot\qa-runs\MicrodentModern-safe-results.zip
+
+      - name: Stop background smoke processes
+        if: always()
+        shell: pwsh
+        run: |
+          Get-Process node -ErrorAction SilentlyContinue |
+            Where-Object { $_.Path -like "*node*" } |
+            Stop-Process -Force -ErrorAction SilentlyContinue

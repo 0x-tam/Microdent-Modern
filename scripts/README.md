@@ -2,7 +2,7 @@
 
 Shell helpers for local development and sandbox operations.
 
-**Windows clinic pilot (start here):** [docs/PILOT-START-HERE.md](../docs/PILOT-START-HERE.md). **Windows MVP detail:** [docs/phase-6-windows-mvp-operator-guide.md](../docs/phase-6-windows-mvp-operator-guide.md). **Pilot RC:** [docs/windows-pilot-runbook.md](../docs/windows-pilot-runbook.md). **Sandbox pilot QA:** [docs/phase-7-sandbox-pilot-qa-runbook.md](../docs/phase-7-sandbox-pilot-qa-runbook.md). **Operator QA index:** [docs/phase-5-operator-qa-runbook.md](../docs/phase-5-operator-qa-runbook.md). **Script classification (full table):** [docs/phase-3-windows-readiness-audit.md](../docs/phase-3-windows-readiness-audit.md).
+**Windows clinic pilot (start here):** [docs/PILOT-START-HERE.md](../docs/PILOT-START-HERE.md). **Windows CI automation:** [docs/windows-ci-oneclick.md](../docs/windows-ci-oneclick.md). **Windows MVP detail:** [docs/phase-6-windows-mvp-operator-guide.md](../docs/phase-6-windows-mvp-operator-guide.md). **Pilot RC:** [docs/windows-pilot-runbook.md](../docs/windows-pilot-runbook.md). **Sandbox pilot QA:** [docs/phase-7-sandbox-pilot-qa-runbook.md](../docs/phase-7-sandbox-pilot-qa-runbook.md). **Operator QA index:** [docs/phase-5-operator-qa-runbook.md](../docs/phase-5-operator-qa-runbook.md). **Script classification (full table):** [docs/phase-3-windows-readiness-audit.md](../docs/phase-3-windows-readiness-audit.md).
 
 ## Hard rules
 
@@ -90,7 +90,7 @@ Operator flow: [docs/phase-6-windows-mvp-operator-guide.md](../docs/phase-6-wind
 | `pnpm preview:web` | Vite dev | Cross-platform Node | Optional pilot env in `.env.local` |
 | `pnpm microdent:oneclick` | `scripts/microdent-oneclick.mjs` | Cross-platform Node | Full Linux/Codex one-click verification: dependency check, tests/builds, desktop release smoke, first-run/config simulation, clinic service health probe, PHI-safe report |
 | `pnpm microdent:oneclick:quick` | `scripts/microdent-oneclick.mjs --quick` | Cross-platform Node | Faster iteration path: targeted builds, desktop tests, release smoke, first-run/config simulation, clinic service health probe |
-| `pnpm microdent:oneclick:windows` | `scripts/windows-oneclick-check.ps1` | Windows PowerShell | Real Windows readiness check for AppData, spaces in paths, optional `microdent:oneclick:quick`, and Windows-only observation checklist; Linux cannot verify this |
+| `pnpm microdent:oneclick:windows` | `scripts/windows-oneclick-check.ps1` | Windows PowerShell | Windows repo verifier: Node/pnpm, builds, desktop tests, release smoke, staged package verify, optional synthetic DATA, staged `DOUBLE-CLICK-AUTO-TEST.cmd --ci`, safe results zip, and Windows-only observation checklist; Linux cannot verify this |
 | `pnpm dev:ports` | `scripts/dev-ports.sh` | macOS dev-only | `netstat` on Windows |
 | `pnpm dev:kill-ports` | `scripts/dev-kill-ports.sh` | macOS dev-only | Task Manager on Windows |
 | `pnpm dev:bridge` | `scripts/dev-bridge.sh` | macOS dev-only wrapper | `pnpm --filter @microdent/bridge dev` or `node dist/server.js` |
