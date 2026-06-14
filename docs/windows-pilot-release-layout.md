@@ -102,7 +102,7 @@ Supervisor invariant: staged `bridge-supervisor.js` must `spawn(node, [bridgeEnt
 
 | Command | Proves |
 | --- | --- |
-| `pnpm test:pilot-artifacts` | Synthetic good/bad trees + manifest round-trip (vitest) |
+| `pnpm test:pilot-artifacts` | Synthetic good/bad trees + manifest round-trip (Node test runner) |
 | `pnpm desktop:release-smoke` | Dev tree dist + supervisor invariants |
 | `PILOT_STAGED_RELEASE=1 pnpm desktop:release-smoke` | Staged `MicrodentModern/` supervisor argv |
 | `pnpm stage:pilot-release` (alias `pnpm pilot:stage-release`) | Clean staged tree + manifest |

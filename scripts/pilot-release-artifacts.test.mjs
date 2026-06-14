@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, unlinkSync, w
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "./pilot-artifacts-test-shim.mjs";
 import * as artifactRules from "./pilot-release-artifact-rules.mjs";
 import { assertManifestJsonSafe, buildPilotBuildMetadata, generateReleaseManifest, UNSUPPORTED_FEATURES, verifyManifestHashes } from "./pilot-release-manifest.mjs";
 import { validateNodeRuntimeDir, writeNodeRuntimeManifest } from "./node-runtime-staging.mjs";
