@@ -33,6 +33,13 @@ const steps = [];
 const notes = [];
 let failed = false;
 
+const APP_SCENARIO_TEST_FILES = [
+  "src/read-only-flow-smoke.test.tsx",
+  "src/appointment-status-write.test.tsx",
+  "src/patient-demographics-write.test.tsx",
+  "src/settings-panel.test.tsx",
+];
+
 function now() {
   return new Date().toISOString();
 }
@@ -237,6 +244,7 @@ function requiredScenarioCoverage() {
   const serviceProbe = stepPassed("clinic service startup probe");
   const desktopSmoke = stepPassed("desktop release smoke");
   const windowsScript = stepPassed("Windows one-click readiness script");
+  const appScenarios = stepPassed("app scenario tests") || stepPassed("full workspace test");
 
   const linuxVerified = "LINUX VERIFIED";
   const linuxSimulated = "LINUX SIMULATED";
@@ -313,49 +321,49 @@ function requiredScenarioCoverage() {
     ],
     [
       "Today loads",
-      quick ? notCovered : documented,
-      quick ? "Quick mode does not run full app test suite" : "Full mode runs workspace app tests",
+      appScenarios ? linuxVerified : documented,
+      appScenarios ? "read-only flow smoke opens Today and checks clinic-friendly status" : "Full mode runs workspace app tests",
       "Browser/Electron UI walkthrough still recommended",
     ],
     [
       "Patients search",
-      quick ? notCovered : documented,
-      quick ? "Quick mode does not run full app test suite" : "Full mode runs bridge/client/app tests",
+      appScenarios ? linuxVerified : documented,
+      appScenarios ? "read-only flow smoke exercises top search and patient selection" : "Full mode runs bridge/client/app tests",
       "Real copied clinic data result set remains external",
     ],
     [
       "Patient Profile opens",
-      quick ? notCovered : documented,
-      quick ? "Quick mode does not run full app test suite" : "Full mode runs app tests",
+      appScenarios ? linuxVerified : documented,
+      appScenarios ? "read-only flow smoke opens a patient profile and summary panel" : "Full mode runs app tests",
       "UI walkthrough still required for real patient navigation",
     ],
-    ["Timeline tab", quick ? notCovered : documented, quick ? "Quick mode skips app suite" : "Full mode runs app tests", ""],
-    ["Appointments tab", quick ? notCovered : documented, quick ? "Quick mode skips app suite" : "Full mode runs app tests", ""],
-    ["Medical tab", quick ? notCovered : documented, quick ? "Quick mode skips app suite" : "Full mode runs app tests", ""],
-    ["Treatments tab", quick ? notCovered : documented, quick ? "Quick mode skips app suite" : "Full mode runs app tests", ""],
-    ["Chart tab", quick ? notCovered : documented, quick ? "Quick mode skips app suite" : "Full mode runs app tests", ""],
+    ["Timeline tab", appScenarios ? linuxVerified : documented, appScenarios ? "read-only flow smoke activates Timeline" : "Full mode runs app tests", ""],
+    ["Appointments tab", appScenarios ? linuxVerified : documented, appScenarios ? "read-only flow smoke activates Appointments" : "Full mode runs app tests", ""],
+    ["Medical tab", appScenarios ? linuxVerified : documented, appScenarios ? "read-only flow smoke activates Medical" : "Full mode runs app tests", ""],
+    ["Treatments tab", appScenarios ? linuxVerified : documented, appScenarios ? "read-only flow smoke activates Treatments" : "Full mode runs app tests", ""],
+    ["Chart tab", appScenarios ? linuxVerified : documented, appScenarios ? "read-only flow smoke activates Chart" : "Full mode runs app tests", ""],
     [
       "Ledger preview tab",
-      quick ? notCovered : documented,
-      quick ? "Quick mode skips app suite" : "Full mode runs app tests and safety regressions",
+      appScenarios ? linuxVerified : documented,
+      appScenarios ? "read-only flow smoke activates Ledger preview and safety checks forbid payment detail leaks" : "Full mode runs app tests and safety regressions",
       "Must keep amounts/payment details hidden",
     ],
-    ["Schedule loads", quick ? notCovered : documented, quick ? "Quick mode skips app suite" : "Full mode runs app tests", ""],
-    ["Schedule filters", quick ? notCovered : documented, quick ? "Quick mode skips app suite" : "Full mode runs app tests", ""],
+    ["Schedule loads", appScenarios ? linuxVerified : documented, appScenarios ? "read-only flow smoke opens Schedule and verifies appointments render" : "Full mode runs app tests", ""],
+    ["Schedule filters", documented, appScenarios ? "read-only flow smoke clicks a schedule status chip; dedicated schedule tests cover broader filters" : "Full mode runs app tests", "Full cross-filter UI pass still belongs in browser/manual smoke"],
     [
       "opening patient from Schedule",
-      quick ? notCovered : documented,
-      quick ? "Quick mode skips app suite" : "Full mode runs app tests",
+      documented,
+      appScenarios ? "app scenario band verifies patient context and schedule rendering; deeper cross-navigation remains in app tests/manual smoke" : "Full mode runs app tests",
       "Manual UI walkthrough still recommended",
     ],
     [
       "opening Schedule from Profile",
-      quick ? notCovered : documented,
-      quick ? "Quick mode skips app suite" : "Full mode runs app tests",
+      documented,
+      appScenarios ? "app scenario band navigates profile to Settings/Schedule; direct profile-to-schedule action still needs UI walkthrough" : "Full mode runs app tests",
       "Manual UI walkthrough still recommended",
     ],
-    ["Settings status refresh", quick ? notCovered : documented, quick ? "Quick mode skips app suite" : "Full mode runs app tests", ""],
-    ["sandbox write blocked state", quick ? notCovered : documented, quick ? "Quick mode skips app suite" : "Full mode runs bridge/app tests", ""],
+    ["Settings status refresh", appScenarios ? linuxVerified : documented, appScenarios ? "settings panel scenario tests pass" : "Full mode runs app tests", ""],
+    ["sandbox write blocked state", appScenarios ? linuxVerified : documented, appScenarios ? "appointment status and demographics write tests cover unavailable/blocked states" : "Full mode runs bridge/app tests", ""],
     [
       "sandbox write available state",
       documented,
@@ -370,8 +378,8 @@ function requiredScenarioCoverage() {
     ],
     [
       "forbidden-token safety check",
-      desktopSmoke ? documented : notCovered,
-      desktopSmoke ? "release smoke and pilot artifact tests enforce staged artifact safety; app/bridge tests cover safety surfaces" : "Safety checks did not run",
+      appScenarios || desktopSmoke ? linuxVerified : notCovered,
+      appScenarios ? "read-only flow smoke asserts no forbidden DOM tokens across main scenarios" : "release smoke and pilot artifact tests enforce staged artifact safety",
       "Full safety sweep should run before final release",
     ],
     [
@@ -466,6 +474,14 @@ async function main() {
     runPnpm("sqlite mirror build", ["--filter", "@microdent/sqlite-mirror", "run", "build"]);
     runPnpm("web build", ["build:web"]);
     runPnpm("desktop build", ["--filter", "@microdent/desktop", "run", "build"]);
+    runPnpm("app scenario tests", [
+      "--filter",
+      "@microdent/app",
+      "exec",
+      "vitest",
+      "run",
+      ...APP_SCENARIO_TEST_FILES,
+    ]);
     runPnpm("desktop tests", ["--filter", "@microdent/desktop", "run", "test"]);
     runPnpm("desktop release smoke", ["desktop:release-smoke"]);
   } else {
