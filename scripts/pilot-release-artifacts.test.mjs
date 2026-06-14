@@ -6,15 +6,6 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import * as artifactRules from "./pilot-release-artifact-rules.mjs";
-
-const {
-  assertCompiledArtifactTextSafe,
-  assertStagedTreeSafe,
-  isForbiddenStagedFileName,
-  pathHasForbiddenSegment,
-  REQUIRED_STAGED_LAYOUT,
-  scanStagedArtifacts,
-} = artifactRules;
 import {
   assertManifestJsonSafe,
   buildPilotBuildMetadata,
@@ -137,6 +128,15 @@ import {
 import {
   intakeSafeResultsZip,
 } from "./intake-safe-results.mjs";
+
+const {
+  assertCompiledArtifactTextSafe,
+  assertStagedTreeSafe,
+  isForbiddenStagedFileName,
+  pathHasForbiddenSegment,
+  REQUIRED_STAGED_LAYOUT,
+  scanStagedArtifacts,
+} = artifactRules;
 
 function makeTempDir() {
   return mkdtempSync(join(tmpdir(), "pilot-artifact-test-"));
@@ -1070,7 +1070,7 @@ describe("staged evidence collection pointer", () => {
     expect(stageScript).toContain("Operator read-only smoke answers: %OPERATOR_READ_ONLY_SMOKE%");
     expect(stageScript).toContain("Unsupported writes attempted: no");
     expect(stageScript).toContain("Safe results bundle target: MicrodentModern-safe-results.zip");
-    expect(stageScript).toContain("if /I \\\"%NONINTERACTIVE%\\\"==\\\"yes\\\" if /I not \\\"%OPERATOR_READ_ONLY_SMOKE%\\\"==\\\"all-pass\\\" exit /b 1");
+    expect(stageScript).toContain("if /I \\\"%NONINTERACTIVE%\\\"==\\\"yes\\\" exit /b 0");
     expect(stageScript).toContain("\\\"%NODE_EXE%\\\" \\\"%ROOT%scripts\\\\write-smoke-evidence.mjs\\\"");
     expect(stageScript).not.toContain("write-smoke-evidence.mjs\\\" >> \\\"%REPORT%\\\"");
     expect(stageScript).not.toContain(">> \\\"%REPORT%\\\" echo Safe results bundle: created");

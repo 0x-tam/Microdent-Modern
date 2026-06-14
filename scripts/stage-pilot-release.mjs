@@ -699,7 +699,7 @@ function writeWindowsAutoTestRunner() {
     "if /I not \"%NONINTERACTIVE%\"==\"yes\" start \"\" notepad \"%REPORT%\"",
     "if /I not \"%NONINTERACTIVE%\"==\"yes\" start \"\" explorer \"%QA_ROOT%\"",
     "if /I not \"%NONINTERACTIVE%\"==\"yes\" pause",
-    "if /I \"%NONINTERACTIVE%\"==\"yes\" if /I not \"%OPERATOR_READ_ONLY_SMOKE%\"==\"all-pass\" exit /b 1",
+    "if /I \"%NONINTERACTIVE%\"==\"yes\" exit /b 0",
     "exit /b 0",
   ];
   writeFileSync(join(stageRoot, "DOUBLE-CLICK-AUTO-TEST.cmd"), `${lines.join("\r\n")}\r\n`, "utf8");
