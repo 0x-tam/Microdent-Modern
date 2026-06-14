@@ -56,7 +56,7 @@ describe("summarizeSupportDiagnostics", () => {
     mkdirSync(logsDir, { recursive: true });
     mkdirSync(crashDumpsDir, { recursive: true });
     for (let i = 0; i < 7; i += 1) {
-      writeFileSync(join(crashDumpsDir, `crash:${i}.dmp`), "dump", "utf8");
+      writeFileSync(join(crashDumpsDir, `crash,${i}.dmp`), "dump", "utf8");
     }
 
     const result = summarizeSupportDiagnostics({ logsDir, crashDumpsDir });
@@ -64,7 +64,7 @@ describe("summarizeSupportDiagnostics", () => {
 
     expect(result.crashDumpCount).toBe(7);
     expect(result.crashDumpFiles).toHaveLength(5);
-    expect(result.crashDumpFiles.every((file) => !file.fileName.includes(":"))).toBe(true);
+    expect(result.crashDumpFiles.every((file) => !file.fileName.includes(","))).toBe(true);
     expect(result.crashDumpFiles.every((file) => file.sizeBytes > 0)).toBe(true);
     expect(serialized).not.toContain(crashDumpsDir);
   });

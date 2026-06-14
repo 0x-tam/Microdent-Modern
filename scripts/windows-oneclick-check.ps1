@@ -11,11 +11,13 @@ param(
 $ErrorActionPreference = "Stop"
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $ReportDir = Join-Path $Root "qa-runs"
+$StepLogDir = Join-Path $ReportDir "windows-oneclick-logs"
 $StageRoot = Join-Path $Root "dist\pilot-release\MicrodentModern"
 $SafeZip = Join-Path $ReportDir "MicrodentModern-safe-results.zip"
 $Report = Join-Path $ReportDir ("{0}-windows-oneclick-check.md" -f (Get-Date -Format "yyyy-MM-dd"))
 $Rows = New-Object System.Collections.Generic.List[string]
 $Failed = $false
+$StepIndex = 0
 
 function Escape-Cell {
   param([AllowNull()][string]$Value)
@@ -36,6 +38,13 @@ function Add-Row {
   }
 }
 
+function ConvertTo-SafeFileName {
+  param([string]$Value)
+  $safe = ($Value.ToLowerInvariant() -replace "[^a-z0-9]+", "-").Trim("-")
+  if ([string]::IsNullOrWhiteSpace($safe)) { return "step" }
+  return $safe
+}
+
 function Invoke-CheckedStep {
   param(
     [string]$Scenario,
@@ -44,11 +53,37 @@ function Invoke-CheckedStep {
     [string]$RemainingGap = ""
   )
   Write-Host "[windows-oneclick] $Scenario`: $FilePath $($Arguments -join ' ')"
-  $proc = Start-Process -FilePath $FilePath -ArgumentList $Arguments -WorkingDirectory $Root -NoNewWindow -PassThru -Wait
+  New-Item -ItemType Directory -Force -Path $StepLogDir | Out-Null
+  $script:StepIndex += 1
+  $safeName = ConvertTo-SafeFileName $Scenario
+  $baseName = "{0:D2}-{1}" -f $script:StepIndex, $safeName
+  $stdoutPath = Join-Path $StepLogDir "$baseName.stdout.txt"
+  $stderrPath = Join-Path $StepLogDir "$baseName.stderr.txt"
+  $logPath = Join-Path $StepLogDir "$baseName.txt"
+  $relativeLogPath = "qa-runs/windows-oneclick-logs/$baseName.txt"
+  Set-Content -Path $logPath -Encoding UTF8 -Value @(
+    "Scenario: $Scenario",
+    "Generated: $(Get-Date -Format o)",
+    "Command: $FilePath $($Arguments -join ' ')",
+    "Working directory: repo root",
+    "PHI safety: generated command output only; do not add DBF, SQLite, screenshots, raw rows, operator paths, or clinic data.",
+    ""
+  )
+  $proc = Start-Process -FilePath $FilePath -ArgumentList $Arguments -WorkingDirectory $Root -NoNewWindow -PassThru -Wait -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+  Add-Content -Path $logPath -Encoding UTF8 -Value @("ExitCode: $($proc.ExitCode)", "", "STDOUT:")
+  if (Test-Path -LiteralPath $stdoutPath) {
+    Get-Content -LiteralPath $stdoutPath -ErrorAction SilentlyContinue | Add-Content -Path $logPath -Encoding UTF8
+    Remove-Item -LiteralPath $stdoutPath -Force -ErrorAction SilentlyContinue
+  }
+  Add-Content -Path $logPath -Encoding UTF8 -Value @("", "STDERR:")
+  if (Test-Path -LiteralPath $stderrPath) {
+    Get-Content -LiteralPath $stderrPath -ErrorAction SilentlyContinue | Add-Content -Path $logPath -Encoding UTF8
+    Remove-Item -LiteralPath $stderrPath -Force -ErrorAction SilentlyContinue
+  }
   if ($proc.ExitCode -eq 0) {
-    Add-Row $Scenario "PASSED" "exit 0" $RemainingGap
+    Add-Row $Scenario "PASSED" "exit 0; log $relativeLogPath" $RemainingGap
   } else {
-    Add-Row $Scenario "PROJECT FAILURE" "exit $($proc.ExitCode)" $RemainingGap
+    Add-Row $Scenario "PROJECT FAILURE" "exit $($proc.ExitCode); log $relativeLogPath" $RemainingGap
   }
 }
 
@@ -182,17 +217,23 @@ function Write-ReportAndZip {
   if (Test-Path -LiteralPath $stagedZip) {
     $zipFiles += $stagedZip
   }
+  $stepLogs = @(Get-ChildItem -LiteralPath $StepLogDir -Filter "*.txt" -File -ErrorAction SilentlyContinue)
+  foreach ($stepLog in $stepLogs) {
+    $zipFiles += $stepLog.FullName
+  }
   $jsons = @(Get-ChildItem -LiteralPath $ReportDir -Filter "*.json" -File -ErrorAction SilentlyContinue)
   foreach ($json in $jsons) {
     if ($json.Name -like "TEMPLATE-*") { continue }
     $zipFiles += $json.FullName
   }
+  $zipFiles = @($zipFiles | Select-Object -Unique)
   Compress-Archive -LiteralPath $zipFiles -DestinationPath $SafeZip -Force
   Write-Host "[windows-oneclick] report written: $Report"
   Write-Host "[windows-oneclick] safe results zip written: $SafeZip"
 }
 
 New-Item -ItemType Directory -Force -Path $ReportDir | Out-Null
+New-Item -ItemType Directory -Force -Path $StepLogDir | Out-Null
 Test-WindowsHost
 Test-AppDataAndSpaces
 Test-NodeVersion

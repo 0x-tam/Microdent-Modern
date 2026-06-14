@@ -1,6 +1,6 @@
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, normalize } from "node:path";
 import { describe, expect, it, afterEach } from "vitest";
 import {
   getOperatorPathWarnings,
@@ -55,7 +55,7 @@ describe("path-validation", () => {
 
   it("normalizes mixed Windows separators", () => {
     expect(normalizeOperatorPath("C:/Microdent\\Write-Sandbox/DATA")).toBe(
-      "C:/Microdent/Write-Sandbox/DATA",
+      normalize("C:/Microdent/Write-Sandbox/DATA"),
     );
   });
 
@@ -154,7 +154,7 @@ describe("path-validation", () => {
   it("accepts Windows drive-letter paths with spaces as absolute shape", () => {
     const path = "C:\\Microdent\\My Sandbox\\DATA";
     expect(isOperatorAbsolutePath(path)).toBe(true);
-    expect(normalizeOperatorPath(path)).toBe("C:/Microdent/My Sandbox/DATA");
+    expect(normalizeOperatorPath(path)).toBe(normalize("C:/Microdent/My Sandbox/DATA"));
     const missing = validateDataRootDir(path);
     expect(missing.ok).toBe(false);
     if (!missing.ok) {

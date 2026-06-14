@@ -76,6 +76,7 @@ jobs:
           retention-days: 14
           path: |
             qa-runs/*windows-oneclick-check.md
+            qa-runs/windows-oneclick-logs/*.txt
             qa-runs/MicrodentModern-safe-results.zip
             qa-runs/2026-*-microdent-oneclick-report.md
             C:\ProgramData\MicrodentClinicPilot\qa-runs\WINDOWS-AUTO-TEST-REPORT.txt

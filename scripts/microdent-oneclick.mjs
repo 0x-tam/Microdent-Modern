@@ -14,7 +14,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const pnpm = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+const pnpm = "pnpm";
 const node = process.execPath;
 const args = new Set(process.argv.slice(2));
 const quick = args.has("--quick");
@@ -63,7 +63,7 @@ function runCommand(label, command, commandArgs, options = {}) {
     cwd: repoRoot,
     env: { ...process.env, ...options.env },
     stdio: "inherit",
-    shell: false,
+    shell: options.shell ?? false,
   });
   const elapsed = `${Math.round((Date.now() - started) / 1000)}s`;
 
@@ -80,7 +80,10 @@ function runCommand(label, command, commandArgs, options = {}) {
 }
 
 function runPnpm(label, commandArgs, options = {}) {
-  return runCommand(label, pnpm, commandArgs, options);
+  return runCommand(label, pnpm, commandArgs, {
+    ...options,
+    shell: options.shell ?? process.platform === "win32",
+  });
 }
 
 async function probeClinicService() {
