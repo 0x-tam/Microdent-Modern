@@ -6,128 +6,36 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import * as artifactRules from "./pilot-release-artifact-rules.mjs";
-import {
-  assertManifestJsonSafe,
-  buildPilotBuildMetadata,
-  generateReleaseManifest,
-  UNSUPPORTED_FEATURES,
-  verifyManifestHashes,
-} from "./pilot-release-manifest.mjs";
-import {
-  validateNodeRuntimeDir,
-  writeNodeRuntimeManifest,
-} from "./node-runtime-staging.mjs";
-import {
-  COMMERCIAL_READINESS_SCHEMA_VERSION,
-  validateCommercialReadinessEvidence,
-} from "./commercial-readiness-audit.mjs";
-import {
-  auditCommercialEvidenceStatus,
-} from "./commercial-evidence-status.mjs";
-import {
-  buildEvidenceFilingPlan,
-  renderEvidenceFilingPlanMarkdown,
-} from "./evidence-filing-plan.mjs";
-import {
-  ATTACHMENT_MANIFEST_SCHEMA_VERSION,
-  validateEvidenceAttachmentManifest,
-} from "./evidence-attachment-manifest.mjs";
-import {
-  auditEvidenceRepoGuard,
-} from "./evidence-repo-guard.mjs";
-import {
-  canonicalizeLicensePayload,
-  OFFLINE_LICENSE_SCHEMA_VERSION,
-  validateOfflineLicense,
-} from "./offline-license-validate.mjs";
-import {
-  SIGNED_ARTIFACT_EVIDENCE_SCHEMA_VERSION,
-  validateSignedArtifactEvidence,
-} from "./signed-artifact-evidence.mjs";
-import {
-  INSTALLER_EVIDENCE_SCHEMA_VERSION,
-  validateInstallerEvidence,
-} from "./installer-evidence.mjs";
-import {
-  AUTO_UPDATE_EVIDENCE_SCHEMA_VERSION,
-  validateAutoUpdateEvidence,
-} from "./auto-update-evidence.mjs";
-import {
-  CLINIC_PILOT_REPORT_SCHEMA_VERSION,
-  validateClinicPilotReportEvidence,
-} from "./clinic-pilot-report-evidence.mjs";
-import {
-  SUPPORT_READINESS_SCHEMA_VERSION,
-  validateSupportReadinessEvidence,
-} from "./support-readiness-evidence.mjs";
-import {
-  DISTRIBUTION_EVIDENCE_SCHEMA_VERSION,
-  validateDistributionEvidence,
-} from "./distribution-evidence.mjs";
-import {
-  PRICING_EVIDENCE_SCHEMA_VERSION,
-  validatePricingEvidence,
-} from "./pricing-evidence.mjs";
-import {
-  MARKETING_EVIDENCE_SCHEMA_VERSION,
-  validateMarketingEvidence,
-} from "./marketing-evidence.mjs";
-import {
-  GO_LIVE_EVIDENCE_SCHEMA_VERSION,
-  loadAndValidateGoLiveEvidence,
-  validateGoLiveEvidence,
-} from "./go-live-evidence.mjs";
-import {
-  EXEC_STEPS,
-  FIELD_EVIDENCE_SCHEMA_VERSION,
-  validateFieldEvidenceReport,
-} from "./windows-field-evidence.mjs";
-import {
-  validateWindowsCompatibilityEvidence,
-  WINDOWS_COMPATIBILITY_SCHEMA_VERSION,
-} from "./windows-compatibility-evidence.mjs";
-import {
-  auditRoadmapCompletion,
-  REQUIRED_LOCAL_EVIDENCE,
-} from "./roadmap-completion-audit.mjs";
-import {
-  buildWindowsFieldPacket,
-  renderWindowsFieldPacketMarkdown,
-} from "./windows-field-packet.mjs";
-import {
-  buildPackageVerifyPacket,
-  renderPackageVerifyPacketMarkdown,
-} from "./package-verify-packet.mjs";
-import {
-  PACKAGE_VERIFY_EVIDENCE_SCHEMA_VERSION,
-  validatePackageVerifyEvidence,
-} from "./package-verify-evidence.mjs";
-import {
-  buildInstallerReadinessPacket,
-  renderInstallerReadinessPacketMarkdown,
-} from "./installer-readiness-packet.mjs";
-import {
-  buildAutoUpdateReadinessPacket,
-  renderAutoUpdateReadinessPacketMarkdown,
-} from "./auto-update-readiness-packet.mjs";
-import {
-  buildGoLiveReadinessPacket,
-  renderGoLiveReadinessPacketMarkdown,
-} from "./go-live-readiness-packet.mjs";
-import {
-  buildCommercialLaunchPacket,
-  renderCommercialLaunchPacketMarkdown,
-} from "./commercial-launch-packet.mjs";
-import {
-  buildEvidenceCollectionPacket,
-  renderEvidenceCollectionPacketMarkdown,
-} from "./evidence-collection-packet.mjs";
-import {
-  auditStagedMarkdownLinks,
-} from "./staged-markdown-link-audit.mjs";
-import {
-  intakeSafeResultsZip,
-} from "./intake-safe-results.mjs";
+import { assertManifestJsonSafe, buildPilotBuildMetadata, generateReleaseManifest, UNSUPPORTED_FEATURES, verifyManifestHashes } from "./pilot-release-manifest.mjs";
+import { validateNodeRuntimeDir, writeNodeRuntimeManifest } from "./node-runtime-staging.mjs";
+import { COMMERCIAL_READINESS_SCHEMA_VERSION, validateCommercialReadinessEvidence } from "./commercial-readiness-audit.mjs";
+import { auditCommercialEvidenceStatus } from "./commercial-evidence-status.mjs";
+import { buildEvidenceFilingPlan, renderEvidenceFilingPlanMarkdown } from "./evidence-filing-plan.mjs";
+import { ATTACHMENT_MANIFEST_SCHEMA_VERSION, validateEvidenceAttachmentManifest } from "./evidence-attachment-manifest.mjs";
+import { auditEvidenceRepoGuard } from "./evidence-repo-guard.mjs";
+import { canonicalizeLicensePayload, OFFLINE_LICENSE_SCHEMA_VERSION, validateOfflineLicense } from "./offline-license-validate.mjs";
+import { SIGNED_ARTIFACT_EVIDENCE_SCHEMA_VERSION, validateSignedArtifactEvidence } from "./signed-artifact-evidence.mjs";
+import { INSTALLER_EVIDENCE_SCHEMA_VERSION, validateInstallerEvidence } from "./installer-evidence.mjs";
+import { AUTO_UPDATE_EVIDENCE_SCHEMA_VERSION, validateAutoUpdateEvidence } from "./auto-update-evidence.mjs";
+import { CLINIC_PILOT_REPORT_SCHEMA_VERSION, validateClinicPilotReportEvidence } from "./clinic-pilot-report-evidence.mjs";
+import { SUPPORT_READINESS_SCHEMA_VERSION, validateSupportReadinessEvidence } from "./support-readiness-evidence.mjs";
+import { DISTRIBUTION_EVIDENCE_SCHEMA_VERSION, validateDistributionEvidence } from "./distribution-evidence.mjs";
+import { PRICING_EVIDENCE_SCHEMA_VERSION, validatePricingEvidence } from "./pricing-evidence.mjs";
+import { MARKETING_EVIDENCE_SCHEMA_VERSION, validateMarketingEvidence } from "./marketing-evidence.mjs";
+import { GO_LIVE_EVIDENCE_SCHEMA_VERSION, loadAndValidateGoLiveEvidence, validateGoLiveEvidence } from "./go-live-evidence.mjs";
+import { EXEC_STEPS, FIELD_EVIDENCE_SCHEMA_VERSION, validateFieldEvidenceReport } from "./windows-field-evidence.mjs";
+import { validateWindowsCompatibilityEvidence, WINDOWS_COMPATIBILITY_SCHEMA_VERSION } from "./windows-compatibility-evidence.mjs";
+import { auditRoadmapCompletion, REQUIRED_LOCAL_EVIDENCE } from "./roadmap-completion-audit.mjs";
+import { buildWindowsFieldPacket, renderWindowsFieldPacketMarkdown } from "./windows-field-packet.mjs";
+import { buildPackageVerifyPacket, renderPackageVerifyPacketMarkdown } from "./package-verify-packet.mjs";
+import { PACKAGE_VERIFY_EVIDENCE_SCHEMA_VERSION, validatePackageVerifyEvidence } from "./package-verify-evidence.mjs";
+import { buildInstallerReadinessPacket, renderInstallerReadinessPacketMarkdown } from "./installer-readiness-packet.mjs";
+import { buildAutoUpdateReadinessPacket, renderAutoUpdateReadinessPacketMarkdown } from "./auto-update-readiness-packet.mjs";
+import { buildGoLiveReadinessPacket, renderGoLiveReadinessPacketMarkdown } from "./go-live-readiness-packet.mjs";
+import { buildCommercialLaunchPacket, renderCommercialLaunchPacketMarkdown } from "./commercial-launch-packet.mjs";
+import { buildEvidenceCollectionPacket, renderEvidenceCollectionPacketMarkdown } from "./evidence-collection-packet.mjs";
+import { auditStagedMarkdownLinks } from "./staged-markdown-link-audit.mjs";
+import { intakeSafeResultsZip } from "./intake-safe-results.mjs";
 
 const {
   assertCompiledArtifactTextSafe,
