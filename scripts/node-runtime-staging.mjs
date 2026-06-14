@@ -53,6 +53,7 @@ export function findNodeRuntimeBinary(runtimeDir, platform = process.platform) {
 export function validateNodeRuntimeDir(options) {
   const runtimeDir = options.runtimeDir;
   const platform = options.platform ?? process.platform;
+  const hostPlatform = options.hostPlatform ?? process.platform;
   const minVersion = options.minVersion ?? MIN_NODE_RUNTIME_VERSION;
   const expectedSha256 = options.expectedSha256;
   const hasCustomSpawn = Boolean(options.spawnSyncImpl);
@@ -73,7 +74,7 @@ export function validateNodeRuntimeDir(options) {
   let version;
   const isCrossStagedWindowsRuntime =
     platform === "win32" &&
-    process.platform !== "win32" &&
+    hostPlatform !== "win32" &&
     !hasCustomSpawn &&
     basename(nodeBinary).toLowerCase() === "node.exe";
   if (isCrossStagedWindowsRuntime) {

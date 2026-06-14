@@ -1188,6 +1188,7 @@ describe("node-runtime-staging", () => {
       const validation = validateNodeRuntimeDir({
         runtimeDir,
         platform: "win32",
+        hostPlatform: "linux",
         expectedSha256,
       });
 
@@ -1211,6 +1212,7 @@ describe("node-runtime-staging", () => {
         validateNodeRuntimeDir({
           runtimeDir,
           platform: "win32",
+          hostPlatform: "linux",
         }),
       ).toThrow(/requires expected node\.exe SHA-256/);
     } finally {
