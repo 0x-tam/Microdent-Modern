@@ -228,8 +228,170 @@ function verifyWindowsPreparedPath() {
   }
 }
 
+function stepPassed(name) {
+  return steps.some((step) => step.name === name && step.status === "PASSED");
+}
+
+function requiredScenarioCoverage() {
+  const configSimulation = stepPassed("desktop first-run/config scenario simulation");
+  const serviceProbe = stepPassed("clinic service startup probe");
+  const desktopSmoke = stepPassed("desktop release smoke");
+  const windowsScript = stepPassed("Windows one-click readiness script");
+
+  const linuxVerified = "LINUX VERIFIED";
+  const linuxSimulated = "LINUX SIMULATED";
+  const documented = "DOCUMENTED";
+  const notCovered = "NOT COVERED BY ONE-CLICK";
+  const windowsBlocked = "WINDOWS-ONLY BLOCKED";
+
+  return [
+    [
+      "first launch with no config",
+      configSimulation ? linuxSimulated : notCovered,
+      configSimulation ? "default desktop config requires first-run setup" : "No config simulation did not pass",
+      "Real first launch UX still needs desktop GUI observation",
+    ],
+    [
+      "first-run setup appears",
+      desktopSmoke ? documented : notCovered,
+      desktopSmoke ? "desktop dist includes setup window artifacts and release smoke verifies setup-required defaults" : "Desktop smoke did not pass",
+      "GUI appearance must be observed in Electron",
+    ],
+    [
+      "first-run folder selection",
+      desktopSmoke ? documented : notCovered,
+      desktopSmoke ? "setup window/preload/build artifacts are present and desktop tests cover setup save helpers" : "No setup build evidence",
+      "Native folder picker requires GUI/Windows observation",
+    ],
+    [
+      "invalid folder handling",
+      configSimulation ? linuxSimulated : notCovered,
+      configSimulation ? "invalid data folder rejected by startup validation" : "Invalid-folder simulation did not pass",
+      "Renderer copy/visual state still needs UI walk",
+    ],
+    [
+      "config save",
+      desktopSmoke ? documented : notCovered,
+      desktopSmoke ? "desktop setup tests and release smoke cover config defaults/setup path" : "No desktop config evidence",
+      "End-to-end setup save with picker requires GUI observation",
+    ],
+    [
+      "backup folder creation",
+      configSimulation ? linuxSimulated : notCovered,
+      configSimulation ? "valid config with writable backup folder passes startup validation" : "Backup validation simulation did not pass",
+      "Actual setup-created backup folder should be observed in GUI/Windows run",
+    ],
+    [
+      "clinic service auto-start",
+      serviceProbe ? linuxVerified : notCovered,
+      serviceProbe ? "one-click starts built clinic service on loopback with WRITE_MODE=disabled" : "Clinic service probe did not pass",
+      "Desktop-supervised start is covered by desktop tests/release smoke but real packaged Windows launch remains blocked",
+    ],
+    [
+      "clinic service health check",
+      serviceProbe ? linuxVerified : notCovered,
+      serviceProbe ? "/health returned ok" : "Health probe did not pass",
+      "",
+    ],
+    [
+      "clinic service failure message",
+      desktopSmoke ? documented : notCovered,
+      desktopSmoke ? "desktop startup-failure tests are included in desktop test suite" : "Desktop tests did not pass",
+      "Manual UI failure copy should be observed during GUI smoke",
+    ],
+    [
+      "retry/restart path",
+      desktopSmoke ? documented : notCovered,
+      desktopSmoke ? "desktop tests cover supervisor restart/status IPC surfaces" : "Desktop tests did not pass",
+      "Operator click path needs GUI smoke",
+    ],
+    [
+      "local copy/mirror build or refresh",
+      desktopSmoke ? documented : notCovered,
+      desktopSmoke ? "setup import tests are included in desktop test suite; full import uses copied data only" : "Desktop setup import tests did not pass",
+      "Real copied clinic data import remains Windows/operator-data dependent",
+    ],
+    [
+      "Today loads",
+      quick ? notCovered : documented,
+      quick ? "Quick mode does not run full app test suite" : "Full mode runs workspace app tests",
+      "Browser/Electron UI walkthrough still recommended",
+    ],
+    [
+      "Patients search",
+      quick ? notCovered : documented,
+      quick ? "Quick mode does not run full app test suite" : "Full mode runs bridge/client/app tests",
+      "Real copied clinic data result set remains external",
+    ],
+    [
+      "Patient Profile opens",
+      quick ? notCovered : documented,
+      quick ? "Quick mode does not run full app test suite" : "Full mode runs app tests",
+      "UI walkthrough still required for real patient navigation",
+    ],
+    ["Timeline tab", quick ? notCovered : documented, quick ? "Quick mode skips app suite" : "Full mode runs app tests", ""],
+    ["Appointments tab", quick ? notCovered : documented, quick ? "Quick mode skips app suite" : "Full mode runs app tests", ""],
+    ["Medical tab", quick ? notCovered : documented, quick ? "Quick mode skips app suite" : "Full mode runs app tests", ""],
+    ["Treatments tab", quick ? notCovered : documented, quick ? "Quick mode skips app suite" : "Full mode runs app tests", ""],
+    ["Chart tab", quick ? notCovered : documented, quick ? "Quick mode skips app suite" : "Full mode runs app tests", ""],
+    [
+      "Ledger preview tab",
+      quick ? notCovered : documented,
+      quick ? "Quick mode skips app suite" : "Full mode runs app tests and safety regressions",
+      "Must keep amounts/payment details hidden",
+    ],
+    ["Schedule loads", quick ? notCovered : documented, quick ? "Quick mode skips app suite" : "Full mode runs app tests", ""],
+    ["Schedule filters", quick ? notCovered : documented, quick ? "Quick mode skips app suite" : "Full mode runs app tests", ""],
+    [
+      "opening patient from Schedule",
+      quick ? notCovered : documented,
+      quick ? "Quick mode skips app suite" : "Full mode runs app tests",
+      "Manual UI walkthrough still recommended",
+    ],
+    [
+      "opening Schedule from Profile",
+      quick ? notCovered : documented,
+      quick ? "Quick mode skips app suite" : "Full mode runs app tests",
+      "Manual UI walkthrough still recommended",
+    ],
+    ["Settings status refresh", quick ? notCovered : documented, quick ? "Quick mode skips app suite" : "Full mode runs app tests", ""],
+    ["sandbox write blocked state", quick ? notCovered : documented, quick ? "Quick mode skips app suite" : "Full mode runs bridge/app tests", ""],
+    [
+      "sandbox write available state",
+      documented,
+      "Sandbox workflows are guarded by existing sandbox tests and optional qa:sandbox; one-click does not enable writes",
+      "Real sandbox signoff requires explicit DATA_ROOT/SQLITE_PATH/BACKUP_DIR",
+    ],
+    [
+      "responsive layout check",
+      notCovered,
+      "One-click does not drive a browser viewport yet",
+      "Add browser/e2e viewport smoke or perform manual UI walkthrough",
+    ],
+    [
+      "forbidden-token safety check",
+      desktopSmoke ? documented : notCovered,
+      desktopSmoke ? "release smoke and pilot artifact tests enforce staged artifact safety; app/bridge tests cover safety surfaces" : "Safety checks did not run",
+      "Full safety sweep should run before final release",
+    ],
+    [
+      "one-click script result",
+      "LINUX VERIFIED",
+      `this report was generated by ${quick ? "microdent:oneclick:quick" : "microdent:oneclick"}`,
+      "",
+    ],
+    [
+      "Windows readiness script/checklist",
+      windowsScript ? windowsBlocked : notCovered,
+      windowsScript ? "scripts/windows-oneclick-check.ps1 is present" : "Windows script missing",
+      "Run pnpm microdent:oneclick:windows on Windows 10/11 clinic test machine",
+    ],
+  ];
+}
+
 function writeReport() {
   mkdirSync(dirname(reportPath), { recursive: true });
+  const coverage = requiredScenarioCoverage();
   const lines = [
     "# Microdent Modern One-Click Report",
     "",
@@ -245,6 +407,15 @@ function writeReport() {
     "| --- | --- | --- | --- |",
     ...steps.map((step) =>
       `| ${step.name} | ${step.status} | ${step.evidence.replaceAll("|", "\\|")} | ${step.remainingGap.replaceAll("|", "\\|")} |`,
+    ),
+    "",
+    "## Required App Scenario Coverage",
+    "",
+    "| Scenario | Status | Evidence | Remaining gap |",
+    "| --- | --- | --- | --- |",
+    ...coverage.map(
+      ([scenario, status, evidence, gap]) =>
+        `| ${scenario} | ${status} | ${evidence.replaceAll("|", "\\|")} | ${gap.replaceAll("|", "\\|")} |`,
     ),
     "",
     "## Launch",
