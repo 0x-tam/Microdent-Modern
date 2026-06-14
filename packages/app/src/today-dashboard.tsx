@@ -40,6 +40,11 @@ import {
   TODAY_SCHEDULE_UNAVAILABLE,
   TODAY_SEARCH_PATIENT,
 } from "./read-only-ui-copy.js";
+import {
+  PostWriteLocalCopyRefreshNotice,
+  createCleanPostWriteLocalCopyState,
+  type PostWriteLocalCopyRefreshState,
+} from "./post-write-local-copy.js";
 
 /* ── helpers ─────────────────────────────────────────────────────────────── */
 
@@ -164,6 +169,8 @@ export type DashboardHomeProps = {
   writeCapability?: BridgeDevStatusResponse | null;
   sandboxWritePilot?: boolean;
   sessionRecentPatientCount?: number;
+  postWriteLocalCopyRefresh?: PostWriteLocalCopyRefreshState;
+  onOpenSettings?: () => void;
 };
 
 /* ── component ───────────────────────────────────────────────────────────── */
@@ -186,6 +193,8 @@ export function DashboardHome({
   writeCapability: _writeCapability = null,
   sandboxWritePilot: _sandboxWritePilot = false,
   sessionRecentPatientCount: _sessionRecentPatientCount = 0,
+  postWriteLocalCopyRefresh = createCleanPostWriteLocalCopyState(),
+  onOpenSettings,
 }: DashboardHomeProps) {
   const base = bridgeBaseUrl?.trim() ?? "";
   const canLoad = Boolean(base) && bridgePhase === "connected";
@@ -499,6 +508,12 @@ export function DashboardHome({
         }
         metrics={commandMetrics}
         actions={commandActions}
+      />
+
+      <PostWriteLocalCopyRefreshNotice
+        state={postWriteLocalCopyRefresh}
+        className="today-post-write-local-copy"
+        onOpenSettings={onOpenSettings}
       />
 
       {/* Next Appointment (prominent card) */}

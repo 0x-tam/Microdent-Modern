@@ -6,7 +6,12 @@ import { importPatients } from "./import-patients.js";
 import { importProcedures } from "./import-procedures.js";
 import { importScheduleRooms } from "./import-schedule-rooms.js";
 import { importTreatments } from "./import-treatments.js";
-import type { ImportRunStatus } from "./import-run.js";
+import {
+  latestSourceSnapshotMatches,
+  snapshotSourceFiles,
+  type ImportRunStatus,
+} from "./import-run.js";
+import { openDatabaseSync } from "./node-sqlite.js";
 
 /** Process exit code for `mirror:import-safe` — 0 only when overall is success. */
 export function mirrorImportSafeExitCode(overall: ImportRunStatus): number {
@@ -25,6 +30,7 @@ export type MirrorImportStepResult = {
 export type RunMirrorImportSafeOptions = {
   dataRoot: string;
   sqlitePath: string;
+  incremental?: boolean;
 };
 
 export type RunMirrorImportSafeResult = {
@@ -39,6 +45,58 @@ function mergeOverall(steps: MirrorImportStepResult[]): ImportRunStatus {
   return "success";
 }
 
+function existingRowCount(sqlitePath: string, table: string): number {
+  const db = openDatabaseSync(sqlitePath, { readOnly: true });
+  try {
+    const row = db.prepare(`SELECT COUNT(*) AS c FROM "${table}"`).get() as { c: number };
+    return Number(row.c) || 0;
+  } finally {
+    db.close();
+  }
+}
+
+function canSkipUnchangedReferenceTable(
+  options: RunMirrorImportSafeOptions,
+  table: string,
+  sourceFiles: readonly string[],
+): boolean {
+  if (options.incremental !== true) return false;
+  const db = openDatabaseSync(options.sqlitePath, { readOnly: true });
+  try {
+    return latestSourceSnapshotMatches(
+      db,
+      snapshotSourceFiles(options.dataRoot, table, sourceFiles),
+    );
+  } catch {
+    return false;
+  } finally {
+    db.close();
+  }
+}
+
+async function importOrSkipReferenceTable(
+  options: RunMirrorImportSafeOptions,
+  table: "doctors" | "procedures" | "schedule_rooms",
+  sourceFiles: readonly string[],
+  importer: () => Promise<{ status: MirrorImportStepStatus; rowCount: number; errorCount: number }>,
+): Promise<MirrorImportStepResult> {
+  if (canSkipUnchangedReferenceTable(options, table, sourceFiles)) {
+    return {
+      table,
+      status: "skipped",
+      rowCount: existingRowCount(options.sqlitePath, table),
+      errorCount: 0,
+    };
+  }
+  const result = await importer();
+  return {
+    table,
+    status: result.status,
+    rowCount: result.rowCount,
+    errorCount: result.errorCount,
+  };
+}
+
 /**
  * Applies migrations once, then imports all safe mirror tables in dependency order.
  */
@@ -50,29 +108,23 @@ export async function runMirrorImportSafe(
   const migrationResult = applyMigrations(sqlitePath);
   const steps: MirrorImportStepResult[] = [];
 
-  const doctors = await importDoctors({ dataRoot, sqlitePath });
-  steps.push({
-    table: "doctors",
-    status: doctors.status,
-    rowCount: doctors.rowCount,
-    errorCount: doctors.errorCount,
-  });
+  steps.push(
+    await importOrSkipReferenceTable(options, "doctors", ["DOCTORS.DBF"], () =>
+      importDoctors({ dataRoot, sqlitePath }),
+    ),
+  );
 
-  const procedures = await importProcedures({ dataRoot, sqlitePath });
-  steps.push({
-    table: "procedures",
-    status: procedures.status,
-    rowCount: procedures.rowCount,
-    errorCount: procedures.errorCount,
-  });
+  steps.push(
+    await importOrSkipReferenceTable(options, "procedures", ["PROCCHRT.DBF"], () =>
+      importProcedures({ dataRoot, sqlitePath }),
+    ),
+  );
 
-  const scheduleRooms = await importScheduleRooms({ dataRoot, sqlitePath });
-  steps.push({
-    table: "schedule_rooms",
-    status: scheduleRooms.status,
-    rowCount: scheduleRooms.rowCount,
-    errorCount: scheduleRooms.errorCount,
-  });
+  steps.push(
+    await importOrSkipReferenceTable(options, "schedule_rooms", ["SC_ROOM.DBF", "DICSCHED.DBF"], () =>
+      importScheduleRooms({ dataRoot, sqlitePath }),
+    ),
+  );
 
   const patients = await importPatients({ dataRoot, sqlitePath });
   steps.push({

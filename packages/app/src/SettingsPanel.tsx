@@ -1,5 +1,5 @@
 import { createBridgeClient } from "@microdent/bridge-client";
-import type { BridgeDevStatusResponse, MirrorStatusResponse } from "@microdent/contracts";
+import type { BridgeDevStatusResponse, MirrorStatusResponse, OfflineLicenseStatusResponse } from "@microdent/contracts";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Badge, Button } from "@microdent/ui";
 import { ClinicPage, ClinicPageHero } from "./clinic-page.js";
@@ -137,6 +137,11 @@ import {
   resolveSettingsDangerBanners,
   resolveWriteModeChip,
 } from "./shell-status-banners.js";
+import {
+  PostWriteLocalCopyRefreshNotice,
+  createCleanPostWriteLocalCopyState,
+  type PostWriteLocalCopyRefreshState,
+} from "./post-write-local-copy.js";
 
 export type SettingsPanelProps = {
   moduleTitle?: string;
@@ -151,6 +156,8 @@ export type SettingsPanelProps = {
   sandboxWritePilot?: boolean;
   showConnectionDiagnostics?: boolean;
   onOpenToday?: () => void;
+  postWriteLocalCopyRefresh?: PostWriteLocalCopyRefreshState;
+  onLocalCopyRefreshComplete?: () => void;
   desktopActions?: SettingsDesktopActions;
 };
 
@@ -532,6 +539,8 @@ export function SettingsPanel({
   sandboxWritePilot = false,
   showConnectionDiagnostics = false,
   onOpenToday,
+  postWriteLocalCopyRefresh = createCleanPostWriteLocalCopyState(),
+  onLocalCopyRefreshComplete,
   desktopActions,
 }: SettingsPanelProps) {
   const [mirrorRefreshing, setMirrorRefreshing] = useState(false);
@@ -556,6 +565,7 @@ export function SettingsPanel({
   const [portDiagnosticMessage, setPortDiagnosticMessage] = useState<string | null>(null);
   const [portPolicyPhase, setPortPolicyPhase] = useState<"idle" | "running" | "ok" | "failed">("idle");
   const [portPolicy, setPortPolicy] = useState<SettingsPortCleanupPolicyResult | null>(null);
+  const [licenseStatus, setLicenseStatus] = useState<OfflineLicenseStatusResponse | null | undefined>(undefined);
 
   useEffect(() => {
     let cancelled = false;
@@ -573,6 +583,26 @@ export function SettingsPanel({
       setLocalCopyRefreshProgress(progress);
     });
   }, [desktopActions]);
+
+  useEffect(() => {
+    if (!bridgeBaseUrl?.trim() || bridgePhase !== "connected") {
+      setLicenseStatus(undefined);
+      return;
+    }
+    let cancelled = false;
+    const client = createBridgeClient({ baseUrl: bridgeBaseUrl.trim(), fetch: fetchImpl });
+    void client
+      .getLicenseStatus()
+      .then((status) => {
+        if (!cancelled) setLicenseStatus(status);
+      })
+      .catch(() => {
+        if (!cancelled) setLicenseStatus(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [bridgeBaseUrl, bridgePhase, fetchImpl]);
 
   const writeChip = resolveWriteModeChip(writeCapability);
   const dataRootStatus = resolveDataRootConfiguredStatus(writeCapability);
@@ -631,8 +661,9 @@ export function SettingsPanel({
     setLocalCopyRefreshPhase(result.ok ? "ok" : "failed");
     if (result.ok) {
       await refreshMirrorStatus();
+      onLocalCopyRefreshComplete?.();
     }
-  }, [desktopActions, localCopyRefreshPhase, refreshMirrorStatus]);
+  }, [desktopActions, localCopyRefreshPhase, onLocalCopyRefreshComplete, refreshMirrorStatus]);
 
   const exportSupportLog = useCallback(async () => {
     if (!desktopActions?.exportSupportLog || supportLogPhase === "running") return;
@@ -827,6 +858,11 @@ export function SettingsPanel({
         </div>
       ) : null}
 
+      <PostWriteLocalCopyRefreshNotice
+        state={postWriteLocalCopyRefresh}
+        className="app-settings__post-write-local-copy"
+      />
+
       {/* First-run guidance: service is up but the local copy has never been prepared. */}
       {bridgePhase === "connected" &&
       mirrorStatus !== null &&
@@ -999,15 +1035,17 @@ export function SettingsPanel({
                   ? SETTINGS_QUICK_FIX_RESTARTING_SERVICE
                   : SETTINGS_QUICK_FIX_RESTART_SERVICE}
               </Button>
-              {restartPhase === "ok" ? (
-                <p className="app-settings__muted" role="status">
-                  {SETTINGS_QUICK_FIX_RESTART_SERVICE_SUCCESS}
-                </p>
-              ) : restartPhase === "failed" ? (
-                <p className="app-settings__error" role="alert">
-                  {SETTINGS_QUICK_FIX_RESTART_SERVICE_FAILED}
-                </p>
-              ) : null}
+              <div role="status" aria-live="polite">
+                {restartPhase === "ok" ? (
+                  <p className="app-settings__muted">
+                    {SETTINGS_QUICK_FIX_RESTART_SERVICE_SUCCESS}
+                  </p>
+                ) : restartPhase === "failed" ? (
+                  <p className="app-settings__error" role="alert">
+                    {SETTINGS_QUICK_FIX_RESTART_SERVICE_FAILED}
+                  </p>
+                ) : null}
+              </div>
             </div>
           ) : null}
           {desktopActions?.exportSupportLog ? (
@@ -1249,6 +1287,7 @@ export function SettingsPanel({
                   size="compact"
                   className="ui-focusable"
                   disabled={localCopyRefreshPhase === "running"}
+                  aria-describedby="settings-local-copy-refresh-status"
                   onClick={() => void refreshLocalCopy()}
                 >
                   {localCopyRefreshPhase === "running"
@@ -1306,20 +1345,30 @@ export function SettingsPanel({
                 </p>
               ) : null}
               {localCopyRefreshPhase === "running" ? (
-                <p className="app-settings__muted" role="status">
-                  {localCopyRefreshProgress
-                    ? `${localCopyRefreshProgress.label} (${Math.round(localCopyRefreshProgress.percent)}%)`
-                    : SETTINGS_QUICK_FIX_REFRESHING_LOCAL_COPY}
-                </p>
+                <div id="settings-local-copy-refresh-status" role="status" aria-live="polite">
+                  <p className="app-settings__muted">
+                    {localCopyRefreshProgress
+                      ? `${localCopyRefreshProgress.label} (${Math.round(localCopyRefreshProgress.percent)}%)`
+                      : SETTINGS_QUICK_FIX_REFRESHING_LOCAL_COPY}
+                  </p>
+                </div>
               ) : localCopyRefreshPhase === "ok" ? (
-                <p className="app-settings__muted" role="status">
-                  {SETTINGS_QUICK_FIX_REFRESH_LOCAL_COPY_SUCCESS}
-                </p>
+                <div id="settings-local-copy-refresh-status" role="status" aria-live="polite">
+                  <p className="app-settings__muted">
+                    {SETTINGS_QUICK_FIX_REFRESH_LOCAL_COPY_SUCCESS}
+                  </p>
+                </div>
               ) : localCopyRefreshPhase === "failed" ? (
-                <p className="app-settings__error" role="alert">
-                  {SETTINGS_QUICK_FIX_REFRESH_LOCAL_COPY_FAILED}
-                </p>
-              ) : null}
+                <div id="settings-local-copy-refresh-status" role="status" aria-live="polite">
+                  <p className="app-settings__error" role="alert">
+                    {SETTINGS_QUICK_FIX_REFRESH_LOCAL_COPY_FAILED}
+                  </p>
+                </div>
+              ) : (
+                <span id="settings-local-copy-refresh-status" className="app-sr-only">
+                  Local copy refresh status
+                </span>
+              )}
               {runs.length === 0 ? (
                 <>
                   <div className="app-settings__import-prompt">
@@ -1330,6 +1379,7 @@ export function SettingsPanel({
                         size="compact"
                         className="ui-focusable"
                         disabled={localCopyRefreshPhase === "running"}
+                        aria-describedby="settings-local-copy-refresh-status"
                         onClick={() => void refreshLocalCopy()}
                       >
                         {localCopyRefreshPhase === "running"
@@ -1525,6 +1575,33 @@ export function SettingsPanel({
                 {SETTINGS_PILOT_BUILD_BUILT}: {formatBuildTimestamp(pilotBuild.buildTimestampUtc)}
               </li>
             </ul>
+          )}
+        </ClinicPanel>
+        <ClinicPanel
+          title="Offline license"
+          className={settingsPanelClassName(licenseStatus?.status === "valid" ? "ok" : "neutral")}
+          headerActions={<SettingsPanelStatusDot tone={licenseStatus?.status === "valid" ? "ok" : "neutral"} />}
+        >
+          {licenseStatus === undefined ? (
+            <p className="app-settings__muted">License status loads after the clinic service connects.</p>
+          ) : licenseStatus === null ? (
+            <p className="app-settings__muted">
+              License status is unavailable. Read-only pilot access remains available.
+            </p>
+          ) : (
+            <>
+              <p className="app-settings__status">{licenseStatus.message}</p>
+              <ul className="app-settings__facts">
+                <li>Status: {licenseStatus.status}</li>
+                <li>Clinic label: {licenseStatus.clinicLabel ?? "Not configured"}</li>
+                <li>Tier: {licenseStatus.tier ?? "Pilot read-only"}</li>
+                <li>Expires: {licenseStatus.expiresAt ? formatBuildTimestamp(licenseStatus.expiresAt) : "Not configured"}</li>
+                <li>Signature verified: {licenseStatus.signatureVerified ? "yes" : "no"}</li>
+              </ul>
+              <p className="app-settings__muted">
+                License checks are local-only and do not send patient data, usage counts, or clinic paths.
+              </p>
+            </>
           )}
         </ClinicPanel>
         </SettingsSection>

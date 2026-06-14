@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, rmSync, unlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { once } from "node:events";
@@ -12,12 +12,16 @@ import { parseSqlitePathFromValue } from "./config.js";
 
 async function withServer(
   sqlitePath: string | undefined,
+  dataRoot: string | undefined,
   fn: (port: number) => Promise<void>,
 ): Promise<void> {
   const app = createBridgeApp(undefined, {
     bridgeConfig: {
       listen: { host: "127.0.0.1", port: 0 },
-      dataRoot: { configured: false },
+      dataRoot:
+        dataRoot === undefined
+          ? { configured: false }
+          : { configured: true, path: dataRoot, realPath: dataRoot },
       sqlitePath:
         sqlitePath === undefined
           ? { configured: false }
@@ -67,7 +71,7 @@ function assertNoPathsOrPhi(jsonText: string): void {
 
 describe("GET /v1/mirror/status", () => {
   it("returns sqliteConfigured false when SQLITE_PATH is not set", async () => {
-    await withServer(undefined, async (port) => {
+    await withServer(undefined, undefined, async (port) => {
       const res = await fetch(`http://127.0.0.1:${port}/v1/mirror/status`);
       expect(res.status).toBe(200);
       const text = await res.text();
@@ -91,7 +95,7 @@ describe("GET /v1/mirror/status", () => {
       applyMigrations(sqlitePath);
       await importDoctors({ dataRoot, sqlitePath, trigger: "manual" });
 
-      await withServer(sqlitePath, async (port) => {
+      await withServer(sqlitePath, dataRoot, async (port) => {
         const res = await fetch(`http://127.0.0.1:${port}/v1/mirror/status`);
         expect(res.status).toBe(200);
         const text = await res.text();
@@ -104,9 +108,86 @@ describe("GET /v1/mirror/status", () => {
         const doctorsRun = body.latestImportRuns.find((r) => r.tableName === "doctors");
         expect(doctorsRun?.status).toBe("success");
         expect(doctorsRun?.finishedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+        expect(body.sourceChangedSinceImport).toBe(false);
+        expect(body.sourceFileStatuses?.find((s) => s.tableName === "doctors")?.status).toBe("unchanged");
       });
     } finally {
       rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("reports copied file metadata changes since the last import without paths", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "microdent-mirror-status-changed-"));
+    try {
+      const sqlitePath = join(dir, "mirror.sqlite");
+      const dataRoot = mkdtempSync(join(tmpdir(), "microdent-mirror-status-data-"));
+      await writeSyntheticDoctorsDbf(dataRoot);
+      applyMigrations(sqlitePath);
+      await importDoctors({ dataRoot, sqlitePath, trigger: "manual" });
+
+      const doctorPath = join(dataRoot, "DOCTORS.DBF");
+      const future = new Date(Date.now() + 60_000);
+      utimesSync(doctorPath, future, future);
+
+      await withServer(sqlitePath, dataRoot, async (port) => {
+        const res = await fetch(`http://127.0.0.1:${port}/v1/mirror/status`);
+        const text = await res.text();
+        assertNoPathsOrPhi(text);
+        const body = MirrorStatusResponseSchema.parse(JSON.parse(text));
+        expect(body.sourceChangedSinceImport).toBe(true);
+        expect(body.sourceFileStatuses?.find((s) => s.tableName === "doctors")?.status).toBe("changed");
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("reports missing copied files since the last import without paths", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "microdent-mirror-status-missing-"));
+    try {
+      const sqlitePath = join(dir, "mirror.sqlite");
+      const dataRoot = mkdtempSync(join(tmpdir(), "microdent-mirror-status-data-"));
+      await writeSyntheticDoctorsDbf(dataRoot);
+      applyMigrations(sqlitePath);
+      await importDoctors({ dataRoot, sqlitePath, trigger: "manual" });
+      unlinkSync(join(dataRoot, "DOCTORS.DBF"));
+
+      await withServer(sqlitePath, dataRoot, async (port) => {
+        const res = await fetch(`http://127.0.0.1:${port}/v1/mirror/status`);
+        const text = await res.text();
+        assertNoPathsOrPhi(text);
+        const body = MirrorStatusResponseSchema.parse(JSON.parse(text));
+        expect(body.sourceChangedSinceImport).toBe(true);
+        expect(body.sourceFileStatuses?.find((s) => s.tableName === "doctors")?.status).toBe("missing");
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("reports unreadable copied files since the last import without paths", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "microdent-mirror-status-unreadable-"));
+    let dataRoot: string | undefined;
+    try {
+      const sqlitePath = join(dir, "mirror.sqlite");
+      dataRoot = mkdtempSync(join(tmpdir(), "microdent-mirror-status-data-"));
+      await writeSyntheticDoctorsDbf(dataRoot);
+      applyMigrations(sqlitePath);
+      await importDoctors({ dataRoot, sqlitePath, trigger: "manual" });
+      chmodSync(dataRoot, 0o000);
+
+      await withServer(sqlitePath, dataRoot, async (port) => {
+        const res = await fetch(`http://127.0.0.1:${port}/v1/mirror/status`);
+        const text = await res.text();
+        assertNoPathsOrPhi(text);
+        const body = MirrorStatusResponseSchema.parse(JSON.parse(text));
+        expect(body.sourceChangedSinceImport).toBe(true);
+        expect(body.sourceFileStatuses?.find((s) => s.tableName === "doctors")?.status).toBe("unreadable");
+      });
+    } finally {
+      if (dataRoot) chmodSync(dataRoot, 0o700);
+      rmSync(dir, { recursive: true, force: true });
+      if (dataRoot) rmSync(dataRoot, { recursive: true, force: true });
     }
   });
 
@@ -116,7 +197,7 @@ describe("GET /v1/mirror/status", () => {
       const badPath = join(dir, "not-sqlite.txt");
       writeFileSync(badPath, "not a database", "utf8");
 
-      await withServer(badPath, async (port) => {
+      await withServer(badPath, undefined, async (port) => {
         const res = await fetch(`http://127.0.0.1:${port}/v1/mirror/status`);
         expect(res.status).toBe(200);
         const text = await res.text();
@@ -140,7 +221,7 @@ describe("GET /v1/mirror/status", () => {
       applyMigrations(sqlitePath);
       await importDoctors({ dataRoot, sqlitePath, trigger: "manual" });
 
-      await withServer(sqlitePath, async (port) => {
+      await withServer(sqlitePath, dataRoot, async (port) => {
         const res = await fetch(`http://127.0.0.1:${port}/v1/mirror/status`);
         const body = MirrorStatusResponseSchema.parse(JSON.parse(await res.text()));
         const doctorsRun = body.latestImportRuns.find((r) => r.tableName === "doctors");
@@ -155,7 +236,7 @@ describe("GET /v1/mirror/status", () => {
 
   it("returns sqliteUsable false when configured path does not exist", async () => {
     const missing = join(tmpdir(), `microdent-missing-mirror-${Date.now()}.sqlite`);
-    await withServer(missing, async (port) => {
+    await withServer(missing, undefined, async (port) => {
       const res = await fetch(`http://127.0.0.1:${port}/v1/mirror/status`);
       const text = await res.text();
       assertNoPathsOrPhi(text);

@@ -35,6 +35,9 @@ export function isMirrorImportStale(
   if (!status.sqliteUsable || status.latestImportRuns.length === 0) {
     return false;
   }
+  if (status.sourceChangedSinceImport) {
+    return true;
+  }
   const newest = newestMirrorImportFinishedAtMs(status.latestImportRuns);
   if (newest === null) return false;
   return nowMs - newest > staleMs;

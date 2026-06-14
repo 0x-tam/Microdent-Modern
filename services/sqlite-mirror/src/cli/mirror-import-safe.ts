@@ -30,7 +30,10 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const result = await runMirrorImportSafe(loaded.env);
+  const result = await runMirrorImportSafe({
+    ...loaded.env,
+    incremental: process.env.MICRODENT_INCREMENTAL_IMPORT === "1",
+  });
   printMirrorImportSafeReport(result);
   process.exit(mirrorImportSafeExitCode(result.overall));
 }

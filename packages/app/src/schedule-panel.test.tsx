@@ -1,9 +1,13 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act } from "react";
+import { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { SchedulePanel } from "./SchedulePanel.js";
 import { assertNoForbiddenDomTokens, assertNoMainPageJargonInDom } from "./read-only-smoke-fixtures.js";
+import {
+  createCleanPostWriteLocalCopyState,
+  markPostWriteLocalCopyRefreshNeeded,
+} from "./post-write-local-copy.js";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -1373,8 +1377,11 @@ describe("SchedulePanel", () => {
       return Promise.reject(new Error(`unexpected fetch ${u}`));
     });
 
-    await act(async () => {
-      root.render(
+    function ScheduleHarness() {
+      const [postWriteLocalCopyRefresh, setPostWriteLocalCopyRefresh] = useState(() =>
+        createCleanPostWriteLocalCopyState(),
+      );
+      return (
         <SchedulePanel
           isActive
           bridgePhase="connected"
@@ -1382,7 +1389,15 @@ describe("SchedulePanel", () => {
           fetchImpl={fetchImpl}
           sandboxWritePilot
           onBackToday={() => {}}
-        />,
+          postWriteLocalCopyRefresh={postWriteLocalCopyRefresh}
+          onSandboxWriteCommitted={() => setPostWriteLocalCopyRefresh(markPostWriteLocalCopyRefreshNeeded())}
+        />
+      );
+    }
+
+    await act(async () => {
+      root.render(
+        <ScheduleHarness />,
       );
     });
     await act(async () => {
@@ -1460,6 +1475,9 @@ describe("SchedulePanel", () => {
       (c) => String(c[0]).includes("/v1/schedule/appointments") && !String(c[0]).includes("/status"),
     ).length;
     expect(apptCallsAfter).toBeGreaterThan(apptCallsBefore);
+    expect(container.textContent).toContain("Local copy may need refresh");
+    expect(container.textContent).toContain("Search, Today, and Schedule may still use the previous local copy");
+    expect(container.querySelector('[data-testid="post-write-local-copy-refresh-needed"]')).toBeTruthy();
 
     vi.unstubAllGlobals();
   });

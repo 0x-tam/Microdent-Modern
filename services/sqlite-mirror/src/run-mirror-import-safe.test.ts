@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -125,6 +125,20 @@ describe("runMirrorImportSafe", () => {
       for (const step of second.steps) {
         expect(step.status).toBe("success");
       }
+
+      const incremental = await runMirrorImportSafe({ dataRoot, sqlitePath, incremental: true });
+      expect(incremental.overall).toBe("success");
+      expect(incremental.steps.find((s) => s.table === "doctors")?.status).toBe("skipped");
+      expect(incremental.steps.find((s) => s.table === "procedures")?.status).toBe("skipped");
+      expect(incremental.steps.find((s) => s.table === "schedule_rooms")?.status).toBe("skipped");
+      expect(incremental.steps.find((s) => s.table === "patients")?.status).toBe("success");
+
+      const future = new Date(Date.now() + 60_000);
+      utimesSync(join(dataRoot, "DOCTORS.DBF"), future, future);
+      const changed = await runMirrorImportSafe({ dataRoot, sqlitePath, incremental: true });
+      expect(changed.overall).toBe("success");
+      expect(changed.steps.find((s) => s.table === "doctors")?.status).toBe("success");
+      expect(changed.steps.find((s) => s.table === "procedures")?.status).toBe("skipped");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

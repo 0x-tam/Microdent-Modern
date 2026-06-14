@@ -7,6 +7,8 @@ import {
   finishImportRun,
   fingerprintSourceFiles,
   recordImportError,
+  recordSourceFileSnapshots,
+  snapshotSourceFiles,
   type ImportTrigger,
 } from "./import-run.js";
 import { openDatabaseSync, type SqliteDatabase } from "./node-sqlite.js";
@@ -111,6 +113,7 @@ export async function importTreatments(options: ImportTreatmentsOptions): Promis
       tablesRequested: [SOURCE_TABLE],
       dataRootFingerprint: fingerprint,
     });
+    recordSourceFileSnapshots(db, runId, snapshotSourceFiles(dataRoot, SOURCE_TABLE, [OPERTBL_DBF]));
 
     if (!existsSync(operPath)) {
       recordImportError(db, runId, {

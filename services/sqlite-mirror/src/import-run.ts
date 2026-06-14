@@ -5,6 +5,15 @@ import type { SqliteDatabase } from "./node-sqlite.js";
 
 export type ImportTrigger = "cli" | "manual" | "scheduled";
 export type ImportRunStatus = "running" | "success" | "partial" | "failed";
+export type SourceFileState = "present" | "missing" | "unreadable";
+
+export type SourceFileSnapshot = {
+  tableName: string;
+  sourceFile: string;
+  fileState: SourceFileState;
+  sizeBytes: number | null;
+  mtimeMs: number | null;
+};
 
 export function fingerprintSourceFiles(
   dataRootPath: string,
@@ -44,6 +53,83 @@ export function beginImportRun(
       JSON.stringify(opts.tablesRequested),
     );
   return Number(result.lastInsertRowid);
+}
+
+export function snapshotSourceFiles(
+  dataRootPath: string,
+  tableName: string,
+  basenames: readonly string[],
+): SourceFileSnapshot[] {
+  return basenames.map((sourceFile) => {
+    try {
+      const st = statSync(join(dataRootPath, sourceFile));
+      return {
+        tableName,
+        sourceFile,
+        fileState: "present",
+        sizeBytes: st.size,
+        mtimeMs: st.mtimeMs,
+      };
+    } catch (error) {
+      const code = typeof error === "object" && error !== null && "code" in error ? String(error.code) : "";
+      return {
+        tableName,
+        sourceFile,
+        fileState: code === "ENOENT" ? "missing" : "unreadable",
+        sizeBytes: null,
+        mtimeMs: null,
+      };
+    }
+  });
+}
+
+export function recordSourceFileSnapshots(
+  db: SqliteDatabase,
+  runId: number,
+  snapshots: readonly SourceFileSnapshot[],
+): void {
+  if (snapshots.length === 0) return;
+  const capturedAt = new Date().toISOString();
+  const insert = db.prepare(
+    `INSERT INTO import_source_file_snapshots (
+      run_id, table_name, source_file, file_state, size_bytes, mtime_ms, captured_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+  );
+  for (const snapshot of snapshots) {
+    insert.run(
+      runId,
+      snapshot.tableName,
+      snapshot.sourceFile,
+      snapshot.fileState,
+      snapshot.sizeBytes,
+      snapshot.mtimeMs,
+      capturedAt,
+    );
+  }
+}
+
+export function latestSourceSnapshotMatches(
+  db: SqliteDatabase,
+  currentSnapshots: readonly SourceFileSnapshot[],
+): boolean {
+  if (currentSnapshots.length === 0) return false;
+  const latest = db.prepare(
+    `SELECT file_state, size_bytes, mtime_ms
+     FROM import_source_file_snapshots
+     WHERE table_name = ? AND source_file = ?
+     ORDER BY snapshot_id DESC
+     LIMIT 1`,
+  );
+  for (const current of currentSnapshots) {
+    const previous = latest.get(current.tableName, current.sourceFile) as
+      | { file_state: SourceFileState; size_bytes: number | null; mtime_ms: number | null }
+      | undefined;
+    if (previous === undefined) return false;
+    if (previous.file_state !== current.fileState) return false;
+    if ((previous.size_bytes ?? null) !== current.sizeBytes) return false;
+    if ((previous.mtime_ms ?? null) !== current.mtimeMs) return false;
+  }
+  return true;
 }
 
 export function recordImportError(

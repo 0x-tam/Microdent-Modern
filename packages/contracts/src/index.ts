@@ -9,8 +9,12 @@ export {
 } from "./write-mode.js";
 export {
   MirrorImportRunSummarySchema,
+  MirrorSourceFileStatusSchema,
+  MirrorSourceTableStatusSchema,
   MirrorStatusResponseSchema,
   type MirrorImportRunSummary,
+  type MirrorSourceFileStatus,
+  type MirrorSourceTableStatus,
   type MirrorStatusResponse,
 } from "./mirror-status.js";
 export {
@@ -20,6 +24,16 @@ export {
   type WriteAuditRecentResponse,
 } from "./write-audit-recent.js";
 export { ApiErrorBodySchema, type ApiErrorBody } from "./api-error.js";
+export {
+  OfflineLicenseFeaturesSchema,
+  OfflineLicenseRuntimeStatusSchema,
+  OfflineLicenseStatusResponseSchema,
+  OfflineLicenseTierSchema,
+  type OfflineLicenseFeatures,
+  type OfflineLicenseRuntimeStatus,
+  type OfflineLicenseStatusResponse,
+  type OfflineLicenseTier,
+} from "./offline-license-status.js";
 export { TablesListResponseSchema, TableListItemSchema, type TablesListResponse } from "./meta-tables.js";
 export {
   TableSchemaResponseSchema,

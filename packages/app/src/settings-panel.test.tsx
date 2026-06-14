@@ -5,6 +5,7 @@ import { SettingsPanel } from "./SettingsPanel.js";
 import type { BridgeDevStatusResponse, MirrorStatusResponse } from "@microdent/contracts";
 import { assertNoForbiddenDomTokens } from "./read-only-smoke-fixtures.js";
 import { MIRROR_IMPORT_STALE_MS } from "./mirror-stale.js";
+import { markPostWriteLocalCopyRefreshNeeded } from "./post-write-local-copy.js";
 
 const writeCapBase: BridgeDevStatusResponse = {
   writeMode: "disabled",
@@ -139,6 +140,7 @@ describe("SettingsPanel", () => {
 
   it("runs desktop local copy refresh and shows progress/success copy", async () => {
     const refreshLocalCopy = vi.fn(async () => ({ ok: true }));
+    const onLocalCopyRefreshComplete = vi.fn();
     let progressListener: ((progress: { label: string; percent: number }) => void) | null = null;
     const { act } = await import("react");
     const { createRoot } = await import("react-dom/client");
@@ -152,6 +154,8 @@ describe("SettingsPanel", () => {
           writeCapability={writeCapBase}
           mirrorStatus={mirrorEmpty}
           onMirrorStatusChange={() => {}}
+          postWriteLocalCopyRefresh={markPostWriteLocalCopyRefreshNeeded(1234)}
+          onLocalCopyRefreshComplete={onLocalCopyRefreshComplete}
           desktopActions={{
             refreshLocalCopy,
             onLocalCopyRefreshProgress: (listener) => {
@@ -176,7 +180,63 @@ describe("SettingsPanel", () => {
     });
 
     expect(refreshLocalCopy).toHaveBeenCalledOnce();
+    expect(onLocalCopyRefreshComplete).toHaveBeenCalledOnce();
     expect(container.textContent).toContain("Local copy refreshed");
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it("loads offline license status without exposing paths or PHI", async () => {
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/v1/meta/license-status")) {
+        return new Response(
+          JSON.stringify({
+            status: "signature-unverified",
+            configured: true,
+            licensePresent: true,
+            signatureVerified: false,
+            clinicLabel: "CLINIC-PC-01",
+            tier: "clinic-enterprise",
+            expiresAt: "2030-01-01T00:00:00.000Z",
+            graceUntil: "2030-01-31T00:00:00.000Z",
+            features: {
+              readOnly: true,
+              sandboxWrites: false,
+              localCopyRefresh: false,
+              supportExport: false,
+            },
+            message: "Offline license signature could not be verified. Read-only access remains available.",
+          }),
+          { headers: { "Content-Type": "application/json" } },
+        );
+      }
+      return new Response("{}", { headers: { "Content-Type": "application/json" } });
+    });
+    const { act } = await import("react");
+    const { createRoot } = await import("react-dom/client");
+    const container = document.createElement("div");
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <SettingsPanel
+          bridgePhase="connected"
+          bridgeBaseUrl="http://127.0.0.1:17890"
+          fetchImpl={fetchImpl as typeof fetch}
+          writeCapability={writeCapBase}
+          mirrorStatus={mirrorEmpty}
+          onMirrorStatusChange={() => {}}
+        />,
+      );
+    });
+
+    expect(container.textContent).toContain("Offline license");
+    expect(container.textContent).toContain("CLINIC-PC-01");
+    expect(container.textContent).toContain("clinic-enterprise");
+    expect(container.textContent).toContain("Read-only access remains available");
+    expect(container.textContent).not.toMatch(/license\.json|C:\\Users|\/Users|PAT_NAME|TELEPHONE/);
     await act(async () => {
       root.unmount();
     });

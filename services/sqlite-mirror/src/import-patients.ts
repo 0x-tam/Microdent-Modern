@@ -7,6 +7,8 @@ import {
   finishImportRun,
   fingerprintSourceFiles,
   recordImportError,
+  recordSourceFileSnapshots,
+  snapshotSourceFiles,
   type ImportTrigger,
 } from "./import-run.js";
 import { mapSafePatientRow } from "./patient-field-map.js";
@@ -14,6 +16,7 @@ import { openDatabaseSync, type SqliteDatabase } from "./node-sqlite.js";
 
 const PATIENT_DBF = "PATIENT.DBF";
 const SOURCE_TABLE = "patient";
+const MIRROR_TABLE = "patients";
 const BATCH_SIZE = 500;
 const PATIENT_OPEN_OPTIONS = { encoding: "win1252" as const, readMode: "loose" as const };
 
@@ -102,6 +105,7 @@ export async function importPatients(options: ImportPatientsOptions): Promise<Im
       tablesRequested: [SOURCE_TABLE],
       dataRootFingerprint: fingerprint,
     });
+    recordSourceFileSnapshots(db, runId, snapshotSourceFiles(dataRoot, MIRROR_TABLE, [PATIENT_DBF]));
 
     if (!existsSync(patientPath)) {
       recordImportError(db, runId, {

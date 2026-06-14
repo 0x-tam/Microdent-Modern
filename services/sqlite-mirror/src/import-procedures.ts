@@ -5,6 +5,8 @@ import {
   finishImportRun,
   fingerprintSourceFiles,
   recordImportError,
+  recordSourceFileSnapshots,
+  snapshotSourceFiles,
 } from "./import-run.js";
 import { openDatabaseSync, type SqliteDatabase } from "./node-sqlite.js";
 import {
@@ -88,6 +90,7 @@ export async function importProcedures(
       tablesRequested: [SOURCE_TABLE],
       dataRootFingerprint: fingerprint,
     });
+    recordSourceFileSnapshots(db, runId, snapshotSourceFiles(dataRoot, SOURCE_TABLE, [SOURCE_FILE]));
 
     if (!dataRootConfig.configured) {
       recordImportError(db, runId, {

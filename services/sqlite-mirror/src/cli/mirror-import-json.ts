@@ -3,6 +3,7 @@ import { runMirrorImportSafe } from "../run-mirror-import-safe.js";
 type CliArgs = {
   dataRoot?: string;
   sqlitePath?: string;
+  incremental?: boolean;
 };
 
 function parseArgs(argv: string[]): CliArgs {
@@ -16,6 +17,8 @@ function parseArgs(argv: string[]): CliArgs {
     } else if (arg === "--sqlite-path" && next) {
       parsed.sqlitePath = next;
       i++;
+    } else if (arg === "--incremental") {
+      parsed.incremental = true;
     }
   }
   return parsed;
@@ -31,6 +34,7 @@ async function main(): Promise<void> {
   const result = await runMirrorImportSafe({
     dataRoot: args.dataRoot,
     sqlitePath: args.sqlitePath,
+    incremental: args.incremental === true,
   });
 
   process.stdout.write(`${JSON.stringify({

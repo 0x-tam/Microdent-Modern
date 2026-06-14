@@ -180,6 +180,13 @@ export const WRITE_REFRESH_NUDGE = "Refresh the profile or schedule view after a
 export const WRITE_POST_COMMIT_COMBINED_NUDGE =
   "Refresh the profile or schedule view to see updated data. Local copy may lag — refresh import from Settings when ready.";
 
+export const POST_WRITE_LOCAL_COPY_REFRESH_TITLE = "Local copy may need refresh";
+
+export const POST_WRITE_LOCAL_COPY_REFRESH_BODY =
+  "A sandbox commit succeeded. Search, Today, and Schedule may still use the previous local copy until Refresh local copy runs in Settings.";
+
+export const POST_WRITE_LOCAL_COPY_REFRESH_ACTION = "Open Settings";
+
 export const WRITE_PLAN_LABEL_WORKFLOW = "Workflow";
 
 export const WRITE_PLAN_LABEL_RECORD_ID = "Record id";

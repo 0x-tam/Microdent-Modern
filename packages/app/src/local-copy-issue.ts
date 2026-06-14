@@ -55,6 +55,14 @@ export function resolveLocalCopyIssue(status: MirrorStatusResponse): LocalCopyIs
     };
   }
 
+  if (status.sourceChangedSinceImport) {
+    return {
+      tone: "warn",
+      title: "Copied files changed since refresh",
+      body: "The copied clinic files changed after the last local copy refresh. Refresh the local copy before relying on search or schedule.",
+    };
+  }
+
   const imported = new Set(status.importedTables);
   const missingCoreTables = CORE_LOCAL_COPY_TABLES.filter((table) => !imported.has(table));
   if (missingCoreTables.length > 0 && status.latestImportRuns.length > 0) {

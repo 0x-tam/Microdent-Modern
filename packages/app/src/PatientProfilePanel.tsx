@@ -94,6 +94,11 @@ import {
   type SessionRecentPatient,
 } from "./session-recent-patients.js";
 import {
+  PostWriteLocalCopyRefreshNotice,
+  createCleanPostWriteLocalCopyState,
+  type PostWriteLocalCopyRefreshState,
+} from "./post-write-local-copy.js";
+import {
   CLINIC_SERVICE_CHECKING,
   CLINIC_SERVICE_OFFLINE_PANEL,
   CLINIC_SERVICE_OFFLINE_SECTION,
@@ -244,6 +249,9 @@ export type PatientProfilePanelProps = {
   onRecentPatientSelect?: (entry: SessionRecentPatient) => void;
   /** Opens the schedule module focused on a visit date (YYYY-MM-DD). */
   onOpenScheduleAtDate?: (dateIso: string) => void;
+  postWriteLocalCopyRefresh?: PostWriteLocalCopyRefreshState;
+  onSandboxWriteCommitted?: () => void;
+  onOpenSettings?: () => void;
 };
 
 type LoadState =
@@ -517,6 +525,7 @@ function ProfileClinicHero({
           className="ui-focusable"
           onClick={onToggleChangePatient}
           aria-expanded={changePatientSearchOpen}
+          aria-controls="patient-change-search-panel"
         >
           {PATIENT_CHANGE_PATIENT_LABEL}
         </Button>
@@ -1473,6 +1482,7 @@ function groupAppointmentsByDate(
 }
 
 function PatientPageSearchBlock({
+  id,
   patientId,
   bridgePhase,
   bridgeBaseUrl,
@@ -1484,6 +1494,7 @@ function PatientPageSearchBlock({
   clearSelectionOnQueryChange,
   title,
 }: {
+  id?: string;
   patientId: string | null;
   bridgePhase: BridgeHealthPhase;
   bridgeBaseUrl?: string;
@@ -1496,7 +1507,7 @@ function PatientPageSearchBlock({
   title?: string;
 }) {
   return (
-    <section className="app-patient-profile__search" aria-labelledby={title ? "app-patients-page-search-heading" : undefined}>
+    <section id={id} className="app-patient-profile__search" aria-labelledby={title ? "app-patients-page-search-heading" : undefined}>
       {title ? (
         <h3 id="app-patients-page-search-heading" className="app-patient-profile__search-title">
           {title}
@@ -1534,6 +1545,9 @@ export function PatientProfilePanel({
   recentPatients = [],
   onRecentPatientSelect,
   onOpenScheduleAtDate,
+  postWriteLocalCopyRefresh = createCleanPostWriteLocalCopyState(),
+  onSandboxWriteCommitted,
+  onOpenSettings,
 }: PatientProfilePanelProps) {
   const base = bridgeBaseUrl?.trim() ?? "";
   const { labels: doctorLabels } = useDoctorLabels({
@@ -2194,6 +2208,11 @@ export function PatientProfilePanel({
     }
   }, [activeTab]);
 
+  const handleSandboxWriteCommitted = useCallback(() => {
+    onSandboxWriteCommitted?.();
+    refreshOpenRecord();
+  }, [onSandboxWriteCommitted, refreshOpenRecord]);
+
   const summaryPrefetches = useMemo<PatientWorkspacePrefetches>(
     () => ({
       appt: summaryAppt,
@@ -2292,12 +2311,19 @@ export function PatientProfilePanel({
 
             <ProfileWorkflowStrip prefetches={summaryPrefetches} />
 
+            <PostWriteLocalCopyRefreshNotice
+              state={postWriteLocalCopyRefresh}
+              className="app-patient-profile__post-write-local-copy"
+              onOpenSettings={onOpenSettings}
+            />
+
             <p className="app-patient-profile__readonly-note clinic-profile-readonly-note" role="note">
               {PATIENT_PROFILE_READONLY_NOTE}
             </p>
 
             {changePatientSearchOpen ? (
               <PatientPageSearchBlock
+                id="patient-change-search-panel"
                 patientId={patientId}
                 bridgePhase={bridgePhase}
                 bridgeBaseUrl={bridgeBaseUrl}
@@ -2328,7 +2354,7 @@ export function PatientProfilePanel({
                 roomMap={roomMap}
                 sandboxWritePilot={sandboxWritePilot}
                 onOpenTab={setActiveTab}
-                onRefresh={() => setRetryNonce((n) => n + 1)}
+                onRefresh={handleSandboxWriteCommitted}
                 bridgeBaseUrl={base}
                 patientId={patientId}
                 writeCapability={writeCapability}

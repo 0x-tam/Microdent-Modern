@@ -63,6 +63,30 @@ describe("BridgeClient", () => {
     expect(fetch).toHaveBeenCalledWith(`${baseUrl}/v1/meta/write-audit-recent`, expect.anything());
   });
 
+  it("getLicenseStatus: success", async () => {
+    const body = {
+      status: "not-configured",
+      configured: false,
+      licensePresent: false,
+      signatureVerified: false,
+      clinicLabel: null,
+      tier: null,
+      expiresAt: null,
+      graceUntil: null,
+      features: {
+        readOnly: true,
+        sandboxWrites: false,
+        localCopyRefresh: false,
+        supportExport: false,
+      },
+      message: "No offline license is configured. Pilot read-only access remains available.",
+    };
+    const fetch = vi.fn().mockResolvedValue(jsonResponse(body));
+    const client = createBridgeClient({ baseUrl, fetch });
+    await expect(client.getLicenseStatus()).resolves.toEqual(body);
+    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/v1/meta/license-status`, expect.anything());
+  });
+
   it("getMetaTables: success", async () => {
     const body = {
       tables: [{ id: "fixture_tiny", label: "Synthetic", fileName: "FAKE_TINY.dbf" }],

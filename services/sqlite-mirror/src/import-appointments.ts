@@ -8,6 +8,8 @@ import {
   finishImportRun,
   fingerprintSourceFiles,
   recordImportError,
+  recordSourceFileSnapshots,
+  snapshotSourceFiles,
   type ImportTrigger,
 } from "./import-run.js";
 import { openDatabaseSync, type SqliteDatabase } from "./node-sqlite.js";
@@ -121,6 +123,7 @@ export async function importAppointments(
       tablesRequested: [SOURCE_TABLE],
       dataRootFingerprint: fingerprint,
     });
+    recordSourceFileSnapshots(db, runId, snapshotSourceFiles(dataRoot, SOURCE_TABLE, [SCHEDULE_DBF]));
 
     if (!existsSync(schedulePath)) {
       recordImportError(db, runId, {

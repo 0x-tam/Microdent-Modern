@@ -4,6 +4,8 @@ import {
   finishImportRun,
   fingerprintSourceFiles,
   recordImportError,
+  recordSourceFileSnapshots,
+  snapshotSourceFiles,
 } from "./import-run.js";
 import type { ReferenceDoctorItem } from "@microdent/contracts";
 import { openDatabaseSync, type SqliteDatabase } from "./node-sqlite.js";
@@ -68,6 +70,7 @@ export async function importDoctors(options: ImportDoctorsOptions): Promise<Impo
       tablesRequested: [SOURCE_TABLE],
       dataRootFingerprint: fingerprint,
     });
+    recordSourceFileSnapshots(db, runId, snapshotSourceFiles(dataRoot, SOURCE_TABLE, [SOURCE_FILE]));
 
     if (!dataRootConfig.configured) {
       recordImportError(db, runId, {

@@ -55,6 +55,11 @@ import { AppointmentCreateWriteAction } from "./AppointmentCreateWriteAction.js"
 import { AppointmentStatusDryRunAction } from "./AppointmentStatusDryRunAction.js";
 import { AppointmentWriteActionsPanel } from "./AppointmentWriteActionsPanel.js";
 import {
+  PostWriteLocalCopyRefreshNotice,
+  createCleanPostWriteLocalCopyState,
+  type PostWriteLocalCopyRefreshState,
+} from "./post-write-local-copy.js";
+import {
   countAppointmentsByStatus,
   filterPatientAppointments,
   findCurrentAppointmentInRange,
@@ -95,6 +100,9 @@ export type SchedulePanelProps = {
   selectedPatientId?: string | null;
   selectedPatientDisplayName?: string | null;
   selectedPatientChartNumber?: string | null;
+  postWriteLocalCopyRefresh?: PostWriteLocalCopyRefreshState;
+  onSandboxWriteCommitted?: () => void;
+  onOpenSettings?: () => void;
 };
 
 type Granularity = "day" | "week";
@@ -290,6 +298,9 @@ export function SchedulePanel({
   selectedPatientId = null,
   selectedPatientDisplayName = null,
   selectedPatientChartNumber = null,
+  postWriteLocalCopyRefresh = createCleanPostWriteLocalCopyState(),
+  onSandboxWriteCommitted,
+  onOpenSettings,
 }: SchedulePanelProps) {
   const sandboxPilotEnabled = sandboxWritePilot || appointmentStatusWritePilot;
   const devWriteActionsEnabled =
@@ -654,6 +665,11 @@ export function SchedulePanel({
     setExpandedApptId((prev) => (prev === id ? null : id));
   }, []);
 
+  const handleSandboxWriteCommitted = useCallback(() => {
+    onSandboxWriteCommitted?.();
+    setRefreshTick((x) => x + 1);
+  }, [onSandboxWriteCommitted]);
+
   // Build summary string for the summary bar
   const summaryText = useMemo(() => {
     if (!canLoad || loading || error) return null;
@@ -677,6 +693,12 @@ export function SchedulePanel({
       <ClinicPageHero
         title={moduleTitle}
         subtitle={moduleDescription ?? SCHEDULE_PAGE_SUBTITLE}
+      />
+
+      <PostWriteLocalCopyRefreshNotice
+        state={postWriteLocalCopyRefresh}
+        className="app-schedule__post-write-local-copy"
+        onOpenSettings={onOpenSettings}
       />
 
       {/* ----- Date Navigation Header ----- */}
@@ -764,6 +786,8 @@ export function SchedulePanel({
             variant={showFilters || clientFiltersActive ? "primary" : "ghost"}
             size="compact"
             className="app-schedule__filter-toggle"
+            aria-expanded={showFilters}
+            aria-controls="schedule-filter-panel"
             onClick={() => setShowFilters((s) => !s)}
           >
             {clientFiltersActive ? "Filters active" : "Filters"}
@@ -786,7 +810,7 @@ export function SchedulePanel({
       {/* ----- Filter Bar (collapsible) ----- */}
       {showFilters && canLoad && !loading && !error && (
         <Card className="app-schedule__filter-card">
-          <CardBody className="app-schedule__filter-body">
+          <CardBody className="app-schedule__filter-body" id="schedule-filter-panel">
             {roomOptions.length > 0 && (
               <label className="app-schedule__filter-field">
                 <span className="app-schedule__filter-label">{SCHEDULE_ROOM_FILTER_LABEL}</span>
@@ -868,6 +892,7 @@ export function SchedulePanel({
                 size="compact"
                 variant="ghost"
                 className="app-schedule__clear-filters-btn"
+                aria-label="Clear schedule filters"
                 onClick={clearClientFilters}
               >
                 {FILTER_CLEAR_LABEL}
@@ -884,6 +909,7 @@ export function SchedulePanel({
           <button
             type="button"
             className="app-schedule__show-filters-link"
+            aria-label="Edit active schedule filters"
             onClick={() => setShowFilters(true)}
           >
             edit
@@ -1026,6 +1052,7 @@ export function SchedulePanel({
                                       variant="ghost"
                                       size="compact"
                                       className="app-schedule__open-patient-btn"
+                                      aria-label={`Open patient record for ${patientName}`}
                                       onClick={() => openPatientFromAppt(appt)}
                                     >
                                       {SCHEDULE_OPEN_PATIENT}
@@ -1039,7 +1066,8 @@ export function SchedulePanel({
                                       className="app-schedule__expand-btn"
                                       onClick={() => toggleExpandAppt(appt.id)}
                                       aria-expanded={isExpanded}
-                                      aria-label={isExpanded ? "Hide details" : "Show details"}
+                                      aria-controls={`schedule-appt-details-${appt.id}`}
+                                      aria-label={isExpanded ? `Hide write details for ${patientName}` : `Show write details for ${patientName}`}
                                     >
                                       {isExpanded ? "▾" : "▸"}
                                     </Button>
@@ -1067,7 +1095,7 @@ export function SchedulePanel({
 
                               {/* Expandable dev/sandbox actions */}
                               {isExpanded && (
-                                <CardBody className="app-schedule__appt-card-details">
+                                <CardBody className="app-schedule__appt-card-details" id={`schedule-appt-details-${appt.id}`}>
                                   {bridgeBaseUrl && sandboxPilotEnabled && canLoad ? (
                                     <AppointmentWriteActionsPanel
                                       appointment={appt}
@@ -1077,7 +1105,7 @@ export function SchedulePanel({
                                       writeCapability={writeCapability}
                                       roomOptions={roomOptions}
                                       roomMap={buildRoomLabelMap(rooms)}
-                                      onCommitted={() => setRefreshTick((x) => x + 1)}
+                                      onCommitted={handleSandboxWriteCommitted}
                                     />
                                   ) : null}
                                   {bridgeBaseUrl && devWriteActionsEnabled ? (
@@ -1119,7 +1147,7 @@ export function SchedulePanel({
             selectedPatientId={selectedPatientId}
             selectedPatientDisplayName={selectedPatientDisplayName}
             selectedPatientChartNumber={selectedPatientChartNumber}
-            onCommitted={() => setRefreshTick((x) => x + 1)}
+            onCommitted={handleSandboxWriteCommitted}
           />
         ) : null}
         <Button type="button" variant="secondary" className="ui-focusable" onClick={onBackToday}>

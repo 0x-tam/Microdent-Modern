@@ -23,9 +23,11 @@ import {
   TablesListResponseSchema,
   TableSchemaResponseSchema,
   MirrorStatusResponseSchema,
+  OfflineLicenseStatusResponseSchema,
   WriteAuditRecentResponseSchema,
   type HealthResponse,
   type MirrorStatusResponse,
+  type OfflineLicenseStatusResponse,
   type WriteAuditRecentResponse,
   type LegacyCatalogResponse,
   type PatientProfileResponse,
@@ -100,6 +102,11 @@ export class BridgeClient {
   /** Recent write-audit metadata only — no paths, payloads, or PHI (`GET /v1/meta/write-audit-recent`). */
   async getWriteAuditRecent(): Promise<WriteAuditRecentResponse> {
     return this.requestJson("/v1/meta/write-audit-recent", WriteAuditRecentResponseSchema);
+  }
+
+  /** Local-only offline license status — no paths, payloads, telemetry, or PHI. */
+  async getLicenseStatus(): Promise<OfflineLicenseStatusResponse> {
+    return this.requestJson("/v1/meta/license-status", OfflineLicenseStatusResponseSchema);
   }
 
   async getLegacyCatalog(): Promise<LegacyCatalogResponse> {

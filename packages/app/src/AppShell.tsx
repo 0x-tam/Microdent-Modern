@@ -50,6 +50,11 @@ import {
   pushSessionRecentPatient,
   type SessionRecentPatient,
 } from "./session-recent-patients.js";
+import {
+  clearPostWriteLocalCopyRefreshNeeded,
+  createCleanPostWriteLocalCopyState,
+  markPostWriteLocalCopyRefreshNeeded,
+} from "./post-write-local-copy.js";
 
 export {
   APP_NAV_MODULES,
@@ -160,6 +165,9 @@ export function AppShell({
   const [mirrorStatus, setMirrorStatus] = useState<MirrorStatusResponse | null>(null);
   const [writeCapability, setWriteCapability] = useState<BridgeDevStatusResponse | null>(null);
   const [scheduleInitialDate, setScheduleInitialDate] = useState<string | null>(null);
+  const [postWriteLocalCopyRefresh, setPostWriteLocalCopyRefresh] = useState(() =>
+    createCleanPostWriteLocalCopyState(),
+  );
 
   const mainHeadingId = "app-main-heading";
 
@@ -224,6 +232,14 @@ export function AppShell({
   const handleOpenScheduleAtDate = useCallback((dateIso: string) => {
     setScheduleInitialDate(dateIso);
     setActive("schedule");
+  }, []);
+
+  const handleSandboxWriteCommitted = useCallback(() => {
+    setPostWriteLocalCopyRefresh(markPostWriteLocalCopyRefreshNeeded());
+  }, []);
+
+  const handleLocalCopyRefreshComplete = useCallback(() => {
+    setPostWriteLocalCopyRefresh(clearPostWriteLocalCopyRefreshNeeded());
   }, []);
 
   const handleScheduleInitialDateApplied = useCallback(() => {
@@ -384,6 +400,7 @@ export function AppShell({
               className={`clinic-sidebar__nav-btn app-sidebar__btn ui-focusable clinic-sidebar__nav-btn--${m.id} app-sidebar__btn--${m.id}`}
               aria-current={active === m.id ? "true" : undefined}
               aria-controls="app-main-region"
+              aria-label={`${m.label}: ${m.sublabel}`}
               title={m.sublabel}
               onClick={() => setActive(m.id)}
             >
@@ -425,6 +442,7 @@ export function AppShell({
               <button
                 type="button"
                 className="clinic-sidebar__patient-name app-rail__patient-chip app-main__patient-context-chip ui-focusable"
+                aria-label={`Open selected patient: ${selectedPatientContextLabel}`}
                 onClick={() => setActive("patients")}
               >
                 {selectedPatientDisplayName ?? selectedPatientContextLabel}
@@ -481,6 +499,7 @@ export function AppShell({
           <button
             type="button"
             className="clinic-sidebar__settings-link app-rail__settings-link ui-focusable"
+            aria-label="Open Settings"
             onClick={() => setActive("settings")}
           >
             Settings
@@ -514,6 +533,7 @@ export function AppShell({
                 variant="ghost"
                 size="compact"
                 className="ui-focusable app-topbar__refresh clinic-header-refresh"
+                aria-label="Refresh clinic service status"
                 onClick={() => void runBridgeHealthCheck()}
               >
                 ↻ Refresh
@@ -575,6 +595,8 @@ export function AppShell({
                   writeCapability={writeCapability}
                   sandboxWritePilot={sandboxWritePilot}
                   sessionRecentPatientCount={recentPatients.length}
+                  postWriteLocalCopyRefresh={postWriteLocalCopyRefresh}
+                  onOpenSettings={() => setActive("settings")}
                 />
               ) : active === "schedule" ? (
                 <SchedulePanel
@@ -594,6 +616,9 @@ export function AppShell({
                   selectedPatientId={selectedPatientId}
                   selectedPatientDisplayName={selectedPatientDisplayName}
                   selectedPatientChartNumber={selectedPatientChartNumber}
+                  postWriteLocalCopyRefresh={postWriteLocalCopyRefresh}
+                  onSandboxWriteCommitted={handleSandboxWriteCommitted}
+                  onOpenSettings={() => setActive("settings")}
                 />
               ) : active === "settings" ? (
                 <SettingsPanel
@@ -608,6 +633,8 @@ export function AppShell({
                   sandboxWritePilot={sandboxWritePilot}
                   showConnectionDiagnostics={showBridgeConnectionDiagnostics}
                   onOpenToday={() => setActive("today")}
+                  postWriteLocalCopyRefresh={postWriteLocalCopyRefresh}
+                  onLocalCopyRefreshComplete={handleLocalCopyRefreshComplete}
                   desktopActions={desktopActions}
                 />
               ) : (
@@ -626,6 +653,9 @@ export function AppShell({
                   onPatientRecordSelect={handlePatientRecordSelect}
                   onRecentPatientSelect={handleRecentPatientSelect}
                   onOpenScheduleAtDate={handleOpenScheduleAtDate}
+                  postWriteLocalCopyRefresh={postWriteLocalCopyRefresh}
+                  onSandboxWriteCommitted={handleSandboxWriteCommitted}
+                  onOpenSettings={() => setActive("settings")}
                 />
               )}
             </div>

@@ -14,9 +14,14 @@ export {
   beginImportRun,
   finishImportRun,
   fingerprintSourceFiles,
+  latestSourceSnapshotMatches,
   recordImportError,
+  recordSourceFileSnapshots,
+  snapshotSourceFiles,
   type ImportRunStatus,
   type ImportTrigger,
+  type SourceFileSnapshot,
+  type SourceFileState,
 } from "./import-run.js";
 export { importPatients, type ImportPatientsOptions, type ImportPatientsResult } from "./import-patients.js";
 export {

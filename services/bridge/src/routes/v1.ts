@@ -26,6 +26,7 @@ import {
   ReferenceProceduresResponseSchema,
   ScheduleRoomsResponseSchema,
   MirrorStatusResponseSchema,
+  OfflineLicenseStatusResponseSchema,
   WriteAuditRecentResponseSchema,
   BridgeDevStatusResponseSchema,
   TableRowsResponseSchema,
@@ -55,7 +56,7 @@ import { sendAppointmentCreateDryRunPlan } from "../write/appointment-create-dry
 import { commitPatientDemographicsUpdate } from "../write/patient-demographics-commit.js";
 import { sendPatientDemographicsDryRunPlan } from "../write/patient-demographics-dry-run-handler.js";
 import { findBlockedScheduleBodyKeys } from "../write/reject-blocked-body-keys.js";
-import { sendWriteModeDisabled } from "../write/write-route-guards.js";
+import { sendWriteModeDisabled, tryValidateWritableSandbox } from "../write/write-route-guards.js";
 import { parseWriteIntentHeader } from "../write/parse-write-intent.js";
 import { readReferenceDoctorsFromDbf } from "../dbf/reference-doctors.js";
 import { readReferenceProcedures } from "../dbf/reference-procedures.js";
@@ -69,6 +70,7 @@ import { readReferenceDoctorsFromSqlite } from "../sqlite/reference-doctors.js";
 import { readReferenceProceduresFromSqlite } from "../sqlite/reference-procedures.js";
 import { readMirrorStatus } from "../sqlite/mirror-status.js";
 import { readWriteAuditRecent } from "../sqlite/write-audit-recent.js";
+import { readOfflineLicenseStatus } from "../license/offline-license-status.js";
 
 function sendError(res: Response, status: number, code: string, message: string): void {
   const body = { error: { code, message } };
@@ -101,7 +103,7 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
   const router = Router();
 
   router.get("/mirror/status", (_req, res) => {
-    const body = readMirrorStatus(bridgeConfig.sqlitePath);
+    const body = readMirrorStatus(bridgeConfig.sqlitePath, bridgeConfig.dataRoot);
     MirrorStatusResponseSchema.parse(body);
     res.json(body);
   });
@@ -122,6 +124,12 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
   router.get("/meta/write-audit-recent", (_req, res) => {
     const body = readWriteAuditRecent(bridgeConfig.sqlitePath);
     WriteAuditRecentResponseSchema.parse(body);
+    res.json(body);
+  });
+
+  router.get("/meta/license-status", (_req, res) => {
+    const body = readOfflineLicenseStatus();
+    OfflineLicenseStatusResponseSchema.parse(body);
     res.json(body);
   });
 
@@ -526,6 +534,20 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
     if (!requireConfiguredDataRoot(res, bridgeConfig)) return;
     const dr = bridgeConfig.dataRoot;
     const { appointmentId } = pathParsed.data;
+    const allowLegacyWrites = process.env.ALLOW_LEGACY_WRITES;
+    const writeIntent = parseWriteIntentHeader(req.headers["x-write-intent"]);
+
+    if (bridgeConfig.writeMode === "enabled" && writeIntent !== "dry-run") {
+      if (
+        !tryValidateWritableSandbox(res, {
+          dataRoot: dr,
+          writeMode: "enabled",
+          allowLegacyWritesValue: allowLegacyWrites,
+        })
+      ) {
+        return;
+      }
+    }
 
     const lookup = await lookupScheduleAppointmentById(dr, appointmentId);
     if (lookup.kind === "missing_schedule") {
@@ -540,10 +562,6 @@ export function createV1Router(bridgeConfig: BridgeConfig): Router {
       sendError(res, 404, "SCHEDULE_APPOINTMENT_NOT_FOUND", "appointment not found");
       return;
     }
-
-    const allowLegacyWrites = process.env.ALLOW_LEGACY_WRITES;
-
-    const writeIntent = parseWriteIntentHeader(req.headers["x-write-intent"]);
 
     if (bridgeConfig.writeMode === "dry-run" || writeIntent === "dry-run") {
       sendAppointmentStatusDryRunPlan(res, {

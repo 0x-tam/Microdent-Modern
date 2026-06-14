@@ -4,6 +4,8 @@ import {
   finishImportRun,
   fingerprintSourceFiles,
   recordImportError,
+  recordSourceFileSnapshots,
+  snapshotSourceFiles,
 } from "./import-run.js";
 import type { ScheduleRoomItem } from "@microdent/contracts";
 import { openDatabaseSync, type SqliteDatabase } from "./node-sqlite.js";
@@ -66,6 +68,7 @@ export async function importScheduleRooms(
       tablesRequested: [SOURCE_TABLE],
       dataRootFingerprint: fingerprint,
     });
+    recordSourceFileSnapshots(db, runId, snapshotSourceFiles(dataRoot, SOURCE_TABLE, SOURCE_FILES));
 
     if (!dataRootConfig.configured) {
       recordImportError(db, runId, {

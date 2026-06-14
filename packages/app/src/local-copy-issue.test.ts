@@ -64,6 +64,55 @@ describe("resolveLocalCopyIssue", () => {
     expect(issue?.body).toContain("1 table");
   });
 
+  it("reports copied file changes after refresh without source paths", () => {
+    const issue = resolveLocalCopyIssue({
+      ...baseStatus,
+      sourceChangedSinceImport: true,
+      sourceFileStatuses: [
+        {
+          tableName: "patients",
+          status: "changed",
+          checkedAt: "2026-06-06T01:03:00.000Z",
+          sourceFiles: [
+            {
+              sourceFile: "PATIENT.DBF",
+              status: "changed",
+              importedSizeBytes: 100,
+              importedMtimeMs: 1,
+              currentSizeBytes: 110,
+              currentMtimeMs: 2,
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(issue?.tone).toBe("warn");
+    expect(issue?.title).toBe("Copied files changed since refresh");
+    expect(issue?.body).toContain("Refresh the local copy");
+    expect(JSON.stringify(issue)).not.toContain("PATIENT.DBF");
+    expect(JSON.stringify(issue)).not.toContain("/Users/");
+    expect(JSON.stringify(issue)).not.toContain("C:\\");
+  });
+
+  it("keeps failed refreshes higher priority than copied file change warnings", () => {
+    const issue = resolveLocalCopyIssue({
+      ...baseStatus,
+      sourceChangedSinceImport: true,
+      latestImportRuns: [
+        {
+          tableName: "patients",
+          status: "failed",
+          rowCount: 0,
+          errorCount: 1,
+          finishedAt: "2026-06-06T01:02:03.000Z",
+        },
+      ],
+    });
+
+    expect(issue?.title).toBe("Local copy refresh failed");
+  });
+
   it("reports partial refresh runs as warn-only", () => {
     const issue = resolveLocalCopyIssue({
       ...baseStatus,

@@ -4,6 +4,8 @@ import {
   finishImportRun,
   fingerprintSourceFiles,
   recordImportError,
+  recordSourceFileSnapshots,
+  snapshotSourceFiles,
   type ImportTrigger,
 } from "./import-run.js";
 import type { MedicalSummaryMirrorRecord } from "@microdent/bridge/import-source";
@@ -80,6 +82,7 @@ export async function importMedicalSummary(
       tablesRequested: [SOURCE_TABLE],
       dataRootFingerprint: fingerprint,
     });
+    recordSourceFileSnapshots(db, runId, snapshotSourceFiles(dataRoot, SOURCE_TABLE, [SOURCE_FILE]));
 
     if (!dataRootConfig.configured) {
       recordImportError(db, runId, {

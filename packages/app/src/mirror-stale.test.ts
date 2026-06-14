@@ -44,6 +44,20 @@ describe("mirror stale helpers", () => {
     expect(isMirrorImportStale(fallback, now, MIRROR_IMPORT_STALE_MS)).toBe(false);
   });
 
+  it("flags copied file changes even when import timestamps are fresh", () => {
+    const now = Date.parse("2026-05-17T14:00:00.000Z");
+    expect(
+      isMirrorImportStale(
+        {
+          ...freshStatus,
+          sourceChangedSinceImport: true,
+        },
+        now,
+        MIRROR_IMPORT_STALE_MS,
+      ),
+    ).toBe(true);
+  });
+
   it("returns banner copy only when connected and stale", () => {
     const copy = { label: "Stale", body: "Refresh mirror." };
     const now = Date.parse("2026-05-19T13:00:00.000Z");
