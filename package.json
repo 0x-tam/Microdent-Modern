@@ -79,7 +79,7 @@
     "pilot:release-check": "node scripts/pilot-checkpoint.mjs release-check",
     "pilot:release-check:bash": "bash scripts/pilot-release-check.sh",
     "pilot:mac-release-status": "node scripts/pilot-mac-release-status.mjs",
-    "test:pilot-artifacts": "pnpm --dir services/bridge exec vitest run --root ../.. --config scripts/pilot-release-vitest.config.mjs",
+    "test:pilot-artifacts": "vitest run --config scripts/pilot-release-vitest.config.mjs",
     "strict-signoff:prepare": "node scripts/prepare-strict-signoff-sandbox.mjs",
     "strict-signoff:local": "node scripts/strict-signoff-local.mjs",
     "strict-signoff:local:bash": "bash scripts/strict-signoff-local.sh",
@@ -87,5 +87,8 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.9"
   }
 }
