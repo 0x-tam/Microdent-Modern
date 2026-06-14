@@ -35,6 +35,7 @@ let failed = false;
 
 const APP_SCENARIO_TEST_FILES = [
   "src/read-only-flow-smoke.test.tsx",
+  "src/read-only-responsive-smoke.test.tsx",
   "src/appointment-status-write.test.tsx",
   "src/patient-demographics-write.test.tsx",
   "src/settings-panel.test.tsx",
@@ -372,9 +373,9 @@ function requiredScenarioCoverage() {
     ],
     [
       "responsive layout check",
-      notCovered,
-      "One-click does not drive a browser viewport yet",
-      "Add browser/e2e viewport smoke or perform manual UI walkthrough",
+      appScenarios ? linuxSimulated : notCovered,
+      appScenarios ? "read-only responsive smoke renders core pages at 1600, 1280, 1024, and 760 px widths" : "One-click does not drive a responsive smoke yet",
+      "Visual browser/Electron viewport proof still recommended",
     ],
     [
       "forbidden-token safety check",
