@@ -46,6 +46,25 @@ function ConvertTo-SafeFileName {
   return $safe
 }
 
+function Add-RedirectedOutput {
+  param(
+    [string]$SourcePath,
+    [string]$LogPath
+  )
+  for ($attempt = 1; $attempt -le 5; $attempt += 1) {
+    try {
+      if (Test-Path -LiteralPath $SourcePath) {
+        Get-Content -LiteralPath $SourcePath -ErrorAction Stop | Add-Content -Path $LogPath -Encoding UTF8
+        Remove-Item -LiteralPath $SourcePath -Force -ErrorAction SilentlyContinue
+      }
+      return
+    } catch {
+      Start-Sleep -Milliseconds 250
+    }
+  }
+  Add-Content -Path $LogPath -Encoding UTF8 -Value "[windows-oneclick] redirected output was still locked; omitted from safe step log"
+}
+
 function Invoke-CheckedStep {
   param(
     [string]$Scenario,
@@ -80,15 +99,9 @@ function Invoke-CheckedStep {
   }
   $exitEvidence = if ($completed) { "exit $($proc.ExitCode)" } else { "timeout after ${TimeoutSeconds}s" }
   Add-Content -Path $logPath -Encoding UTF8 -Value @("ExitCode: $($proc.ExitCode)", "", "STDOUT:")
-  if (Test-Path -LiteralPath $stdoutPath) {
-    Get-Content -LiteralPath $stdoutPath -ErrorAction SilentlyContinue | Add-Content -Path $logPath -Encoding UTF8
-    Remove-Item -LiteralPath $stdoutPath -Force -ErrorAction SilentlyContinue
-  }
+  Add-RedirectedOutput $stdoutPath $logPath
   Add-Content -Path $logPath -Encoding UTF8 -Value @("", "STDERR:")
-  if (Test-Path -LiteralPath $stderrPath) {
-    Get-Content -LiteralPath $stderrPath -ErrorAction SilentlyContinue | Add-Content -Path $logPath -Encoding UTF8
-    Remove-Item -LiteralPath $stderrPath -Force -ErrorAction SilentlyContinue
-  }
+  Add-RedirectedOutput $stderrPath $logPath
   if ($completed -and $proc.ExitCode -eq 0) {
     Add-Row $Scenario "PASSED" "$exitEvidence; log $relativeLogPath" $RemainingGap
   } else {
