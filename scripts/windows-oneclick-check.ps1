@@ -16,6 +16,7 @@ $StageRoot = Join-Path $Root "dist\pilot-release\MicrodentModern"
 $SafeZip = Join-Path $ReportDir "MicrodentModern-safe-results.zip"
 $Report = Join-Path $ReportDir ("{0}-windows-oneclick-check.md" -f (Get-Date -Format "yyyy-MM-dd"))
 $Rows = New-Object System.Collections.Generic.List[string]
+$FailedStepLogs = New-Object System.Collections.Generic.List[string]
 $Failed = $false
 $StepIndex = 0
 
@@ -50,7 +51,8 @@ function Invoke-CheckedStep {
     [string]$Scenario,
     [string]$FilePath,
     [string[]]$Arguments,
-    [string]$RemainingGap = ""
+    [string]$RemainingGap = "",
+    [int]$TimeoutSeconds = 600
   )
   Write-Host "[windows-oneclick] $Scenario`: $FilePath $($Arguments -join ' ')"
   New-Item -ItemType Directory -Force -Path $StepLogDir | Out-Null
@@ -66,10 +68,17 @@ function Invoke-CheckedStep {
     "Generated: $(Get-Date -Format o)",
     "Command: $FilePath $($Arguments -join ' ')",
     "Working directory: repo root",
+    "TimeoutSeconds: $TimeoutSeconds",
     "PHI safety: generated command output only; do not add DBF, SQLite, screenshots, raw rows, operator paths, or clinic data.",
     ""
   )
-  $proc = Start-Process -FilePath $FilePath -ArgumentList $Arguments -WorkingDirectory $Root -NoNewWindow -PassThru -Wait -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+  $proc = Start-Process -FilePath $FilePath -ArgumentList $Arguments -WorkingDirectory $Root -NoNewWindow -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+  $completed = $proc.WaitForExit($TimeoutSeconds * 1000)
+  if (-not $completed) {
+    Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+    $proc.WaitForExit(5000) | Out-Null
+  }
+  $exitEvidence = if ($completed) { "exit $($proc.ExitCode)" } else { "timeout after ${TimeoutSeconds}s" }
   Add-Content -Path $logPath -Encoding UTF8 -Value @("ExitCode: $($proc.ExitCode)", "", "STDOUT:")
   if (Test-Path -LiteralPath $stdoutPath) {
     Get-Content -LiteralPath $stdoutPath -ErrorAction SilentlyContinue | Add-Content -Path $logPath -Encoding UTF8
@@ -80,10 +89,11 @@ function Invoke-CheckedStep {
     Get-Content -LiteralPath $stderrPath -ErrorAction SilentlyContinue | Add-Content -Path $logPath -Encoding UTF8
     Remove-Item -LiteralPath $stderrPath -Force -ErrorAction SilentlyContinue
   }
-  if ($proc.ExitCode -eq 0) {
-    Add-Row $Scenario "PASSED" "exit 0; log $relativeLogPath" $RemainingGap
+  if ($completed -and $proc.ExitCode -eq 0) {
+    Add-Row $Scenario "PASSED" "$exitEvidence; log $relativeLogPath" $RemainingGap
   } else {
-    Add-Row $Scenario "PROJECT FAILURE" "exit $($proc.ExitCode); log $relativeLogPath" $RemainingGap
+    $script:FailedStepLogs.Add($logPath)
+    Add-Row $Scenario "PROJECT FAILURE" "$exitEvidence; log $relativeLogPath" $RemainingGap
   }
 }
 
@@ -168,7 +178,7 @@ function Invoke-StagedAutoTest {
     Add-Row "Staged double-click auto test" "PROJECT FAILURE" "DOUBLE-CLICK-AUTO-TEST.cmd missing"
     return
   }
-  Invoke-CheckedStep "Staged double-click auto test non-interactive" "cmd.exe" @("/c", "`"$autoCmd`" --ci") "GUI/manual observation still remains a real field-test step."
+  Invoke-CheckedStep "Staged double-click auto test non-interactive" "cmd.exe" @("/c", "`"$autoCmd`" --ci") "GUI/manual observation still remains a real field-test step." 180
 }
 
 function Write-ReportAndZip {
@@ -288,6 +298,16 @@ if ($failedRows.Count -eq 0) {
 } else {
   Write-Host "FAIL/BLOCKED rows:"
   $failedRows | ForEach-Object { Write-Host $_ }
+  if ($FailedStepLogs.Count -gt 0) {
+    Write-Host ""
+    Write-Host "Failed step log tails"
+    Write-Host "---------------------"
+    foreach ($logPath in $FailedStepLogs) {
+      Write-Host ""
+      Write-Host "--- $logPath"
+      Get-Content -LiteralPath $logPath -Tail 80 -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ }
+    }
+  }
 }
 
 if ($Failed) {
