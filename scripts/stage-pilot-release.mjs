@@ -11,6 +11,7 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -147,16 +148,17 @@ function copyFileSafe(src, dest) {
 }
 
 function copyRuntimePackageDir(src, dest) {
+  const resolvedSrc = realpathSync(src);
   try {
-    assertSafeSourcePath(src, repoRoot);
+    assertSafeSourcePath(resolvedSrc, repoRoot);
   } catch (err) {
     fail(err instanceof Error ? err.message : String(err));
   }
+  rmSync(dest, { recursive: true, force: true });
   mkdirSync(dest, { recursive: true });
-  cpSync(src, dest, {
+  cpSync(resolvedSrc, dest, {
     recursive: true,
     force: true,
-    dereference: true,
     filter: (srcPath) => {
       const name = basename(srcPath);
       if (FORBIDDEN_ENV_FILE.test(name)) return false;

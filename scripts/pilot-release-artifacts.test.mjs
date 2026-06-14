@@ -5,14 +5,16 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import {
+import * as artifactRules from "./pilot-release-artifact-rules.mjs";
+
+const {
   assertCompiledArtifactTextSafe,
   assertStagedTreeSafe,
   isForbiddenStagedFileName,
   pathHasForbiddenSegment,
   REQUIRED_STAGED_LAYOUT,
   scanStagedArtifacts,
-} from "./pilot-release-artifact-rules.mjs";
+} = artifactRules;
 import {
   assertManifestJsonSafe,
   buildPilotBuildMetadata,
@@ -141,6 +143,23 @@ function makeTempDir() {
 }
 
 function zipDirectoryContents(sourceDir, zipPath) {
+  if (process.platform === "win32") {
+    const result = spawnSync("pwsh", [
+      "-NoProfile",
+      "-Command",
+      "$ErrorActionPreference = 'Stop'; Compress-Archive -Path (Join-Path $env:ZIP_SOURCE '*') -DestinationPath $env:ZIP_DEST -Force",
+    ], {
+      env: {
+        ...process.env,
+        ZIP_SOURCE: sourceDir,
+        ZIP_DEST: zipPath,
+      },
+      encoding: "utf8",
+    });
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+    return;
+  }
   const result = spawnSync("zip", ["-qr", zipPath, "."], {
     cwd: sourceDir,
     encoding: "utf8",
