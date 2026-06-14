@@ -76,15 +76,15 @@ A **sellable desktop application** for small-to-mid dental clinics running legac
 
 | Gap | Severity | Notes |
 |-----|----------|-------|
-| **Windows field execution** | BLOCKER | No real clinic PC has run the app; tier 3 field test never executed |
+| **Windows package + field execution evidence** | BLOCKER | No validated package verification evidence or real clinic PC field evidence exists; tier 3 field test never executed |
 | **NSIS installer** | High | Portable staged tree only; no signed installer, no auto-update |
 | **Code signing** | High | Windows Authenticode certificate required for deployment |
 | **Node.js bundling** | High | Clinic machines must have Node installed; should bundle runtime in installer |
 | **Web assets in Electron** | High | Currently uses dev server; needs static dist loading in production |
-| **Mirror auto-refresh** | Medium | Post-write mirror doesn't auto-sync; manual CLI import required |
-| **Production logging** | Medium | No auto-created logs, no rotation, no log aggregation |
+| **Mirror refresh policy** | Medium | Post-write UI now keeps refresh-needed risk visible; automatic refresh remains deferred pending field proof |
+| **Production logging** | Medium | PHI-safe desktop logs/support export exist; aggregation remains deferred |
 | **Mac testing** | Medium | No real Mac has been tested (see §6) |
-| **Mirror incremental import** | Low | Currently full re-import only |
+| **Mirror incremental import** | Low | Table-level incremental refresh exists for low-risk reference tables; core clinical tables still use full refresh |
 | **Dual-search sync** | Low | Top bar and Patients page search don't sync query text |
 | **Decoded reference labels** | Low | Many status/procedure codes remain opaque |
 
@@ -101,13 +101,13 @@ A **sellable desktop application** for small-to-mid dental clinics running legac
 ### Windows Packaging
 - **Status:** Deferred
 - **Blockers:**
-  1. No Windows field test has been executed (EXEC-01 through EXEC-16 in FIELD-TEST-START-HERE.md)
+  1. No package verification evidence has been filed and no Windows field test has been executed (EXEC-01 through EXEC-16 in FIELD-TEST-START-HERE.md with `packageVerification.evidencePath`)
   2. Node.js must be bundled or auto-installed
   3. Code signing certificate needed
   4. Web build must be packaged as static assets (not dev server)
 - **Impact:** Cannot distribute to real clinics
 - **Resolution path:**
-  1. Execute field test on clinic PC with staged package
+  1. Validate package verification evidence, then execute field test on clinic PC with staged package and field evidence referencing `packageVerification.evidencePath`
   2. Fix any path/permission issues discovered
   3. Bundle Node.js runtime
   4. Acquire code signing certificate

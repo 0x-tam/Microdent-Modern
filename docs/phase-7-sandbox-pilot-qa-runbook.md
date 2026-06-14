@@ -12,7 +12,7 @@
 | --- | --- |
 | Node 22 | `nvm use 22` or Windows installer |
 | Microdent-Modern clone | Never modify `Microdent-Legacy` |
-| Git Bash (macOS/Linux) or Git Bash on Windows | For `pnpm qa:sandbox` |
+| PowerShell, Terminal, or Git Bash | `pnpm qa:sandbox` is Node; Git Bash is needed only for fallback scripts |
 | Disposable paths | `Microdent-Write-Sandbox` only for commits |
 
 ---

@@ -21,7 +21,7 @@ Canonical source: `apps/desktop/src/operator-data-locations.ts` (tests in `opera
 | Backups | `C:\ClinicData\Microdent\microdent-backups` | **Implemented** | Derived in setup; required before commits |
 | Operator logs | `%AppData%\Microdent\logs\` | **Implemented** | Desktop auto-creates PHI-safe rotating operational logs |
 | Crash dumps | `%AppData%\Microdent\crash-dumps\` | **Implemented** | Electron local crash dumps; upload disabled |
-| QA reports (`qa-runs/`) | Repo dev folder | **Documented only** | Dev/CI only — not shipped to clinic PCs |
+| QA reports (`qa-runs/`) | Repo dev folder | **Templates shipped; completed reports not shipped** | Staged package includes PHI-safe templates only |
 
 ---
 
@@ -144,10 +144,10 @@ Logging safety: [phase-8-log-redaction-review.md](./phase-8-log-redaction-review
 
 | Audience | Location | Use |
 | --- | --- | --- |
-| **Developers / CI** | Repo `qa-runs/` | Checkpoint logs, batch reports, field-test notes — **dev-only**, not shipped |
+| **Developers / CI** | Repo `qa-runs/` | Checkpoint logs, batch reports, field-test notes — completed reports are **dev/internal-only**, not shipped |
 | **Operators / IT** | Support ticket or internal tracker | Use [PILOT-START-HERE.md § Issue report template](./PILOT-START-HERE.md#issue-report-template-no-phi) |
 
-**Do not** copy `qa-runs/` to clinic machines or attach DBF/sqlite/config with real paths to public tickets.
+**Do not** copy completed `qa-runs/` reports to clinic machines or attach DBF/sqlite/config with real paths to public tickets. The staged package may include `TEMPLATE-*` files only.
 
 Operator validation commands (no sandbox env): `pnpm pilot-checkpoint`. Full gate: [PILOT-START-HERE.md § Validation commands](./PILOT-START-HERE.md#validation-commands).
 

@@ -37,10 +37,6 @@ section_banner() {
   echo ""
 }
 
-if ! command -v sqlite3 >/dev/null 2>&1; then
-  log "FAIL: sqlite3 required"
-  exit 1
-fi
 if ! command -v curl >/dev/null 2>&1; then
   log "FAIL: curl required"
   exit 1
@@ -49,6 +45,20 @@ if ! command -v jq >/dev/null 2>&1; then
   log "FAIL: jq required"
   exit 1
 fi
+if ! command -v sqlite3 >/dev/null 2>&1; then
+  if ! node --no-warnings -e "require('node:sqlite')" >/dev/null 2>&1; then
+    log "FAIL: sqlite3 required, or Node must provide node:sqlite"
+    exit 1
+  fi
+fi
+
+sqlite_query() {
+  if command -v sqlite3 >/dev/null 2>&1; then
+    sqlite3 "$@"
+  else
+    node --no-warnings "${QA_REPO}/scripts/sqlite-query.mjs" "$@"
+  fi
+}
 
 if ! realpath "${DATA_ROOT}" 2>/dev/null | grep -q 'Microdent-Write-Sandbox'; then
   log "FAIL: DATA_ROOT must be under Microdent-Write-Sandbox"
@@ -233,7 +243,7 @@ assert_audit_operation() {
     log "audit workflow=${workflow} operationId=${op_id} terminalStatus=success"
     return 0
   fi
-  match="$(sqlite3 "${SQLITE_PATH}" \
+  match="$(sqlite_query "${SQLITE_PATH}" \
     "SELECT COUNT(*) FROM write_audit_log WHERE operation_id='${op_id}' AND workflow_type='${workflow}' AND terminal_status='success';" \
     2>/dev/null || echo "0")"
   if [[ "${match}" -lt 1 ]]; then
@@ -257,8 +267,8 @@ run_legacy_restore() {
   (cd "${QA_REPO}/services/bridge" && node dist/cli/legacy-restore.js) >/dev/null
 }
 
-APPT_ID="$(sqlite3 "${SQLITE_PATH}" "SELECT appointment_id FROM appointments LIMIT 1;")"
-PATIENT_ID="$(sqlite3 "${SQLITE_PATH}" "SELECT patient_id FROM patients LIMIT 1;")"
+APPT_ID="$(sqlite_query "${SQLITE_PATH}" "SELECT appointment_id FROM appointments LIMIT 1;")"
+PATIENT_ID="$(sqlite_query "${SQLITE_PATH}" "SELECT patient_id FROM patients LIMIT 1;")"
 
 if [[ -z "${APPT_ID}" ]]; then
   log "FAIL: no appointment_id in mirror sqlite"
@@ -328,7 +338,7 @@ SPARSE_DATES=()
 while IFS= read -r line; do
   [[ -n "${line}" ]] && SPARSE_DATES+=("${line}")
 done < <(
-  sqlite3 "${SQLITE_PATH}" "
+  sqlite_query "${SQLITE_PATH}" "
     SELECT appointment_date FROM appointments
     GROUP BY appointment_date
     ORDER BY COUNT(*) ASC
@@ -537,7 +547,7 @@ if [[ -f "${SQLITE_PATH}" ]]; then
     echo "${audit_raw}" | jq -r '.entries[:5][] | "audit operationId=\(.operationId) workflow=\(.workflow) status=\(.terminalStatus)"' 2>/dev/null \
       | while IFS= read -r line; do log "${line}"; done || true
   else
-    sqlite3 "${SQLITE_PATH}" \
+    sqlite_query "${SQLITE_PATH}" \
       "SELECT operation_id, workflow_type, status FROM write_audit_log ORDER BY requested_at DESC LIMIT 5;" 2>/dev/null \
       | while IFS='|' read -r op wf st; do
           log "audit operationId=${op} workflow=${wf} status=${st}"

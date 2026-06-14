@@ -51,7 +51,7 @@ Detail: [out-of-scope-guardrails.md](./out-of-scope-guardrails.md).
 | **Local copy refresh** | First-run setup prepares the local copy automatically; Settings can refresh it without CLI |
 | **Partial mirror warn-only** | Settings may show partial/stale mirror status — DBF remains write source of truth |
 | **Audit strongest on status update** | Other sandbox workflows have lighter audit surfacing — capture `operationId` from write feedback |
-| **Bash scripts in repo** | `qa-sandbox-run.sh` needs Git Bash/WSL on Windows; prefer PowerShell flows in staged docs |
+| **Bash scripts in repo** | `qa:sandbox` is Node; bash fallbacks still need Git Bash/WSL on Windows. Prefer PowerShell flows in staged docs |
 
 Permission and path risks: [windows-pilot-permission-and-path-risks.md](./windows-pilot-permission-and-path-risks.md).
 
@@ -60,9 +60,10 @@ Permission and path risks: [windows-pilot-permission-and-path-risks.md](./window
 ## How to run the field test
 
 1. IT verifies package: [windows-pilot-package-verify-on-windows.md](./windows-pilot-package-verify-on-windows.md)
-2. Operator follows: [windows-pilot-field-execution-script.md](./windows-pilot-field-execution-script.md)
-3. Record results: [windows-pilot-field-result-form.md](./windows-pilot-field-result-form.md)
-4. Sponsor signs off: [windows-pilot-go-no-go-checklist.md](./windows-pilot-go-no-go-checklist.md)
+2. IT files and validates package evidence: `pnpm pilot:package-verify-evidence -- qa-runs/YYYY-MM-DD-windows-package-verify-evidence-CLINIC-PC-01.json`
+3. Operator follows: [windows-pilot-field-execution-script.md](./windows-pilot-field-execution-script.md)
+4. Record results: [windows-pilot-field-result-form.md](./windows-pilot-field-result-form.md); final field JSON must reference the package proof via `packageVerification.evidencePath`
+5. Sponsor signs off: [windows-pilot-go-no-go-checklist.md](./windows-pilot-go-no-go-checklist.md)
 
 ---
 

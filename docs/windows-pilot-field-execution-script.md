@@ -8,10 +8,13 @@
 | --- | --- |
 | [windows-pilot-real-machine-checklist.md](./windows-pilot-real-machine-checklist.md) | **Matrix** — every check with dev vs Windows markers |
 | [windows-pilot-field-result-form.md](./windows-pilot-field-result-form.md) | **Results** — PHI-safe pass/fail capture after the run |
+| [windows-field-evidence-report.md](./windows-field-evidence-report.md) | **Evidence JSON** — machine-readable tier 3 validation input |
 | [windows-pilot-troubleshooting-pack.md](./windows-pilot-troubleshooting-pack.md) | **Failures** — operator actions per symptom (when staged) |
 | [PILOT-HANDOFF-PACK.md](./PILOT-HANDOFF-PACK.md) | Staged-package journey index |
 
 **Examples:** Synthetic paths and machine names only (`CLINIC-PC-01`, `C:\ClinicData\PilotSandbox\DATA`). **Never** choose a live legacy folder as the clinic data folder. Sandbox DATA must be disposable.
+
+> **Windows operator return:** If you used `DOUBLE-CLICK-WINDOWS-TEST.cmd`, send back only `MicrodentModern-safe-results.zip`. Engineering/IT converts that safe bundle into repo `qa-runs` evidence. If the zip was not created, send only `WINDOWS-SMOKE-REPORT.txt` and the three generated `.json` files from the same folder. Do not send DBF, SQLite, config, logs, screenshots, or the copied DATA folder.
 
 **Fail handling:** If a step fails, stop that branch, note the script step ID, then open [PILOT-START-HERE.md § Troubleshooting](./PILOT-START-HERE.md#troubleshooting) or [windows-pilot-troubleshooting-pack.md](./windows-pilot-troubleshooting-pack.md) before retrying.
 
@@ -23,6 +26,7 @@
 | --- | --- |
 | Build machine ran `pnpm pilot:verify-release` before zip | IT / release |
 | Zip contains `HANDOFF-README.txt`, `RELEASE-MANIFEST.json`, no clinic DBF/sqlite | IT |
+| IT filed and validated `qa-runs/YYYY-MM-DD-windows-package-verify-evidence-CLINIC-PC-01.json` from [TEMPLATE-windows-package-verify-evidence.json](../qa-runs/TEMPLATE-windows-package-verify-evidence.json) | IT |
 | Tester has [windows-pilot-field-result-form.md](./windows-pilot-field-result-form.md) open (copy or print) | Operator |
 
 ---
@@ -97,7 +101,7 @@
 
 | | |
 | --- | --- |
-| **Action** | From `C:\Microdent\MicrodentModern\app\`, start desktop per `HANDOFF-README.txt` (package prefers bundled Node when present). |
+| **Action** | From `C:\Microdent\MicrodentModern\`, double-click `DOUBLE-CLICK-WINDOWS-TEST.cmd` for the portable smoke run. If a packaged desktop `.exe` is present, the runner opens it; otherwise it opens the local web preview. |
 | **Pass criteria** | Window opens; **Today** or setup screen visible — not a blank white panel. |
 | **Checklist** | [1.4](windows-pilot-real-machine-checklist.md#1--package-delivery-and-launch) |
 | **Fail →** | Blank UI → troubleshooting **app does not open / blank UI**. |
@@ -179,6 +183,8 @@ Runbook: [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md).
 | **Checklist** | [7.2](windows-pilot-real-machine-checklist.md#7--sandbox-write-qa)–[7.5](windows-pilot-real-machine-checklist.md#7--sandbox-write-qa) |
 | **Fail →** | Troubleshooting **sandbox QA failed**; [out-of-scope-guardrails.md](./out-of-scope-guardrails.md). |
 
+For machine-readable `sandbox-signoff` evidence, summarize `EXEC-12` with all four workflow names: appointment status update, appointment time move, appointment creation, and patient demographics update. Include operation IDs only, not patient names, chart numbers, phone numbers, DBF rows, raw logs, or screenshots.
+
 **Skip** this step if clinic pilot is read-only only — mark **N/A** on result form.
 
 ---
@@ -191,6 +197,8 @@ Runbook: [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md).
 | **Pass criteria** | Restore returns sandbox to known state; read-only navigation still passes. |
 | **Checklist** | [8.2](windows-pilot-real-machine-checklist.md#8--backup-restore-and-audit)–[8.3](windows-pilot-real-machine-checklist.md#8--backup-restore-and-audit) |
 | **Fail →** | Troubleshooting **restore failed**, **permission denied / EPERM on backups**; [pilot-backup-restore-audit.md](./pilot-backup-restore-audit.md). |
+
+For machine-readable `sandbox-signoff` evidence, summarize `EXEC-13` with both backup and restore outcomes. Use artifact counts or backup basenames only; do not paste local user paths, raw logs, or patient data.
 
 ---
 
@@ -220,8 +228,8 @@ Runbook: [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md).
 
 | | |
 | --- | --- |
-| **Action** | Fill [windows-pilot-field-result-form.md](./windows-pilot-field-result-form.md). Copy completed run to `qa-runs/` using [TEMPLATE-windows-field-run.md](../qa-runs/TEMPLATE-windows-field-run.md). |
-| **Pass criteria** | Every EXEC step has Pass / Fail / N/A; build ids recorded; **no PHI** in attachment. |
+| **Action** | Fill [windows-pilot-field-result-form.md](./windows-pilot-field-result-form.md). Copy completed run to `qa-runs/` using [TEMPLATE-windows-field-run.md](../qa-runs/TEMPLATE-windows-field-run.md), confirm package verification evidence from [TEMPLATE-windows-package-verify-evidence.json](../qa-runs/TEMPLATE-windows-package-verify-evidence.json), create the attachment manifest from [TEMPLATE-evidence-attachment-manifest.json](../qa-runs/TEMPLATE-evidence-attachment-manifest.json), then create the field evidence JSON from [TEMPLATE-windows-field-evidence.json](../qa-runs/TEMPLATE-windows-field-evidence.json). |
+| **Pass criteria** | Every EXEC step has Pass / Fail / N/A; build ids recorded; **no PHI** in package/attachment metadata; `pnpm pilot:package-verify-evidence -- qa-runs/<package-evidence>.json`, `pnpm pilot:attachment-manifest -- qa-runs/<manifest>.json`, and `pnpm pilot:field-evidence -- qa-runs/<file>.json` print the expected status. |
 | **Checklist** | [Field execution log](windows-pilot-real-machine-checklist.md#field-execution-log-synthetic-template) (superseded by result form for new runs) |
 | **Defects** | [pilot-issue-template.md](./pilot-issue-template.md) per failure |
 

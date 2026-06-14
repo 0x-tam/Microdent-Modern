@@ -53,10 +53,10 @@ flowchart LR
 | 1 | [Install Node 22](#1-install-node-22) | `node -v` → v22.x |
 | 2 | [Clone and build](#2-clone-and-build) | `dist\server.js`, `apps\web\dist\index.html` exist |
 | 3 | [Desktop first-run](#3-desktop-first-run) | Config saved; app opens; bridge healthy |
-| 4 | [Mirror import](#4-mirror-import) | `import-safe` exit 0; Settings mirror metadata fresh |
+| 4 | [Local-copy refresh](#4-local-copy-refresh) | Settings local-copy/import metadata fresh |
 | 5 | [Read-only smoke](#5-read-only-smoke) | `pnpm test` + `pnpm build:web` exit 0 |
 | 6 | [Sandbox write pilot](#6-sandbox-write-pilot-optional) | Pilot panels visible when capability allows |
-| 7 | [Sandbox QA](#7-sandbox-qa-sign-off) | `pnpm qa:sandbox` exit 0 (Git Bash) or manual equivalent |
+| 7 | [Sandbox QA](#7-sandbox-qa-sign-off) | `pnpm qa:sandbox` exit 0 on Node 22 |
 
 ---
 
@@ -71,7 +71,7 @@ node -v    # v22.x
 pnpm -v
 ```
 
-Optional: install **Git for Windows** if you plan to run `pnpm qa:sandbox` (bash, `curl`, `jq`, `sqlite3`).
+Optional: install **Git for Windows** only if you want the bash fallback scripts; canonical `pnpm qa:sandbox` is Node.
 
 ---
 
@@ -138,20 +138,18 @@ Example saved config (placeholders):
 
 ---
 
-## 4. Mirror import
+## 4. Local-copy refresh
 
-Mirror refresh is **CLI-only** (Settings only re-fetches metadata).
+Mirror refresh is Settings-first. Use **Settings → Local copy & import →
+Refresh local copy**, then **Refresh status**. CLI import is support/developer
+fallback only.
 
-```powershell
-$env:DATA_ROOT = "C:\Microdent\Legacy-Copy\DATA"
-$env:SQLITE_PATH = "C:\Microdent\mirror\MICRODENT_MIRROR.sqlite"
-cd C:\Microdent\Microdent-Modern
-pnpm --filter @microdent/sqlite-mirror run import-safe
-```
+**Pass:** Settings shows a recent successful import with table counts/status
+tokens only — no patient names or DBF row dumps.
 
-**Pass:** exit code `0`; stdout shows table names, row counts, and status tokens — no patient names or DBF row dumps.
-
-**UI:** Settings → Mirror → **Refresh status** — recent `finishedAt`, `sqliteUsable`. Re-run CLI when data is stale (>48h warning).
+**UI:** Settings → Local copy & import → **Refresh status** — recent
+`finishedAt`, `sqliteUsable`. Use **Refresh local copy** when data is stale or
+copied clinic files changed.
 
 Details: [phase-4-mirror-import-operator.md](./phase-4-mirror-import-operator.md).
 
@@ -228,27 +226,27 @@ Checklist: [phase-3-write-safe-qa-checklist.md](./phase-3-write-safe-qa-checklis
 
 ## 7. Sandbox QA sign-off
 
-### Git Bash on Windows (recommended when available)
+### Native Windows / PowerShell
 
-```bash
-export DATA_ROOT="C:/Microdent/Write-Sandbox/DATA"
-export SQLITE_PATH="C:/Microdent/mirror/MICRODENT_MIRROR.sqlite"
-export BACKUP_DIR="C:/Microdent/Write-Sandbox/backups"
-export WRITE_MODE="enabled"
-export ALLOW_LEGACY_WRITES="I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY"
-cd /c/Microdent/Microdent-Modern
+```powershell
+$env:DATA_ROOT = "C:\Microdent\Write-Sandbox\DATA"
+$env:SQLITE_PATH = "C:\Microdent\mirror\MICRODENT_MIRROR.sqlite"
+$env:BACKUP_DIR = "C:\Microdent\Write-Sandbox\backups"
+$env:WRITE_MODE = "enabled"
+$env:ALLOW_LEGACY_WRITES = "I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY"
+cd C:\Microdent\Microdent-Modern
 pnpm qa:sandbox
 ```
 
 **Pass:** exit `0`; log ends with `qa:sandbox complete` and `qa-sandbox-write-smoke complete (4 workflows)`.
 
-**What runs:** `qa-sandbox-run.sh` builds bridge, starts `node services/bridge/dist/server.js`, then smoke. Inside smoke, backup/restore use **`(cd services/bridge && node dist/cli/legacy-backup.js)`** — not `pnpm legacy:backup` mid-orchestration.
+**What runs:** `qa-sandbox-run.mjs` builds bridge, starts `node services\bridge\dist\server.js`, then runs the four workflows. Backup/restore/readback use direct **`node dist\cli\*.js`** entrypoints — not `pnpm legacy:backup` mid-orchestration.
 
-### Native Windows (no bash)
+### Manual fallback
 
 Follow [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md) §5: build → set env → `node services\bridge\dist\server.js` → poll health/write-capability → four workflows with `pnpm --filter @microdent/bridge run legacy-backup` / `legacy-restore` (each resolves to `node dist/cli/*.js`).
 
-Deferred: cross-platform `scripts/qa-sandbox-run.mjs` (see audit deferred table).
+Bash fallback remains available as `pnpm qa:sandbox:bash` on macOS/Git Bash.
 
 ---
 
@@ -262,7 +260,7 @@ Deferred: cross-platform `scripts/qa-sandbox-run.mjs` (see audit deferred table)
 | `Cannot find module` / missing `dist/cli` | Bridge not built | `pnpm --filter @microdent/bridge run build` before QA |
 | `DATA_ROOT must resolve under Microdent-Write-Sandbox` | Wrong tree for writes | Use `C:\Microdent\Write-Sandbox\DATA` with marker file |
 | `writableSandbox: false` during smoke | Missing marker or ack | Add `.microdent-write-sandbox.json`; set `ALLOW_LEGACY_WRITES` and `WRITE_MODE=enabled` |
-| Mirror search empty | Stale or failed import | Re-run `import-safe` against Legacy-Copy; refresh Settings mirror status |
+| Mirror search empty | Stale or failed import | Use **Settings → Refresh local copy**, then **Refresh status**; escalate to support if still empty |
 | UNC path failures | Permissions or quoting | Map to drive letter; quote paths in PowerShell |
 | Desktop setup rejects path | Not absolute or missing on disk | Use `C:\...` paths; create sandbox folders first via `legacy-create-sandbox` if needed |
 
@@ -274,11 +272,11 @@ Deferred: cross-platform `scripts/qa-sandbox-run.mjs` (see audit deferred table)
 | --- | --- |
 | Unit tests | `pnpm test` |
 | Web build | `pnpm build:web` |
-| Mirror import | `pnpm --filter @microdent/sqlite-mirror run import-safe` |
+| Mirror/local-copy refresh | Settings → Local copy & import → Refresh local copy |
 | Create sandbox | `pnpm --filter @microdent/bridge run legacy-create-sandbox` |
 | Production bridge | `node services\bridge\dist\server.js` |
 | Desktop | `pnpm --filter @microdent/desktop run start` |
-| Full sandbox QA (bash) | `pnpm qa:sandbox` |
+| Full sandbox QA | `pnpm qa:sandbox` |
 
 Full classification: [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md) §6 and [scripts/README.md](../scripts/README.md).
 
@@ -289,7 +287,7 @@ Full classification: [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runb
 - NSIS / signed desktop installer, auto-update
 - Production writes outside disposable sandbox
 - Ledger, treatment, chart, medical, memo write domains
-- Node `qa-sandbox-run.mjs` (planned; use bash or manual checklist today)
+- Git Bash fallback is optional; canonical `pnpm qa:sandbox` is Node.
 
 ---
 

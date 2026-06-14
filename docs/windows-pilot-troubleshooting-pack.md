@@ -29,12 +29,12 @@
 
 ## App does not open / blank UI
 
-**What you see:** Double-click or launch from `app/` does nothing, window flashes and closes, or main area is white/empty after setup.
+**What you see:** Double-clicking `DOUBLE-CLICK-WINDOWS-TEST.cmd` does nothing, the app/web preview does not open, a window flashes and closes, or the main area is white/empty after setup.
 
 | Step | Action |
 | --- | --- |
 | 1 | Confirm **Node.js 22.x** is installed: open PowerShell → `node -v` → expect `v22.x`. Install from [nodejs.org](https://nodejs.org/) if missing. |
-| 2 | Launch from the staged **`app/`** folder per `HANDOFF-README.txt` — not from a partial extract. |
+| 2 | Launch from the staged root **`DOUBLE-CLICK-WINDOWS-TEST.cmd`** per `HANDOFF-README.txt` — not from a partial extract or inside `app/`. |
 | 3 | Check **`web/index.html`** exists under the package root (`MicrodentModern/web/`). Missing web dist → package incomplete; ask IT to re-stage on build machine. |
 | 4 | If setup never appeared, delete is **not** required — open `%AppData%\Microdent\config.json` only if IT guides you; otherwise restart and choose **Re-open setup** when offered. |
 | 5 | Close other Electron/Node processes that may have left a zombie bridge child. |

@@ -5,6 +5,8 @@
 **Copy to:** `qa-runs/YYYY-MM-DD-windows-field-log-<MACHINE>.md`  
 **Full form:** [docs/windows-pilot-field-result-form.md](../docs/windows-pilot-field-result-form.md)  
 **Execution script:** [docs/windows-pilot-field-execution-script.md](../docs/windows-pilot-field-execution-script.md)  
+**Package evidence:** [TEMPLATE-windows-package-verify-evidence.json](./TEMPLATE-windows-package-verify-evidence.json) · validate before field execution with `pnpm pilot:package-verify-evidence -- qa-runs/<package-file>.json`
+**Evidence JSON:** [TEMPLATE-windows-field-evidence.json](./TEMPLATE-windows-field-evidence.json) · validate with `pnpm pilot:field-evidence -- qa-runs/<file>.json`
 **Checklist matrix:** [docs/windows-pilot-real-machine-checklist.md](../docs/windows-pilot-real-machine-checklist.md)  
 **Go/no-go:** [docs/windows-pilot-go-no-go-checklist.md](../docs/windows-pilot-go-no-go-checklist.md)
 
@@ -24,6 +26,7 @@
 | **appVersion** | |
 | **gitCommit** | |
 | **releaseChannel** | e.g. `pilot` |
+| **packageVerification.evidencePath** | `qa-runs/YYYY-MM-DD-windows-package-verify-evidence-<MACHINE>.json` |
 
 ---
 
@@ -93,7 +96,8 @@ Complete [docs/windows-pilot-go-no-go-checklist.md](../docs/windows-pilot-go-no-
 
 | Criterion | Pass | Fail | N/A |
 | --- | --- | --- | --- |
-| Package verified | ☐ | ☐ | ☐ |
+| Package verification evidence filed (`windows-package-verify-evidence`) | ☐ | ☐ | ☐ |
+| Field JSON references `packageVerification.evidencePath` | ☐ | ☐ | ☐ |
 | Windows launch | ☐ | ☐ | ☐ |
 | Config | ☐ | ☐ | ☐ |
 | Mirror import | ☐ | ☐ | ☐ |

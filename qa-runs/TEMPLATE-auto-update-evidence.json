@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "microdent-auto-update-evidence/v1",
+  "phiStatement": "no-real-patient-data",
+  "build": {
+    "fromPackageVersion": "pilot-YYYY-MM-DD",
+    "toPackageVersion": "pilot-YYYY-MM-DD",
+    "fromGitCommit": "abcdef1",
+    "toGitCommit": "abcdef1"
+  },
+  "channel": {
+    "name": "internal-signed-feed",
+    "feedUrlLabel": "TBD",
+    "accessControlled": false
+  },
+  "payload": {
+    "relPath": "updates/MicrodentModernUpdate.exe",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "signed": false,
+    "signedArtifactEvidencePath": "qa-runs/YYYY-MM-DD-signed-artifact-evidence.json"
+  },
+  "scenarios": [
+    {
+      "name": "update-install",
+      "status": "blocked",
+      "machineLabel": "WIN11-CLINIC-PC-01",
+      "windowsVersion": "Windows 11 23H2",
+      "evidence": "TBD"
+    },
+    {
+      "name": "rollback",
+      "status": "blocked",
+      "machineLabel": "WIN11-CLINIC-PC-01",
+      "windowsVersion": "Windows 11 23H2",
+      "evidence": "TBD"
+    }
+  ],
+  "behavior": {
+    "updatePreservesData": false,
+    "rollbackProven": false,
+    "restartBehaviorDocumented": false,
+    "offlineRecoveryDocumented": false
+  },
+  "privacy": {
+    "reviewed": false,
+    "noPhiUploaded": false,
+    "noLocalPathsUploaded": false,
+    "operatorNoticeReady": false
+  },
+  "rawLogsAttached": false
+}

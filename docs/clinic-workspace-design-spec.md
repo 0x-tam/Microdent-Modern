@@ -229,4 +229,4 @@ Use `resolveContextualStatusForModule(active)` so global `.app-status-strip` col
 
 ## Windows field execution
 
-**Deferred / Not yet run.** Clinic go-live blocked until Tier 3 per `docs/FIELD-TEST-START-HERE.md`.
+**Deferred / Not yet run.** Clinic go-live blocked until Tier 3 package verification evidence and Windows field evidence with `packageVerification.evidencePath` are filed per `docs/FIELD-TEST-START-HERE.md`.

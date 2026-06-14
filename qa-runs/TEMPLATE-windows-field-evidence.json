@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "microdent-windows-field-evidence/v1",
+  "mode": "sandbox-signoff",
+  "phiStatement": "no-real-patient-data",
+  "build": {
+    "packageVersion": "pilot-YYYY-MM-DD",
+    "appVersion": "0.0.1",
+    "gitCommit": "abcdef1",
+    "releaseChannel": "pilot"
+  },
+  "machine": {
+    "label": "CLINIC-PC-01",
+    "windowsVersion": "Windows 11 23H2",
+    "nodeVersion": "v22.11.0"
+  },
+  "packageVerification": {
+    "evidencePath": "qa-runs/YYYY-MM-DD-windows-package-verify-evidence-CLINIC-PC-01.json",
+    "verifiedBeforeFieldRun": true
+  },
+  "paths": {
+    "packageRoot": "C:\\Microdent\\MicrodentModern",
+    "dataRoot": "C:\\ClinicData\\PilotSandbox\\DATA",
+    "sqlitePath": "C:\\ClinicData\\PilotSandbox\\mirror\\clinic.sqlite",
+    "backupDir": "C:\\ClinicData\\PilotSandbox\\microdent-backups"
+  },
+  "steps": {
+    "EXEC-01": { "status": "pass", "evidence": "Handoff zip opened and required root files were present." },
+    "EXEC-02": { "status": "pass", "evidence": "Package extracted to fixed local drive with app and docs folders." },
+    "EXEC-03": { "status": "pass", "evidence": "Operator reviewed pilot start and handoff scope." },
+    "EXEC-04": { "status": "pass", "evidence": "Build identity copied from RELEASE-MANIFEST.json." },
+    "EXEC-05": { "status": "pass", "evidence": "Node runtime manifest or node -v showed Node 22.5+." },
+    "EXEC-06": { "status": "pass", "evidence": "Desktop launched and showed setup or Today, not a blank panel." },
+    "EXEC-07": { "status": "pass", "evidence": "SmartScreen or antivirus handling documented by IT." },
+    "EXEC-08": { "status": "pass", "evidence": "First-run setup completed with disposable copied clinic data." },
+    "EXEC-09": { "status": "pass", "evidence": "Settings showed clinic service connected." },
+    "EXEC-10": { "status": "pass", "evidence": "Local copy status showed successful import metadata." },
+    "EXEC-11": { "status": "pass", "evidence": "Read-only QA loaded Today, Patients, Schedule, and Settings." },
+    "EXEC-12": { "status": "pass", "evidence": "Sandbox write workflows produced operation IDs for appointment status update, appointment time move, appointment creation, and patient demographics update." },
+    "EXEC-13": { "status": "pass", "evidence": "Backup artifacts existed before writes and restore succeeded." },
+    "EXEC-14": { "status": "pass", "evidence": "App restart kept clinic service online and config paths unchanged." },
+    "EXEC-15": { "status": "na", "evidence": "Cold reboot skipped by IT for this day-0 run." },
+    "EXEC-16": { "status": "pass", "evidence": "PHI-safe result form and issue summary filed." }
+  },
+  "goNoGo": {
+    "phiObserved": false,
+    "unsupportedWritesAttempted": false,
+    "outcome": "go-limited-sandbox"
+  },
+  "attachments": {
+    "manifestPath": "qa-runs/YYYY-MM-DD-evidence-attachment-manifest-CLINIC-PC-01.json",
+    "redactionReviewed": true,
+    "rawAttachmentsCommitted": false
+  }
+}

@@ -29,7 +29,7 @@ Or step by step:
 | 7 | `pnpm pilot:verify-release` | Layout guards |
 | 8 | `PILOT_STAGED_RELEASE=1 pnpm --filter @microdent/desktop run release-smoke` | Staged `MicrodentModern/` smoke |
 
-**One command:** `pnpm pilot:distribution-checkpoint` runs steps 1–8 (plus root `pnpm test` and optional `qa:sandbox` when env is set). Bash orchestrator; Node steps work on Windows without bash.
+**One command:** `pnpm pilot:distribution-checkpoint` runs steps 1–8 (plus root `pnpm test` and optional `qa:sandbox` when env is set). The checkpoint, mirror import, legacy safety commands, and sandbox QA now have Node-first root commands for native PowerShell use.
 
 ---
 
@@ -38,7 +38,8 @@ Or step by step:
 | Kind | Examples | Windows without Git Bash |
 | --- | --- | --- |
 | **Node (Windows-ready)** | `stage:pilot-release`, `pilot:verify-release`, `release-smoke`, desktop/bridge `build` | Run directly in PowerShell |
-| **Bash orchestrator** | `pilot:distribution-checkpoint`, `pilot:full-checkpoint`, `qa:sandbox` | Use Git Bash/WSL or run underlying Node/`pnpm` steps manually |
+| **Node checkpoint orchestrators** | `pilot:distribution-checkpoint`, `pilot:full-checkpoint`, `pilot:release-check` | Native PowerShell-friendly; bash fallbacks remain available with `:bash` suffixes |
+| **Node import/sandbox orchestrators** | `mirror:import-safe`, `qa:sandbox` | Run directly in PowerShell with `DATA_ROOT`, `SQLITE_PATH`, and `BACKUP_DIR` as needed |
 | **macOS dev-only** | `dev:ports`, `dev:kill-ports` | Not applicable |
 
 ---

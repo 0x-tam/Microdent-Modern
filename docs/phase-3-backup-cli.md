@@ -78,7 +78,8 @@ Each run creates one directory:
 | Core | `services/bridge/src/backup/run-legacy-backup.ts` |
 | Env | `services/bridge/src/backup/backup-env.ts` |
 | CLI | `services/bridge/src/cli/legacy-backup.ts` |
-| Shell | `scripts/legacy-backup.sh` |
+| Node wrapper | `scripts/legacy-command.mjs backup` |
+| Bash fallback | `scripts/legacy-backup.sh` (`pnpm legacy:backup:bash`) |
 | Root script | `pnpm legacy:backup` in root `package.json` |
 
 **Also available:** `pnpm legacy:backup-verify` — read-only manifest hash check (see below).
@@ -112,4 +113,5 @@ pnpm legacy:backup-verify
 |-------|----------|
 | Core | `services/bridge/src/backup/verify-legacy-backup.ts` |
 | CLI | `services/bridge/src/cli/legacy-backup-verify.ts` |
-| Shell | `scripts/legacy-backup-verify.sh` |
+| Node wrapper | `scripts/legacy-command.mjs backup-verify` |
+| Bash fallback | `scripts/legacy-backup-verify.sh` (`pnpm legacy:backup-verify:bash`) |

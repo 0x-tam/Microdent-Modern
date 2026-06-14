@@ -122,17 +122,17 @@ External or environment-dependent blockers:
 - Auto-update feed/mechanism.
 - Production installer validation.
 
-Local implementation/review work still open:
+Local implementation/review work completed after this checkpoint:
 
-- Automatic post-write local-copy refresh policy.
-- Incremental local-copy re-import.
-- DBF-change-since-import staleness detection, beyond current age-based stale warning.
-- Operator-friendly error messages for broader common failure modes.
-- Operator training materials/manual.
-- Optional opt-in telemetry/upload design.
-- Performance profiling on clinic-scale datasets.
-- Accessibility audit against WCAG 2.2 AA.
-- Data privacy review for local-only PHI storage.
+- Automatic post-write local-copy refresh policy: successful sandbox commits leave an operator-visible refresh-needed state instead of auto-running risky background imports.
+- Incremental local-copy re-import: table-level skipping now exists for low-risk reference tables; full refresh remains fallback for core clinical tables.
+- DBF-change-since-import staleness detection: imports record PHI-safe source file snapshots and Settings can warn when copied files changed since refresh.
+- Operator-friendly error messages for broader common failure modes: primary UI now favors clinic-service/local-copy/support-action wording and tests guard against raw paths and environment-variable jargon.
+- Operator training materials/manual: [operator-manual.md](./operator-manual.md) is linked from pilot start and handoff docs.
+- Optional opt-in telemetry/upload design: [telemetry-deferral-decision-record.md](./telemetry-deferral-decision-record.md) keeps telemetry/upload off by default and unimplemented for the pilot RC.
+- Performance profiling on clinic-scale datasets: [performance-synthetic-profiling.md](./performance-synthetic-profiling.md) and [2026-06-06-synthetic-performance-baseline.md](../qa-runs/2026-06-06-synthetic-performance-baseline.md) cover 5,000 synthetic patients and 50,000 synthetic appointments.
+- Accessibility audit against WCAG 2.2 AA: [accessibility-audit-checklist.md](./accessibility-audit-checklist.md) documents the local audit baseline; NVDA/Windows validation remains field-track work.
+- Data privacy review for local-only PHI storage: [data-privacy-review.md](./data-privacy-review.md) defines support and retention boundaries.
 
 Deferred/post-field-test:
 
@@ -147,15 +147,8 @@ Deferred/post-field-test:
 
 ## Suggested next local slice
 
-Pick one:
+Most previously suggested local slices have now been implemented. The next useful local slice is to keep release evidence current by running the full non-strict release gate, refreshing staged artifacts, and fixing any verifier drift. Commercial completion still requires the external Windows/signing/installer/update/pilot evidence listed above.
 
-1. Add an accessibility audit harness and fix the highest-risk Settings/AppShell issues.
-2. Add a synthetic clinic-scale performance fixture and profiling script.
-3. Implement a conservative post-write local-copy refresh policy design plus UI status, without auto-running risky background imports yet.
-4. Draft the operator manual/help documentation from the current Settings-first workflow.
+## Resume note after continuation work
 
-## Resume note after interruption
-
-The repo was clean at commit `2b7b1ec` when work was paused again. No additional implementation changes were made after that checkpoint.
-
-The next intended local roadmap slice was **operator manual / help documentation** because it is locally executable, supports the one-click clinic workflow, and does not depend on Windows hardware, signing certificates, installer credentials, or clinic field access.
+The checkpoint commit `2b7b1ec` was followed by `0f400e4` and `a96131b`, then a local continuation pass implemented the locally executable roadmap items above. Resume from the current worktree, not from the original clean-checkpoint assumption.

@@ -73,7 +73,8 @@ Required by `validateWritableSandbox` before any future write route runs.
 | Core | `services/bridge/src/sandbox/create-write-sandbox.ts` |
 | Env | `services/bridge/src/sandbox/sandbox-env.ts` |
 | CLI | `services/bridge/src/cli/legacy-create-sandbox.ts` |
-| Shell | `scripts/legacy-create-sandbox.sh` |
+| Node wrapper | `scripts/legacy-command.mjs create-sandbox` |
+| Bash fallback | `scripts/legacy-create-sandbox.sh` (`pnpm legacy:create-sandbox:bash`) |
 | Root script | `pnpm legacy:create-sandbox` in root `package.json` |
 
 ---

@@ -8,9 +8,10 @@
 
 | Script | Role |
 | --- | --- |
-| [`scripts/qa-sandbox-run.sh`](../scripts/qa-sandbox-run.sh) | Build bridge, start `node services/bridge/dist/server.js`, poll readiness, invoke smoke, `trap` kill on exit |
-| [`scripts/qa-sandbox-write-smoke.sh`](../scripts/qa-sandbox-write-smoke.sh) | Four workflows: dry-run → **`node dist/cli/legacy-backup.js`** → commit → **`node dist/cli/legacy-restore.js`** → hash revert (not `pnpm legacy:*` mid-run) |
-| [`scripts/qa-sandbox-preflight.sh`](../scripts/qa-sandbox-preflight.sh) | Env + marker + built `dist/` check (invoked by run script) |
+| [`scripts/qa-sandbox-run.mjs`](../scripts/qa-sandbox-run.mjs) | Cross-platform Node orchestrator: build bridge, start `node services/bridge/dist/server.js`, poll readiness, run four workflows, restore, and stop bridge |
+| [`scripts/qa-sandbox-run.sh`](../scripts/qa-sandbox-run.sh) | Bash fallback for macOS/Git Bash comparison runs |
+| [`scripts/qa-sandbox-write-smoke.sh`](../scripts/qa-sandbox-write-smoke.sh) | Manual bash smoke fallback: dry-run → **`node dist/cli/legacy-backup.js`** → commit → **`node dist/cli/legacy-restore.js`** → hash revert |
+| [`scripts/qa-sandbox-preflight.sh`](../scripts/qa-sandbox-preflight.sh) | Bash preflight fallback; the Node orchestrator performs equivalent checks internally |
 
 Vitest band (`pnpm sandbox:validate`) remains the fast, synthetic CI check; this runner is for **operator sandbox** sign-off after mirror import.
 
@@ -48,7 +49,7 @@ Vitest band (`pnpm sandbox:validate`) remains the fast, synthetic CI check; this
 | `ALLOW_LEGACY_WRITES` | No (orchestrator) | `I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY` |
 | `BRIDGE_PORT` | No | `17890` |
 
-The orchestrator exports write env to the bridge child process. Do not use `pnpm dev:bridge` for this run — hot reload can cause transient `curl` empty replies during backup/commit.
+The orchestrator exports write env to the bridge child process. Do not use `pnpm dev:bridge` for this run — hot reload can interrupt backup/commit proof.
 
 ---
 
@@ -58,6 +59,7 @@ The orchestrator exports write env to the bridge child process. Do not use `pnpm
 export DATA_ROOT="/absolute/path/to/Microdent-Write-Sandbox/DATA"
 export SQLITE_PATH="/absolute/path/to/MICRODENT_MIRROR_SANDBOX.sqlite"
 export BACKUP_DIR="/absolute/path/to/Microdent-Write-Sandbox/backups"   # optional
+export QA_SANDBOX_EVIDENCE_SUMMARY="qa-runs/YYYY-MM-DD-sandbox-write-summary-CLINIC-PC-01.json"   # optional, PHI-safe
 
 cd /path/to/Microdent-Modern
 nvm use 22
@@ -66,14 +68,16 @@ pnpm qa:sandbox
 
 **Pass:** exit code `0`; log ends with `qa:sandbox complete` and `qa-sandbox-write-smoke complete (4 workflows)`.
 
-**Fail:** non-zero exit; check last `workflow=… phase=… http=…` line. HTTP **409** / **400** / **403** are **not** retried (only transient curl failures: empty reply, connection reset, exit 52).
+When `QA_SANDBOX_EVIDENCE_SUMMARY` is set, the Node runner writes a PHI-safe JSON summary containing only runtime metadata, workflow names, HTTP statuses, operation IDs, backup basenames, and DBF readback/restore booleans. It intentionally excludes raw paths, DBF rows, patient names, chart numbers, phone numbers, and screenshots. Use it to transcribe `EXEC-12` and `EXEC-13` evidence later; it does not replace real Windows package verification or sandbox-signoff field evidence.
+
+**Fail:** non-zero exit; check last `workflow=… phase=… http=…` line. HTTP **409** / **400** / **403** are **not** retried as successes.
 
 ### Troubleshooting
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | `listen EPERM` under `tsx-*/` when smoke runs `pnpm legacy:backup` | **tsx** uses a Unix domain socket (IPC) for its runner; some CI/agent sandboxes block that | Legacy CLIs now run **`node dist/cli/*.js`** after `pnpm --filter @microdent/bridge run build`. Re-run `pnpm qa:sandbox` in a normal terminal (not a restricted sandbox). |
-| `Cannot find module` / missing `dist/cli` | Bridge not built | `pnpm --filter @microdent/bridge run build` then retry. `legacy-backup.sh` builds automatically; `qa-sandbox-run.sh` builds before starting the bridge. |
+| `Cannot find module` / missing `dist/cli` | Bridge not built | `pnpm qa:sandbox` builds contracts and bridge before starting the smoke; if running CLIs manually, run `pnpm --filter @microdent/bridge run build` first. |
 | Cursor agent / sandbox QA fails on backup | Environment limitation, not write logic | Run the **local command block** above on your Mac with Node 22; requires writable `BACKUP_DIR` under `Microdent-Write-Sandbox`. |
 
 ---
@@ -90,9 +94,9 @@ pnpm qa:sandbox
 Per workflow:
 
 1. **Dry-run** — `X-Write-Intent: dry-run`; expect **200**, `committed: false`, hash unchanged
-2. **`pnpm legacy:backup`** — `WORKFLOW` set; log backup folder **basename** only
+2. **Backup CLI** — `WORKFLOW` set; log backup folder **basename** only
 3. **Commit** — `X-Write-Intent: commit`; expect **200**, `committed: true`, hash changed
-4. **`pnpm legacy:restore`** — hash reverts to baseline
+4. **Restore CLI** — hash reverts to baseline
 5. **DBF readback** — `node dist/cli/qa-sandbox-readback.js` reads **`SCHEDULE.DBF` / `PATIENT.DBF`** under `DATA_ROOT` (source of truth for committed writes)
 
 ### DBF readback vs SQLite mirror
@@ -120,7 +124,7 @@ Before smoke:
 1. `GET /health` until `ok: true` (up to ~45s)
 2. `GET /v1/meta/write-capability` until `writableSandbox: true` and `writeMode: "enabled"`
 
-`curl` GET retries (max 3, backoff) apply only to transient network errors, not HTTP error statuses.
+HTTP retries (max 3, backoff) apply only to transient network errors, not HTTP error statuses.
 
 ---
 
@@ -135,11 +139,22 @@ When `SQLITE_PATH` is set and the bridge can read it:
 
 ## Windows
 
-This runner is **bash + curl + jq** (macOS-oriented). On Windows, run the same steps manually or wait for a future Node orchestrator (see [phase-3-windows-readiness-audit.md](./phase-3-windows-readiness-audit.md) when available).
+`pnpm qa:sandbox` now uses the cross-platform Node runner. In PowerShell:
+
+```powershell
+$env:DATA_ROOT = "C:\Microdent\Write-Sandbox\DATA"
+$env:SQLITE_PATH = "C:\Microdent\mirror\MICRODENT_MIRROR.sqlite"
+$env:BACKUP_DIR = "C:\Microdent\Write-Sandbox\backups"
+$env:WRITE_MODE = "enabled"
+$env:ALLOW_LEGACY_WRITES = "I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY"
+pnpm qa:sandbox
+```
+
+Git Bash is optional for the fallback scripts only.
 
 ---
 
-## Smoke only (bridge already running)
+## Bash smoke only (bridge already running)
 
 ```bash
 export DATA_ROOT=… SQLITE_PATH=… BRIDGE_URL=http://127.0.0.1:17890
@@ -150,21 +165,8 @@ Bridge must already have `WRITE_MODE=enabled`, sandbox ack, and `BACKUP_DIR` con
 
 ---
 
-## Spike — cross-platform `qa-sandbox-run.mjs` (plan only)
+## Node runner completion record
 
-**Status:** Not implemented in this batch. Bash runner [`scripts/qa-sandbox-run.sh`](../scripts/qa-sandbox-run.sh) remains the Mac signoff path inside `pnpm pilot:release-signoff`.
+**Status:** Implemented. `pnpm qa:sandbox` delegates to [`scripts/qa-sandbox-run.mjs`](../scripts/qa-sandbox-run.mjs) on all platforms.
 
-**Goal:** A Node orchestrator (`scripts/qa-sandbox-run.mjs`) that replaces bash+curl+jq for Windows field-adjacent QA without changing write semantics.
-
-| Phase | Deliverable | Notes |
-| --- | --- | --- |
-| **P0 — contract** | Same env as bash runner (`DATA_ROOT`, `SQLITE_PATH`, `BACKUP_DIR`, `BRIDGE_URL`) | Exit codes match today: `0` = pass, non-zero = fail |
-| **P1 — lifecycle** | `child_process.spawn` bridge `node services/bridge/dist/server.js`, health poll, invoke smoke subprocess | Reuse [`qa-sandbox-write-smoke.sh`](../scripts/qa-sandbox-write-smoke.sh) initially — no duplicate workflow HTTP |
-| **P2 — smoke in Node** | Port curl/jq steps from smoke script to `fetch` + JSON parse | PHI-safe logging only (workflow, http, operationId prefix) |
-| **P3 — Windows** | Document PowerShell entry: `node scripts/qa-sandbox-run.mjs` after `pnpm --filter @microdent/bridge run build` | Git Bash optional; aligns with [mac-pilot-qa-runbook.md](./mac-pilot-qa-runbook.md) tier 1 vs tier 3 split |
-
-**Non-goals:** New write routes, live legacy DATA_ROOT, in-app mirror import, NSIS installer.
-
-**Acceptance (when implemented):** `pnpm qa:sandbox` delegates to `.mjs` on all platforms; `pnpm pilot:release-signoff` unchanged behavior; Vitest `sandbox:validate` band still separate fast CI check.
-
-**Tracking:** Listed as “Needs replacement” in [scripts/README.md](../scripts/README.md) until P1 ships.
+The historical bash flow remains available as `pnpm qa:sandbox:bash` and `bash scripts/qa-sandbox-write-smoke.sh` for comparison/manual fallback. Non-goals remain unchanged: no new write routes, no live legacy `DATA_ROOT`, no in-app mirror import, no NSIS installer.

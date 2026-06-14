@@ -6,6 +6,8 @@
 
 **Build-machine note:** Hash integrity and automated guards also run via `pnpm pilot:verify-release` and `pnpm pilot:verify-manifest` on the build machine. This doc is the **manual Windows spot-check** when pnpm is unavailable.
 
+**Evidence:** File PHI-safe package verification evidence with [windows-package-verify-evidence.md](./windows-package-verify-evidence.md) before starting the field execution packet.
+
 **Related:** [pilot-acceptance-checklist.md](./pilot-acceptance-checklist.md) §0 · [windows-pilot-release-layout.md](./windows-pilot-release-layout.md) · [PILOT-HANDOFF-PACK.md](./PILOT-HANDOFF-PACK.md)
 
 ---
@@ -72,7 +74,7 @@ Manual spot-check — search the package tree for files that must **not** ship:
 | Clinic DBF | `SCHEDULE.DBF`, `PATIENT.DBF`, `.fpt`, `.cdx` | **Fail** — do not deploy |
 | Mirror / DB | `.sqlite`, `.sqlite3` | **Fail** |
 | Secrets / runtime | `.env`, `.log` | **Fail** |
-| Installers / batch | `.bat`, `.cmd`, unexpected `.exe` in package | **Fail** (`node\node.exe` is allowed only when bundled runtime is validated and listed in `node\RUNTIME-MANIFEST.json`) |
+| Installers / batch | `.bat`, unexpected `.cmd`, unexpected `.exe` in package | **Fail** (`DOUBLE-CLICK-AUTO-TEST.cmd` and `DOUBLE-CLICK-WINDOWS-TEST.cmd` are the allowed portable smoke runners; `node\node.exe` is allowed only when bundled runtime is validated and listed in `node\RUNTIME-MANIFEST.json`) |
 | Legacy path segments | Folder names `Microdent-Legacy`, `Write-Sandbox`, `Legacy-Copy` | **Fail** |
 
 Allowed exception at build time only: test fixture `fake_tiny.dbf` inside bridge **source** — must **not** appear in staged handoff tree.
@@ -83,10 +85,17 @@ Optional PowerShell read-only scan (copy-paste — **does not modify files**):
 # Run from package root, e.g. C:\Microdent\MicrodentModern
 $root = Get-Location
 $forbiddenExt = @('.dbf','.sqlite','.sqlite3','.env','.log','.fpt','.cdx','.exe','.bat','.cmd')
+$allowedRel = @(
+  'DOUBLE-CLICK-AUTO-TEST.cmd',
+  'DOUBLE-CLICK-WINDOWS-TEST.cmd',
+  'node\node.exe'
+)
 $hits = Get-ChildItem -Path $root -Recurse -File -ErrorAction SilentlyContinue |
   Where-Object {
+    $rel = [System.IO.Path]::GetRelativePath($root, $_.FullName)
     $forbiddenExt -contains $_.Extension.ToLower() -and
-    $_.Name -ne 'fake_tiny.dbf'
+    $_.Name -ne 'fake_tiny.dbf' -and
+    $allowedRel -notcontains $rel
   } |
   Select-Object -ExpandProperty FullName
 if ($hits) {
@@ -125,7 +134,7 @@ These folders must **not** contain clinic data at handoff:
 | `logs/` | `README.txt` (or equivalent placeholder) only |
 | `mirror/` | README placeholder only — no `.sqlite` |
 | `backups/` | README placeholder only — no backup archives |
-| `qa-runs/` | README placeholder only — dev/CI reports not shipped |
+| `qa-runs/` | README + `TEMPLATE-*` files only — completed dev/CI/clinic reports not shipped |
 | `node/` | README placeholder, or validated Node runtime plus `RUNTIME-MANIFEST.json` |
 
 Operators create real mirror, backup, and log locations **outside** the install tree per [windows-pilot-data-locations.md](./windows-pilot-data-locations.md).

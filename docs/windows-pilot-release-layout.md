@@ -24,7 +24,7 @@ dist/pilot-release/
     ├── config-templates/       # placeholders only (no real clinic paths)
     ├── docs/                   # pilot index copies (no PHI)
     ├── scripts/                # operator pointers (README + mirror-import-pointer)
-    ├── qa-runs/                # README.txt placeholder — dev/CI reports only
+    ├── qa-runs/                # README.txt + PHI-safe TEMPLATE-* files only
     ├── logs/                   # README.txt placeholder — no runtime logs
     ├── mirror/                 # README.txt placeholder — no sqlite shipped
     └── backups/                # README.txt placeholder — no backup data
@@ -57,7 +57,7 @@ dist/pilot-release/
 
 | Folder | Created by | Notes |
 | --- | --- | --- |
-| Install / extract dir | IT | e.g. `C:\Program Files\MicrodentModern\` — contents of `MicrodentModern/` |
+| Install / extract dir | IT | e.g. `C:\Microdent\MicrodentModern\` or another writable local folder — contents of `MicrodentModern/` |
 | `%AppData%\Microdent\` | Desktop on first save | `config.json` only |
 | DATA_ROOT | Operator | Sandbox DBF tree + marker — **outside** install dir |
 | Mirror file | Operator | Path from setup — not inside app install |
@@ -78,7 +78,7 @@ Shared rules live in [`scripts/pilot-release-artifact-rules.mjs`](../scripts/pil
 - **Post-scan** staged tree via shared artifact rules
 - Emits **`RELEASE-MANIFEST.json`** with per-file SHA-256 (`packageVersion`, `releaseChannel`, `unsupportedFeatures[]`; timestamp is metadata only — not hashed)
 - Writes **`web/pilot-build.json`** (safe build metadata subset for Settings — no paths)
-- Emits root **`PILOT-START-HERE.md`** and **`qa-runs/README.txt`** placeholder
+- Emits root **`PILOT-START-HERE.md`** and `qa-runs/` with README plus PHI-safe `TEMPLATE-*` files only
 - Logs **counts only** (no paths, no PHI)
 
 **No new npm packaging dependencies** — Node stdlib `fs` / `path` / `crypto` only (root `vitest` is dev-only for artifact tests).
@@ -90,7 +90,7 @@ Shared rules live in [`scripts/pilot-release-artifact-rules.mjs`](../scripts/pil
 | Clinic data | `SCHEDULE.DBF`, live `.dbf` / `.fpt` / `.cdx` trees |
 | Mirror / backups | `.sqlite`, `.sqlite3`, populated `backups/` |
 | Secrets / runtime | `.env`, `.log` |
-| Installers / scripts | `.exe`, `.bat`, `.cmd` |
+| Installers / scripts | Unexpected `.exe`, `.bat`, `.cmd`; root `DOUBLE-CLICK-WINDOWS-TEST.cmd` and validated bundled `node\node.exe` are explicit portable-pilot exceptions |
 | Legacy segments | `Microdent-Legacy`, `Write-Sandbox`, `Microdent-Write-Sandbox`, `Legacy-Copy` |
 | Real local paths in templates | `/Users/…`, `/home/…`, `Microdent-Modern` checkout paths |
 

@@ -76,6 +76,7 @@ backups/
 # Disposable write sandbox trees (never commit clinic DATA copies)
 Microdent-Write-Sandbox/
 **/Microdent-Write-Sandbox/
+services/strict-signoff/
 
 # Synthetic fixture used by bridge tests — must remain tracked
 !services/bridge/fixtures/sandbox/FAKE_TINY.dbf

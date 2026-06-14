@@ -2,9 +2,11 @@
 
 **Purpose:** Capture pass/fail for a real Windows field run. This is **not** a defect report — use [pilot-issue-template.md](./pilot-issue-template.md) for individual issues.
 
-**How:** Fill during or after [windows-pilot-field-execution-script.md](./windows-pilot-field-execution-script.md). File a copy under `qa-runs/` from [TEMPLATE-windows-field-run.md](../qa-runs/TEMPLATE-windows-field-run.md).
+**How:** Fill during or after [windows-pilot-field-execution-script.md](./windows-pilot-field-execution-script.md). File a copy under `qa-runs/` from [TEMPLATE-windows-field-run.md](../qa-runs/TEMPLATE-windows-field-run.md), confirm package verification evidence from [TEMPLATE-windows-package-verify-evidence.json](../qa-runs/TEMPLATE-windows-package-verify-evidence.json), then create the machine-readable field JSON from [TEMPLATE-windows-field-evidence.json](../qa-runs/TEMPLATE-windows-field-evidence.json).
 
 **Examples:** Fictional machine ids and sandbox paths only. **Do not** paste patient names, chart numbers, phones, DBF contents, or full `config.json`.
+
+> **Windows operator return:** If you used `DOUBLE-CLICK-WINDOWS-TEST.cmd`, send back only `MicrodentModern-safe-results.zip`. Engineering/IT converts that safe bundle into repo `qa-runs` evidence. If the zip was not created, send only `WINDOWS-SMOKE-REPORT.txt` and the three generated `.json` files from the same folder. Do not send DBF, SQLite, config, logs, screenshots, or the copied DATA folder.
 
 ---
 
@@ -20,6 +22,7 @@
 | **Operator profile** | e.g. `CONTOSO\pilot.operator` (no patient context) |
 | **Node on PATH** | `node -v` → e.g. `v22.11.0` |
 | **Package extract path** | e.g. `C:\Microdent\MicrodentModern\` |
+| **Package verification evidence** | e.g. `qa-runs/YYYY-MM-DD-windows-package-verify-evidence-CLINIC-PC-01.json` |
 
 ---
 
@@ -153,7 +156,13 @@ Formal go/no-go table (when available): [windows-pilot-go-no-go-checklist.md](./
 
 1. Save completed form as `qa-runs/YYYY-MM-DD-windows-field-log-<MACHINE>.md` (fictional machine id).
 2. Start from [TEMPLATE-windows-field-run.md](../qa-runs/TEMPLATE-windows-field-run.md).
-3. Keep **one** PHI-safe statement at top: *No real patient data in this file.*
+3. Create `qa-runs/YYYY-MM-DD-windows-package-verify-evidence-<MACHINE>.json` from [TEMPLATE-windows-package-verify-evidence.json](../qa-runs/TEMPLATE-windows-package-verify-evidence.json) if IT has not already filed it.
+4. Validate package verification evidence with `pnpm pilot:package-verify-evidence -- qa-runs/YYYY-MM-DD-windows-package-verify-evidence-<MACHINE>.json`.
+5. Create `qa-runs/YYYY-MM-DD-windows-field-evidence-<MACHINE>.json` from [TEMPLATE-windows-field-evidence.json](../qa-runs/TEMPLATE-windows-field-evidence.json), with `packageVerification.evidencePath` pointing to the validated package evidence file and `packageVerification.verifiedBeforeFieldRun` set to `true`.
+6. Create `qa-runs/YYYY-MM-DD-evidence-attachment-manifest-<MACHINE>.json` from [TEMPLATE-evidence-attachment-manifest.json](../qa-runs/TEMPLATE-evidence-attachment-manifest.json) after redacting and hashing screenshots/signoff outputs.
+7. Validate the manifest with `pnpm pilot:attachment-manifest -- qa-runs/YYYY-MM-DD-evidence-attachment-manifest-<MACHINE>.json`.
+8. Validate field evidence with `pnpm pilot:field-evidence -- qa-runs/YYYY-MM-DD-windows-field-evidence-<MACHINE>.json`.
+9. Keep **one** PHI-safe statement at top: *No real patient data in this file.*
 
 ---
 
@@ -163,5 +172,6 @@ Formal go/no-go table (when available): [windows-pilot-go-no-go-checklist.md](./
 | --- | --- |
 | [windows-pilot-field-execution-script.md](./windows-pilot-field-execution-script.md) | Linear steps |
 | [windows-pilot-real-machine-checklist.md](./windows-pilot-real-machine-checklist.md) | Full matrix |
+| [evidence-attachment-manifest.md](./evidence-attachment-manifest.md) | Redacted attachment metadata and hash manifest |
 | [pilot-issue-template.md](./pilot-issue-template.md) | Defect intake |
 | [PILOT-HANDOFF-PACK.md](./PILOT-HANDOFF-PACK.md) | Handoff index |

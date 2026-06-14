@@ -11,6 +11,19 @@ BRIDGE_DIST="${QA_REPO}/services/bridge/dist"
 
 log() { echo "[qa-sandbox-preflight] $*"; }
 
+for cmd in curl jq; do
+  if ! command -v "${cmd}" >/dev/null 2>&1; then
+    log "FAIL: ${cmd} required"
+    exit 1
+  fi
+done
+if ! command -v sqlite3 >/dev/null 2>&1; then
+  if ! node --no-warnings -e "require('node:sqlite')" >/dev/null 2>&1; then
+    log "FAIL: sqlite3 required, or Node must provide node:sqlite"
+    exit 1
+  fi
+fi
+
 if ! realpath "${DATA_ROOT}" 2>/dev/null | grep -q 'Microdent-Write-Sandbox'; then
   log "FAIL: DATA_ROOT must resolve under Microdent-Write-Sandbox"
   exit 1
@@ -30,4 +43,4 @@ for artifact in server.js cli/legacy-backup.js cli/legacy-restore.js cli/qa-sand
   fi
 done
 
-log "preflight ok marker=ok dist=ok sqlite=ok"
+log "preflight ok tools=ok marker=ok dist=ok sqlite=ok"

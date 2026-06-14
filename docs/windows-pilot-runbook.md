@@ -109,12 +109,14 @@ Use Today, Patients, Schedule, and Profile read tabs. Settings **Pilot readiness
 
 ## 7. Sandbox QA sign-off
 
-Git Bash on Windows (or macOS dev machine):
+PowerShell on Windows (or terminal on the build machine):
 
-```bash
-export DATA_ROOT="C:/Microdent/Write-Sandbox/DATA"
-export SQLITE_PATH="C:/Microdent/mirror/MICRODENT_MIRROR.sqlite"
-export BACKUP_DIR="C:/Microdent/Write-Sandbox/backups"
+```powershell
+$env:DATA_ROOT = "C:\Microdent\Write-Sandbox\DATA"
+$env:SQLITE_PATH = "C:\Microdent\mirror\MICRODENT_MIRROR.sqlite"
+$env:BACKUP_DIR = "C:\Microdent\Write-Sandbox\backups"
+$env:WRITE_MODE = "enabled"
+$env:ALLOW_LEGACY_WRITES = "I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY"
 pnpm qa:sandbox
 ```
 

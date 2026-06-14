@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "microdent-installer-evidence/v1",
+  "phiStatement": "no-real-patient-data",
+  "build": {
+    "packageVersion": "pilot-YYYY-MM-DD",
+    "gitCommit": "abcdef1"
+  },
+  "installer": {
+    "target": "nsis",
+    "relPath": "installer/MicrodentModernSetup.exe",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "signedArtifactEvidencePath": "qa-runs/YYYY-MM-DD-signed-artifact-evidence.json"
+  },
+  "scenarios": [
+    {
+      "name": "clean-install",
+      "status": "blocked",
+      "machineLabel": "WIN11-CLINIC-PC-01",
+      "windowsVersion": "Windows 11 23H2",
+      "evidence": "TBD"
+    },
+    {
+      "name": "upgrade-install",
+      "status": "blocked",
+      "machineLabel": "WIN11-CLINIC-PC-01",
+      "windowsVersion": "Windows 11 23H2",
+      "evidence": "TBD"
+    },
+    {
+      "name": "uninstall",
+      "status": "blocked",
+      "machineLabel": "WIN11-CLINIC-PC-01",
+      "windowsVersion": "Windows 11 23H2",
+      "evidence": "TBD"
+    }
+  ],
+  "behavior": {
+    "cleanInstall": false,
+    "upgradeInstall": false,
+    "uninstallPreservesData": false,
+    "shortcutCreated": false,
+    "addRemoveProgramsEntry": false,
+    "appLaunchesAfterInstall": false,
+    "firstRunSetupLaunches": false,
+    "dataOutsideInstallTree": false,
+    "noPhiBundled": false,
+    "rollbackInstallerAvailable": false
+  },
+  "rawLogsAttached": false
+}

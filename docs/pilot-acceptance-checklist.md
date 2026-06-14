@@ -21,8 +21,9 @@ Complete on the **build or IT machine** before copying `MicrodentModern/` to cli
 | 0.4 | Staged tree has `app/`, `bridge/`, `web/`, `config-templates/`, `docs/` — placeholders only in `logs/`, `mirror/`, `backups/` | ☐ |
 | 0.5 | No `.sqlite`, `.dbf`, `.env`, `.log`, or live Legacy trees in staged package | ☐ |
 | 0.6 | `config-templates/` uses placeholders only (e.g. `C:\ClinicData\Microdent\DATA`) — no real local paths | ☐ |
+| 0.7 | IT package verification evidence filed and validated: `pnpm pilot:package-verify-evidence -- qa-runs/YYYY-MM-DD-windows-package-verify-evidence-CLINIC-PC-01.json` | ☐ |
 
-Reference: [windows-pilot-release-layout.md](./windows-pilot-release-layout.md)
+Reference: [windows-pilot-release-layout.md](./windows-pilot-release-layout.md) · [windows-package-verify-evidence.md](./windows-package-verify-evidence.md)
 
 ---
 
@@ -31,7 +32,7 @@ Reference: [windows-pilot-release-layout.md](./windows-pilot-release-layout.md)
 | # | Check | Pass |
 | --- | --- | --- |
 | 1.1 | Node 22 installed; `node -v` shows v22.x | ☐ |
-| 1.2 | Desktop launches from staged `app/` or dev checkout | ☐ |
+| 1.2 | Portable smoke runner launches app or local web preview from package root | ☐ |
 | 1.3 | First-run **setup** opens when paths missing | ☐ |
 | 1.4 | Main UI loads after setup save; bridge shows connected in Settings | ☐ |
 | 1.5 | `pnpm --filter @microdent/desktop run release-smoke` passed (dev) or staged verify (0.2) passed (handoff) | ☐ |
@@ -163,7 +164,7 @@ Template: [pilot-tester-guide.md](./pilot-tester-guide.md#issue-report-template)
 
 ## Sign-off
 
-**Clinic go-live:** **BLOCKED** until tier 3 — a real Windows clinic PC field run is logged and [windows-pilot-go-no-go-checklist.md](./windows-pilot-go-no-go-checklist.md) records **GO**. Mac build-machine acceptance (sections 0–7) is **Windows-test readiness** only.
+**Clinic go-live:** **BLOCKED** until tier 3 — package verification evidence is filed, a real Windows clinic PC field run references it through `packageVerification.evidencePath`, and [windows-pilot-go-no-go-checklist.md](./windows-pilot-go-no-go-checklist.md) records **GO**. Mac build-machine acceptance (sections 0–7) is **Windows-test readiness** only.
 
 | Role | Name | Date | Signature |
 | --- | --- | --- | --- |

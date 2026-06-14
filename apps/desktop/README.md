@@ -14,9 +14,13 @@ Minimal desktop shell per [docs/phase-3-desktop-packaging-plan.md](../../docs/ph
 - Port conflicts are handled by the bridge itself (it will fail to bind, and the desktop app shows the error).
 
 Operators only manage:
-- **Config** (`%AppData%\Microdent\config.json`) — set via the first-run setup window
-- **Mirror import** — CLI command (`pnpm mirror:import-safe`) run from the package directory
-- **Write mode** — changed in config for sandbox pilot work (default: `disabled`)
+- **First-run setup** — choose the copied clinic data folder and let the app prepare the fast local copy
+- **Local-copy refresh** — use **Settings → Refresh local copy** when copied files change or support asks
+- **Write mode** — changed only for approved sandbox pilot work (default: `disabled`)
+
+CLI mirror/import commands are for development and support fallback only. Normal
+operators should not run `pnpm`, edit environment variables, or manage DBF/SQLite
+paths by hand.
 
 ## Prerequisites
 
@@ -45,9 +49,9 @@ After `pnpm stage:pilot-release`, IT delivers `dist/pilot-release/MicrodentModer
 | Item | Detail |
 | --- | --- |
 | **Install root** | Folder containing `app/`, `bridge/`, `web/` (example: `C:\Microdent\MicrodentModern\`) |
-| **Desktop entry** | `app/dist/main.js` via Electron + system Node 22 |
+| **Desktop entry** | Packaged desktop shell via Electron + bundled/system Node 22 |
 | **Bridge entry** | `bridge/server.js` — resolved relative to install root (not repo `services/`) |
-| **Web UI** | `web/index.html` via `file://` when present |
+| **Web UI** | Packaged desktop shell; double-click smoke fallback serves `web/` at `http://127.0.0.1:4173/` |
 | **Operator index** | `docs/PILOT-HANDOFF-PACK.md` in the staged package |
 | **Config** | `%AppData%\Microdent\config.json` after first-run setup |
 
@@ -59,7 +63,7 @@ The supervisor detects packaged layout when `bridge/server.js` exists at the ins
 
 - Spawns bridge `server.js` (packaged or dev dist path)
 - Polls `GET /health` before opening the window
-- Loads web dist via `file://` when present
+- Loads packaged web dist in the desktop shell; smoke fallback uses a localhost static preview
 - Stops bridge on quit
 
 Not included: NSIS installer, code signing, auto-update.

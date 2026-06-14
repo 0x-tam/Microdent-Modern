@@ -2,7 +2,7 @@
 
 **Purpose:** Single authoritative guide for continuing Microdent Modern toward a sellable, clinic-ready product. Covers what exists, what's missing, how the system works, and what it takes to ship.
 
-**Current commit:** working tree after `3d9d13f` — local-first setup/import and operator-language hardening in progress
+**Current commit:** working tree after `a96131b` — roadmap/productization hardening and local strict signoff evidence in progress
 
 **Baseline date:** 2026-06-03 (latest QA batch: `clinic-workspace-ui-batch-report`)
 
@@ -59,12 +59,12 @@ Microdent Modern is a **modern, local-first desktop clinic application** that si
 
 | Gap | Severity | Owner Phase | Notes |
 |-----|----------|-------------|-------|
-| **Windows field execution** | BLOCKER | Phase 4 | No real clinic PC has run the app; tier 3 field test never executed |
+| **Windows field execution** | BLOCKER | Phase 4 | No real clinic PC has filed package verification evidence plus Windows field evidence JSON referencing `packageVerification.evidencePath`; tier 3 field test never executed |
 | **One-click setup/import** | PARTIAL BLOCKER | Phase 4-5 | First-run now validates a copied clinic folder, derives safe local-copy/backup/log paths, runs automatic local-copy import, and blocks on core-table failure; still needs Windows field execution and production installer proof |
 | **Invisible clinic service** | PARTIAL BLOCKER | Phase 4-5 | Desktop starts/supervises the internal service, primary UI calls it the clinic service, and Settings includes restart/port diagnostic/policy quick fixes; remaining work is Windows field proof and production installer integration |
 | **NSIS installer** | High | Phase 4-5 | Portable staged tree only; no signed installer, no auto-update |
 | **Code signing** | High | Phase 4-5 | Required for Windows deployment on clinic machines |
-| **Mirror auto-refresh** | Medium | Phase 5 | Settings can now refresh the local copy through the desktop app without CLI; remaining work is automatic post-write refresh policy and Windows field proof |
+| **Mirror auto-refresh** | Medium | Phase 5 | Settings can refresh the local copy without CLI; post-write UI now warns that the local copy may need refresh instead of auto-running risky imports; remaining work is Windows field proof |
 | **Node.js bundling** | High | Phase 4 | Staging can validate and include a pre-downloaded Node 22.5+ runtime via `MICRODENT_NODE_RUNTIME_DIR`, writes a support-safe runtime manifest, and desktop prefers packaged Node; signing/installer integration remains open |
 | **Production logging** | Medium | Phase 5 | Desktop now auto-creates PHI-safe rotating operational logs, exports sanitized support logs, configures local-only crash dumps, and shows support-safe diagnostics plus capped log/crash metadata previews; opt-in telemetry and aggregation are still not implemented |
 | **Dual-search sync** | Low | Phase 6 | Top bar and Patients page search don't sync query text |
@@ -263,11 +263,11 @@ Express HTTP API — the only component that reads DBF files.
 **Status:** Mostly complete. SQLite mirror importers exist for all core entities. Bridge SQLite read routes are implemented as fallbacks.
 
 **Remaining items:**
-- [ ] Auto-refresh mirror after sandbox commits (Settings can refresh manually; policy for automatic post-write refresh remains open)
+- [x] Post-write refresh-needed state after sandbox commits (Settings can refresh manually; automatic full refresh remains deferred pending field proof)
 - [x] Add first-run local-copy import progress indicators during setup
 - [x] Add Settings local-copy refresh progress indicators (desktop progress events and operator-safe status copy)
-- [ ] Implement incremental mirror re-import (currently full re-import)
-- [ ] Handle mirror staleness detection (age-based stale UI exists; DBF-change-since-import detection remains open)
+- [x] Implement table-level incremental mirror re-import for low-risk reference tables; full refresh remains fallback for core clinical tables
+- [x] Handle mirror staleness detection with age-based stale UI plus copied-file-change-since-import metadata
 - [x] Add error handling for corrupt/incomplete mirror imports
 - [x] Document mirror troubleshooting in operator guide
 
@@ -277,6 +277,7 @@ Express HTTP API — the only component that reads DBF files.
 
 **Remaining items:**
 - [ ] **Windows field execution (EXEC-01 through EXEC-16)** — see [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md)
+  - [ ] Evidence prerequisite: file and validate `qa-runs/YYYY-MM-DD-windows-package-verify-evidence-CLINIC-PC-01.json` with `pnpm pilot:package-verify-evidence` before operator field steps
   - [ ] EXEC-01: Verify bundled Node 22+ or fallback Node 22+ on clinic PC
   - [ ] EXEC-02: Extract staged package, verify structure
   - [x] EXEC-03: First-run setup wizard implemented in desktop shell
@@ -292,7 +293,8 @@ Express HTTP API — the only component that reads DBF files.
   - [ ] EXEC-13: Verify backup created before writes
   - [ ] EXEC-14: Verify DBF readback proof
   - [ ] EXEC-15: Verify restore workflow
-  - [ ] EXEC-16: Field result form + sign-off
+  - [ ] EXEC-16: Field result form + sign-off, then file Windows field evidence JSON with `packageVerification.evidencePath`
+- [x] Add PHI-safe machine-readable field evidence validator (`pnpm pilot:field-evidence`) and JSON template so completed Windows runs can be checked against EXEC-01 through EXEC-16 without over-claiming read-only evidence
 - [x] Prefer packaged Node.js runtime in desktop package when `node/` is staged
 - [x] Add repeatable Windows Node runtime validation/staging to release process (`pnpm pilot:node-runtime-check`; still uses pre-downloaded runtime)
 - [ ] Add signed installer-integrated Windows Node runtime acquisition/download step
@@ -307,7 +309,7 @@ Express HTTP API — the only component that reads DBF files.
 
 ### Phase 4 — Windows Operator Workflow
 
-**Status:** Documentation exists. No real-world execution.
+**Status:** Local operator workflow and support documentation are materially stronger, but no real-world Windows execution is complete.
 
 **Reference docs:**
 - [phase-4-mirror-import-operator.md](./phase-4-mirror-import-operator.md)
@@ -316,8 +318,8 @@ Express HTTP API — the only component that reads DBF files.
 **Remaining items:**
 - [ ] Execute full operator workflow on clinic PC
 - [ ] Resolve any path/permission issues discovered during field test
-- [ ] Create operator training materials (video or illustrated guide)
-- [ ] Implement operator-friendly error messages for common failure modes
+- [x] Create operator training materials baseline with [operator-manual.md](./operator-manual.md), pilot start/handoff links, and Settings-first troubleshooting
+- [x] Implement operator-friendly error messages for common failure modes; primary UI maps service, local-copy, support-export, port, permission, and write-blocked cases to clinic actions without raw paths or environment-variable jargon
 - [x] Add Settings quick-fix button for clinic-service restart in the desktop app
 - [x] Add Settings quick-fix button for local-copy refresh in the desktop app
 - [x] Add Settings quick-fix support for support-safe log export
@@ -328,7 +330,7 @@ Express HTTP API — the only component that reads DBF files.
 
 ### Phase 5 — Production Readiness
 
-**Status:** Not started (depends on Phase 3/4 completion).
+**Status:** Local readiness work has started and several pilot-ready safeguards are implemented. Commercial production readiness still depends on package-linked Windows field proof, signing, installer, update, support, distribution, pricing, marketing, license, go-live, and pilot evidence.
 
 **Remaining items:**
 - [ ] Code signing certificate (Windows Authenticode)
@@ -341,17 +343,17 @@ Express HTTP API — the only component that reads DBF files.
   - [ ] Data directory outside install tree (`%ProgramData%\MicrodentModern\` or user choice)
 - [ ] Auto-update feed (Squirrel, GitHub releases, or custom)
 - [x] Crash reporting: local crash dump capture with upload disabled
-- [ ] Optional opt-in telemetry/upload design
+- [x] Optional opt-in telemetry/upload decision recorded as deferred/off by default in [telemetry-deferral-decision-record.md](./telemetry-deferral-decision-record.md)
 - [x] Desktop log rotation and PHI-safe operational event management
 - [x] Desktop local-copy refresh action from Settings (no operator CLI needed)
 - [x] Support-safe log export workflow
 - [x] Support-safe diagnostics summary viewer workflow
 - [x] Support-safe log file preview workflow
 - [x] Support-safe crash metadata preview workflow
-- [ ] Performance profiling on clinic-scale datasets (5,000+ patients, 50,000+ appointments)
-- [ ] Accessibility audit (WCAG 2.2 AA)
-- [ ] Operator manual / help documentation
-- [ ] Data privacy review (HIPAA-equivalent compliance for local-only storage)
+- [x] Performance profiling on clinic-scale synthetic datasets (5,000+ patients, 50,000+ appointments) with baseline report in [2026-06-06-synthetic-performance-baseline.md](../qa-runs/2026-06-06-synthetic-performance-baseline.md)
+- [x] Accessibility audit baseline (WCAG 2.2 AA-oriented local checklist) in [accessibility-audit-checklist.md](./accessibility-audit-checklist.md); NVDA/Windows validation remains field-track work
+- [x] Operator manual / help documentation in [operator-manual.md](./operator-manual.md)
+- [x] Data privacy review for local-only pilot storage and support boundaries in [data-privacy-review.md](./data-privacy-review.md)
 
 ### Phase 6 — Feature Enrichment (Post-Field-Test)
 
@@ -384,11 +386,14 @@ Express HTTP API — the only component that reads DBF files.
 - [ ] Clinical pilot with 1–3 real clinics
 - [ ] Pilot feedback collection system
 - [ ] Issue tracking and prioritization
-- [ ] Pricing model definition (see §7)
+- [x] Support knowledge base, pilot feedback triage workflow, and support readiness checklist added for PHI-safe commercial-readiness evidence
+- [x] Licensing/pricing readiness guardrails added for offline/no-PHI commercial evidence
 - [ ] Licensing infrastructure
 - [ ] Support documentation (knowledge base, FAQ)
-- [ ] Website / marketing materials
-- [ ] Distribution channel (direct download, partner network)
+- [x] Pricing and marketing readiness guardrails added for no-telemetry pricing and truthful launch claims
+- [ ] Website / marketing materials implementation
+- [x] Distribution readiness and marketing-claim review guardrails added for commercial evidence
+- [ ] Distribution channel implementation (direct download, partner network)
 
 ---
 

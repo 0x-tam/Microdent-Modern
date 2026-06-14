@@ -1,6 +1,6 @@
 # Pilot issue report template (no PHI)
 
-**Purpose:** Copy this template into your internal tracker, email, or `qa-runs/` field log. Use **fictional** machine names and **sandbox** paths only.
+**Purpose:** Copy this template into your internal tracker, support email, or a PHI-safe field evidence attachment note. Use **fictional** machine names and **sandbox** paths only; this template is not a substitute for filed Windows field evidence JSON.
 
 **Do not paste:** patient names, chart numbers, phones, addresses, insurance IDs, DBF contents, live `config.json`, or production legacy paths.
 

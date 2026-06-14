@@ -8,7 +8,7 @@
 
 **Index:** [PILOT-START-HERE.md](./PILOT-START-HERE.md) · [pilot-issue-template.md](./pilot-issue-template.md) · [windows-pilot-packaging-gap-report.md](./windows-pilot-packaging-gap-report.md) · [windows-dev-dry-run.md](./windows-dev-dry-run.md)
 
-**Field execution on clinic PCs:** [windows-pilot-field-execution-script.md](./windows-pilot-field-execution-script.md) (**how** — linear EXEC steps) · [windows-pilot-field-result-form.md](./windows-pilot-field-result-form.md) (**results** — PHI-safe form) · [TEMPLATE-windows-field-run.md](../qa-runs/TEMPLATE-windows-field-run.md) (qa-runs copy)
+**Field execution on clinic PCs:** first file package verification evidence with [windows-package-verify-evidence.md](./windows-package-verify-evidence.md) and `pnpm pilot:package-verify-evidence -- qa-runs/YYYY-MM-DD-windows-package-verify-evidence-CLINIC-PC-01.json`, then follow [windows-pilot-field-execution-script.md](./windows-pilot-field-execution-script.md) (**how** — linear EXEC steps) and [windows-pilot-field-result-form.md](./windows-pilot-field-result-form.md) (**results** — PHI-safe form). The field evidence JSON must set `packageVerification.evidencePath` and `verifiedBeforeFieldRun: true`.
 
 This file is the **matrix** (what to prove). Follow the execution script for day-0 order; do not treat section order alone as the runbook.
 
@@ -25,6 +25,7 @@ Use **synthetic** examples only when recording field results.
 | **Do not** put DATA_ROOT, mirror sqlite, backups, or logs inside the install folder | Reinstall/upgrade must not delete clinic sandbox data — see [windows-pilot-data-locations.md](./windows-pilot-data-locations.md) |
 | Confirm `RELEASE-MANIFEST.json` and `HANDOFF-README.txt` at package root after extract | Build machine should have run `pnpm pilot:verify-release` before zip handoff |
 | Read `packageVersion` from manifest for support tickets | PHI-safe build id — not patient data |
+| File package verification evidence before operator field steps | Use [windows-package-verify-evidence.md](./windows-package-verify-evidence.md); the later field report references `packageVerification.evidencePath` |
 
 **Staged copy:** `pnpm stage:pilot-release` already includes this checklist in `MicrodentModern/docs/`; add `pilot-issue-template.md` to the staging docs list per [PILOT-HANDOFF-PACK.md](./PILOT-HANDOFF-PACK.md) §10.
 
@@ -37,7 +38,7 @@ Use **synthetic** examples only when recording field results.
 | **Dev dry-run** | Runnable on a build machine (macOS/Linux or Windows dev box) via `pnpm`, staged smoke, or vitest — see [windows-dev-dry-run.md](./windows-dev-dry-run.md) |
 | **Requires Windows PC** | Must be executed on a clinic Windows 10/11 machine with operator profile, AV, and real `%AppData%` behavior |
 
-Record pass/fail in [windows-pilot-field-result-form.md](./windows-pilot-field-result-form.md) (preferred) or file a copy from [TEMPLATE-windows-field-run.md](../qa-runs/TEMPLATE-windows-field-run.md). The embedded log template at the bottom of this file is **legacy** — use the result form for new runs. Do not paste PHI, real DBF paths, or live `config.json` into shared tickets.
+Record package checks in `qa-runs/YYYY-MM-DD-windows-package-verify-evidence-CLINIC-PC-01.json` first, validate it with `pnpm pilot:package-verify-evidence`, then record pass/fail in [windows-pilot-field-result-form.md](./windows-pilot-field-result-form.md) (preferred) or file a copy from [TEMPLATE-windows-field-run.md](../qa-runs/TEMPLATE-windows-field-run.md). The embedded log template at the bottom of this file is **legacy** — use the result form for new runs. Do not paste PHI, real DBF paths, or live `config.json` into shared tickets.
 
 For defects or blockers, copy [pilot-issue-template.md](./pilot-issue-template.md) — redaction rules and manifest `packageVersion` fields are defined there.
 
@@ -49,10 +50,11 @@ For defects or blockers, copy [pilot-issue-template.md](./pilot-issue-template.m
 | --- | --- | --- | --- |
 | 1.1 | Staged tree verifies on build machine | **Dev dry-run** | `pnpm stage:pilot-release` then `pnpm pilot:verify-release` on `dist/pilot-release/MicrodentModern/` |
 | 1.2 | IT extracts zip to local drive (not temp-only) | **Requires Windows PC** | Extract to `C:\Microdent\MicrodentModern\` |
-| 1.3 | Node 22 on PATH for bridge child | **Requires Windows PC** | `node -v` → `v22.x` in PowerShell |
-| 1.4 | Desktop launches without blank UI | **Requires Windows PC** | Start from `C:\Microdent\MicrodentModern\app\` per `HANDOFF-README.txt` |
-| 1.5 | SmartScreen / unsigned app prompt handled | **Requires Windows PC** | IT documents “More info → Run anyway” for unsigned Electron + `node.exe` |
-| 1.6 | Antivirus does not block bridge startup within 60s | **Requires Windows PC** | Allowlist `node.exe` + app folder if first launch times out |
+| 1.3 | IT validates package evidence before operator steps | **Requires Windows PC** | Fill and validate `qa-runs/YYYY-MM-DD-windows-package-verify-evidence-CLINIC-PC-01.json` with `pnpm pilot:package-verify-evidence` |
+| 1.4 | Node 22 on PATH for bridge child | **Requires Windows PC** | `node -v` → `v22.x` in PowerShell |
+| 1.5 | App or local web preview launches without blank UI | **Requires Windows PC** | Double-click `C:\Microdent\MicrodentModern\DOUBLE-CLICK-WINDOWS-TEST.cmd` per `HANDOFF-README.txt` |
+| 1.6 | SmartScreen / unsigned app prompt handled | **Requires Windows PC** | IT documents “More info → Run anyway” for unsigned Electron + `node.exe` |
+| 1.7 | Antivirus does not block bridge startup within 60s | **Requires Windows PC** | Allowlist `node.exe` + app folder if first launch times out |
 
 ---
 
@@ -101,8 +103,8 @@ Full location reference: [windows-pilot-data-locations.md](./windows-pilot-data-
 
 | # | Check | Marker | Synthetic example / steps |
 | --- | --- | --- | --- |
-| 5.1 | Mirror import CLI tests pass | **Dev dry-run** | Workspace tests for `import-safe` / mirror package |
-| 5.2 | Operator runs import with synthetic sandbox DATA | **Requires Windows PC** | PowerShell env: `DATA_ROOT=C:\ClinicData\PilotSandbox\DATA`, `SQLITE_PATH=C:\Users\Public\MicrodentModern\mirror\clinic.sqlite` |
+| 5.1 | Mirror import package tests pass | **Dev dry-run** | Workspace tests for `import-safe` / mirror package |
+| 5.2 | Operator refreshes local copy in Settings | **Requires Windows PC** | Settings → Local copy & import → Refresh local copy; then Refresh status |
 | 5.3 | Settings mirror table shows recent import run | **Requires Windows PC** | Refresh metadata — status not “never imported” |
 | 5.4 | Read surfaces load post-import | **Requires Windows PC** | Today / Patients / Schedule show sandbox counts (no real names in screenshots) |
 
@@ -128,7 +130,7 @@ Runbook: [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md).
 
 | # | Check | Marker | Synthetic example / steps |
 | --- | --- | --- | --- |
-| 7.1 | `pnpm qa:sandbox` on dev machine with sandbox copy | **Dev dry-run** | Git Bash + env paths to disposable DATA (not production legacy) |
+| 7.1 | `pnpm qa:sandbox` on dev machine with sandbox copy | **Dev dry-run** | Node 22 + env paths to disposable DATA (not production legacy) |
 | 7.2 | Four write workflows on Windows | **Requires Windows PC** | Follow [phase-7-sandbox-pilot-qa-runbook.md](./phase-7-sandbox-pilot-qa-runbook.md) |
 | 7.3 | DBF not open in FoxPro/Excel during commits | **Requires Windows PC** | Close handles on `SCHEDULE.DBF` / `PATIENT.DBF` in sandbox DATA |
 | 7.4 | UI feedback shows `operationId` + audit status only | **Requires Windows PC** | No patient names in feedback lines |
@@ -185,7 +187,7 @@ Runbook: [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md).
 | Reboot / longevity | 0 | 4 |
 | Logs / locations | 1 | 4 |
 
-**Rule of thumb:** Green dev dry-run + distribution checkpoint is necessary but **not sufficient** for clinic go-live. Complete all **Requires Windows PC** rows and file a PHI-safe field log before treating the pilot as clinic go-live ready.
+**Rule of thumb:** Green dev dry-run + distribution checkpoint is necessary but **not sufficient** for clinic go-live. Complete all **Requires Windows PC** rows, file package verification evidence, and file PHI-safe Windows field evidence that references that package evidence with `packageVerification.evidencePath` before treating the pilot as clinic go-live ready.
 
 ---
 
@@ -196,7 +198,7 @@ When a **Requires Windows PC** row fails:
 1. Note checklist **section #** and row (e.g. `2.3 Spaced path in DATA_ROOT`) — no patient context.
 2. Open [pilot-issue-template.md](./pilot-issue-template.md) and fill **Environment**, **Steps**, **Expected vs actual**, and **Diagnostics** using sandbox paths only.
 3. Set **Package version** from `RELEASE-MANIFEST.json` → `packageVersion` (and `releaseChannel` if present).
-4. File internally or in `qa-runs/` — filename example: `qa-runs/2026-05-24-windows-field-log-EXAMPLE.md` (fictional machine id).
+4. File internally or in `qa-runs/` — filename example: `qa-runs/2026-05-24-windows-field-notes-EXAMPLE.md` (fictional machine id). This note can support, but does not replace, the required Windows field evidence JSON.
 5. Do **not** attach DBF, sqlite, screenshots with patient names, or full `%AppData%\Microdent\config.json`.
 
 Escalation index: [PILOT-START-HERE.md § Issue report template](./PILOT-START-HERE.md#issue-report-template-no-phi).
@@ -210,7 +212,7 @@ Escalation index: [PILOT-START-HERE.md § Issue report template](./PILOT-START-H
 Legacy inline template (synthetic example only):
 
 ```markdown
-# Windows pilot field log — EXAMPLE ONLY
+# Windows pilot field evidence notes — EXAMPLE ONLY
 
 | Field | Value |
 | --- | --- |

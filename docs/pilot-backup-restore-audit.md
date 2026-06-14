@@ -73,7 +73,7 @@ Backup verify lists **backup ids and table basenames only** — never full files
 | Full `BACKUP_DIR` path | No — use “configured” / “missing” only |
 | DBF row contents | Never |
 
-Command: `pnpm --filter @microdent/bridge run legacy-backup-verify` (or root `pnpm legacy:backup-verify` on bash hosts).
+Command: root `pnpm legacy:backup-verify` (cross-platform Node wrapper) or `pnpm --filter @microdent/bridge run legacy-backup-verify` directly.
 
 ---
 
@@ -105,7 +105,7 @@ After restore, re-run mirror import if search/schedule must match DBF again.
 
 ### Mac sandbox QA (build machine — tier 1 proof)
 
-`pnpm qa:sandbox` on a Mac (or bash host) with a disposable Write-Sandbox runs backup → commit → restore → hash revert per workflow. DBF readback (`source=dbf`) is the write proof — not mirror SQLite queries.
+`pnpm qa:sandbox` with a disposable Write-Sandbox runs backup → commit → restore → hash revert per workflow. DBF readback (`source=dbf`) is the write proof — not mirror SQLite queries.
 
 **What this proves:** sandbox write safety, backup/restore CLI, and bridge commit paths on a developer-controlled disposable environment.
 
@@ -115,9 +115,11 @@ After restore, re-run mirror import if search/schedule must match DBF again.
 
 When IT schedules a clinic Windows PC run, operators follow **`docs/FIELD-TEST-START-HERE.md`** in the staged package → execution script → result form → go/no-go checklist.
 
-**What this proves:** packaged portable layout, Windows paths, desktop supervision, and PHI-safe field logging on the target OS.
+Before those operator steps, IT files package verification evidence with `pnpm pilot:package-verify-evidence`. The later field evidence must reference that package proof through `packageVerification.evidencePath`.
 
-Until tier 3 is completed with a PHI-safe field log, clinic go-live stays **blocked** — even when Mac signoff and `pnpm qa:sandbox` are green.
+**What this proves:** packaged portable layout, Windows paths, desktop supervision, and PHI-safe field evidence capture on the target OS.
+
+Until tier 3 is completed with package verification evidence and PHI-safe Windows field evidence referencing that proof with `packageVerification.evidencePath`, clinic go-live stays **blocked** — even when Mac signoff and `pnpm qa:sandbox` are green.
 
 | Proof | Command / entry | Tier | Substitutes for Windows field? |
 | --- | --- | --- | --- |

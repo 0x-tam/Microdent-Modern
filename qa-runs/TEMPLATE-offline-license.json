@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "microdent-offline-license/v1",
+  "product": "microdent-modern",
+  "licenseId": "LIC-YYYY-MM-DD-CLINIC-PC-01",
+  "clinicLabel": "CLINIC-PC-01",
+  "tier": "clinic-enterprise",
+  "seats": 5,
+  "features": {
+    "readOnly": true,
+    "sandboxWrites": true,
+    "localCopyRefresh": true,
+    "supportExport": true
+  },
+  "issuedAt": "YYYY-MM-DDT00:00:00.000Z",
+  "expiresAt": "YYYY-MM-DDT00:00:00.000Z",
+  "graceDays": 30,
+  "expiryBehavior": "graceful-read-only",
+  "noPhiStatement": "no-real-patient-data",
+  "signature": "BASE64-SIGNATURE-FROM-CANONICAL-PAYLOAD"
+}

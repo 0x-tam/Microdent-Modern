@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "microdent-pricing-evidence/v1",
+  "phiStatement": "no-real-patient-data",
+  "build": {
+    "packageVersion": "pilot-YYYY-MM-DD",
+    "gitCommit": "abcdef1"
+  },
+  "reviewDate": "YYYY-MM-DD",
+  "model": "per-clinic",
+  "licenseModel": "per-clinic-perpetual",
+  "licenseEvidencePath": "qa-runs/YYYY-MM-DD-offline-license-CLINIC-PC-01.json",
+  "summary": {
+    "scopeMatchesLicense": false,
+    "supportTermsDefined": false,
+    "noUsageTelemetryDependency": false,
+    "sponsorApproved": false,
+    "noPhiPricingInputs": false,
+    "renewalTermsDocumented": false
+  },
+  "supportTerms": {
+    "included": false,
+    "escalation": false,
+    "rollback": false
+  },
+  "approvers": [
+    { "role": "Pilot sponsor", "name": "TBD", "date": "YYYY-MM-DD" },
+    { "role": "Finance owner", "name": "TBD", "date": "YYYY-MM-DD" }
+  ],
+  "rows": [
+    { "id": "licenseScope", "pass": false, "evidence": "TBD" },
+    { "id": "supportTerms", "pass": false, "evidence": "TBD" },
+    { "id": "telemetryIndependence", "pass": false, "evidence": "TBD" },
+    { "id": "phiIndependence", "pass": false, "evidence": "TBD" },
+    { "id": "renewalTerms", "pass": false, "evidence": "TBD" },
+    { "id": "sponsorApproval", "pass": false, "evidence": "TBD" }
+  ]
+}

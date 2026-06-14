@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "microdent-signed-artifact-evidence/v1",
+  "phiStatement": "no-real-patient-data",
+  "build": {
+    "packageVersion": "pilot-YYYY-MM-DD",
+    "gitCommit": "abcdef1"
+  },
+  "certificate": {
+    "subject": "CN=TBD",
+    "issuer": "CN=TBD",
+    "sha256Thumbprint": "0000000000000000000000000000000000000000000000000000000000000000",
+    "validFrom": "YYYY-MM-DD",
+    "validTo": "YYYY-MM-DD",
+    "chainStatus": "blocked"
+  },
+  "artifacts": [
+    {
+      "kind": "app-executable",
+      "relPath": "app/Microdent Modern.exe",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "signatureStatus": "blocked",
+      "publisherVerified": false,
+      "timestampVerified": false,
+      "verificationTool": "signtool verify /pa /tw",
+      "verificationSummary": "TBD"
+    },
+    {
+      "kind": "installer",
+      "relPath": "installer/MicrodentModernSetup.exe",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "signatureStatus": "blocked",
+      "publisherVerified": false,
+      "timestampVerified": false,
+      "verificationTool": "signtool verify /pa /tw",
+      "verificationSummary": "TBD"
+    }
+  ],
+  "timestamping": {
+    "rfc3161": false,
+    "authority": "TBD"
+  },
+  "smartScreen": {
+    "submittedOrReputationReviewed": false,
+    "notes": "TBD"
+  },
+  "rawLogsAttached": false
+}

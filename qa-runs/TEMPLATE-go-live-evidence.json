@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "microdent-go-live-evidence/v1",
+  "phiStatement": "no-real-patient-data",
+  "build": {
+    "packageVersion": "pilot-YYYY-MM-DD",
+    "gitCommit": "abcdef1"
+  },
+  "reviewDate": "YYYY-MM-DD",
+  "outcome": "go-limited-sandbox",
+  "evidencePaths": {
+    "packageVerificationEvidencePath": "qa-runs/YYYY-MM-DD-windows-package-verify-evidence-CLINIC-PC-01.json",
+    "fieldEvidencePath": "qa-runs/YYYY-MM-DD-windows-field-evidence-CLINIC-PC-01.json",
+    "commercialReadinessPath": "qa-runs/YYYY-MM-DD-commercial-readiness-evidence.json",
+    "clinicPilotReportPath": "qa-runs/YYYY-MM-DD-clinic-pilot-report-CLINIC-PC-01.json",
+    "supportEvidencePath": "qa-runs/YYYY-MM-DD-support-readiness-evidence.json"
+  },
+  "summary": {
+    "fieldEvidenceReady": false,
+    "commercialReadinessReady": false,
+    "pilotIssuesTriaged": false,
+    "noP0P1Issues": false,
+    "supportPathReady": false,
+    "rollbackPathReady": false,
+    "operatorApprovalRecorded": false,
+    "phiObserved": false
+  },
+  "rows": [
+    { "id": "fieldEvidenceReady", "pass": false, "evidence": "TBD" },
+    { "id": "commercialReadinessReady", "pass": false, "evidence": "TBD" },
+    { "id": "pilotIssuesTriaged", "pass": false, "evidence": "TBD" },
+    { "id": "supportPathReady", "pass": false, "evidence": "TBD" },
+    { "id": "rollbackPathReady", "pass": false, "evidence": "TBD" },
+    { "id": "operatorApproval", "pass": false, "evidence": "TBD" }
+  ],
+  "approvers": [
+    { "role": "IT lead", "name": "TBD", "date": "YYYY-MM-DD" },
+    { "role": "Pilot sponsor", "name": "TBD", "date": "YYYY-MM-DD" },
+    { "role": "Support lead", "name": "TBD", "date": "YYYY-MM-DD" }
+  ]
+}

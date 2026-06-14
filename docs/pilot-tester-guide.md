@@ -17,7 +17,7 @@ On the build or handoff machine (developer or IT — not required for clinic sta
 | 1 | Build web, bridge, desktop; run `pnpm stage:pilot-release` | `dist/pilot-release/MicrodentModern/` exists |
 | 2 | Run `pnpm pilot:verify-release` | Exit 0; no sensitive files in staged tree |
 | 3 | Read `MicrodentModern/HANDOFF-README.txt` | Node 22 requirement and install steps understood |
-| 4 | Copy `MicrodentModern/` to clinic install location (e.g. `C:\Program Files\MicrodentModern\`) | Install folder has `app/`, `bridge/`, `web/`, `docs/` |
+| 4 | Extract `MicrodentModern/` to a writable local folder (e.g. `C:\Microdent\MicrodentModern\`) | Package folder has `app/`, `bridge/`, `web/`, `docs/`, and `DOUBLE-CLICK-WINDOWS-TEST.cmd` |
 
 Details: [windows-pilot-release-layout.md](./windows-pilot-release-layout.md)
 
@@ -28,13 +28,13 @@ Details: [windows-pilot-release-layout.md](./windows-pilot-release-layout.md)
 | # | Task | Pass when |
 | --- | --- | --- |
 | 1 | Install Node 22 on clinic PC if not already present | `node -v` shows v22.x |
-| 2 | Launch desktop from staged `app/` or deployment shortcut | Setup window opens on first run |
+| 2 | Double-click `DOUBLE-CLICK-WINDOWS-TEST.cmd` from the package root | App or local web preview opens on first run |
 | 3 | Complete **folder selection** in setup | Example paths saved (synthetic): |
 | | | `DATA_ROOT` → `C:\ClinicData\Microdent-Write-Sandbox\DATA` |
 | | | `SQLITE_PATH` → `C:\Users\Public\MicrodentModern\mirror\clinic.sqlite` |
 | | | `BACKUP_DIR` → `C:\Users\Public\MicrodentModern\backups` |
 | 4 | Main UI opens; open **Settings** | Pilot readiness shows **Connected** |
-| 5 | Run **mirror import** from CLI (PowerShell) | Settings mirror table shows import run |
+| 5 | Refresh the local copy from **Settings** | Settings local-copy/import table shows a recent run |
 | 6 | Open **Today** | Day list loads from copied data |
 | 7 | Open **Patients** → search | Type synthetic id `DEMO-001` or a test name fragment; matches appear; no notes/phones in list |
 | 8 | Open **Schedule** | Week/day views load; navigation works |
@@ -44,14 +44,10 @@ Details: [windows-pilot-release-layout.md](./windows-pilot-release-layout.md)
 
 `writeMode` stays **disabled** on Day 1 — no commit buttons in production build.
 
-**Mirror import (synthetic example):**
+**Local-copy refresh (synthetic example):**
 
-```powershell
-$env:DATA_ROOT = "C:\ClinicData\Microdent-Write-Sandbox\DATA"
-$env:SQLITE_PATH = "C:\Users\Public\MicrodentModern\mirror\clinic.sqlite"
-cd C:\path\to\Microdent-Modern
-pnpm --filter @microdent/sqlite-mirror run import-safe
-```
+Open **Settings → Local copy & import**, click **Refresh local copy**, then click
+**Refresh status**. CLI import is support/developer fallback only.
 
 Full steps: [phase-4-mirror-import-operator.md](./phase-4-mirror-import-operator.md)
 
@@ -134,7 +130,7 @@ Do **not** attach DBF files, patient names, or full `%AppData%` config with real
 | Chart / odontogram writes | Not available |
 | Medical summary edits | Not available |
 | Memo / comment / free-text writes | Blocked on all routes |
-| In-app mirror import | CLI only |
+| Local-copy refresh | Settings-first; CLI support fallback only |
 | NSIS / MSI installer / code signing | Not in this RC |
 
 Full list: [out-of-scope-guardrails.md](./out-of-scope-guardrails.md) · packaging gaps: [windows-pilot-packaging-gap-report.md](./windows-pilot-packaging-gap-report.md)

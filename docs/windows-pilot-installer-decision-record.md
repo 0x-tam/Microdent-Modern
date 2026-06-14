@@ -11,7 +11,7 @@
 
 ## Context
 
-The pilot RC ships as a **verified portable tree** (`pnpm stage:pilot-release` → `dist/pilot-release/MicrodentModern/`). Operators unzip to a local drive, install **Node 22** separately, and launch from `app/`. Clinic data (`DATA_ROOT`, mirror SQLite, backups) stays **outside** the install folder per [windows-pilot-data-locations.md](./windows-pilot-data-locations.md).
+The pilot RC ships as a **verified portable tree** (`pnpm stage:pilot-release` → `dist/pilot-release/MicrodentModern/`). Operators unzip to a writable local drive folder and launch the root `DOUBLE-CLICK-WINDOWS-TEST.cmd` runner, which prefers the bundled Node runtime when present. Clinic data (`DATA_ROOT`, mirror SQLite, backups) stays **outside** the package folder per [windows-pilot-data-locations.md](./windows-pilot-data-locations.md).
 
 This record compares installer options for the **next** packaging phase after portable field validation.
 
@@ -69,7 +69,7 @@ The repo already uses **Electron** for `@microdent/desktop` with a **portable** 
 | **Later** | **MSI** only if clinic IT requires GPO/SCCM | Higher cost; portable + NSIS may suffice for single-workstation pilots |
 | **Explicitly out of this batch** | New installer packages, Authenticode cert purchase, auto-update feed | See [out-of-scope-guardrails.md](./out-of-scope-guardrails.md) |
 
-**Installer timing:** NSIS / electron-builder spike is **deferred until after** a completed Windows field test (tier 3). Mac-side portable signoff (tier 1) and field-pack readiness (tier 2) do **not** authorize installer work. **Clinic go-live remains BLOCKED** until tier 3 shows a PHI-safe field log + go/no-go GO.
+**Installer timing:** NSIS / electron-builder spike is **deferred until after** a completed Windows field test (tier 3). Mac-side portable signoff (tier 1) and field-pack readiness (tier 2) do **not** authorize installer work. **Clinic go-live remains BLOCKED** until tier 3 shows validated package verification evidence, PHI-safe Windows field evidence referencing `packageVerification.evidencePath`, and go/no-go GO.
 
 ---
 
@@ -82,7 +82,8 @@ Complete **all** rows on the Mac build machine before adding `electron-builder`,
 | M1 | **Tier 1 — Mac release readiness:** `pnpm pilot:release-signoff` prints **`PILOT RELEASE SIGNOFF: READY`** (sandbox QA green on disposable env) | ☐ |
 | M2 | **Tier 2 — Windows-test readiness:** field pack docs present in staged `MicrodentModern/docs/` (`FIELD-TEST-START-HERE.md`, execution script, result form, go/no-go, verify-on-Windows) | ☐ |
 | M3 | Field pack **committed** to git (not only local uncommitted docs) | ☐ |
-| M4 | **Tier 3 — Windows execution:** one real clinic PC run logged — PHI-safe `qa-runs/` field log from [TEMPLATE-windows-field-run.md](../qa-runs/TEMPLATE-windows-field-run.md) | ☐ |
+| M4 | **Tier 3 — Package verification:** filed [windows-package-verify-evidence.md](./windows-package-verify-evidence.md) report validated with `pnpm pilot:package-verify-evidence` before field execution | ☐ |
+| M4a | **Tier 3 — Windows execution:** one real clinic PC run logged — PHI-safe `qa-runs/` field evidence referencing `packageVerification.evidencePath` | ☐ |
 | M5 | [windows-pilot-go-no-go-checklist.md](./windows-pilot-go-no-go-checklist.md) completed with **GO** (or documented NO-GO with remediation plan) | ☐ |
 | M6 | [windows-pilot-real-machine-checklist.md](./windows-pilot-real-machine-checklist.md) — all **Requires Windows PC** rows executed on clinic hardware | ☐ |
 | M7 | No open **Fail** rows on field result form for launch, mirror, read-only QA | ☐ |
@@ -128,8 +129,8 @@ Spike output is **not** clinic handoff until it passes verify-release + manifest
 | Phase | Action | Blocked until |
 | --- | --- | --- |
 | **Now (Mac-first)** | Portable zip handoff; Mac signoff + staged field pack | — |
-| **Windows field test** | Execute [windows-pilot-field-execution-script.md](./windows-pilot-field-execution-script.md) on clinic PC; file [TEMPLATE-windows-field-run.md](../qa-runs/TEMPLATE-windows-field-run.md); complete go/no-go | Tier 3 **Deferred** until logged |
-| **After tier 3 GO** | Mac-first completion checklist M1–M7 green | Windows field log + go/no-go |
+| **Windows field test** | Execute [windows-pilot-field-execution-script.md](./windows-pilot-field-execution-script.md) on clinic PC; file Windows field evidence from [TEMPLATE-windows-field-evidence.json](../qa-runs/TEMPLATE-windows-field-evidence.json); complete go/no-go | Tier 3 **Deferred** until filed |
+| **After tier 3 GO** | Mac-first completion checklist M1–M7 green | Package verification evidence + field evidence with `packageVerification.evidencePath` + go/no-go |
 | **NSIS spike** | Document-only acceptance criteria above; no new deps until spike plan approved | M1–M7 + N1–N8 |
 | **Later** | Authenticode signing, bundled Node decision, MSI only if IT requires GPO | Post-spike |
 

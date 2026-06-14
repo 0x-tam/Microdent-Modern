@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "microdent-support-readiness/v1",
+  "phiStatement": "no-real-patient-data",
+  "build": {
+    "packageVersion": "pilot-YYYY-MM-DD",
+    "gitCommit": "abcdef1"
+  },
+  "reviewDate": "YYYY-MM-DD",
+  "summary": {
+    "knowledgeBaseReady": false,
+    "issueWorkflowReady": false,
+    "rollbackRunbookReady": false,
+    "supportTeamTrained": false,
+    "safeEvidenceRulesReviewed": false
+  },
+  "rows": [
+    { "id": "KB-01", "pass": false, "evidence": "TBD" },
+    { "id": "KB-02", "pass": false, "evidence": "TBD" },
+    { "id": "KB-03", "pass": false, "evidence": "TBD" },
+    { "id": "KB-04", "pass": false, "evidence": "TBD" },
+    { "id": "IW-01", "pass": false, "evidence": "TBD" },
+    { "id": "IW-02", "pass": false, "evidence": "TBD" },
+    { "id": "IW-03", "pass": false, "evidence": "TBD" },
+    { "id": "IW-04", "pass": false, "evidence": "TBD" },
+    { "id": "RR-01", "pass": false, "evidence": "TBD" },
+    { "id": "RR-02", "pass": false, "evidence": "TBD" },
+    { "id": "RR-03", "pass": false, "evidence": "TBD" },
+    { "id": "RR-04", "pass": false, "evidence": "TBD" }
+  ],
+  "signoffs": [
+    { "role": "Support lead", "name": "TBD", "date": "YYYY-MM-DD" },
+    { "role": "IT lead", "name": "TBD", "date": "YYYY-MM-DD" }
+  ]
+}

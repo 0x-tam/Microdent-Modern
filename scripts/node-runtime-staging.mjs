@@ -3,7 +3,8 @@
  * Validate a pre-downloaded Node runtime before it is bundled in a pilot package.
  * No network access, no downloads, no source paths in output manifests.
  */
-import { existsSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -30,6 +31,17 @@ function compareVersion(a, b) {
   return left.patch - right.patch;
 }
 
+function parseVersionFromRuntimePath(runtimeDir) {
+  const candidates = [basename(runtimeDir), basename(dirname(runtimeDir))];
+  for (const candidate of candidates) {
+    const match = candidate.match(/node-v?(\d+\.\d+\.\d+)/i);
+    if (match) {
+      return parseVersion(match[1]);
+    }
+  }
+  return null;
+}
+
 export function findNodeRuntimeBinary(runtimeDir, platform = process.platform) {
   const candidates =
     platform === "win32"
@@ -42,6 +54,8 @@ export function validateNodeRuntimeDir(options) {
   const runtimeDir = options.runtimeDir;
   const platform = options.platform ?? process.platform;
   const minVersion = options.minVersion ?? MIN_NODE_RUNTIME_VERSION;
+  const expectedSha256 = options.expectedSha256;
+  const hasCustomSpawn = Boolean(options.spawnSyncImpl);
   const spawn = options.spawnSyncImpl ?? spawnSync;
 
   if (!runtimeDir?.trim()) {
@@ -56,15 +70,34 @@ export function validateNodeRuntimeDir(options) {
     throw new Error("Node runtime must contain node.exe, node, or bin/node.");
   }
 
-  const versionResult = spawn(nodeBinary, ["--version"], {
-    encoding: "utf8",
-    windowsHide: true,
-  });
-  if (versionResult.error || versionResult.status !== 0) {
-    throw new Error("Node runtime version check failed.");
+  let version;
+  const isCrossStagedWindowsRuntime =
+    platform === "win32" &&
+    process.platform !== "win32" &&
+    !hasCustomSpawn &&
+    basename(nodeBinary).toLowerCase() === "node.exe";
+  if (isCrossStagedWindowsRuntime) {
+    if (!expectedSha256) {
+      throw new Error("Cross-staged Windows Node runtime requires expected node.exe SHA-256.");
+    }
+    const actualSha256 = createHash("sha256").update(readFileSync(nodeBinary)).digest("hex");
+    if (actualSha256.toLowerCase() !== String(expectedSha256).toLowerCase()) {
+      throw new Error("Cross-staged Windows Node runtime SHA-256 mismatch.");
+    }
+    version = parseVersionFromRuntimePath(runtimeDir);
+    if (!version) {
+      throw new Error("Cross-staged Windows Node runtime folder name must include node-v<version>.");
+    }
+  } else {
+    const versionResult = spawn(nodeBinary, ["--version"], {
+      encoding: "utf8",
+      windowsHide: true,
+    });
+    if (versionResult.error || versionResult.status !== 0) {
+      throw new Error("Node runtime version check failed.");
+    }
+    version = parseVersion(versionResult.stdout);
   }
-
-  const version = parseVersion(versionResult.stdout);
   if (!version) {
     throw new Error("Node runtime returned an invalid version.");
   }
@@ -77,6 +110,9 @@ export function validateNodeRuntimeDir(options) {
     minVersion,
     executableRelPath: relative(runtimeDir, nodeBinary).replace(/\\/g, "/"),
     runtimeKind: platform === "win32" ? "windows-x64" : "portable",
+    ...(isCrossStagedWindowsRuntime
+      ? { nodeBinarySha256: String(expectedSha256).toLowerCase() }
+      : {}),
   };
 }
 
@@ -87,6 +123,7 @@ export function writeNodeRuntimeManifest(destDir, validation) {
     minVersion: validation.minVersion,
     executableRelPath: validation.executableRelPath,
     runtimeKind: validation.runtimeKind,
+    ...(validation.nodeBinarySha256 ? { nodeBinarySha256: validation.nodeBinarySha256 } : {}),
     purpose: "clinic-service and local-copy import runtime",
   };
   writeFileSync(join(destDir, "RUNTIME-MANIFEST.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
@@ -109,9 +146,13 @@ function main() {
       ? args[args.indexOf("--write-manifest") + 1]
       : null;
   const json = args.includes("--json");
+  const expectedSha256 =
+    args[args.indexOf("--expected-sha256") + 1] && args.includes("--expected-sha256")
+      ? args[args.indexOf("--expected-sha256") + 1]
+      : process.env.MICRODENT_NODE_RUNTIME_SHA256;
 
   try {
-    const validation = validateNodeRuntimeDir({ runtimeDir });
+    const validation = validateNodeRuntimeDir({ runtimeDir, expectedSha256 });
     if (manifestDir) {
       writeNodeRuntimeManifest(manifestDir, validation);
     }

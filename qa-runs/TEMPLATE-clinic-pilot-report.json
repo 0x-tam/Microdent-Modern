@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "microdent-clinic-pilot-report/v1",
+  "phiStatement": "no-real-patient-data",
+  "build": {
+    "packageVersion": "pilot-YYYY-MM-DD",
+    "gitCommit": "abcdef1"
+  },
+  "clinicLabel": "CLINIC-PC-01",
+  "machineLabel": "WIN11-CLINIC-PC-01",
+  "windowsVersion": "Windows 11 23H2",
+  "packageVerificationEvidencePath": "qa-runs/YYYY-MM-DD-windows-package-verify-evidence-CLINIC-PC-01.json",
+  "fieldEvidencePath": "qa-runs/YYYY-MM-DD-windows-field-evidence-CLINIC-PC-01.json",
+  "triageRollupPath": "qa-runs/YYYY-MM-DD-pilot-feedback-triage.md",
+  "outcome": "blocked",
+  "issuesTriaged": false,
+  "operatorAcceptedWorkflow": false,
+  "supportPathExercised": false,
+  "safety": {
+    "phiObserved": false,
+    "liveLegacyTouched": false,
+    "unsupportedWritesAttempted": false,
+    "restoreFailed": false,
+    "openP0Issues": false,
+    "openP1Issues": false
+  },
+  "issueSummary": {
+    "p0": 0,
+    "p1": 0,
+    "p2": 0,
+    "p3": 0,
+    "closed": 0
+  },
+  "sponsorSignoff": {
+    "role": "Pilot sponsor",
+    "date": "YYYY-MM-DD"
+  }
+}

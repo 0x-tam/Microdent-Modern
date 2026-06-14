@@ -52,7 +52,7 @@ zip -r MicrodentModern-pilot.zip MicrodentModern
 ```
 
 3. Deliver the zip to IT. On Windows, IT verifies per `docs/windows-pilot-package-verify-on-windows.md` (no pnpm required).
-4. **Do not** mark clinic go-live ready until a Windows field run is logged — see [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md).
+4. **Do not** mark clinic go-live ready until package verification evidence is filed and the Windows field run references it with `packageVerification.evidencePath` — see [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md).
 
 ---
 
@@ -64,7 +64,7 @@ zip -r MicrodentModern-pilot.zip MicrodentModern
 | **2. Windows-test readiness** | Step 5 stages field pack docs |
 | **3. Windows execution** | **Not covered** — Deferred until clinic PC |
 
-**Clinic go-live:** **BLOCKED** until tier 3 complete. See [PILOT-START-HERE.md](./PILOT-START-HERE.md#pilot-readiness-status-three-tiers).
+**Clinic go-live:** **BLOCKED** until tier 3 package verification evidence, Windows field evidence with `packageVerification.evidencePath`, and the filed go/no-go checklist are complete. See [PILOT-START-HERE.md](./PILOT-START-HERE.md#pilot-readiness-status-three-tiers).
 
 ---
 

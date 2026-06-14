@@ -2,7 +2,7 @@
 
 **Purpose:** Single sign-off page for the pilot sponsor after a real Windows field run.
 
-**Prerequisite:** **Windows execution completed** — tier 3 must show a logged clinic PC run (PHI-safe field log in `qa-runs/`). Mac-side release signoff (tier 1) and staged field pack (tier 2) are **not** sufficient for clinic go-live.
+**Prerequisite:** **Windows execution completed** — tier 3 must show validated package verification evidence and PHI-safe Windows field evidence in `qa-runs/` referencing `packageVerification.evidencePath`. Mac-side release signoff (tier 1) and staged field pack (tier 2) are **not** sufficient for clinic go-live.
 
 **Audience:** Pilot sponsor, IT lead, release coordinator.
 
@@ -29,7 +29,7 @@ Mark **Pass**, **Fail**, or **N/A** for each row. **Owner:** who attests (IT or 
 
 | Criterion | Pass | Fail | N/A | Owner | Notes (no PHI) |
 | --- | --- | --- | --- | --- | --- |
-| **Package verified** — IT confirmed layout, manifest fields, no forbidden `.dbf`/`.sqlite`/`.env` in tree ([windows-pilot-package-verify-on-windows.md](./windows-pilot-package-verify-on-windows.md)) | ☐ | ☐ | ☐ | IT | |
+| **Package verified** — IT confirmed layout, manifest fields, no forbidden `.dbf`/`.sqlite`/`.env` in tree and filed `qa-runs/YYYY-MM-DD-windows-package-verify-evidence-CLINIC-PC-01.json` ([windows-package-verify-evidence.md](./windows-package-verify-evidence.md)) | ☐ | ☐ | ☐ | IT | |
 | **Windows launch** — desktop opens; Node 22 on PATH; SmartScreen/AV handled if needed | ☐ | ☐ | ☐ | Operator | |
 | **Config** — first-run setup saved sandbox paths outside install folder; `%AppData%\Microdent\config.json` valid | ☐ | ☐ | ☐ | Operator | |
 | **Mirror import** — CLI safe import completed; Settings mirror status understood | ☐ | ☐ | ☐ | Operator | |
@@ -90,6 +90,6 @@ Troubleshooting reference: [windows-pilot-troubleshooting-pack.md](./windows-pil
 | Doc | Role |
 | --- | --- |
 | [windows-pilot-field-result-form.md](./windows-pilot-field-result-form.md) | Detailed step pass/fail |
-| [qa-runs/TEMPLATE-windows-field-run.md](../qa-runs/TEMPLATE-windows-field-run.md) | Filed field log template |
+| [qa-runs/TEMPLATE-windows-field-evidence.json](../qa-runs/TEMPLATE-windows-field-evidence.json) | Filed Windows field evidence JSON |
 | [windows-pilot-release-notes.md](./windows-pilot-release-notes.md) | Scope and caveats |
 | [PILOT-HANDOFF-PACK.md](./PILOT-HANDOFF-PACK.md) | Handoff index |

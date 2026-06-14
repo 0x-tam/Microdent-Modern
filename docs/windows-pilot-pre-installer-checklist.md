@@ -66,7 +66,7 @@
 | --- | --- | --- | --- |
 | Auto-update feed | **Blocked** | Dev | Not implemented |
 | Bundled Node 22 for bridge child | **Partial** | Dev | Validate pre-downloaded runtime with `pnpm pilot:node-runtime-check`; staging includes `node/` when `MICRODENT_NODE_RUNTIME_DIR` is set |
-| Cross-platform `qa:sandbox` orchestrator | **Blocked** | Dev | Git Bash on Windows or manual §7 |
+| Cross-platform `qa:sandbox` orchestrator | **Ready** | Dev | `pnpm qa:sandbox` uses the Node runner; Git Bash fallback remains optional |
 
 ---
 
@@ -76,6 +76,7 @@
 
 Before clinic pilot day on **Windows**:
 
+- [ ] Package verification evidence filed and validated with `pnpm pilot:package-verify-evidence` per [windows-package-verify-evidence.md](./windows-package-verify-evidence.md)
 - [ ] `pnpm pilot-checkpoint` passes on the target machine (or `pnpm pilot:full-checkpoint` with sandbox env)
 - [ ] First-run setup saves sandbox paths; **Settings → Pilot readiness** checklist green where expected
 - [ ] Mirror import completed; Settings mirror table shows import runs
@@ -87,6 +88,6 @@ Before clinic pilot day on **Windows**:
 
 ## Recommended next batch
 
-1. **Windows field test first** — execute field script on clinic PC; file PHI-safe log; complete go/no-go (tier 3). **Clinic go-live blocked** until done.
+1. **Windows field test first** — validate package verification evidence, execute field script on clinic PC, file PHI-safe field evidence with `packageVerification.evidencePath`, and complete go/no-go (tier 3). **Clinic go-live blocked** until done.
 2. Mac-first completion checklist M1–M7 per [windows-pilot-installer-decision-record.md](./windows-pilot-installer-decision-record.md) — then NSIS spike (no new write domains).
 3. Optional bundled Node 22 for bridge supervisor.

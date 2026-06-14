@@ -63,7 +63,7 @@
 - Fastest path to "no terminals" for clinic staff
 - electron-builder supports NSIS, code signing, and auto-update in one toolchain
 
-**Why deferred:** Clinic go-live is **BLOCKED** until tier 3 (real Windows PC field test) completes with a PHI-safe field log and go/no-go GO. See §12 for prerequisites.
+**Why deferred:** Clinic go-live is **BLOCKED** until tier 3 (real Windows PC field test) completes with validated package verification evidence, PHI-safe Windows field evidence referencing `packageVerification.evidencePath`, and go/no-go GO. See §12 for prerequisites.
 
 ---
 
@@ -216,7 +216,7 @@
 
 | Priority | Action | Blocked until |
 | --- | --- | --- |
-| **1** | Execute field script on clinic PC; file PHI-safe log; complete go/no-go | Tier 3 — **blocks clinic go-live** |
+| **1** | Validate package verification evidence, execute field script on clinic PC, file PHI-safe field evidence referencing `packageVerification.evidencePath`, and complete go/no-go | Tier 3 — **blocks clinic go-live** |
 | **2** | Mac-first completion checklist M1–M7 (installer decision record) | Tier 3 GO |
 | **3** | NSIS spike (document acceptance criteria N1–N8 — no `electron-builder` dep until approved) | M1–M7 green |
 | **4** | Authenticode cert purchase | Post-spike approval |
@@ -230,7 +230,7 @@
 | M1 | `pnpm pilot:release-signoff` prints `PILOT RELEASE SIGNOFF: READY` |
 | M2 | Field pack docs present in staged `MicrodentModern/docs/` |
 | M3 | Field pack committed to git |
-| M4 | One real clinic PC run logged (PHI-safe `qa-runs/` field log) |
+| M4 | One real clinic PC run filed as PHI-safe Windows field evidence under `qa-runs/` |
 | M5 | Go/no-go checklist completed with **GO** |
 | M6 | All `Requires Windows PC` rows executed on clinic hardware |
 | M7 | No open Fail rows on field result form |

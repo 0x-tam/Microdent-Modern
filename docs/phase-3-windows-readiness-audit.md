@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-18  
 **Scope:** Shell scripts, root `pnpm` wrappers, bridge/sqlite-mirror CLIs, desktop Electron MVP.  
-**Out of scope this batch:** Rewriting `lsof`/`rsync`, NSIS installer, Node-based QA orchestrator.
+**Out of scope this batch:** Rewriting `lsof`/`rsync`, NSIS installer.
 
 This document classifies every operator-facing script so Windows deployers know what runs natively vs what needs Git Bash/WSL or manual Node steps.
 
@@ -15,9 +15,9 @@ See also: [phase-6-windows-mvp-operator-guide.md](./phase-6-windows-mvp-operator
 | Layer | Windows posture |
 | --- | --- |
 | **Bridge / mirror / legacy CLIs** | **Cross-platform Node** — production/QA legacy scripts use **`node dist/cli/*.js`** after `pnpm build` (not `tsx`; see [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md)) |
-| **Root `pnpm legacy:*` / `mirror:import-safe`** | Bash wrappers — use **WSL/Git Bash** or invoke the underlying workspace script directly |
+| **Root `pnpm legacy:*` / `mirror:import-safe`** | **Cross-platform Node wrappers** — run directly from PowerShell/cmd after setting absolute env paths; bash fallbacks use explicit `:bash` suffixes |
 | **`pnpm dev:*` port helpers** | **macOS dev-only** (`lsof`, `ps`) |
-| **Sandbox QA bash** | **Implemented** (`pnpm qa:sandbox`) — **macOS-oriented**; smoke backup/restore use **direct** `node dist/cli/*.js` (not `pnpm legacy:*` mid-run); on Windows use [phase-6-windows-mvp-operator-guide.md](./phase-6-windows-mvp-operator-guide.md) or [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md) §5 until Node orchestrator (deferred) |
+| **Sandbox QA** | **Cross-platform Node** (`pnpm qa:sandbox`) — builds bridge, starts `node dist/server.js`, runs four workflows with backup/restore and DBF readback; bash fallback remains `pnpm qa:sandbox:bash` |
 | **Product UI batch** | Sandbox write pilot env, desktop first-run setup, Settings / mirror status — see table below |
 | **Desktop app** | Electron + `node dist/server.js`; config under `%AppData%\Microdent\config.json` on Windows |
 
@@ -34,13 +34,14 @@ See also: [phase-6-windows-mvp-operator-guide.md](./phase-6-windows-mvp-operator
 | `dev:kill-ports` | `scripts/dev-kill-ports.sh` | **macOS dev-only** | `lsof` + `ps` + `kill` |
 | `dev:bridge` | `scripts/dev-bridge.sh` | **macOS dev-only wrapper** | Bash env checks; runs `pnpm --filter @microdent/bridge dev` (Node works on Windows if run directly) |
 | `dev:web` | `scripts/dev-web.sh` | **macOS dev-only wrapper** | Bash; underlying `pnpm --filter @microdent/web dev` is cross-platform |
-| `mirror:import-safe` | `scripts/mirror-import-safe.sh` | **Bash wrapper → cross-platform Node** | `pnpm --filter @microdent/sqlite-mirror run import-safe` |
-| `legacy:backup` | `scripts/legacy-backup.sh` | **Bash wrapper → cross-platform Node** | `pnpm --filter @microdent/bridge run legacy-backup` |
-| `legacy:create-sandbox` | `scripts/legacy-create-sandbox.sh` | **Bash wrapper → cross-platform Node** | `pnpm --filter @microdent/bridge run legacy-create-sandbox` |
-| `legacy:restore` | `scripts/legacy-restore.sh` | **Bash wrapper → cross-platform Node** | `pnpm --filter @microdent/bridge run legacy-restore` |
-| `legacy:backup-verify` | `scripts/legacy-backup-verify.sh` | **Bash wrapper → cross-platform Node** | `pnpm --filter @microdent/bridge run legacy-backup-verify` |
+| `mirror:import-safe` | `scripts/mirror-import-safe.mjs` | **Cross-platform Node** | Builds contracts/bridge, then runs `pnpm --filter @microdent/sqlite-mirror run import-safe`; bash fallback is `pnpm mirror:import-safe:bash` |
+| `legacy:backup` | `scripts/legacy-command.mjs backup` | **Cross-platform Node wrapper** | Builds contracts/bridge, then runs `pnpm --filter @microdent/bridge run legacy-backup`; bash fallback: `pnpm legacy:backup:bash` |
+| `legacy:create-sandbox` | `scripts/legacy-command.mjs create-sandbox` | **Cross-platform Node wrapper** | Builds contracts/bridge, then runs `pnpm --filter @microdent/bridge run legacy-create-sandbox`; bash fallback: `pnpm legacy:create-sandbox:bash` |
+| `legacy:restore` | `scripts/legacy-command.mjs restore` | **Cross-platform Node wrapper** | Builds contracts/bridge, then runs `pnpm --filter @microdent/bridge run legacy-restore`; bash fallback: `pnpm legacy:restore:bash` |
+| `legacy:backup-verify` | `scripts/legacy-command.mjs backup-verify` | **Cross-platform Node wrapper** | Builds contracts/bridge, then runs `pnpm --filter @microdent/bridge run legacy-backup-verify`; bash fallback: `pnpm legacy:backup-verify:bash` |
 | `sandbox:validate` | Vitest in bridge | **Cross-platform Node** | No shell |
-| `qa:sandbox` | `scripts/qa-sandbox-run.sh` | **Implemented — macOS-oriented bash** | `curl`, `jq`, `sqlite3`, `realpath`, `bash`; smoke uses **direct** `node dist/cli/*.js` (not `pnpm legacy:*` mid-run). Windows: [phase-6-windows-mvp-operator-guide.md](./phase-6-windows-mvp-operator-guide.md) §7 or [phase-5-operator-qa-runbook.md](./phase-5-operator-qa-runbook.md) §5 until `qa-sandbox-run.mjs` exists |
+| `qa:sandbox` | `scripts/qa-sandbox-run.mjs` | **Cross-platform Node** | Native Windows/macOS/Linux sandbox proof; uses built `node dist/server.js` and direct `node dist/cli/*.js` backup/restore/readback |
+| `qa:sandbox:bash` | `scripts/qa-sandbox-run.sh` | **Bash fallback** | Historical macOS/Git Bash runner for comparison |
 
 ### Workspace commands (no root `pnpm` alias)
 
@@ -59,32 +60,34 @@ See also: [phase-6-windows-mvp-operator-guide.md](./phase-6-windows-mvp-operator
 
 | File | `pnpm` / usage | Classification | Dependencies / notes |
 | --- | --- | --- | --- |
-| `dev-common.sh` | Sourced by dev/legacy/mirror scripts | **macOS dev infrastructure** | `lsof`; documents macOS-first posture |
+| `dev-common.sh` | Sourced by dev and historical fallback scripts | **macOS dev infrastructure** | `lsof`; production/operator root commands now use Node wrappers |
 | `dev-ports.sh` | `pnpm dev:ports` | **macOS dev-only** | Lists listeners on 17890, 5173, 4173 |
 | `dev-kill-ports.sh` | `pnpm dev:kill-ports` | **macOS dev-only** | SIGTERM/SIGKILL listeners on dev ports only |
 | `dev-bridge.sh` | `pnpm dev:bridge` | **macOS dev-only wrapper** | Validates `DATA_ROOT`; exec bridge `dev` (tsx watch) |
 | `dev-web.sh` | `pnpm dev:web` | **macOS dev-only wrapper** | Copies `.env.local.example`; exec Vite |
-| `mirror-import-safe.sh` | `pnpm mirror:import-safe` | **Bash wrapper → cross-platform Node** | Requires absolute `DATA_ROOT` / `SQLITE_PATH` (`/*` check is Unix-style; on Windows prefer calling Node CLI with `C:\...` paths) |
-| `legacy-backup.sh` | `pnpm legacy:backup` | **Bash wrapper → cross-platform Node** | `DATA_ROOT`, `BACKUP_DIR`, `WORKFLOW` |
-| `legacy-create-sandbox.sh` | `pnpm legacy:create-sandbox` | **Bash wrapper → cross-platform Node** | `SOURCE_DATA_ROOT`, `SANDBOX_ROOT` |
-| `legacy-restore.sh` | `pnpm legacy:restore` | **Bash wrapper → cross-platform Node** | `BACKUP_MANIFEST`, `DATA_ROOT` |
-| `legacy-backup-verify.sh` | `pnpm legacy:backup-verify` | **Bash wrapper → cross-platform Node** | `BACKUP_MANIFEST`; optional `DATA_ROOT` |
+| `mirror-import-safe.mjs` | `pnpm mirror:import-safe` | **Cross-platform Node** | Requires absolute `DATA_ROOT` / `SQLITE_PATH`; use `pnpm mirror:import-safe:bash` only as the historical fallback |
+| `legacy-command.mjs backup` | `pnpm legacy:backup` | **Cross-platform Node wrapper** | `DATA_ROOT`, `BACKUP_DIR`, `WORKFLOW` |
+| `legacy-command.mjs create-sandbox` | `pnpm legacy:create-sandbox` | **Cross-platform Node wrapper** | `SOURCE_DATA_ROOT`, `SANDBOX_ROOT` |
+| `legacy-command.mjs restore` | `pnpm legacy:restore` | **Cross-platform Node wrapper** | `BACKUP_MANIFEST`, `DATA_ROOT` |
+| `legacy-command.mjs backup-verify` | `pnpm legacy:backup-verify` | **Cross-platform Node wrapper** | `BACKUP_MANIFEST`; optional `DATA_ROOT` |
+| `legacy-*.sh` | `pnpm legacy:*:bash` | **Bash fallback** | Historical shell wrappers for comparison |
 | `qa-sandbox-write-smoke.sh` | Manual / orchestrator | **macOS-oriented bash** | `curl`, `jq`, `sqlite3`, `realpath`; backup/restore via **direct** `node dist/cli/*.js` from `services/bridge` |
-| `qa-sandbox-run.sh` | `pnpm qa:sandbox` | **Implemented — macOS-oriented bash** | Builds bridge, `node services/bridge/dist/server.js`, then smoke; **Windows:** [phase-6-windows-mvp-operator-guide.md](./phase-6-windows-mvp-operator-guide.md) §7 |
+| `qa-sandbox-run.mjs` | `pnpm qa:sandbox` | **Cross-platform Node** | Builds bridge, `node services/bridge/dist/server.js`, four workflows, backup/restore, DBF readback |
+| `qa-sandbox-run.sh` | `pnpm qa:sandbox:bash` | **Bash fallback** | Builds bridge, `node services/bridge/dist/server.js`, then bash smoke |
 
 ---
 
 ## Cross-platform Node CLIs (preferred on Windows)
 
-Run from repo root after `pnpm --filter @microdent/contracts run build` and target package `build`:
+Run from repo root after setting absolute PowerShell/cmd environment variables. The root `pnpm` commands build prerequisites before invoking the underlying workspace CLIs.
 
 | Task | Command |
 | --- | --- |
-| Mirror import (safe tables) | `set DATA_ROOT=...` / `set SQLITE_PATH=...` then `pnpm --filter @microdent/sqlite-mirror run import-safe` |
-| Legacy backup | `pnpm --filter @microdent/bridge run legacy-backup` (with env vars) |
-| Create write sandbox | `pnpm --filter @microdent/bridge run legacy-create-sandbox` |
-| Restore from backup | `pnpm --filter @microdent/bridge run legacy-restore` |
-| Verify backup manifest | `pnpm --filter @microdent/bridge run legacy-backup-verify` |
+| Mirror import (safe tables) | `pnpm mirror:import-safe` |
+| Legacy backup | `pnpm legacy:backup` |
+| Create write sandbox | `pnpm legacy:create-sandbox` |
+| Restore from backup | `pnpm legacy:restore` |
+| Verify backup manifest | `pnpm legacy:backup-verify` |
 | Production bridge | `pnpm --filter @microdent/bridge run build` then `node services/bridge/dist/server.js` |
 
 Bridge CLIs use `path.join` / `path.normalize` internally; no FoxPro `.exe` is spawned.
@@ -128,7 +131,7 @@ Full Windows flow: [phase-4-windows-operator-quickstart.md](./phase-4-windows-op
 | `services/bridge/src/write-safety/constants.ts` | Clinic-specific **forbidden roots** (`FORBIDDEN_LEGACY_*`) use fixed `/Users/...` paths for this deployment’s safety band | **Intentional** — not a path-join bug; configure via env on other machines |
 | `services/bridge/src/cli/legacy-create-sandbox.ts` | Help text shows `/Users/...` examples | **Doc examples only** — OK |
 | `apps/desktop/src/config.ts` | Config dir now uses `platform()`-aware `desktopConfigDir()` | **Fixed** — Windows `%AppData%`, macOS Application Support, Linux XDG-style |
-| Bash wrappers `[[ path != /* ]]` | Unix absolute-path guard | On Windows, call Node CLIs with drive-letter paths instead of bash wrappers |
+| Bash fallbacks `[[ path != /* ]]` | Unix absolute-path guard in historical shell wrappers | On Windows, use root Node wrappers (`pnpm mirror:import-safe`, `pnpm legacy:*`) with drive-letter paths |
 
 No `lsof`/`rsync` rewrites in this batch.
 
@@ -155,7 +158,6 @@ See **[phase-6-windows-mvp-operator-guide.md](./phase-6-windows-mvp-operator-gui
 
 | Item | Status |
 | --- | --- |
-| **Node QA orchestrator** (`scripts/qa-sandbox-run.mjs`) | Deferred — use bash `pnpm qa:sandbox` on macOS/Git Bash or manual checklist on Windows |
 | **`lsof` / port-kill replacement** | Deferred — `dev:ports` / `dev:kill-ports` remain macOS dev-only |
 | **NSIS / signed desktop installer** | Deferred — desktop MVP is unpackaged Electron + config file |
 | **Env-driven `FORBIDDEN_LEGACY_*` overrides** | Future — clinic-specific forbidden roots remain deployment-specific |

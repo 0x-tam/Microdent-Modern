@@ -14,7 +14,7 @@
 | **2. Windows-test readiness** | Handoff pack complete for a **scheduled** Windows field test? | **READY** — field pack docs in staged `MicrodentModern/`; see [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md) |
 | **3. Windows execution status** | Real Windows clinic PC run logged? | **Deferred / Not yet run** |
 
-**Clinic go-live:** **BLOCKED** until tier 3 shows a completed PHI-safe field log and [windows-pilot-go-no-go-checklist.md](./windows-pilot-go-no-go-checklist.md) **GO**.
+**Clinic go-live:** **BLOCKED** until tier 3 shows filed package verification evidence, completed PHI-safe Windows field evidence referencing that package proof through `packageVerification.evidencePath`, and [windows-pilot-go-no-go-checklist.md](./windows-pilot-go-no-go-checklist.md) **GO**.
 
 **Installer / NSIS:** **Deferred until after Windows field test** — tier 1–2 green does **not** authorize NSIS or `electron-builder` work. See [windows-pilot-installer-decision-record.md](./windows-pilot-installer-decision-record.md) Mac-first completion checklist.
 
@@ -86,7 +86,7 @@ Per-scenario **dev dry-run** vs **requires Windows PC** markers: [windows-pilot-
 | --- | --- | --- | --- |
 | `pnpm test` | ✅ Primary | ⚠️ Possible with Node 22 | Yes |
 | `pnpm build:web` | ✅ | ✅ | Yes |
-| `pnpm qa:sandbox` | ✅ Git Bash | ⚠️ Git Bash or manual §7 phase-6 | Partial |
+| `pnpm qa:sandbox` | ✅ Node | ✅ Node / PowerShell | Automated |
 | Desktop `release-smoke` | ✅ | ✅ | Yes |
 | First-run setup UI | ✅ | ✅ Manual QA | Vitest payload tests |
 | Mirror import | ✅ | ✅ PowerShell env | CLI tests |
@@ -98,12 +98,12 @@ Per-scenario **dev dry-run** vs **requires Windows PC** markers: [windows-pilot-
 
 | Priority | Action | Tier |
 | --- | --- | --- |
-| **1** | Execute [windows-pilot-field-execution-script.md](./windows-pilot-field-execution-script.md) on a clinic PC; file [TEMPLATE-windows-field-run.md](../qa-runs/TEMPLATE-windows-field-run.md); complete go/no-go | Tier 3 — **blocks clinic go-live** |
+| **1** | Validate package evidence with `pnpm pilot:package-verify-evidence`, execute [windows-pilot-field-execution-script.md](./windows-pilot-field-execution-script.md) on a clinic PC, file field evidence referencing `packageVerification.evidencePath`, and complete go/no-go | Tier 3 — **blocks clinic go-live** |
 | **2** | Mac-first completion checklist M1–M7 in installer decision record | After tier 3 GO |
 | **3** | NSIS spike (document-only acceptance criteria — **no** `electron-builder` dep until spike approved) | After M1–M7 |
 | **4** | Configure `origin` + Windows CI running `pnpm test`, `build:web`, `qa:sandbox` | Mac / CI |
 | **5** | Shared `@microdent/operator-path` for desktop + web path masking | Mac dev |
-| **6** | Cross-platform `qa-sandbox-run.mjs` (replace bash-only orchestrator on Windows) | Mac dev |
+| **6** | Keep cross-platform `qa-sandbox-run.mjs` aligned with bash fallback behavior | Mac dev |
 
 **Not now:** NSIS installer, Authenticode signing, bundled Node — all deferred until Windows field test completes.
 

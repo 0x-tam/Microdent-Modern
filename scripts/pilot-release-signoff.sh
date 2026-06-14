@@ -122,10 +122,10 @@ print_tier_summary() {
   echo "Tier 1 — Mac-side release readiness:     ${tier1}"
   echo "Tier 2 — Windows-test readiness:         READY (field pack in staged tree)"
   echo "Tier 3 — Windows execution status:       Deferred / Not yet run"
-  echo "Clinic go-live:                          BLOCKED (until tier 3 complete + go/no-go)"
+  echo "Clinic go-live:                          BLOCKED (package evidence + field evidence link + commercial/go-live evidence)"
   echo ""
   echo "Mac signoff does not substitute for Windows field execution."
-  echo "Field pack: docs/FIELD-TEST-START-HERE.md — schedule clinic PC test when ready."
+  echo "Field pack: docs/FIELD-TEST-START-HERE.md — file package evidence before clinic PC field evidence."
 }
 
 echo ""

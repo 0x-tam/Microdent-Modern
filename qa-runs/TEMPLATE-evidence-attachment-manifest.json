@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "microdent-evidence-attachment-manifest/v1",
+  "phiStatement": "no-real-patient-data",
+  "evidenceId": "FIELD-YYYY-MM-DD-CLINIC-PC-01",
+  "clinicLabel": "CLINIC-PC-01",
+  "createdDate": "YYYY-MM-DD",
+  "storage": {
+    "system": "internal-secure-tracker",
+    "location": "SECURE-TICKET-ID",
+    "rawFilesExcludedFromRepo": true,
+    "secureInternalTracker": true
+  },
+  "attachments": [
+    {
+      "fileName": "YYYY-MM-DD-CLINIC-PC-01-settings-redacted.png",
+      "type": "redacted-screenshot",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sourceStep": "EXEC-09",
+      "description": "Redacted Settings clinic service status screenshot.",
+      "redaction": {
+        "reviewed": true,
+        "reviewerRole": "IT lead",
+        "date": "YYYY-MM-DD",
+        "phiObserved": false
+      }
+    }
+  ],
+  "signoff": {
+    "reviewed": true,
+    "reviewerRole": "Privacy reviewer",
+    "date": "YYYY-MM-DD",
+    "phiObserved": false
+  }
+}

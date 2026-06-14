@@ -83,7 +83,8 @@ pnpm legacy:restore
 | Env | `services/bridge/src/backup/restore-env.ts` |
 | Hash helper | `services/bridge/src/backup/file-hash.ts` |
 | CLI | `services/bridge/src/cli/legacy-restore.ts` |
-| Shell | `scripts/legacy-restore.sh` |
+| Node wrapper | `scripts/legacy-command.mjs restore` |
+| Bash fallback | `scripts/legacy-restore.sh` (`pnpm legacy:restore:bash`) |
 | Root script | `pnpm legacy:restore` in root `package.json` |
 | Tests | `services/bridge/src/backup/legacy-restore.test.ts` |
 

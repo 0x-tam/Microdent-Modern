@@ -119,24 +119,24 @@ Open **Settings** in the app to confirm clinic service, local copy, editing mode
 
 ---
 
-## 8. Sandbox QA: macOS vs Windows
+## 8. Sandbox QA
 
-### macOS (or Git Bash on Windows with Unix tools)
+### Native command
 
-```bash
-export DATA_ROOT="/path/to/Microdent-Write-Sandbox/DATA"
-export SQLITE_PATH="/path/to/MICRODENT_MIRROR.sqlite"
-export BACKUP_DIR="/path/to/Microdent-Write-Sandbox/backups"
-cd /path/to/Microdent-Modern
-nvm use 22
+```powershell
+$env:DATA_ROOT = "C:\Microdent\Write-Sandbox\DATA"
+$env:SQLITE_PATH = "C:\Microdent\mirror\MICRODENT_MIRROR.sqlite"
+$env:BACKUP_DIR = "C:\Microdent\Write-Sandbox\backups"
+$env:WRITE_MODE = "enabled"
+$env:ALLOW_LEGACY_WRITES = "I_UNDERSTAND_THIS_IS_A_DISPOSABLE_COPY"
 pnpm qa:sandbox
 ```
 
 **Pass:** exit `0`; log ends with `qa:sandbox complete` and four workflows in smoke. Details: [phase-3-sandbox-qa-runner.md](./phase-3-sandbox-qa-runner.md).
 
-### Windows manual checklist
+### Manual fallback
 
-`pnpm qa:sandbox` is **implemented** but **bash-oriented** (`curl`, `jq`, `sqlite3`, `realpath`). On native Windows without Git Bash, run equivalent steps:
+If you need to inspect the flow step by step:
 
 | Step | Action |
 | --- | --- |
@@ -145,7 +145,7 @@ pnpm qa:sandbox
 | 3 | Start stable bridge: `node services\bridge\dist\server.js` (not `tsx watch`) |
 | 4 | Poll `GET http://127.0.0.1:17890/health` until `ok: true` |
 | 5 | Poll `GET /v1/meta/write-capability` until `writableSandbox: true` and `writeMode: "enabled"` |
-| 6 | Run four workflows (dry-run → backup → commit → restore) per [phase-3-sandbox-qa-runner.md](./phase-3-sandbox-qa-runner.md) — or use Git Bash: `bash scripts/qa-sandbox-write-smoke.sh` with bridge already up |
+| 6 | Run four workflows (dry-run → backup → commit → restore) per [phase-3-sandbox-qa-runner.md](./phase-3-sandbox-qa-runner.md) — or use `pnpm qa:sandbox:bash` / `bash scripts/qa-sandbox-write-smoke.sh` with bridge already up |
 | 7 | Optional audit: `GET /v1/meta/write-audit-recent` — log `operationId`, `workflow`, `terminalStatus` only |
 
 Use `pnpm --filter @microdent/bridge run legacy-backup` / `legacy-restore` with env vars instead of `pnpm legacy:*` bash wrappers.
@@ -172,7 +172,6 @@ Set `DATA_ROOT`, `SQLITE_PATH`, `BACKUP_DIR`, and workflow-specific vars in Powe
 
 | Item | Notes |
 | --- | --- |
-| **Node QA orchestrator** (`qa-sandbox-run.mjs`) | Cross-platform replacement for bash `pnpm qa:sandbox` — not in this batch |
 | **`lsof` replacement** | `pnpm dev:ports` / `dev:kill-ports` stay macOS dev-only |
 | **NSIS installer** | Desktop MVP is unpackaged; no signed installer or auto-update |
 

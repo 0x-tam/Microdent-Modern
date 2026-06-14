@@ -1,0 +1,107 @@
+{
+  "schemaVersion": "microdent-commercial-readiness/v1",
+  "phiStatement": "no-real-patient-data",
+  "build": {
+    "packageVersion": "pilot-YYYY-MM-DD",
+    "gitCommit": "abcdef1"
+  },
+  "macSignoff": {
+    "strictSignoff": "blocked",
+    "manifestVerified": false
+  },
+  "fieldEvidence": {
+    "status": "blocked",
+    "packageVerificationEvidencePath": "qa-runs/YYYY-MM-DD-windows-package-verify-evidence-CLINIC-PC-01.json",
+    "reportPath": "qa-runs/YYYY-MM-DD-windows-field-evidence-CLINIC-PC-01.json"
+  },
+  "windowsValidation": {
+    "windows10": "blocked",
+    "windows11": "blocked",
+    "antivirusEndpoint": "blocked",
+    "compatibilityReportPath": "qa-runs/YYYY-MM-DD-windows-compatibility-evidence.json"
+  },
+  "signing": {
+    "certificate": "blocked",
+    "appExecutableVerified": "blocked",
+    "installerVerified": "blocked",
+    "signedArtifactEvidencePath": "qa-runs/YYYY-MM-DD-signed-artifact-evidence.json",
+    "verificationTool": "signtool verify"
+  },
+  "installer": {
+    "status": "blocked",
+    "target": "nsis",
+    "installerEvidencePath": "qa-runs/YYYY-MM-DD-installer-evidence.json",
+    "cleanInstall": false,
+    "upgradeInstall": false,
+    "uninstallPreservesData": false,
+    "shortcutCreated": false
+  },
+  "autoUpdate": {
+    "status": "blocked",
+    "channel": "TBD",
+    "autoUpdateEvidencePath": "qa-runs/YYYY-MM-DD-auto-update-evidence.json",
+    "signedPayload": false,
+    "updatePreservesData": false,
+    "rollbackProven": false,
+    "privacyReviewed": false
+  },
+  "pilotReports": [
+    {
+      "clinicLabel": "CLINIC-PC-01",
+      "reportPath": "qa-runs/YYYY-MM-DD-clinic-pilot-report-CLINIC-PC-01.json",
+      "outcome": "blocked",
+      "issuesTriaged": false,
+      "phiObserved": false
+    }
+  ],
+  "supportReadiness": {
+    "knowledgeBaseReady": false,
+    "issueWorkflowReady": false,
+    "rollbackRunbookReady": false,
+    "supportEvidencePath": "qa-runs/YYYY-MM-DD-support-readiness-evidence.json"
+  },
+  "licensing": {
+    "status": "blocked",
+    "model": "per-clinic-perpetual",
+    "licenseEvidencePath": "qa-runs/YYYY-MM-DD-offline-license-CLINIC-PC-01.json",
+    "offlineValidation": false,
+    "noPhiTransmission": false,
+    "gracefulExpiry": false,
+    "safetyReviewed": false
+  },
+  "distribution": {
+    "status": "blocked",
+    "channel": "TBD",
+    "distributionEvidencePath": "qa-runs/YYYY-MM-DD-distribution-evidence.json",
+    "downloadIntegrity": false,
+    "releaseNotesReady": false,
+    "marketingClaimsReviewed": false,
+    "supportPathPublished": false
+  },
+  "pricing": {
+    "status": "blocked",
+    "model": "per-clinic",
+    "pricingEvidencePath": "qa-runs/YYYY-MM-DD-pricing-evidence.json",
+    "scopeMatchesLicense": false,
+    "supportTermsDefined": false,
+    "noUsageTelemetryDependency": false,
+    "sponsorApproved": false
+  },
+  "marketing": {
+    "status": "blocked",
+    "marketingEvidencePath": "qa-runs/YYYY-MM-DD-marketing-evidence.json",
+    "claimsMatchEvidence": false,
+    "unsupportedFeaturesDisclosed": false,
+    "privacyClaimsReviewed": false,
+    "websiteOrPacketReady": false,
+    "noClinicReadyClaimBeforeGate": false
+  },
+  "goLive": {
+    "outcome": "blocked",
+    "goLiveEvidencePath": "qa-runs/YYYY-MM-DD-go-live-evidence.json",
+    "approvers": [
+      { "role": "IT lead", "name": "TBD", "date": "YYYY-MM-DD" },
+      { "role": "Pilot sponsor", "name": "TBD", "date": "YYYY-MM-DD" }
+    ]
+  }
+}

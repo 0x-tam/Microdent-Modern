@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "microdent-distribution-evidence/v1",
+  "phiStatement": "no-real-patient-data",
+  "build": {
+    "packageVersion": "pilot-YYYY-MM-DD",
+    "gitCommit": "abcdef1"
+  },
+  "reviewDate": "YYYY-MM-DD",
+  "channel": "direct-signed-download",
+  "artifact": {
+    "relPath": "installer/MicrodentModernSetup.exe",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "signedArtifactEvidencePath": "qa-runs/YYYY-MM-DD-signed-artifact-evidence.json"
+  },
+  "summary": {
+    "downloadIntegrity": false,
+    "releaseNotesReady": false,
+    "marketingClaimsReviewed": false,
+    "supportPathPublished": false,
+    "privacySecurityReviewed": false
+  },
+  "rows": [
+    { "id": "signedArtifact", "pass": false, "evidence": "TBD" },
+    { "id": "downloadIntegrity", "pass": false, "evidence": "TBD" },
+    { "id": "releaseNotesReady", "pass": false, "evidence": "TBD" },
+    { "id": "unsupportedFeaturesDisclosed", "pass": false, "evidence": "TBD" },
+    { "id": "marketingClaimsReviewed", "pass": false, "evidence": "TBD" },
+    { "id": "supportPathPublished", "pass": false, "evidence": "TBD" },
+    { "id": "privacySecurityReviewed", "pass": false, "evidence": "TBD" }
+  ]
+}

@@ -8,9 +8,9 @@
 
 **Related guardrails:** [out-of-scope-guardrails.md](./out-of-scope-guardrails.md) · **Windows field test entry:** [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md)
 
-**Tier status:** Mac-side read workflows, patient workspace depth, and **visual identity** are substantially usable. **Mac-side further work = bugfix-only until Windows Tier 3.** **Clinic go-live remains BLOCKED** until Tier 3 Windows field execution completes per [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md). Mac checkpoint ≠ clinic acceptance.
+**Tier status:** Mac-side read workflows, patient workspace depth, and **visual identity** are substantially usable. **Mac-side further work = bugfix-only until Windows Tier 3.** **Clinic go-live remains BLOCKED** until Tier 3 package verification evidence is filed and Windows field execution completes with field evidence referencing `packageVerification.evidencePath` per [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md). Mac checkpoint ≠ clinic acceptance.
 
-**Windows execution status:** **Deferred / Not yet run** — no NSIS or clinic PC field log from this batch.
+**Windows execution status:** **Deferred / Not yet run** — no NSIS or clinic PC Windows field evidence from this batch.
 
 ---
 
@@ -24,7 +24,7 @@
 | **Settings** | Yes | 7-card readiness grid + grouped diagnostics (mirror/write/backup technical terms here only); Windows execution **Deferred / not yet run** |
 | **Writes (4 routes)** | Sandbox + pilot flag only | Doctor `<select>` from reference on create; discoverability hint above write panels; preview invalidation; blocked notice; mirror lag nudge |
 | **Payments / memos / clinical writes** | Blocked by design | See [out-of-scope-guardrails.md](./out-of-scope-guardrails.md) |
-| **Windows clinic PC** | **Not yet run — deferred** | **Next strategic gate**; no NSIS until field log exists |
+| **Windows clinic PC** | **Not yet run — deferred** | **Next strategic gate**; no NSIS until package verification and Windows field evidence exist |
 
 ---
 
@@ -132,14 +132,14 @@ UX gaps, not safety blockers:
 4. **Reminders / payments** — intentionally absent; disabled controls may still feel like missing product to front desk.
 5. **Mirror lag after writes** — copy nudge added; SQLite mirror still does not auto-refresh; operators must CLI import + Settings refresh.
 6. **Write pilots still gated** — `VITE_SANDBOX_WRITE_PILOT` + sandbox + row-level `<details>`; hint added but env flag remains required.
-7. **Decoded status/chart/ledger catalogs deferred** — numeric status codes and opaque procedure/chart codes remain; **post–Windows field log only** if mappings confirm safe (see plan). Category fallback helps treatments; full decode not shipped.
+7. **Decoded status/chart/ledger catalogs deferred** — numeric status codes and opaque procedure/chart codes remain; **post–Windows field evidence only** if mappings confirm safe (see plan). Category fallback helps treatments; full decode not shipped.
 8. **No odontogram** — chart is grouped list preview only; **out of scope**.
 9. **Timeline window honesty** — default ±365-day appointment window; truncated lists show banners but not full history.
 10. **Opaque chart types** — filter chips use `Type N` only; no clinical decode without field validation.
 11. **Filter scope limits** — provider/status filters apply to **loaded range only**; changing week/day may reset filter context unexpectedly for some operators.
 12. **CSS cohesion** — `app-shell.css` touched in batch; minor chip/card variance may remain across modules.
 13. **Windows packaging** — desktop Mac build green ≠ clinic PC validation ([FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md)).
-14. **No installer / NSIS** — portable staged tree only until Tier 3 field log.
+14. **No installer / NSIS** — portable staged tree only until Tier 3 package verification and Windows field evidence.
 
 ---
 
@@ -180,7 +180,7 @@ Per [out-of-scope-guardrails.md](./out-of-scope-guardrails.md) — **do not impl
 | Dry-run dev diagnostics | **Dev-only** | `import.meta.env.DEV` |
 | Desktop supervisor + bridge on clinic PC | **Windows-test-needed** | [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md) |
 | Field execution EXEC-01–16 | **Windows-test-needed** | Tier 3 gate |
-| Clinic go-live / production writes | **Blocked** | Tier 3 field log + go/no-go |
+| Clinic go-live / production writes | **Blocked** | Tier 3 package verification evidence + Windows field evidence referencing `packageVerification.evidencePath` + go/no-go |
 
 **Privacy:** Safe DTOs + display helpers; forbidden-token tests on timeline, reference-enriched labels, interactive filters, ledger type distribution, overview rows (Wave 2 L extending coverage).
 
@@ -195,11 +195,11 @@ Ordered by likely next work — **not committed**:
 - Single clinic PC run via [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md) + [`qa-runs/TEMPLATE-windows-field-run.md`](../qa-runs/TEMPLATE-windows-field-run.md).
 - Validate desktop first-run, supervisor, bridge health, read-only smoke, optional sandbox writes on Windows.
 - Resolve path/permission issues from [windows-pilot-permission-and-path-risks.md](./windows-pilot-permission-and-path-risks.md).
-- **No NSIS/installer** until field log exists.
+- **No NSIS/installer** until package verification evidence and Windows field evidence exist.
 
-### After field log (optional Mac polish — no new write domains)
+### After Windows Field Evidence (Optional Mac Polish — No New Write Domains)
 
-- **Decoded procedure/status/chart/ledger reference labels** — only if field log confirms safe mappings (currently deferred).
+- **Decoded procedure/status/chart/ledger reference labels** — only if Windows field evidence confirms safe mappings (currently deferred).
 - Recent-patients persistence policy (if ever desired — explicit privacy sign-off).
 - Visual odontogram (large scope; currently out).
 - Stronger search query sync (display-only).
@@ -244,10 +244,10 @@ Prior deepening batch tests (`patient-summary-mini-cards`, session recent, write
 
 ## Recommended next batch
 
-1. **Windows field execution batch (Tier 3)** — **primary go-live gate**; consolidated clinic PC run using [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md).
-2. **Mac bugfix-only** — visual identity pass complete; no further Mac feature batches until Windows field log exists.
+1. **Windows field execution batch (Tier 3)** — **primary go-live gate**; validate package verification evidence first, then run the consolidated clinic PC flow using [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md) and file field evidence with `packageVerification.evidencePath`.
+2. **Mac bugfix-only** — visual identity pass complete; no further Mac feature batches until Windows field evidence exists.
 
-Optional follow-ups **after field log:** decoded status/chart/ledger catalogs (if mappings validated), recent-patients policy, odontogram — only with explicit scope.
+Optional follow-ups **after Windows field evidence:** decoded status/chart/ledger catalogs (if mappings validated), recent-patients policy, odontogram — only with explicit scope.
 
 ---
 

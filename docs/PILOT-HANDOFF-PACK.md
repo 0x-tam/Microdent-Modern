@@ -6,7 +6,7 @@
 
 **Start here on clinic machines:** open **`PILOT-START-HERE.md`** at the package root, then this file in `docs/`.
 
-**Quick index:** [PILOT-START-HERE.md](./PILOT-START-HERE.md) · [windows-pilot-data-locations.md](./windows-pilot-data-locations.md) · [pilot-acceptance-checklist.md](./pilot-acceptance-checklist.md) · [pilot-issue-template.md](./pilot-issue-template.md)
+**Quick index:** [PILOT-START-HERE.md](./PILOT-START-HERE.md) · [operator-manual.md](./operator-manual.md) · [support-knowledge-base.md](./support-knowledge-base.md) · [data-privacy-review.md](./data-privacy-review.md) · [windows-pilot-data-locations.md](./windows-pilot-data-locations.md) · [pilot-acceptance-checklist.md](./pilot-acceptance-checklist.md) · [pilot-issue-template.md](./pilot-issue-template.md)
 
 ---
 
@@ -16,9 +16,9 @@
 | --- | --- | --- |
 | **1. Mac-side release readiness** | Build machine can stage, verify, and pass strict signoff? | **READY** after `pnpm pilot:release-signoff` (Mac disposable sandbox env) |
 | **2. Windows-test readiness** | Staged package includes field execution docs for IT/operators? | **READY** — section **0** below + [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md) |
-| **3. Windows execution status** | Real clinic PC field run filed? | **Deferred / Not yet run** |
+| **3. Windows execution status** | Package verification evidence and Windows field evidence JSON filed? | **Deferred / Not yet run** |
 
-**Clinic go-live:** **BLOCKED** until tier 3 is **Completed** with date, PHI-safe `qa-runs/` field log, and go/no-go GO.
+**Clinic go-live:** **BLOCKED** until package verification evidence is validated, tier 3 is **Completed** with date and PHI-safe `qa-runs/` field evidence referencing `packageVerification.evidencePath`, and non-template commercial/go-live evidence records GO.
 
 Mac checkpoint green ≠ clinic production. Schedule Windows testing when IT is ready; do not infer “run immediately” from Mac build success alone.
 
@@ -32,11 +32,15 @@ Use this index when a clinic PC runs the pilot — **after** you schedule a fiel
 | --- | --- | --- |
 | **Start** | [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md) | One-line pointer to field execution |
 | **Scope** | [windows-pilot-release-notes.md](./windows-pilot-release-notes.md) | What works, caveats, unsupported features |
-| **IT — verify** | [windows-pilot-package-verify-on-windows.md](./windows-pilot-package-verify-on-windows.md) | Package check without pnpm |
+| **IT — verify** | [windows-pilot-package-verify-on-windows.md](./windows-pilot-package-verify-on-windows.md) + [windows-package-verify-evidence.md](./windows-package-verify-evidence.md) | Package check without pnpm, then filed package evidence before operators start |
+| **Operator — daily use** | [operator-manual.md](./operator-manual.md) | First run, Today, Patients, Schedule, Settings, local copy, support logs |
 | **Operator — how** | [windows-pilot-field-execution-script.md](./windows-pilot-field-execution-script.md) | Linear day-0 steps (EXEC-01 … EXEC-16) with pass criteria |
 | **Operator — results** | [windows-pilot-field-result-form.md](./windows-pilot-field-result-form.md) | PHI-safe pass/fail capture |
+| **Privacy** | [data-privacy-review.md](./data-privacy-review.md) | Local-only data handling and support boundaries |
+| **Support** | [support-knowledge-base.md](./support-knowledge-base.md) | First-line triage, safe evidence, escalation levels |
+| **Feedback triage** | [pilot-feedback-triage-workflow.md](./pilot-feedback-triage-workflow.md) | Daily pilot issue workflow and status vocabulary |
 | **Sponsor — sign-off** | [windows-pilot-go-no-go-checklist.md](./windows-pilot-go-no-go-checklist.md) | GO / NO-GO decision table |
-| **QA filing** | [TEMPLATE-windows-field-run.md](../qa-runs/TEMPLATE-windows-field-run.md) | Copy into `qa-runs/` after the run |
+| **QA filing** | [TEMPLATE-windows-field-run.md](../qa-runs/TEMPLATE-windows-field-run.md) | Copy from staged `qa-runs/TEMPLATE-*` files into repo/internal tracker after the run |
 | **Failures** | [windows-pilot-troubleshooting-pack.md](./windows-pilot-troubleshooting-pack.md) | Symptom → operator actions |
 | **Paths / ACLs** | [windows-pilot-permission-and-path-risks.md](./windows-pilot-permission-and-path-risks.md) | Windows permission risks |
 | **Matrix — what** | [windows-pilot-real-machine-checklist.md](./windows-pilot-real-machine-checklist.md) | Full field matrix (dev dry-run vs **Requires Windows PC**) |
@@ -101,7 +105,7 @@ Layout reference: [windows-pilot-release-layout.md](./windows-pilot-release-layo
 | Step | Action | Detail |
 | --- | --- | --- |
 | 2.1 | Confirm bundled or fallback **Node.js 22.5+** | Preferred: `node\RUNTIME-MANIFEST.json`; fallback: Node on PATH / `MICRODENT_NODE_BINARY` |
-| 2.2 | Launch the desktop shell from `app/` | See `HANDOFF-README.txt` — Electron + packaged/fallback Node |
+| 2.2 | Launch the portable smoke runner from the package root | Double-click `DOUBLE-CLICK-WINDOWS-TEST.cmd`; it opens the packaged `.exe` when present or the local web preview fallback |
 | 2.3 | Complete **first-run setup** when prompted | Choose copied clinic data folder; local copy is prepared automatically |
 | 2.4 | Config saves to `%AppData%\Microdent\config.json` | Open via Win+R → `%AppData%\Microdent` |
 
@@ -225,6 +229,12 @@ Use **[pilot-issue-template.md](./pilot-issue-template.md)** — copy fields int
 
 IT sign-off: [pilot-acceptance-checklist.md](./pilot-acceptance-checklist.md).
 
+Pilot support workflow:
+
+- First-line support: [support-knowledge-base.md](./support-knowledge-base.md)
+- Triage loop and status vocabulary: [pilot-feedback-triage-workflow.md](./pilot-feedback-triage-workflow.md)
+- Support readiness evidence: [support-readiness-checklist.md](./support-readiness-checklist.md)
+
 ---
 
 ## Related docs in this package
@@ -232,16 +242,34 @@ IT sign-off: [pilot-acceptance-checklist.md](./pilot-acceptance-checklist.md).
 | Doc | Use when |
 | --- | --- |
 | [FIELD-TEST-START-HERE.md](./FIELD-TEST-START-HERE.md) | Field test entry point |
+| [operator-manual.md](./operator-manual.md) | Day-to-day operator workflow and troubleshooting |
+| [data-privacy-review.md](./data-privacy-review.md) | Local-only PHI handling and support boundaries |
+| [support-knowledge-base.md](./support-knowledge-base.md) | First-line support playbook |
+| [pilot-feedback-triage-workflow.md](./pilot-feedback-triage-workflow.md) | Feedback triage and issue workflow |
+| [support-readiness-checklist.md](./support-readiness-checklist.md) | Evidence checklist for support readiness |
+| [licensing-readiness.md](./licensing-readiness.md) | Offline/no-PHI licensing readiness |
+| [distribution-readiness.md](./distribution-readiness.md) | Distribution channel and marketing-claim readiness |
+| [pricing-readiness.md](./pricing-readiness.md) | Pricing model readiness without telemetry dependency |
+| [marketing-readiness.md](./marketing-readiness.md) | Marketing/public-claim readiness |
 | [windows-pilot-release-notes.md](./windows-pilot-release-notes.md) | Pilot scope and caveats |
 | [windows-pilot-troubleshooting-pack.md](./windows-pilot-troubleshooting-pack.md) | Windows field failures — bridge, AV, mirror, restore |
 | [windows-pilot-package-verify-on-windows.md](./windows-pilot-package-verify-on-windows.md) | IT verify package on Windows without pnpm |
-| [windows-pilot-go-no-go-checklist.md](./windows-pilot-go-no-go-checklist.md) | Sponsor sign-off after field run |
+| [windows-package-verify-evidence.md](./windows-package-verify-evidence.md) | Machine-readable package verification evidence required before field execution |
+| [evidence-attachment-manifest.md](./evidence-attachment-manifest.md) | Redacted attachment metadata for package and field evidence |
+| [windows-field-evidence-report.md](./windows-field-evidence-report.md) | Machine-readable Windows field evidence tied to package verification |
+| [windows-pilot-go-no-go-checklist.md](./windows-pilot-go-no-go-checklist.md) | Sponsor sign-off after validated package verification and filed Windows field evidence |
 | [windows-pilot-permission-and-path-risks.md](./windows-pilot-permission-and-path-risks.md) | Drive letters, ACLs, AV, UNC |
 | [pilot-tester-guide.md](./pilot-tester-guide.md) | Guided day 1–3 script |
 | [windows-pilot-field-execution-script.md](./windows-pilot-field-execution-script.md) | Linear field test steps (how) |
 | [windows-pilot-field-result-form.md](./windows-pilot-field-result-form.md) | PHI-safe field results (what was observed) |
+| [windows-compatibility-evidence.md](./windows-compatibility-evidence.md) | Windows 10/11 and antivirus/endpoint matrix evidence |
 | [windows-pilot-real-machine-checklist.md](./windows-pilot-real-machine-checklist.md) | Field test matrix (what to prove; dev vs Windows PC) |
 | [pilot-issue-template.md](./pilot-issue-template.md) | Safe issue reporting (no PHI) |
 | [windows-pilot-installer-decision-record.md](./windows-pilot-installer-decision-record.md) | Portable vs installer next phase |
+| [installer-deferral-decision-record.md](./installer-deferral-decision-record.md) | Concise installer deferral record |
+| [code-signing-deferral-decision-record.md](./code-signing-deferral-decision-record.md) | Code signing blocker record |
+| [auto-update-deferral-decision-record.md](./auto-update-deferral-decision-record.md) | Auto-update blocker record |
+| [telemetry-deferral-decision-record.md](./telemetry-deferral-decision-record.md) | Telemetry/upload deferral record |
+| [external-field-blockers-decision-record.md](./external-field-blockers-decision-record.md) | External Windows field blockers |
 | [pilot-backup-restore-audit.md](./pilot-backup-restore-audit.md) | Backup/restore + UI feedback |
 | [windows-pilot-data-locations.md](./windows-pilot-data-locations.md) | Install vs AppData vs clinic paths |

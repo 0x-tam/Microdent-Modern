@@ -37,6 +37,8 @@ export const FORBIDDEN_FOXPRO_BASENAMES = [
 
 export const FORBIDDEN_SOURCE_FILE = /\.(sqlite3?|dbf|log|fpt|cdx|exe|bat|cmd)$/i;
 export const FORBIDDEN_ENV_FILE = /^\.env$/i;
+export const WINDOWS_TEST_RUNNER = "DOUBLE-CLICK-WINDOWS-TEST.cmd";
+export const WINDOWS_AUTO_TEST_RUNNER = "DOUBLE-CLICK-AUTO-TEST.cmd";
 
 /** Allowlisted placeholder DBF used only in bridge test fixtures at build time. */
 export const ALLOWED_DBF_PLACEHOLDER = "fake_tiny.dbf";
@@ -116,6 +118,11 @@ export function isForbiddenStagedFileName(name) {
 function isAllowedNodeRuntimeBinary(relPath) {
   const normalized = relPath.replace(/\\/g, "/");
   return normalized === "node/node.exe" || normalized === "node/node" || normalized === "node/bin/node";
+}
+
+function isAllowedWindowsTestRunner(relPath) {
+  const normalized = relPath.replace(/\\/g, "/");
+  return normalized === WINDOWS_TEST_RUNNER || normalized === WINDOWS_AUTO_TEST_RUNNER;
 }
 
 export function assertConfigTemplateSafe(content, label) {
@@ -203,7 +210,11 @@ export function walkStagedArtifactRules(stageRoot, { onFail, readText = true }) 
         walk(abs, rel);
         continue;
       }
-      if (isForbiddenStagedFileName(entry.name) && !isAllowedNodeRuntimeBinary(rel)) {
+      if (
+        isForbiddenStagedFileName(entry.name)
+        && !isAllowedNodeRuntimeBinary(rel)
+        && !isAllowedWindowsTestRunner(rel)
+      ) {
         onFail(rel, "forbidden file name or extension");
         continue;
       }
@@ -273,16 +284,50 @@ export function assertStagedTreeSafe(stageRoot) {
 }
 
 export const REQUIRED_STAGED_LAYOUT = [
+  WINDOWS_TEST_RUNNER,
+  WINDOWS_AUTO_TEST_RUNNER,
   "PILOT-START-HERE.md",
   "HANDOFF-README.txt",
   "HANDOFF-README.md",
+  "clinic-data-copy/DATA/README.txt",
   "qa-runs/README.txt",
+  "qa-runs/TEMPLATE-auto-update-evidence.json",
+  "qa-runs/TEMPLATE-batch-report.md",
+  "qa-runs/TEMPLATE-clinic-pilot-report.json",
+  "qa-runs/TEMPLATE-commercial-readiness-evidence.json",
+  "qa-runs/TEMPLATE-distribution-evidence.json",
+  "qa-runs/TEMPLATE-distribution-readiness.md",
+  "qa-runs/TEMPLATE-evidence-attachment-manifest.json",
+  "qa-runs/TEMPLATE-go-live-evidence.json",
+  "qa-runs/TEMPLATE-installer-evidence.json",
+  "qa-runs/TEMPLATE-licensing-readiness.md",
+  "qa-runs/TEMPLATE-marketing-evidence.json",
+  "qa-runs/TEMPLATE-marketing-readiness.md",
+  "qa-runs/TEMPLATE-offline-license.json",
+  "qa-runs/TEMPLATE-pilot-feedback-triage.md",
+  "qa-runs/TEMPLATE-pricing-evidence.json",
+  "qa-runs/TEMPLATE-pricing-readiness.md",
+  "qa-runs/TEMPLATE-signed-artifact-evidence.json",
+  "qa-runs/TEMPLATE-support-readiness.md",
+  "qa-runs/TEMPLATE-support-readiness-evidence.json",
+  "qa-runs/TEMPLATE-windows-compatibility-evidence.json",
+  "qa-runs/TEMPLATE-windows-package-verify-evidence.json",
+  "qa-runs/TEMPLATE-windows-field-evidence.json",
+  "qa-runs/TEMPLATE-windows-field-run.md",
   "app/dist/main.js",
-  "app/dist/app-preload.cjs",
+  "app/dist/main-app-preload.cjs",
   "app/dist/bridge-supervisor.js",
   "app/dist/setup/setup.html",
   "app/package.json",
+  "apps/desktop/README.md",
+  "bridge/package.json",
   "bridge/server.js",
+  "scripts/windows-oneclick-check.ps1",
+  "scripts/import-copied-data.mjs",
+  "scripts/serve-web.mjs",
+  "scripts/write-smoke-evidence.mjs",
+  "sql/migrations/001_initial.sql",
+  "sqlite-mirror/package.json",
   "sqlite-mirror/index.js",
   "web/index.html",
   "web/pilot-build.json",
@@ -290,7 +335,31 @@ export const REQUIRED_STAGED_LAYOUT = [
   "config-templates/paths.example.env",
   "docs/PILOT-START-HERE.md",
   "docs/PILOT-HANDOFF-PACK.md",
+  "docs/operator-manual.md",
+  "docs/auto-update-evidence.md",
+  "docs/clinic-pilot-report-evidence.md",
+  "docs/data-privacy-review.md",
+  "docs/support-knowledge-base.md",
+  "docs/support-readiness-evidence.md",
+  "docs/pilot-feedback-triage-workflow.md",
+  "docs/support-readiness-checklist.md",
+  "docs/licensing-readiness.md",
+  "docs/distribution-readiness.md",
+  "docs/distribution-evidence.md",
+  "docs/pricing-readiness.md",
+  "docs/pricing-evidence.md",
+  "docs/marketing-readiness.md",
+  "docs/marketing-evidence.md",
+  "docs/go-live-evidence.md",
+  "docs/offline-license-mechanism.md",
   "docs/FIELD-TEST-START-HERE.md",
+  "docs/evidence-collection-packet.md",
+  "docs/evidence-attachment-manifest.md",
+  "docs/windows-field-evidence-report.md",
+  "docs/windows-compatibility-evidence.md",
+  "docs/windows-package-verify-evidence.md",
+  "docs/commercial-readiness-evidence.md",
+  "docs/installer-evidence.md",
   "docs/pilot-tester-guide.md",
   "docs/pilot-acceptance-checklist.md",
   "docs/pilot-backup-restore-audit.md",
@@ -298,7 +367,37 @@ export const REQUIRED_STAGED_LAYOUT = [
   "docs/pilot-issue-template.md",
   "docs/windows-pilot-data-locations.md",
   "docs/windows-pilot-release-layout.md",
+  "docs/windows-pilot-runbook.md",
+  "docs/windows-pilot-packaging-gap-report.md",
+  "docs/windows-pilot-pre-installer-checklist.md",
+  "docs/windows-dev-dry-run.md",
+  "docs/phase-3-desktop-packaging-plan.md",
+  "docs/phase-3-appointment-status-write-runbook.md",
+  "docs/phase-3-appointment-status-dry-run.md",
+  "docs/phase-3-audit-log-schema.md",
+  "docs/phase-3-backup-cli.md",
+  "docs/phase-3-disposable-write-sandbox.md",
+  "docs/phase-3-restore-cli.md",
+  "docs/phase-3-sandbox-guard.md",
+  "docs/phase-3-sandbox-qa-runner.md",
+  "docs/phase-3-sandbox-validation.md",
+  "docs/phase-3-write-safe-qa-checklist.md",
+  "docs/phase-3-write-mode-config.md",
+  "docs/phase-3-windows-readiness-audit.md",
+  "docs/phase-4-windows-operator-quickstart.md",
+  "docs/phase-5-operator-qa-runbook.md",
+  "docs/phase-6-windows-mvp-operator-guide.md",
+  "docs/phase-7-sandbox-pilot-qa-runbook.md",
+  "docs/phase-8-log-redaction-review.md",
+  "docs/phase-1b-read-only-smoke-tests.md",
+  "docs/phase-1b-manual-qa-checklist.md",
   "docs/windows-pilot-installer-decision-record.md",
+  "docs/installer-deferral-decision-record.md",
+  "docs/code-signing-deferral-decision-record.md",
+  "docs/auto-update-deferral-decision-record.md",
+  "docs/telemetry-deferral-decision-record.md",
+  "docs/external-field-blockers-decision-record.md",
+  "docs/signed-artifact-evidence.md",
   "docs/windows-pilot-real-machine-checklist.md",
   "docs/windows-pilot-field-execution-script.md",
   "docs/windows-pilot-field-result-form.md",
@@ -309,6 +408,7 @@ export const REQUIRED_STAGED_LAYOUT = [
   "docs/windows-pilot-release-notes.md",
   "docs/phase-4-mirror-import-operator.md",
   "scripts/README.txt",
+  "scripts/README.md",
   "scripts/mirror-import-pointer.txt",
   "node/README.txt",
   "logs/README.txt",

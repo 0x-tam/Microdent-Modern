@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "microdent-windows-compatibility/v1",
+  "phiStatement": "no-real-patient-data",
+  "build": {
+    "packageVersion": "pilot-YYYY-MM-DD",
+    "gitCommit": "abcdef1",
+    "releaseChannel": "pilot"
+  },
+  "matrix": [
+    {
+      "machineLabel": "WIN10-CLINIC-PC-01",
+      "windowsVersion": "Windows 10 22H2",
+      "architecture": "x64",
+      "nodeVersion": "v22.11.0",
+      "packageLayoutVerified": "blocked",
+      "desktopLaunch": "blocked",
+      "firstRunSetup": "blocked",
+      "localCopyImport": "blocked",
+      "readOnlySmoke": "blocked",
+      "sandboxQa": "blocked",
+      "supportExport": "blocked",
+      "antivirusEndpoint": {
+        "product": "TBD",
+        "status": "blocked",
+        "exclusionsRequired": false,
+        "notes": "TBD"
+      },
+      "phiObserved": false,
+      "liveLegacyTouched": false
+    },
+    {
+      "machineLabel": "WIN11-CLINIC-PC-01",
+      "windowsVersion": "Windows 11 23H2",
+      "architecture": "x64",
+      "nodeVersion": "v22.11.0",
+      "packageLayoutVerified": "blocked",
+      "desktopLaunch": "blocked",
+      "firstRunSetup": "blocked",
+      "localCopyImport": "blocked",
+      "readOnlySmoke": "blocked",
+      "sandboxQa": "blocked",
+      "supportExport": "blocked",
+      "antivirusEndpoint": {
+        "product": "TBD",
+        "status": "blocked",
+        "exclusionsRequired": false,
+        "notes": "TBD"
+      },
+      "phiObserved": false,
+      "liveLegacyTouched": false
+    }
+  ],
+  "summary": {
+    "windows10": "blocked",
+    "windows11": "blocked",
+    "antivirusEndpoint": "blocked",
+    "phiObserved": false,
+    "liveLegacyTouched": false
+  }
+}

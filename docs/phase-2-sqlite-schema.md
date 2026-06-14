@@ -43,7 +43,7 @@ Canonical read-model tables aligned with `docs/phase-2-sqlite-mirror-plan.md`. N
 | `appointments` | `appointment_id` |
 | `medical_summary` | `patient_id` |
 
-`import_source_checksums` is planned for incremental import (Phase 2.2+) and is **not** created yet.
+`import_source_file_snapshots` records PHI-safe source file basenames, size, and modified-time metadata for local-copy freshness and table-level incremental refresh. It stores no paths or row payloads.
 
 ---
 

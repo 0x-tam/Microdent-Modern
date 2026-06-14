@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "microdent-windows-package-verify/v1",
+  "phiStatement": "no-real-patient-data",
+  "build": {
+    "packageVersion": "pilot-YYYY-MM-DD",
+    "appVersion": "0.0.1",
+    "gitCommit": "abcdef1",
+    "releaseChannel": "pilot"
+  },
+  "machine": {
+    "label": "CLINIC-PC-01",
+    "windowsVersion": "Windows 11 23H2",
+    "verifierRole": "IT"
+  },
+  "package": {
+    "rootCategory": "portable-handoff",
+    "manifestPath": "RELEASE-MANIFEST.json",
+    "pilotBuildPath": "web/pilot-build.json",
+    "verificationDoc": "docs/windows-pilot-package-verify-on-windows.md"
+  },
+  "checks": {
+    "layoutPresent": "blocked",
+    "manifestFieldsRecorded": "blocked",
+    "manifestSafe": "blocked",
+    "forbiddenArtifactsAbsent": "blocked",
+    "configTemplatesPlaceholders": "blocked",
+    "placeholderFoldersClean": "blocked",
+    "pilotBuildMatchesManifest": "blocked",
+    "operatorDocsPresent": "blocked",
+    "unsupportedFeaturesRecorded": "blocked"
+  },
+  "nodeRuntimeState": "placeholder-only",
+  "decision": {
+    "status": "conditional",
+    "approverRole": "IT",
+    "date": "YYYY-MM-DD",
+    "attachmentManifestPath": "qa-runs/YYYY-MM-DD-evidence-attachment-manifest-CLINIC-PC-01.json"
+  },
+  "rawArtifactsCommitted": false,
+  "rawLogsAttached": false,
+  "phiObserved": false
+}

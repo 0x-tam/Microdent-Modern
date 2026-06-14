@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "microdent-marketing-evidence/v1",
+  "phiStatement": "no-real-patient-data",
+  "build": {
+    "packageVersion": "pilot-YYYY-MM-DD",
+    "gitCommit": "abcdef1"
+  },
+  "reviewDate": "YYYY-MM-DD",
+  "commercialGateReady": false,
+  "packet": {
+    "type": "sales-packet",
+    "evidencePath": "docs/marketing-readiness.md"
+  },
+  "summary": {
+    "claimsMatchEvidence": false,
+    "unsupportedFeaturesDisclosed": false,
+    "privacyClaimsReviewed": false,
+    "websiteOrPacketReady": false,
+    "noClinicReadyClaimBeforeGate": false,
+    "safeScreenshotsOnly": false
+  },
+  "claims": [
+    {
+      "text": "Local-first desktop modernization",
+      "evidencePath": "docs/marketing-readiness.md",
+      "approved": false,
+      "allowedBeforeCommercialReady": true
+    },
+    {
+      "text": "No cloud dependency in pilot RC",
+      "evidencePath": "docs/data-privacy-review.md",
+      "approved": false,
+      "allowedBeforeCommercialReady": true
+    },
+    {
+      "text": "Production-ready",
+      "evidencePath": "qa-runs/YYYY-MM-DD-commercial-readiness-evidence.json",
+      "approved": false,
+      "allowedBeforeCommercialReady": false
+    }
+  ],
+  "rows": [
+    { "id": "claimsMatchEvidence", "pass": false, "evidence": "TBD" },
+    { "id": "unsupportedFeaturesDisclosed", "pass": false, "evidence": "TBD" },
+    { "id": "privacyClaimsReviewed", "pass": false, "evidence": "TBD" },
+    { "id": "websiteOrPacketApproved", "pass": false, "evidence": "TBD" },
+    { "id": "noClinicReadyClaimBeforeGate", "pass": false, "evidence": "TBD" },
+    { "id": "safeScreenshotsOnly", "pass": false, "evidence": "TBD" }
+  ],
+  "approvers": [
+    { "role": "Pilot sponsor", "name": "TBD", "date": "YYYY-MM-DD" },
+    { "role": "Privacy reviewer", "name": "TBD", "date": "YYYY-MM-DD" }
+  ]
+}
