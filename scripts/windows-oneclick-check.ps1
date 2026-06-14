@@ -78,8 +78,8 @@ function Invoke-CheckedStep {
   $script:StepIndex += 1
   $safeName = ConvertTo-SafeFileName $Scenario
   $baseName = "{0:D2}-{1}" -f $script:StepIndex, $safeName
-  $stdoutPath = Join-Path $StepLogDir "$baseName.stdout.txt"
-  $stderrPath = Join-Path $StepLogDir "$baseName.stderr.txt"
+  $stdoutPath = Join-Path $StepLogDir "$baseName.stdout.tmp"
+  $stderrPath = Join-Path $StepLogDir "$baseName.stderr.tmp"
   $logPath = Join-Path $StepLogDir "$baseName.txt"
   $relativeLogPath = "qa-runs/windows-oneclick-logs/$baseName.txt"
   Set-Content -Path $logPath -Encoding UTF8 -Value @(
