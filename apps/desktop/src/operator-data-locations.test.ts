@@ -12,6 +12,10 @@ import {
 const homedirMock = vi.hoisted(() => vi.fn(() => "/home/operator"));
 const platformMock = vi.hoisted(() => vi.fn(() => "linux"));
 
+function portablePath(value: string): string {
+  return value.replace(/\\/g, "/");
+}
+
 vi.mock("node:os", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:os")>();
   return {
@@ -77,10 +81,10 @@ describe("recommendedOperatorLogDir", () => {
 
   it("resolves under AppData on Windows", () => {
     platformMock.mockReturnValue("win32");
-    expect(recommendedOperatorLogDir()).toBe("/home/operator/AppData/Microdent/logs");
+    expect(portablePath(recommendedOperatorLogDir())).toBe("/home/operator/AppData/Microdent/logs");
     expect(logsDir()).toBe(recommendedOperatorLogDir());
-    expect(crashDumpsDir()).toBe("/home/operator/AppData/Microdent/crash-dumps");
-    expect(operatorConfigFilePath()).toBe("/home/operator/AppData/Microdent/config.json");
+    expect(portablePath(crashDumpsDir())).toBe("/home/operator/AppData/Microdent/crash-dumps");
+    expect(portablePath(operatorConfigFilePath())).toBe("/home/operator/AppData/Microdent/config.json");
   });
 });
 

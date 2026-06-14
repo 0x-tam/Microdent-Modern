@@ -14,6 +14,10 @@ import {
 const homedirMock = vi.hoisted(() => vi.fn(() => "/home/operator"));
 const platformMock = vi.hoisted(() => vi.fn(() => "linux"));
 
+function portablePath(value: string): string {
+  return value.replace(/\\/g, "/");
+}
+
 vi.mock("node:os", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:os")>();
   return {
@@ -68,20 +72,20 @@ describe("desktopConfigDir", () => {
 
   it("uses AppData on Windows", () => {
     platformMock.mockReturnValue("win32");
-    expect(desktopConfigDir()).toBe("/home/operator/AppData/Microdent");
-    expect(configPath()).toBe("/home/operator/AppData/Microdent/config.json");
+    expect(portablePath(desktopConfigDir())).toBe("/home/operator/AppData/Microdent");
+    expect(portablePath(configPath())).toBe("/home/operator/AppData/Microdent/config.json");
   });
 
   it("uses Application Support on macOS", () => {
     platformMock.mockReturnValue("darwin");
-    expect(desktopConfigDir()).toBe(
+    expect(portablePath(desktopConfigDir())).toBe(
       "/home/operator/Library/Application Support/Microdent",
     );
   });
 
   it("uses XDG-style config on Linux and other Unix", () => {
     platformMock.mockReturnValue("linux");
-    expect(desktopConfigDir()).toBe("/home/operator/.config/microdent");
+    expect(portablePath(desktopConfigDir())).toBe("/home/operator/.config/microdent");
   });
 
   it("accepts Windows AppData-style paths in saved config", () => {

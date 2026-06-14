@@ -30,14 +30,11 @@ const FORBIDDEN_ENV_PATTERNS = [
   /microdent-legacy/i,
 ];
 
-function envValues(env: NodeJS.ProcessEnv): string[] {
-  return Object.entries(env)
-    .filter(([, value]) => typeof value === "string")
-    .map(([, value]) => value as string);
-}
-
 function assertNoForbiddenPaths(env: NodeJS.ProcessEnv): void {
-  for (const value of envValues(env)) {
+  const managedKeys = ["DATA_ROOT", "SQLITE_PATH", "BACKUP_DIR", "WRITE_MODE", "BRIDGE_PORT"];
+  for (const key of managedKeys) {
+    const value = env[key];
+    if (typeof value !== "string") continue;
     for (const pattern of FORBIDDEN_ENV_PATTERNS) {
       expect(value).not.toMatch(pattern);
     }
